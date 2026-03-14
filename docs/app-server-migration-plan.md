@@ -53,6 +53,10 @@ Rules for every phase:
 ```text
 lib/src/features/chat/
   application/
+    runtime_event_mapper.dart
+    runtime_event_mapper_notification_mapper.dart
+    runtime_event_mapper_request_mapper.dart
+    runtime_event_mapper_support.dart
     transcript_policy.dart
     transcript_reducer.dart
   models/
@@ -90,6 +94,9 @@ lib/src/features/chat/
     transcript_reducer.dart
     transcript_policy.dart
     runtime_event_mapper.dart
+    runtime_event_mapper_notification_mapper.dart
+    runtime_event_mapper_request_mapper.dart
+    runtime_event_mapper_support.dart
 
   infrastructure/
     app_server/
@@ -216,26 +223,25 @@ Result:
 - transcript behavior can be tested without pumping `ChatScreen`
 - the next state seam is now between transcript policy and runtime mapping
 
-### Phase 3: Split Runtime Mapping
+### Phase 3: Completed Runtime Mapping Split
 
-Primary target:
+Done:
 
-- break up `codex_runtime_event_mapper.dart`
+- replace `services/codex_runtime_event_mapper.dart` with:
+  - `application/runtime_event_mapper.dart`
+  - `application/runtime_event_mapper_request_mapper.dart`
+  - `application/runtime_event_mapper_notification_mapper.dart`
+  - `application/runtime_event_mapper_support.dart`
+- keep `CodexRuntimeEventMapper` as the stable public facade
+- move request mapping, notification mapping, and pure normalization helpers behind that facade
+- rewire the screen and tests onto the new application-layer path
 
-Files to create:
+Result:
 
-- `application/runtime_event_mapper.dart`
-
-Rules:
-
-- protocol normalization must not decide transcript placement
-- canonical item-type mapping must live in one place only
-- start with private helpers inside the mapper file, then split further only if needed
-
-Exit criteria:
-
-- runtime mapping can be tested independently of transcript state
-- protocol method handling no longer leaks product decisions into unrelated helpers
+- runtime mapping is no longer concentrated in one 1169 LOC file
+- the public mapper entrypoint is now small enough to read in one pass
+- request tracking stayed local to the mapper instead of leaking into `ChatScreen`
+- canonical item and request normalization still live in one shared helper library
 
 ### Phase 4: Simplify ChatScreen
 

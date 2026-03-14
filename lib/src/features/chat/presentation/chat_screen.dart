@@ -11,7 +11,7 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_compose
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/services/codex_runtime_event_mapper.dart';
+import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -396,7 +396,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   bool _isNearTranscriptBottom([ScrollMetrics? metrics]) {
     final activeMetrics =
-        metrics ?? (_scrollController.hasClients ? _scrollController.position : null);
+        metrics ??
+        (_scrollController.hasClients ? _scrollController.position : null);
     if (activeMetrics == null) {
       return true;
     }

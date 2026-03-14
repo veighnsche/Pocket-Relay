@@ -11,9 +11,9 @@ Counts below are from the current app-server-only workspace snapshot and will dr
 | LOC | File | Why it matters |
 | ---: | --- | --- |
 | 1204 | `lib/src/features/chat/application/transcript_policy.dart` | Transcript ordering, dedupe, suppression, block construction, diff extraction, usage formatting, and request block policy are concentrated here. This is the main transcript behavior hotspot after Phase 2. |
-| 1169 | `lib/src/features/chat/services/codex_runtime_event_mapper.dart` | Raw app-server notifications and requests are normalized here. Missing or incorrect mapping silently turns into bad UI behavior. |
+| 542 | `lib/src/features/chat/application/runtime_event_mapper_notification_mapper.dart` | The main notification switch still owns a large share of protocol normalization. Missing or incorrect mapping silently turns into bad UI behavior. |
 | 929 | `lib/src/features/chat/services/codex_app_server_client.dart` | This is the transport boundary: SSH process startup, JSON-RPC request flow, request tracking, and runtime pointer updates. |
-| 724 | `lib/src/features/chat/presentation/chat_screen.dart` | The screen still owns too much orchestration: connect/send/stop, event subscription, scroll-follow, status handling, and settings reconnect flow. |
+| 725 | `lib/src/features/chat/presentation/chat_screen.dart` | The screen still owns too much orchestration: connect/send/stop, event subscription, scroll-follow, status handling, and settings reconnect flow. |
 | 508 | `lib/src/features/settings/presentation/connection_sheet.dart` | Large settings form with persistence-sensitive behavior. Touch it only when the bug is actually in configuration or settings UX. |
 | 507 | `lib/src/features/chat/models/codex_runtime_event.dart` | Not the first place to patch a bug, but the runtime-event model is large enough that mistakes here can destabilize several layers at once. |
 
@@ -46,7 +46,7 @@ When a chat bug comes in:
 
 1. If the transcript looks wrong, start with `presentation/widgets/transcript/`, then `chat_screen.dart`.
 2. If the transcript behaves wrong, start with `application/transcript_policy.dart`, then `application/transcript_reducer.dart`.
-3. If the app reacts to JSON incorrectly, start with `codex_runtime_event_mapper.dart`.
+3. If the app reacts to JSON incorrectly, start with `application/runtime_event_mapper_notification_mapper.dart`.
 4. If requests, approvals, connection, or turn control fail, start with `codex_app_server_client.dart`.
 5. If the bug is about configuration or theme persistence, check `connection_sheet.dart` and the profile store.
 
@@ -54,7 +54,7 @@ When a chat bug comes in:
 
 The current refactor priority is:
 
-1. `codex_runtime_event_mapper.dart`
+1. `application/runtime_event_mapper_notification_mapper.dart`
 2. `transcript_policy.dart`
 3. `chat_screen.dart`
 4. `codex_app_server_client.dart` if it is still too large after the upper layers are cut apart

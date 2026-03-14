@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/services/codex_runtime_event_mapper.dart';
+import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 
 void main() {
   test('maps transport connect and disconnect into session runtime events', () {
