@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/models/conversation_entry.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_session_reducer.dart';
 
 void main() {
@@ -58,10 +58,11 @@ void main() {
 
       expect(state.connectionStatus, CodexRuntimeSessionState.running);
       expect(state.activeItems, isEmpty);
-      expect(state.transcript, hasLength(1));
-      expect(state.transcript.single.kind, ConversationEntryKind.assistant);
-      expect(state.transcript.single.body, 'Hello, world');
-      expect(state.transcript.single.isRunning, isFalse);
+      expect(state.blocks, hasLength(1));
+      final block = state.blocks.single as CodexTextBlock;
+      expect(block.kind, CodexUiBlockKind.assistantMessage);
+      expect(block.body, 'Hello, world');
+      expect(block.isRunning, isFalse);
     },
   );
 
@@ -84,7 +85,8 @@ void main() {
     );
 
     expect(state.pendingApprovalRequests.keys, contains('i:99'));
-    expect(state.transcript.single.title, 'File change approval');
+    final requestBlock = state.blocks.single as CodexApprovalRequestBlock;
+    expect(requestBlock.title, 'File change approval');
 
     state = reducer.reduceRuntimeEvent(
       state,
@@ -99,7 +101,9 @@ void main() {
     );
 
     expect(state.pendingApprovalRequests, isEmpty);
-    expect(state.transcript.single.title, 'File change approval resolved');
+    final resolvedBlock = state.blocks.single as CodexApprovalRequestBlock;
+    expect(resolvedBlock.title, 'File change approval resolved');
+    expect(resolvedBlock.isResolved, isTrue);
   });
 
   test('opens and resolves user-input requests', () {
@@ -126,7 +130,8 @@ void main() {
     );
 
     expect(state.pendingUserInputRequests.keys, contains('s:user-input-1'));
-    expect(state.transcript.single.title, 'Input required');
+    final inputBlock = state.blocks.single as CodexUserInputRequestBlock;
+    expect(inputBlock.title, 'Input required');
 
     state = reducer.reduceRuntimeEvent(
       state,
@@ -143,8 +148,10 @@ void main() {
     );
 
     expect(state.pendingUserInputRequests, isEmpty);
-    expect(state.transcript.single.title, 'Input submitted');
-    expect(state.transcript.single.body, contains('Vince'));
+    final submittedBlock = state.blocks.single as CodexUserInputRequestBlock;
+    expect(submittedBlock.title, 'Input submitted');
+    expect(submittedBlock.body, contains('Vince'));
+    expect(submittedBlock.isResolved, isTrue);
   });
 
   test('tracks thread and turn ids and captures usage summaries', () {
@@ -186,7 +193,7 @@ void main() {
     expect(state.threadId, 'thread_123');
     expect(state.turnId, isNull);
     expect(state.latestUsageSummary, 'input 12 · cached 3 · output 7');
-    expect(state.transcript.last.kind, ConversationEntryKind.usage);
+    expect(state.blocks.last, isA<CodexUsageBlock>());
   });
 
   test('keeps warnings and errors non-fatal to the UI state', () {
@@ -214,8 +221,8 @@ void main() {
     );
 
     expect(state.connectionStatus, CodexRuntimeSessionState.ready);
-    expect(state.transcript, hasLength(2));
-    expect(state.transcript.first.kind, ConversationEntryKind.status);
-    expect(state.transcript.last.kind, ConversationEntryKind.error);
+    expect(state.blocks, hasLength(2));
+    expect(state.blocks.first, isA<CodexStatusBlock>());
+    expect(state.blocks.last, isA<CodexErrorBlock>());
   });
 }

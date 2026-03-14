@@ -143,7 +143,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   Expanded(
-                    child: _sessionState.transcript.isEmpty
+                    child: _sessionState.blocks.isEmpty
                         ? EmptyState(
                             isConfigured: _profile.isReady,
                             onConfigure: _openSettingsSheet,
@@ -153,12 +153,12 @@ class _ChatScreenState extends State<ChatScreen> {
                             padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
                             itemBuilder: (context, index) {
                               return ConversationEntryCard(
-                                entry: _sessionState.transcript[index],
+                                block: _sessionState.blocks[index],
                               );
                             },
                             separatorBuilder: (context, index) =>
                                 const SizedBox(height: 12),
-                            itemCount: _sessionState.transcript.length,
+                            itemCount: _sessionState.blocks.length,
                           ),
                   ),
                   SafeArea(

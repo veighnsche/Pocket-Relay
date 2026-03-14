@@ -1,5 +1,5 @@
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/models/conversation_entry.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
 class CodexSessionState {
   const CodexSessionState({
@@ -10,7 +10,7 @@ class CodexSessionState {
     this.pendingUserInputRequests =
         const <String, CodexSessionPendingUserInputRequest>{},
     this.activeItems = const <String, CodexSessionActiveItem>{},
-    this.transcript = const <ConversationEntry>[],
+    this.blocks = const <CodexUiBlock>[],
     this.latestUsageSummary,
   });
 
@@ -25,7 +25,7 @@ class CodexSessionState {
   final Map<String, CodexSessionPendingUserInputRequest>
   pendingUserInputRequests;
   final Map<String, CodexSessionActiveItem> activeItems;
-  final List<ConversationEntry> transcript;
+  final List<CodexUiBlock> blocks;
   final String? latestUsageSummary;
 
   bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
@@ -39,7 +39,7 @@ class CodexSessionState {
     Map<String, CodexSessionPendingRequest>? pendingApprovalRequests,
     Map<String, CodexSessionPendingUserInputRequest>? pendingUserInputRequests,
     Map<String, CodexSessionActiveItem>? activeItems,
-    List<ConversationEntry>? transcript,
+    List<CodexUiBlock>? blocks,
     String? latestUsageSummary,
     bool clearLatestUsageSummary = false,
   }) {
@@ -52,7 +52,7 @@ class CodexSessionState {
       pendingUserInputRequests:
           pendingUserInputRequests ?? this.pendingUserInputRequests,
       activeItems: activeItems ?? this.activeItems,
-      transcript: transcript ?? this.transcript,
+      blocks: blocks ?? this.blocks,
       latestUsageSummary: clearLatestUsageSummary
           ? null
           : (latestUsageSummary ?? this.latestUsageSummary),
@@ -113,7 +113,7 @@ class CodexSessionActiveItem {
     required this.turnId,
     required this.itemType,
     required this.entryId,
-    required this.kind,
+    required this.blockKind,
     required this.createdAt,
     this.title,
     this.body = '',
@@ -126,7 +126,7 @@ class CodexSessionActiveItem {
   final String turnId;
   final CodexCanonicalItemType itemType;
   final String entryId;
-  final ConversationEntryKind kind;
+  final CodexUiBlockKind blockKind;
   final DateTime createdAt;
   final String? title;
   final String body;
@@ -145,7 +145,7 @@ class CodexSessionActiveItem {
       turnId: turnId,
       itemType: itemType,
       entryId: entryId,
-      kind: kind,
+      blockKind: blockKind,
       createdAt: createdAt,
       title: title ?? this.title,
       body: body ?? this.body,

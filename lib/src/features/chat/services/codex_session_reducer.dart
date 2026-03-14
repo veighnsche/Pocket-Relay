@@ -1,6 +1,7 @@
 import 'package:pocket_relay/src/features/chat/models/codex_remote_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/models/conversation_entry.dart';
 
 class CodexSessionReducer {
@@ -11,17 +12,15 @@ class CodexSessionReducer {
     required String text,
     DateTime? createdAt,
   }) {
-    final entry = ConversationEntry(
+    final block = CodexUserMessageBlock(
       id: _eventEntryId('user', createdAt ?? DateTime.now()),
-      kind: ConversationEntryKind.user,
-      title: 'You',
-      body: text,
       createdAt: createdAt ?? DateTime.now(),
+      text: text,
     );
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(connectionStatus: CodexRuntimeSessionState.running),
-      entry,
+      block,
     );
   }
 
@@ -45,20 +44,19 @@ class CodexSessionReducer {
     DateTime? createdAt,
   }) {
     final eventTime = createdAt ?? DateTime.now();
-    final entry = ConversationEntry(
+    final block = CodexStatusBlock(
       id: _eventEntryId('status', eventTime),
-      kind: ConversationEntryKind.status,
+      createdAt: eventTime,
       title: 'Run stopped',
       body: message,
-      createdAt: eventTime,
     );
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(
         connectionStatus: CodexRuntimeSessionState.ready,
         clearTurnId: true,
       ),
-      entry,
+      block,
     );
   }
 
@@ -80,14 +78,13 @@ class CodexSessionReducer {
     }
 
     final eventTime = createdAt ?? DateTime.now();
-    return _upsertEntry(
+    return _upsertBlock(
       cleared,
-      ConversationEntry(
+      CodexStatusBlock(
         id: _eventEntryId('status', eventTime),
-        kind: ConversationEntryKind.status,
+        createdAt: eventTime,
         title: 'New thread',
         body: message,
-        createdAt: eventTime,
       ),
     );
   }
@@ -96,7 +93,7 @@ class CodexSessionReducer {
     return state.copyWith(
       clearThreadId: true,
       clearTurnId: true,
-      transcript: const <ConversationEntry>[],
+      blocks: const <CodexUiBlock>[],
       activeItems: const <String, CodexSessionActiveItem>{},
       pendingApprovalRequests: const <String, CodexSessionPendingRequest>{},
       pendingUserInputRequests:
@@ -125,30 +122,33 @@ class CodexSessionReducer {
           return nextState;
         }
 
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
-          ConversationEntry(
+          CodexStatusBlock(
             id: 'thread_$threadId',
-            kind: ConversationEntryKind.status,
+            createdAt: DateTime.now(),
             title: 'Thread ready',
             body: 'Remote session ${_shortenId(threadId)} is active.',
-            createdAt: DateTime.now(),
           ),
         );
       case EntryUpsertedEvent(:final entry):
-        return _upsertEntry(state, entry);
+        return _upsertBlock(state, _blockFromLegacyEntry(entry));
       case InformationalEvent(:final message, :final isError):
-        return _upsertEntry(
+        return _upsertBlock(
           state,
-          ConversationEntry(
-            id: _eventEntryId(isError ? 'error' : 'status', DateTime.now()),
-            kind: isError
-                ? ConversationEntryKind.error
-                : ConversationEntryKind.status,
-            title: isError ? 'Remote issue' : 'Status',
-            body: message,
-            createdAt: DateTime.now(),
-          ),
+          isError
+              ? CodexErrorBlock(
+                  id: _eventEntryId('error', DateTime.now()),
+                  createdAt: DateTime.now(),
+                  title: 'Remote issue',
+                  body: message,
+                )
+              : CodexStatusBlock(
+                  id: _eventEntryId('status', DateTime.now()),
+                  createdAt: DateTime.now(),
+                  title: 'Status',
+                  body: message,
+                ),
         );
       case TurnFinishedEvent():
         final nextState = state.copyWith(
@@ -157,16 +157,15 @@ class CodexSessionReducer {
           clearThreadId: ephemeralSession,
           latestUsageSummary: _buildLegacyUsageSummary(event),
         );
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
-          ConversationEntry(
+          CodexUsageBlock(
             id: _eventEntryId('usage', DateTime.now()),
-            kind: ConversationEntryKind.usage,
+            createdAt: DateTime.now(),
             title: 'Turn complete',
             body:
                 nextState.latestUsageSummary ??
                 'The remote Codex turn finished.',
-            createdAt: DateTime.now(),
           ),
         );
     }
@@ -181,7 +180,7 @@ class CodexSessionReducer {
         if (event.message == null || event.message!.trim().isEmpty) {
           return state;
         }
-        return _upsertEntry(
+        return _upsertBlock(
           state,
           _statusEntry(
             prefix: 'status',
@@ -195,7 +194,7 @@ class CodexSessionReducer {
         if (event.reason == null || event.reason!.trim().isEmpty) {
           return nextState;
         }
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
           _statusEntry(
             prefix: 'status',
@@ -216,29 +215,32 @@ class CodexSessionReducer {
           pendingUserInputRequests:
               const <String, CodexSessionPendingUserInputRequest>{},
         );
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
-          ConversationEntry(
-            id: _eventEntryId('session-exit', event.createdAt),
-            kind: event.exitKind == CodexRuntimeSessionExitKind.error
-                ? ConversationEntryKind.error
-                : ConversationEntryKind.status,
-            title: 'Session exited',
-            body: event.reason ?? 'The Codex session ended.',
-            createdAt: event.createdAt,
-          ),
+          event.exitKind == CodexRuntimeSessionExitKind.error
+              ? CodexErrorBlock(
+                  id: _eventEntryId('session-exit', event.createdAt),
+                  createdAt: event.createdAt,
+                  title: 'Session exited',
+                  body: event.reason ?? 'The Codex session ended.',
+                )
+              : CodexStatusBlock(
+                  id: _eventEntryId('session-exit', event.createdAt),
+                  createdAt: event.createdAt,
+                  title: 'Session exited',
+                  body: event.reason ?? 'The Codex session ended.',
+                ),
         );
       case CodexRuntimeThreadStartedEvent():
         final nextState = state.copyWith(threadId: event.providerThreadId);
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
-          ConversationEntry(
+          CodexStatusBlock(
             id: 'thread_${event.providerThreadId}',
-            kind: ConversationEntryKind.status,
+            createdAt: event.createdAt,
             title: 'Thread ready',
             body:
                 'Remote session ${_shortenId(event.providerThreadId)} is active.',
-            createdAt: event.createdAt,
           ),
         );
       case CodexRuntimeThreadStateChangedEvent():
@@ -250,7 +252,7 @@ class CodexSessionReducer {
               ? const <String, CodexSessionActiveItem>{}
               : state.activeItems,
         );
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
           _statusEntry(
             prefix: 'thread-state',
@@ -275,28 +277,26 @@ class CodexSessionReducer {
         if (usageSummary == null || usageSummary.isEmpty) {
           return nextState;
         }
-        return _upsertEntry(
+        return _upsertBlock(
           nextState,
-          ConversationEntry(
+          CodexUsageBlock(
             id: _eventEntryId('usage', event.createdAt),
-            kind: ConversationEntryKind.usage,
+            createdAt: event.createdAt,
             title: 'Turn complete',
             body: usageSummary,
-            createdAt: event.createdAt,
           ),
         );
       case CodexRuntimeTurnAbortedEvent():
-        return _upsertEntry(
+        return _upsertBlock(
           state.copyWith(
             connectionStatus: CodexRuntimeSessionState.ready,
             clearTurnId: true,
           ),
-          ConversationEntry(
+          CodexStatusBlock(
             id: _eventEntryId('status', event.createdAt),
-            kind: ConversationEntryKind.status,
+            createdAt: event.createdAt,
             title: 'Turn aborted',
             body: event.reason ?? 'The active turn was aborted.',
-            createdAt: event.createdAt,
           ),
         );
       case CodexRuntimeItemStartedEvent():
@@ -316,7 +316,7 @@ class CodexSessionReducer {
       case CodexRuntimeUserInputResolvedEvent():
         return _applyUserInputResolved(state, event);
       case CodexRuntimeWarningEvent():
-        return _upsertEntry(
+        return _upsertBlock(
           state,
           _statusEntry(
             prefix: 'warning',
@@ -328,14 +328,13 @@ class CodexSessionReducer {
           ),
         );
       case CodexRuntimeErrorEvent():
-        return _upsertEntry(
+        return _upsertBlock(
           state,
-          ConversationEntry(
+          CodexErrorBlock(
             id: _eventEntryId('error', event.createdAt),
-            kind: ConversationEntryKind.error,
+            createdAt: event.createdAt,
             title: 'Runtime error',
             body: event.message,
-            createdAt: event.createdAt,
           ),
         );
     }
@@ -348,13 +347,13 @@ class CodexSessionReducer {
   }) {
     final existing = state.activeItems[event.itemId!];
     final nextItem = _activeItemFromLifecycle(event, existing: existing);
-    final nextEntry = _entryFromActiveItem(nextItem);
+    final nextBlock = _blockFromActiveItem(nextItem);
     final nextActiveItems = <String, CodexSessionActiveItem>{
       ...state.activeItems,
       event.itemId!: nextItem,
     };
 
-    final nextState = _upsertEntry(
+    final nextState = _upsertBlock(
       state.copyWith(
         activeItems: removeAfterUpsert
             ? <String, CodexSessionActiveItem>{
@@ -362,7 +361,7 @@ class CodexSessionReducer {
               }
             : nextActiveItems,
       ),
-      nextEntry,
+      nextBlock,
     );
 
     return nextState;
@@ -386,14 +385,14 @@ class CodexSessionReducer {
       isRunning: true,
     );
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(
         activeItems: <String, CodexSessionActiveItem>{
           ...state.activeItems,
           itemId: updatedItem,
         },
       ),
-      _entryFromActiveItem(updatedItem),
+      _blockFromActiveItem(updatedItem),
     );
   }
 
@@ -417,7 +416,7 @@ class CodexSessionReducer {
         detail: event.detail,
         args: event.args,
       );
-      return _upsertEntry(
+      return _upsertBlock(
         state.copyWith(
           pendingUserInputRequests:
               <String, CodexSessionPendingUserInputRequest>{
@@ -425,12 +424,13 @@ class CodexSessionReducer {
                 requestId: pendingUserInput,
               },
         ),
-        ConversationEntry(
+        CodexUserInputRequestBlock(
           id: 'request_$requestId',
-          kind: ConversationEntryKind.status,
+          createdAt: event.createdAt,
+          requestId: requestId,
+          requestType: event.requestType,
           title: _requestTitle(event.requestType),
           body: event.detail ?? 'Codex requested additional user input.',
-          createdAt: event.createdAt,
         ),
       );
     }
@@ -446,19 +446,20 @@ class CodexSessionReducer {
       args: event.args,
     );
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(
         pendingApprovalRequests: <String, CodexSessionPendingRequest>{
           ...state.pendingApprovalRequests,
           requestId: pendingRequest,
         },
       ),
-      ConversationEntry(
+      CodexApprovalRequestBlock(
         id: 'request_$requestId',
-        kind: ConversationEntryKind.status,
+        createdAt: event.createdAt,
+        requestId: requestId,
+        requestType: event.requestType,
         title: _requestTitle(event.requestType),
         body: event.detail ?? 'Codex needs a decision before it can continue.',
-        createdAt: event.createdAt,
       ),
     );
   }
@@ -479,17 +480,18 @@ class CodexSessionReducer {
       ...state.pendingUserInputRequests,
     }..remove(requestId);
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(
         pendingApprovalRequests: nextApprovalRequests,
         pendingUserInputRequests: nextInputRequests,
       ),
-      ConversationEntry(
+      _resolvedRequestBlock(
         id: 'request_$requestId',
-        kind: ConversationEntryKind.status,
+        createdAt: event.createdAt,
+        requestId: requestId,
+        requestType: event.requestType,
         title: '${_requestTitle(event.requestType)} resolved',
         body: 'Codex received a response for this request.',
-        createdAt: event.createdAt,
       ),
     );
   }
@@ -514,19 +516,21 @@ class CodexSessionReducer {
       args: event.rawPayload,
     );
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(
         pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
           ...state.pendingUserInputRequests,
           requestId: pendingRequest,
         },
       ),
-      ConversationEntry(
+      CodexUserInputRequestBlock(
         id: 'request_$requestId',
-        kind: ConversationEntryKind.status,
+        createdAt: event.createdAt,
+        requestId: requestId,
+        requestType: CodexCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: _questionsSummary(event.questions),
-        createdAt: event.createdAt,
+        questions: event.questions,
       ),
     );
   }
@@ -540,18 +544,21 @@ class CodexSessionReducer {
       return state;
     }
 
-    return _upsertEntry(
+    return _upsertBlock(
       state.copyWith(
         pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
           ...state.pendingUserInputRequests,
         }..remove(requestId),
       ),
-      ConversationEntry(
+      CodexUserInputRequestBlock(
         id: 'request_$requestId',
-        kind: ConversationEntryKind.status,
+        createdAt: event.createdAt,
+        requestId: requestId,
+        requestType: CodexCanonicalRequestType.toolUserInput,
         title: 'Input submitted',
         body: _answersSummary(event.answers),
-        createdAt: event.createdAt,
+        isResolved: true,
+        answers: event.answers,
       ),
     );
   }
@@ -560,7 +567,7 @@ class CodexSessionReducer {
     CodexRuntimeItemLifecycleEvent event, {
     CodexSessionActiveItem? existing,
   }) {
-    final kind = _entryKindForItemType(event.itemType);
+    final blockKind = _blockKindForItemType(event.itemType);
     final title = _itemTitle(event, existing?.title);
     final body = _itemBody(event, existing?.body ?? '');
     final exitCode = _extractExitCode(event.snapshot) ?? existing?.exitCode;
@@ -570,7 +577,7 @@ class CodexSessionReducer {
       turnId: event.turnId!,
       itemType: event.itemType,
       entryId: existing?.entryId ?? 'item_${event.itemId}',
-      kind: kind,
+      blockKind: blockKind,
       createdAt: existing?.createdAt ?? event.createdAt,
       title: title,
       body: body,
@@ -589,7 +596,7 @@ class CodexSessionReducer {
       turnId: event.turnId!,
       itemType: itemType,
       entryId: 'item_${event.itemId}',
-      kind: _entryKindForItemType(itemType),
+      blockKind: _blockKindForItemType(itemType),
       createdAt: event.createdAt,
       title: _defaultItemTitle(itemType),
       body: '',
@@ -597,47 +604,166 @@ class CodexSessionReducer {
     );
   }
 
-  ConversationEntry _entryFromActiveItem(CodexSessionActiveItem item) {
-    return ConversationEntry(
-      id: item.entryId,
-      kind: item.kind,
-      title: item.title ?? _defaultItemTitle(item.itemType),
-      body: item.body,
-      createdAt: item.createdAt,
-      isRunning: item.isRunning,
-      exitCode: item.exitCode,
-    );
+  CodexUiBlock _blockFromLegacyEntry(ConversationEntry entry) {
+    return switch (entry.kind) {
+      ConversationEntryKind.user => CodexUserMessageBlock(
+        id: entry.id,
+        createdAt: entry.createdAt,
+        text: entry.body,
+      ),
+      ConversationEntryKind.assistant => CodexTextBlock(
+        id: entry.id,
+        kind: CodexUiBlockKind.assistantMessage,
+        createdAt: entry.createdAt,
+        title: entry.title,
+        body: entry.body,
+        isRunning: entry.isRunning,
+      ),
+      ConversationEntryKind.command => CodexCommandExecutionBlock(
+        id: entry.id,
+        createdAt: entry.createdAt,
+        command: entry.title,
+        output: entry.body,
+        isRunning: entry.isRunning,
+        exitCode: entry.exitCode,
+      ),
+      ConversationEntryKind.status => CodexStatusBlock(
+        id: entry.id,
+        createdAt: entry.createdAt,
+        title: entry.title,
+        body: entry.body,
+      ),
+      ConversationEntryKind.error => CodexErrorBlock(
+        id: entry.id,
+        createdAt: entry.createdAt,
+        title: entry.title,
+        body: entry.body,
+      ),
+      ConversationEntryKind.usage => CodexUsageBlock(
+        id: entry.id,
+        createdAt: entry.createdAt,
+        title: entry.title,
+        body: entry.body,
+      ),
+    };
   }
 
-  CodexSessionState _upsertEntry(
-    CodexSessionState state,
-    ConversationEntry entry,
-  ) {
-    final nextTranscript = List<ConversationEntry>.from(state.transcript);
-    final index = nextTranscript.indexWhere(
-      (existing) => existing.id == entry.id,
-    );
-    if (index == -1) {
-      nextTranscript.add(entry);
-    } else {
-      nextTranscript[index] = entry;
+  CodexUiBlock _blockFromActiveItem(CodexSessionActiveItem item) {
+    final title = item.title ?? _defaultItemTitle(item.itemType);
+    return switch (item.blockKind) {
+      CodexUiBlockKind.commandExecution => CodexCommandExecutionBlock(
+        id: item.entryId,
+        createdAt: item.createdAt,
+        command: title,
+        output: item.body,
+        isRunning: item.isRunning,
+        exitCode: item.exitCode,
+      ),
+      CodexUiBlockKind.fileChange => CodexTextBlock(
+        id: item.entryId,
+        kind: CodexUiBlockKind.fileChange,
+        createdAt: item.createdAt,
+        title: title,
+        body: item.body,
+        isRunning: item.isRunning,
+      ),
+      CodexUiBlockKind.reasoning => CodexTextBlock(
+        id: item.entryId,
+        kind: CodexUiBlockKind.reasoning,
+        createdAt: item.createdAt,
+        title: title,
+        body: item.body,
+        isRunning: item.isRunning,
+      ),
+      CodexUiBlockKind.plan => CodexTextBlock(
+        id: item.entryId,
+        kind: CodexUiBlockKind.plan,
+        createdAt: item.createdAt,
+        title: title,
+        body: item.body,
+        isRunning: item.isRunning,
+      ),
+      CodexUiBlockKind.status => CodexStatusBlock(
+        id: item.entryId,
+        createdAt: item.createdAt,
+        title: title,
+        body: item.body,
+      ),
+      CodexUiBlockKind.error => CodexErrorBlock(
+        id: item.entryId,
+        createdAt: item.createdAt,
+        title: title,
+        body: item.body,
+      ),
+      _ => CodexTextBlock(
+        id: item.entryId,
+        kind: CodexUiBlockKind.assistantMessage,
+        createdAt: item.createdAt,
+        title: title,
+        body: item.body,
+        isRunning: item.isRunning,
+      ),
+    };
+  }
+
+  CodexUiBlock _resolvedRequestBlock({
+    required String id,
+    required DateTime createdAt,
+    required String requestId,
+    required CodexCanonicalRequestType requestType,
+    required String title,
+    required String body,
+  }) {
+    final isUserInput =
+        requestType == CodexCanonicalRequestType.toolUserInput ||
+        requestType == CodexCanonicalRequestType.mcpServerElicitation;
+    if (isUserInput) {
+      return CodexUserInputRequestBlock(
+        id: id,
+        createdAt: createdAt,
+        requestId: requestId,
+        requestType: requestType,
+        title: title,
+        body: body,
+        isResolved: true,
+      );
     }
 
-    return state.copyWith(transcript: nextTranscript);
+    return CodexApprovalRequestBlock(
+      id: id,
+      createdAt: createdAt,
+      requestId: requestId,
+      requestType: requestType,
+      title: title,
+      body: body,
+      isResolved: true,
+      resolutionLabel: 'resolved',
+    );
   }
 
-  ConversationEntry _statusEntry({
+  CodexSessionState _upsertBlock(CodexSessionState state, CodexUiBlock block) {
+    final nextBlocks = List<CodexUiBlock>.from(state.blocks);
+    final index = nextBlocks.indexWhere((existing) => existing.id == block.id);
+    if (index == -1) {
+      nextBlocks.add(block);
+    } else {
+      nextBlocks[index] = block;
+    }
+
+    return state.copyWith(blocks: nextBlocks);
+  }
+
+  CodexStatusBlock _statusEntry({
     required String prefix,
     required String title,
     required String body,
     required DateTime createdAt,
   }) {
-    return ConversationEntry(
+    return CodexStatusBlock(
       id: _eventEntryId(prefix, createdAt),
-      kind: ConversationEntryKind.status,
+      createdAt: createdAt,
       title: title,
       body: body,
-      createdAt: createdAt,
     );
   }
 
@@ -697,14 +823,18 @@ class CodexSessionReducer {
     return value is num ? value.toInt() : null;
   }
 
-  static ConversationEntryKind _entryKindForItemType(
+  static CodexUiBlockKind _blockKindForItemType(
     CodexCanonicalItemType itemType,
   ) {
     return switch (itemType) {
-      CodexCanonicalItemType.commandExecution => ConversationEntryKind.command,
-      CodexCanonicalItemType.error => ConversationEntryKind.error,
-      CodexCanonicalItemType.unknown => ConversationEntryKind.status,
-      _ => ConversationEntryKind.assistant,
+      CodexCanonicalItemType.commandExecution =>
+        CodexUiBlockKind.commandExecution,
+      CodexCanonicalItemType.reasoning => CodexUiBlockKind.reasoning,
+      CodexCanonicalItemType.plan => CodexUiBlockKind.plan,
+      CodexCanonicalItemType.fileChange => CodexUiBlockKind.fileChange,
+      CodexCanonicalItemType.error => CodexUiBlockKind.error,
+      CodexCanonicalItemType.unknown => CodexUiBlockKind.status,
+      _ => CodexUiBlockKind.assistantMessage,
     };
   }
 
