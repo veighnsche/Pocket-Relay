@@ -3,7 +3,6 @@ import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/app_preferences.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
-import 'package:pocket_relay/src/features/chat/services/ssh_codex_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -16,7 +15,6 @@ void main() {
             secrets: const ConnectionSecrets(),
           ),
         ),
-        remoteService: SshCodexService(),
       ),
     );
 
@@ -41,7 +39,6 @@ void main() {
     await tester.pumpWidget(
       PocketRelayApp(
         profileStore: profileStore,
-        remoteService: SshCodexService(),
       ),
     );
 

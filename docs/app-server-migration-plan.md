@@ -1,485 +1,330 @@
-# Codex App-Server Migration Plan
+# App-Server Chat Refactor Plan
 
-## Goal
+## Status
 
-Migrate Pocket Relay from `codex exec --json` to `codex app-server` so the app can:
+The app-server migration is complete enough to treat as the default architecture:
 
-- render richer Codex output as mobile widgets
-- handle mid-turn approvals and user-input requests
-- keep a long-lived bidirectional session over SSH
-- decouple UI widgets from raw Codex protocol messages
+- the legacy SSH parser path is removed from the app
+- the chat feature is now app-server-only
+- the remaining problem is structural concentration, not transport ambiguity
 
-This plan is intentionally narrow. The target is a phone-friendly Codex client, not a full clone of T3 Code.
+This document is the active refactor plan for the post-migration codebase.
 
-## Why This Migration Is Worth Doing
+## Refactor Goals
 
-The current implementation is built around a one-shot command runner:
+This refactor is meant to stop chat-layer bug whack-a-mole.
 
-- `lib/src/features/chat/services/ssh_codex_service.dart`
-- `lib/src/features/chat/services/codex_event_parser.dart`
-- `lib/src/features/chat/presentation/chat_screen.dart`
+The desired outcome is:
 
-That shape works for `codex exec --json`, but it has hard limits:
-
-- it assumes one command per turn
-- it assumes stdout is the only meaningful stream
-- it treats Codex as a producer, not a peer
-- it cannot support mid-turn approvals or structured user-input requests cleanly
-- it pushes raw transport concerns too close to the UI
-
-`codex app-server` is the better fit because the app needs bidirectional interaction, not just transcript streaming.
+1. Runtime mapping is separate from transcript state changes.
+2. Transcript state changes are separate from widget rendering.
+3. `ChatScreen` becomes composition and binding code, not session logic.
+4. Transcript cards are split by card family instead of one giant renderer.
+5. Bug fixes usually land in one layer instead of three or four files.
 
 ## Non-Goals
 
-Do not pull in the full reference architecture.
+Do not do these during the refactor:
 
-Out of scope for this migration:
+- reintroduce the legacy SSH/event-parser path
+- rewrite the app-server protocol model
+- redesign the full chat UI while moving code around
+- create extra micro-files unless they remove real coupling
+- add compatibility shims just to preserve old imports
 
-- multi-project orchestration
-- server-side storage
-- web parity with the reference repo
-- background sync
-- local execution of Codex on-device
+## Refactor Strategy
 
-## Target Architecture
+This refactor follows a hard-cut strategy:
 
-The target architecture should be:
+1. Make a structural cut.
+2. Let the compiler fail.
+3. Repair imports, callsites, and tests immediately.
+4. End the phase with `dart analyze` and passing tests.
 
-```text
-SSH stdio transport
-  -> JSON-RPC message codec
-  -> canonical runtime event mapper
-  -> chat session state
-  -> widget view models
-  -> Flutter widgets
-```
+Rules for every phase:
 
-The most important boundary is:
+- no dual-path transport logic
+- no legacy wrappers
+- no opportunistic UI redesign in the same commit series
+- size targets are secondary; ownership boundaries matter more
 
-```text
-raw app-server message -> canonical Dart event -> UI state/widget model
-```
-
-The widgets must never depend directly on raw JSON-RPC method names.
-
-## Proposed File Layout
-
-Add these new files:
+## Current Chat Tree
 
 ```text
-lib/src/features/chat/models/codex_runtime_event.dart
-lib/src/features/chat/models/codex_session_state.dart
-lib/src/features/chat/models/codex_ui_block.dart
-lib/src/features/chat/services/codex_app_server_client.dart
-lib/src/features/chat/services/codex_json_rpc_codec.dart
-lib/src/features/chat/services/codex_runtime_event_mapper.dart
-lib/src/features/chat/services/codex_session_reducer.dart
-test/codex_runtime_event_mapper_test.dart
-test/codex_session_reducer_test.dart
+lib/src/features/chat/
+  models/
+    codex_runtime_event.dart
+    codex_session_state.dart
+    codex_ui_block.dart
+    conversation_entry.dart
+  presentation/
+    chat_screen.dart
+    widgets/
+      chat_composer.dart
+      conversation_entry_card.dart
+      empty_state.dart
+  services/
+    codex_app_server_client.dart
+    codex_json_rpc_codec.dart
+    codex_runtime_event_mapper.dart
+    codex_session_reducer.dart
 ```
 
-Modify these existing files:
+`conversation_entry.dart` is dead weight from the old architecture and should be deleted during the early cleanup phase.
+
+## Proposed Target Tree
+
+This is the lean target tree.
 
 ```text
-lib/src/features/chat/models/conversation_entry.dart
-lib/src/features/chat/presentation/chat_screen.dart
-lib/src/features/chat/presentation/widgets/conversation_entry_card.dart
-lib/src/features/chat/services/ssh_codex_service.dart
+lib/src/features/chat/
+  models/
+    codex_runtime_event.dart
+    codex_session_state.dart
+    codex_ui_block.dart
+
+  application/
+    chat_session_controller.dart
+    transcript_reducer.dart
+    transcript_policy.dart
+    runtime_event_mapper.dart
+
+  infrastructure/
+    app_server/
+      codex_app_server_client.dart
+      codex_json_rpc_codec.dart
+
+  presentation/
+    screens/
+      chat_screen.dart
+    widgets/
+      chat_composer.dart
+      empty_state.dart
+      transcript/
+        conversation_entry_card.dart
+        transcript_list.dart
+        cards/
+          assistant_message_card.dart
+          user_message_card.dart
+          reasoning_card.dart
+          command_card.dart
+          work_log_group_card.dart
+          changed_files_card.dart
+          approval_request_card.dart
+          user_input_request_card.dart
+          status_card.dart
+          error_card.dart
+          usage_card.dart
+        support/
+          conversation_card_palette.dart
+          markdown_style_factory.dart
 ```
 
-Keep these temporarily during migration:
+## Explicitly Not In The First-Wave Tree
+
+These were in earlier proposals and are intentionally out for now:
+
+- `scroll_follow_controller.dart`
+- `codex_item_policy.dart`
+- `codex_request_policy.dart`
+- `codex_usage_policy.dart`
+- `request_event_mapper.dart`
+- `notification_event_mapper.dart`
+- `item_event_mapper.dart`
+- `content_delta_mapper.dart`
+- `runtime_value_normalizer.dart`
+- `codex_app_server_process.dart`
+- `codex_app_server_requests.dart`
+
+If we still need them later, that should be because a real boundary appears during the cut, not because the plan said so up front.
+
+## Proposed Test Tree
+
+The tests should mirror the real seams, not every implementation detail:
 
 ```text
-lib/src/features/chat/models/codex_remote_event.dart
-lib/src/features/chat/services/codex_event_parser.dart
+test/
+  features/chat/
+    application/
+      runtime_event_mapper_test.dart
+      transcript_reducer_test.dart
+      transcript_policy_test.dart
+    infrastructure/
+      app_server/
+        codex_app_server_client_test.dart
+        codex_json_rpc_codec_test.dart
+    presentation/
+      chat_screen_test.dart
+      transcript/
+        conversation_entry_card_test.dart
+        cards/
+          usage_card_test.dart
+          work_log_group_card_test.dart
+          changed_files_card_test.dart
 ```
 
-Delete or retire them only after app-server is stable in the app.
+The current top-level test files can move toward this layout as part of the refactor. They do not need to move before the production cuts begin.
 
-## Phase 1: Introduce A Long-Lived App-Server Client
+## Phase Plan
 
-### Objective
+### Phase 0: Completed Cutover
 
-Replace the current "run a command and wait for exit" flow with a persistent SSH session that launches:
+Already done:
 
-```bash
-codex app-server --listen stdio://
-```
+- delete `codex_remote_event.dart`
+- delete `codex_event_parser.dart`
+- delete `ssh_codex_service.dart`
+- remove legacy branches from the app shell and chat screen
+- make the app compile and test on the app-server path only
 
-### Implementation
+Follow-up cleanup still needed:
 
-Create `codex_app_server_client.dart` with a small session-oriented API:
+- delete `conversation_entry.dart`
 
-```dart
-abstract class CodexAppServerClient {
-  Stream<CodexRuntimeEvent> get events;
+### Phase 1: Split Transcript Rendering
 
-  Future<void> connect({
-    required ConnectionProfile profile,
-    required ConnectionSecrets secrets,
-  });
+Primary target:
 
-  Future<void> startSession({
-    required String cwd,
-    String? model,
-  });
+- break up `conversation_entry_card.dart`
 
-  Future<void> sendUserMessage({
-    required String threadId,
-    required String text,
-  });
+Files to create first:
 
-  Future<void> answerUserInput({
-    required String requestId,
-    required List<String> answers,
-  });
+- `presentation/widgets/transcript/conversation_entry_card.dart`
+- `presentation/widgets/transcript/cards/assistant_message_card.dart`
+- `presentation/widgets/transcript/cards/user_message_card.dart`
+- `presentation/widgets/transcript/cards/reasoning_card.dart`
+- `presentation/widgets/transcript/cards/command_card.dart`
+- `presentation/widgets/transcript/cards/work_log_group_card.dart`
+- `presentation/widgets/transcript/cards/changed_files_card.dart`
+- `presentation/widgets/transcript/cards/approval_request_card.dart`
+- `presentation/widgets/transcript/cards/user_input_request_card.dart`
+- `presentation/widgets/transcript/cards/status_card.dart`
+- `presentation/widgets/transcript/cards/error_card.dart`
+- `presentation/widgets/transcript/cards/usage_card.dart`
+- `presentation/widgets/transcript/support/conversation_card_palette.dart`
+- `presentation/widgets/transcript/support/markdown_style_factory.dart`
 
-  Future<void> resolveApproval({
-    required String requestId,
-    required bool approved,
-  });
+Rules:
 
-  Future<void> abortTurn();
-  Future<void> disconnect();
-}
-```
+- no reducer behavior changes in this phase
+- `conversation_entry_card.dart` becomes a shallow switch only
+- delete `conversation_entry.dart` if no callsites remain
 
-### Notes
+Exit criteria:
 
-- keep using `dartssh2`
-- launch one SSH process and keep it open
-- read stdout line-by-line
-- decode every line as JSON-RPC
-- write JSON-RPC requests to remote stdin
-- treat stderr as diagnostics, not transcript content
+- card-specific rendering code no longer lives in one file
+- the shallow dispatcher owns only block selection and callback wiring
 
-### Deliverable
+### Phase 2: Split Transcript State Logic
 
-By the end of Phase 1, the app can establish and maintain a remote `app-server` session over SSH.
+Primary target:
 
-## Phase 2: Add A JSON-RPC Codec Layer
+- break up `codex_session_reducer.dart`
 
-### Objective
+Files to create:
 
-Stop parsing raw JSON as anonymous maps inside business logic.
+- `application/transcript_reducer.dart`
+- `application/transcript_policy.dart`
 
-### Implementation
+Responsibilities:
 
-Create `codex_json_rpc_codec.dart` to:
+- `transcript_reducer.dart`: event-to-state orchestration
+- `transcript_policy.dart`: dedupe, suppression, grouping, ordering, block-id rules
 
-- decode incoming JSON lines into typed message classes
-- encode outgoing requests and notifications
-- track request ids for request/response matching
+Rules:
 
-Use a minimal model:
+- transcript ordering and suppression must not live in widgets
+- block construction must stay close to the reducer unless a real seam appears
+- keep all stream and request regressions covered while cutting
 
-```dart
-sealed class CodexJsonRpcMessage {}
+Exit criteria:
 
-final class CodexJsonRpcRequest extends CodexJsonRpcMessage {}
-final class CodexJsonRpcNotification extends CodexJsonRpcMessage {}
-final class CodexJsonRpcResponse extends CodexJsonRpcMessage {}
-```
+- transcript behavior can be tested without pumping `ChatScreen`
+- dedupe, grouping, and token-usage behavior are isolated from widget code
 
-### Required Behavior
+### Phase 3: Split Runtime Mapping
 
-- assign monotonically increasing local request ids
-- maintain a pending-request map
-- surface malformed messages as runtime warnings, not crashes
-- preserve the raw payload for debugging
+Primary target:
 
-### Deliverable
+- break up `codex_runtime_event_mapper.dart`
 
-By the end of Phase 2, the transport layer knows JSON-RPC, and nothing above it needs to parse wire-format details manually.
+Files to create:
 
-## Phase 3: Introduce Canonical Runtime Events
+- `application/runtime_event_mapper.dart`
 
-### Objective
-
-Mirror the reference repo's strongest idea: normalize protocol messages into a stable internal event vocabulary.
-
-### Implementation
-
-Create `codex_runtime_event.dart` with a narrow but useful union. Start with these event types:
-
-- `sessionStarted`
-- `sessionStateChanged`
-- `sessionExited`
-- `threadStarted`
-- `threadStateChanged`
-- `turnStarted`
-- `turnCompleted`
-- `turnAborted`
-- `itemStarted`
-- `itemUpdated`
-- `itemCompleted`
-- `contentDelta`
-- `requestOpened`
-- `requestResolved`
-- `userInputRequested`
-- `userInputResolved`
-- `runtimeWarning`
-- `runtimeError`
-
-Also define normalized enums:
-
-- `CanonicalItemType`
-- `CanonicalRequestType`
-- `RuntimeContentStreamKind`
-
-### Initial Raw Methods To Map
-
-Map these app-server methods first:
+Rules:
 
-- `session/connecting`
-- `session/ready`
-- `session/started`
-- `session/exited`
-- `session/closed`
-- `thread/started`
-- `thread/status/changed`
-- `turn/started`
-- `turn/completed`
-- `turn/aborted`
-- `item/started`
-- `item/completed`
-- `item/agentMessage/delta`
-- `item/reasoning/textDelta`
-- `item/reasoning/summaryTextDelta`
-- `item/commandExecution/outputDelta`
-- `item/fileChange/outputDelta`
-- `item/tool/requestUserInput`
-- `item/tool/requestUserInput/answered`
-- approval-related request methods
-- `serverRequest/resolved`
-- `error`
-- `configWarning`
-- `deprecationNotice`
+- protocol normalization must not decide transcript placement
+- canonical item-type mapping must live in one place only
+- start with private helpers inside the mapper file, then split further only if needed
 
-### Mapping Rules
+Exit criteria:
 
-- unknown methods should be logged as debug/status events, not rendered as conversation cards
-- item types should be normalized into stable values such as `assistantMessage`, `reasoning`, `plan`, `commandExecution`, `fileChange`, `unknown`
-- request types should be normalized into stable values such as `commandExecutionApproval`, `fileReadApproval`, `fileChangeApproval`, `toolUserInput`, `unknown`
-- text deltas should update existing in-progress items rather than append new cards every time
+- runtime mapping can be tested independently of transcript state
+- protocol method handling no longer leaks product decisions into unrelated helpers
 
-### Deliverable
+### Phase 4: Simplify ChatScreen
 
-By the end of Phase 3, the app can consume app-server messages without exposing protocol method names to the UI.
+Primary target:
 
-## Phase 4: Add A Session Reducer
+- pull orchestration out of `chat_screen.dart`
 
-### Objective
+Files to create:
 
-Move state transitions out of `ChatScreen`.
+- `application/chat_session_controller.dart`
+- `presentation/widgets/transcript/transcript_list.dart`
 
-### Implementation
+Responsibilities:
 
-Create `codex_session_state.dart` and `codex_session_reducer.dart`.
+- `chat_session_controller.dart`: connect, send, stop, approval, input, reconnect, session subscription
+- `transcript_list.dart`: list rendering, separators, scroll controller binding, follow behavior handoff
+- `chat_screen.dart`: compose the page and bind callbacks
 
-`CodexSessionState` should own:
+Rules:
 
-- connection status
-- current thread id
-- current turn id
-- pending approval requests
-- pending user-input requests
-- active items by item id
-- rendered transcript blocks
-- latest usage summary
+- no protocol handling inside `ChatScreen`
+- no transcript business rules inside scroll-follow code
+- controller owns side effects; reducer owns transcript behavior
 
-The reducer should consume `CodexRuntimeEvent` values and produce the next state.
+Exit criteria:
 
-### Rules
+- `ChatScreen` is mostly layout and callback binding
+- session flow bugs can be tested without card rendering noise
 
-- `contentDelta` updates the current block for the matching item id
-- `itemCompleted` finalizes the block and clears its running state
-- `requestOpened` creates an actionable approval block
-- `userInputRequested` creates an actionable input block
-- `requestResolved` and `userInputResolved` mark those blocks as completed
-- warnings and errors become status blocks, not crashes
+### Phase 5: Decide Whether To Split Infrastructure Further
 
-### Deliverable
+Primary target:
 
-By the end of Phase 4, `ChatScreen` becomes a thin view over session state instead of the owner of protocol logic.
+- only split `codex_app_server_client.dart` if it is still too large after the upper layers are separated
 
-## Phase 5: Replace Conversation Entries With UI Blocks
+Possible files:
 
-### Objective
+- `infrastructure/app_server/codex_app_server_client.dart`
+- `infrastructure/app_server/codex_json_rpc_codec.dart`
 
-Stop forcing all protocol output into the current `ConversationEntry` shape.
+Optional later cuts only if justified:
 
-### Implementation
+- request tracking helpers
+- process/session lifecycle helpers
 
-Create `codex_ui_block.dart` and migrate the UI to a richer render model. At minimum support these block kinds:
+Rules:
 
-- user message
-- assistant message
-- reasoning
-- plan
-- command execution
-- file change
-- approval request
-- user-input request
-- status
-- error
-- usage
+- do not split transport files just to satisfy a file-count target
+- keep JSON-RPC ownership inside infrastructure
 
-The existing `ConversationEntry` model is too flat for this. It should either be extended heavily or replaced with `CodexUiBlock`.
+Exit criteria:
 
-### Widget Changes
+- transport code is isolated from screen and transcript code
+- approvals, request matching, and disconnect behavior remain fully covered
 
-Update `conversation_entry_card.dart` or replace it with block-specific rendering:
+## Definition Of Done
 
-- assistant and reasoning blocks use markdown/text rendering
-- command execution blocks show command, streaming output, running/completed state, and exit code
-- approval request blocks show approve/deny actions
-- user-input request blocks show one or more input fields and a submit action
-- status and error blocks remain compact
+The refactor is done when:
 
-### Deliverable
-
-By the end of Phase 5, all important Codex interactions can be rendered as dedicated widgets instead of generic cards.
-
-## Phase 6: Integrate ChatScreen With App-Server
-
-### Objective
-
-Switch the screen from "send one prompt, subscribe until done" to "connect once, then drive a session".
-
-### Implementation
-
-Refactor `chat_screen.dart` so it:
-
-- connects to the app-server client when the profile is ready
-- starts or resumes a session once
-- sends user messages as JSON-RPC requests
-- listens to canonical runtime events
-- binds approve/deny buttons to `resolveApproval(...)`
-- binds user-input widgets to `answerUserInput(...)`
-- uses local state only for view concerns such as text editing and scrolling
-
-### Important Behavior Changes
-
-- `_isBusy` should no longer mean "remote process exists"
-- the screen should support waiting states where Codex is idle but the session is still alive
-- stopping a turn is different from disconnecting the session
-
-### Deliverable
-
-By the end of Phase 6, the screen behaves like a live client session instead of a one-shot command launcher.
-
-## Phase 7: Keep Exec As A Temporary Fallback
-
-### Objective
-
-Reduce migration risk.
-
-### Implementation
-
-Keep the current `exec --json` path behind a temporary feature flag or profile option while app-server stabilizes.
-
-Suggested temporary profile option:
-
-```text
-transportMode = execJson | appServer
-```
-
-Default new users to `appServer` once the app-server path works end-to-end.
-
-Remove `execJson` only after:
-
-- the app-server path can start a thread
-- the app-server path can render assistant output
-- the app-server path can handle one approval flow
-- the app-server path can handle one user-input flow
-
-## Testing Plan
-
-Add tests in layers.
-
-### Mapper Tests
-
-`test/codex_runtime_event_mapper_test.dart`
-
-Cover:
-
-- session lifecycle mapping
-- thread lifecycle mapping
-- assistant message deltas
-- reasoning deltas
-- command output deltas
-- file change output deltas
-- approval requests
-- user-input requests
-- error and warning mapping
-- unknown method handling
-
-### Reducer Tests
-
-`test/codex_session_reducer_test.dart`
-
-Cover:
-
-- creating and updating assistant blocks from deltas
-- finalizing running items
-- opening and resolving approval blocks
-- opening and resolving user-input blocks
-- updating thread and turn ids
-- keeping errors non-fatal to the UI
-
-### Widget Tests
-
-Expand `test/widget_test.dart` or replace it with focused widget tests for:
-
-- assistant block rendering
-- running command block rendering
-- approval request widget behavior
-- user-input request widget behavior
-
-## Acceptance Criteria
-
-The migration is complete when all of these are true:
-
-1. The app launches `codex app-server --listen stdio://` over SSH and keeps the session open.
-2. A user can send multiple prompts within one connected session.
-3. Assistant text streams into a live widget without creating duplicate cards per delta.
-4. Command execution output streams into a dedicated widget.
-5. A mid-turn approval request is shown as an actionable widget and can be resolved from the phone.
-6. A mid-turn user-input request is shown as an actionable widget and can be answered from the phone.
-7. Unknown protocol messages do not crash the app.
-8. The UI consumes only canonical runtime events or UI blocks, never raw JSON-RPC maps.
-
-## Recommended Execution Order
-
-Build in this order:
-
-1. app-server SSH client
-2. JSON-RPC codec
-3. canonical runtime event mapper
-4. session reducer
-5. assistant/command/status widgets
-6. approval and user-input widgets
-7. ChatScreen integration
-8. fallback cleanup
-
-This order keeps the transport and state boundaries stable before touching the UI heavily.
-
-## Decision Summary
-
-The migration should copy the reference repo's protocol boundary, not its whole product architecture.
-
-Copy this:
-
-- app-server over a bidirectional transport
-- canonical runtime events
-- reducer-style state updates
-- request and user-input handling as first-class events
-
-Do not copy this:
-
-- server-side orchestration layers
-- multi-project complexity
-- full web app assumptions
-
-The app only needs a small, durable client architecture that can turn Codex events into useful phone widgets.
+1. There is no legacy transport code and no dead `conversation_entry.dart`.
+2. `ChatScreen` is UI composition and callback binding only.
+3. Transcript rendering lives under `presentation/widgets/transcript/`.
+4. Transcript behavior lives in reducer/policy code, not in widgets.
+5. Runtime mapping lives in one app-server normalization layer.
+6. App-server transport stays isolated from presentation logic.
+7. `dart analyze` and the full test suite pass after each major phase.

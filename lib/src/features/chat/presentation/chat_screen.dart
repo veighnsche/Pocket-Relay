@@ -4,7 +4,6 @@ import 'package:pocket_relay/src/core/models/app_preferences.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/features/chat/models/codex_remote_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
@@ -13,7 +12,6 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.
 import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_session_reducer.dart';
-import 'package:pocket_relay/src/features/chat/services/ssh_codex_service.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -21,16 +19,14 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({
     super.key,
     required this.profileStore,
-    required this.remoteService,
-    this.appServerClient,
+    required this.appServerClient,
     this.initialSavedProfile,
     required this.preferences,
     required this.onPreferencesChanged,
   });
 
   final CodexProfileStore profileStore;
-  final SshCodexService remoteService;
-  final CodexAppServerClient? appServerClient;
+  final CodexAppServerClient appServerClient;
   final SavedProfile? initialSavedProfile;
   final AppPreferences preferences;
   final ValueChanged<AppPreferences> onPreferencesChanged;
@@ -53,21 +49,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   bool _isLoading = true;
   bool _shouldFollowTranscript = true;
-  CodexAppServerClient? _appServerClient;
-  StreamSubscription<CodexRemoteEvent>? _turnSubscription;
+  late final CodexAppServerClient _appServerClient;
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
-
-  bool get _usesAppServer => _appServerClient != null;
 
   @override
   void initState() {
     super.initState();
     _appServerClient = widget.appServerClient;
-    if (_usesAppServer) {
-      _appServerEventSubscription = _appServerClient!.events.listen(
-        _handleAppServerEvent,
-      );
-    }
+    _appServerEventSubscription = _appServerClient.events.listen(
+      _handleAppServerEvent,
+    );
     final initialSavedProfile = widget.initialSavedProfile;
     if (initialSavedProfile == null) {
       _loadProfile();
@@ -81,13 +72,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _turnSubscription?.cancel();
     _appServerEventSubscription?.cancel();
-    if (_usesAppServer) {
-      unawaited(_appServerClient!.disconnect());
-    } else {
-      unawaited(widget.remoteService.cancel());
-    }
+    unawaited(_appServerClient.disconnect());
     _composerController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -290,9 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     await widget.profileStore.save(result.profile, result.secrets);
-    if (_usesAppServer) {
-      await _appServerClient!.disconnect();
-    }
+    await _appServerClient.disconnect();
     if (!mounted) {
       return;
     }
@@ -331,57 +315,11 @@ class _ChatScreenState extends State<ChatScreen> {
       _sessionReducer.addUserMessage(_sessionState, text: prompt),
       scrollToEnd: true,
     );
-
-    if (_usesAppServer) {
-      await _sendPromptWithAppServer(prompt);
-      return;
-    }
-
-    await _turnSubscription?.cancel();
-    _applySessionState(_sessionReducer.startLegacyTurn(_sessionState));
-    _turnSubscription = widget.remoteService
-        .runTurn(
-          profile: _profile,
-          secrets: _secrets,
-          prompt: prompt,
-          threadId: _profile.ephemeralSession ? null : _sessionState.threadId,
-        )
-        .listen(
-          (event) => _applySessionState(
-            _sessionReducer.reduceLegacyRemoteEvent(
-              _sessionState,
-              event,
-              ephemeralSession: _profile.ephemeralSession,
-            ),
-            scrollToEnd: true,
-          ),
-          onDone: () {
-            _applySessionState(
-              _sessionReducer.finishLegacyStream(_sessionState),
-            );
-          },
-        );
+    await _sendPromptWithAppServer(prompt);
   }
 
   Future<void> _stopActiveTurn() async {
-    if (_usesAppServer) {
-      await _stopAppServerTurn();
-      return;
-    }
-
-    await widget.remoteService.cancel();
-    await _turnSubscription?.cancel();
-    if (!mounted) {
-      return;
-    }
-    _requestTranscriptFollow();
-    _applySessionState(
-      _sessionReducer.stopLegacyTurn(
-        _sessionState,
-        message: 'The active remote Codex turn was cancelled.',
-      ),
-      scrollToEnd: true,
-    );
+    await _stopAppServerTurn();
   }
 
   void _startFreshConversation() {
@@ -389,9 +327,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _applySessionState(
       _sessionReducer.startFreshThread(
         _sessionState,
-        message: _usesAppServer
-            ? 'The next prompt will start a fresh remote Codex thread.'
-            : 'The next prompt will start a fresh remote Codex session.',
+        message: 'The next prompt will start a fresh remote Codex thread.',
       ),
       scrollToEnd: true,
     );
@@ -545,7 +481,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       if (event.method == 'item/tool/call') {
-        await _appServerClient!.respondDynamicToolCall(
+        await _appServerClient.respondDynamicToolCall(
           requestId: event.requestId,
           success: false,
           contentItems: <Map<String, Object?>>[
@@ -555,7 +491,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
 
-      await _appServerClient!.rejectServerRequest(
+      await _appServerClient.rejectServerRequest(
         requestId: event.requestId,
         message: message,
       );
@@ -590,7 +526,7 @@ class _ChatScreenState extends State<ChatScreen> {
           connectionStatus: CodexRuntimeSessionState.running,
         ),
       );
-      final turn = await _appServerClient!.sendUserMessage(
+      final turn = await _appServerClient.sendUserMessage(
         threadId: threadId,
         text: prompt,
       );
@@ -613,11 +549,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String> _ensureAppServerThread() async {
-    final client = _appServerClient;
-    if (client == null) {
-      throw StateError('App-server transport is not available.');
-    }
-
     await _ensureAppServerConnected();
 
     final resumeThreadId = _profile.ephemeralSession
@@ -625,11 +556,13 @@ class _ChatScreenState extends State<ChatScreen> {
         : _sessionState.threadId;
     if (resumeThreadId != null &&
         resumeThreadId.isNotEmpty &&
-        client.threadId == resumeThreadId) {
+        _appServerClient.threadId == resumeThreadId) {
       return resumeThreadId;
     }
 
-    final session = await client.startSession(resumeThreadId: resumeThreadId);
+    final session = await _appServerClient.startSession(
+      resumeThreadId: resumeThreadId,
+    );
     _applyRuntimeEvent(
       CodexRuntimeThreadStartedEvent(
         createdAt: DateTime.now(),
@@ -645,22 +578,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _ensureAppServerConnected() async {
-    final client = _appServerClient;
-    if (client == null || client.isConnected) {
+    if (_appServerClient.isConnected) {
       return;
     }
 
-    await client.connect(profile: _profile, secrets: _secrets);
+    await _appServerClient.connect(profile: _profile, secrets: _secrets);
   }
 
   Future<void> _stopAppServerTurn() async {
-    final client = _appServerClient;
-    if (client == null) {
-      return;
-    }
-
     try {
-      await client.abortTurn(
+      await _appServerClient.abortTurn(
         threadId: _sessionState.threadId,
         turnId: _sessionState.turnId,
       );
@@ -685,12 +612,8 @@ class _ChatScreenState extends State<ChatScreen> {
     String requestId, {
     required bool approved,
   }) async {
-    if (!_usesAppServer) {
-      return;
-    }
-
     try {
-      await _appServerClient!.resolveApproval(
+      await _appServerClient.resolveApproval(
         requestId: requestId,
         approved: approved,
       );
@@ -707,10 +630,6 @@ class _ChatScreenState extends State<ChatScreen> {
     String requestId,
     Map<String, List<String>> answers,
   ) async {
-    if (!_usesAppServer) {
-      return;
-    }
-
     final pendingRequest = _sessionState.pendingUserInputRequests[requestId];
     if (pendingRequest == null) {
       _showSnackBar('This input request is no longer pending.');
@@ -720,13 +639,13 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       if (pendingRequest.requestType ==
           CodexCanonicalRequestType.mcpServerElicitation) {
-        await _appServerClient!.respondToElicitation(
+        await _appServerClient.respondToElicitation(
           requestId: requestId,
           action: CodexAppServerElicitationAction.accept,
           content: _elicitationContentFromAnswers(answers),
         );
       } else {
-        await _appServerClient!.answerUserInput(
+        await _appServerClient.answerUserInput(
           requestId: requestId,
           answers: answers,
         );

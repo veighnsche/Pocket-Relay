@@ -6,18 +6,15 @@ import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/services/ssh_codex_service.dart';
 
 class PocketRelayApp extends StatefulWidget {
   const PocketRelayApp({
     super.key,
     this.profileStore,
-    this.remoteService,
     this.appServerClient,
   });
 
   final CodexProfileStore? profileStore;
-  final SshCodexService? remoteService;
   final CodexAppServerClient? appServerClient;
 
   @override
@@ -75,7 +72,6 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : ChatScreen(
               profileStore: _profileStore,
-              remoteService: widget.remoteService ?? SshCodexService(),
               appServerClient: widget.appServerClient ?? CodexAppServerClient(),
               initialSavedProfile: savedProfile,
               preferences: savedProfile.preferences,

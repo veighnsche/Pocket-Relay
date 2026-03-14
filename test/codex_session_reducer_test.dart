@@ -454,6 +454,23 @@ void main() {
     expect(block.title, 'Thread token usage');
     expect(block.body, contains('Context window: 200000'));
     expect(state.transcriptBlocks.single, isA<CodexUsageBlock>());
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeStatusEvent(
+        createdAt: now.add(const Duration(seconds: 2)),
+        threadId: 'thread_123',
+        rawMethod: 'thread/tokenUsage/updated',
+        title: 'Thread token usage',
+        message: 'Last: input 12 | Total: input 24\nContext window: 200000',
+      ),
+    );
+
+    expect(state.blocks.whereType<CodexUsageBlock>(), hasLength(2));
+    expect(
+      (state.blocks.last as CodexUsageBlock).body,
+      contains('input 24'),
+    );
   });
 
   test('groups consecutive work-log entries in transcript blocks', () {

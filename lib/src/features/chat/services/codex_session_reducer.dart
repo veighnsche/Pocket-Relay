@@ -1,8 +1,6 @@
-import 'package:pocket_relay/src/features/chat/models/codex_remote_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
-import 'package:pocket_relay/src/features/chat/models/conversation_entry.dart';
 
 class CodexSessionReducer {
   const CodexSessionReducer();
@@ -20,43 +18,6 @@ class CodexSessionReducer {
 
     return _upsertBlock(
       state.copyWith(connectionStatus: CodexRuntimeSessionState.running),
-      block,
-    );
-  }
-
-  CodexSessionState startLegacyTurn(CodexSessionState state) {
-    return state.copyWith(connectionStatus: CodexRuntimeSessionState.running);
-  }
-
-  CodexSessionState finishLegacyStream(CodexSessionState state) {
-    if (!state.isBusy) {
-      return state;
-    }
-    return state.copyWith(
-      connectionStatus: CodexRuntimeSessionState.ready,
-      clearTurnId: true,
-    );
-  }
-
-  CodexSessionState stopLegacyTurn(
-    CodexSessionState state, {
-    required String message,
-    DateTime? createdAt,
-  }) {
-    final eventTime = createdAt ?? DateTime.now();
-    final block = CodexStatusBlock(
-      id: _eventEntryId('status', eventTime),
-      createdAt: eventTime,
-      title: 'Run stopped',
-      body: message,
-      isTranscriptSignal: true,
-    );
-
-    return _upsertBlock(
-      state.copyWith(
-        connectionStatus: CodexRuntimeSessionState.ready,
-        clearTurnId: true,
-      ),
       block,
     );
   }
@@ -106,54 +67,6 @@ class CodexSessionReducer {
 
   CodexSessionState detachThread(CodexSessionState state) {
     return state.copyWith(clearThreadId: true, clearTurnId: true);
-  }
-
-  CodexSessionState reduceLegacyRemoteEvent(
-    CodexSessionState state,
-    CodexRemoteEvent event, {
-    required bool ephemeralSession,
-  }) {
-    switch (event) {
-      case ThreadStartedEvent(:final threadId):
-        if (ephemeralSession) {
-          return state;
-        }
-
-        return state.copyWith(threadId: threadId);
-      case EntryUpsertedEvent(:final entry):
-        return _upsertBlock(state, _blockFromLegacyEntry(entry));
-      case InformationalEvent(:final message, :final isError):
-        if (!isError) {
-          return state;
-        }
-        return _upsertBlock(
-          state,
-          CodexErrorBlock(
-            id: _eventEntryId('error', DateTime.now()),
-            createdAt: DateTime.now(),
-            title: 'Remote issue',
-            body: message,
-          ),
-        );
-      case TurnFinishedEvent():
-        final nextState = state.copyWith(
-          connectionStatus: CodexRuntimeSessionState.ready,
-          clearTurnId: true,
-          clearThreadId: ephemeralSession,
-          latestUsageSummary: _buildLegacyUsageSummary(event),
-        );
-        return _upsertBlock(
-          nextState,
-          CodexUsageBlock(
-            id: _eventEntryId('usage', DateTime.now()),
-            createdAt: DateTime.now(),
-            title: 'Turn complete',
-            body:
-                nextState.latestUsageSummary ??
-                'The remote Codex turn finished.',
-          ),
-        );
-    }
   }
 
   CodexSessionState reduceRuntimeEvent(
@@ -298,7 +211,7 @@ class CodexSessionReducer {
           return _upsertBlock(
             state,
             CodexUsageBlock(
-              id: _threadTokenUsageBlockId(event.threadId),
+              id: _eventEntryId('usage', event.createdAt),
               createdAt: event.createdAt,
               title: event.title,
               body: event.message,
@@ -598,50 +511,6 @@ class CodexSessionReducer {
     );
   }
 
-  CodexUiBlock _blockFromLegacyEntry(ConversationEntry entry) {
-    return switch (entry.kind) {
-      ConversationEntryKind.user => CodexUserMessageBlock(
-        id: entry.id,
-        createdAt: entry.createdAt,
-        text: entry.body,
-      ),
-      ConversationEntryKind.assistant => CodexTextBlock(
-        id: entry.id,
-        kind: CodexUiBlockKind.assistantMessage,
-        createdAt: entry.createdAt,
-        title: entry.title,
-        body: entry.body,
-        isRunning: entry.isRunning,
-      ),
-      ConversationEntryKind.command => CodexCommandExecutionBlock(
-        id: entry.id,
-        createdAt: entry.createdAt,
-        command: entry.title,
-        output: entry.body,
-        isRunning: entry.isRunning,
-        exitCode: entry.exitCode,
-      ),
-      ConversationEntryKind.status => CodexStatusBlock(
-        id: entry.id,
-        createdAt: entry.createdAt,
-        title: entry.title,
-        body: entry.body,
-      ),
-      ConversationEntryKind.error => CodexErrorBlock(
-        id: entry.id,
-        createdAt: entry.createdAt,
-        title: entry.title,
-        body: entry.body,
-      ),
-      ConversationEntryKind.usage => CodexUsageBlock(
-        id: entry.id,
-        createdAt: entry.createdAt,
-        title: entry.title,
-        body: entry.body,
-      ),
-    };
-  }
-
   CodexUiBlock _blockFromActiveItem(CodexSessionActiveItem item) {
     final title = item.title ?? _defaultItemTitle(item.itemType);
     return switch (item.blockKind) {
@@ -794,10 +663,6 @@ class CodexSessionReducer {
         true,
       _ => false,
     };
-  }
-
-  static String _threadTokenUsageBlockId(String? threadId) {
-    return 'thread_token_usage_${threadId ?? 'current'}';
   }
 
   String _itemTitle(
@@ -1234,30 +1099,6 @@ class CodexSessionReducer {
     return answers.entries
         .map((entry) => '${entry.key}: ${entry.value.join(', ')}')
         .join('\n');
-  }
-
-  static String _buildLegacyUsageSummary(TurnFinishedEvent event) {
-    final parts = <String>[];
-    final usage = event.usage;
-
-    if (usage?.inputTokens != null) {
-      parts.add('input ${usage!.inputTokens}');
-    }
-    if ((usage?.cachedInputTokens ?? 0) > 0) {
-      parts.add('cached ${usage!.cachedInputTokens}');
-    }
-    if (usage?.outputTokens != null) {
-      parts.add('output ${usage!.outputTokens}');
-    }
-    if (event.exitCode != null) {
-      parts.add('exit ${event.exitCode}');
-    }
-
-    if (parts.isEmpty) {
-      return 'The remote Codex turn finished.';
-    }
-
-    return parts.join(' · ');
   }
 
   static String _buildRuntimeUsageSummary(

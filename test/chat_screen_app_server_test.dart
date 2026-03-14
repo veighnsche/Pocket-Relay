@@ -6,7 +6,6 @@ import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/services/ssh_codex_service.dart';
 
 void main() {
   testWidgets('sends prompts through app-server and renders assistant output', (
@@ -23,7 +22,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        remoteService: SshCodexService(),
         appServerClient: appServerClient,
       ),
     );
@@ -113,7 +111,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        remoteService: SshCodexService(),
         appServerClient: appServerClient,
       ),
     );
@@ -163,7 +160,6 @@ void main() {
               secrets: const ConnectionSecrets(password: 'secret'),
             ),
           ),
-          remoteService: SshCodexService(),
           appServerClient: appServerClient,
         ),
       );
@@ -235,7 +231,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        remoteService: SshCodexService(),
         appServerClient: appServerClient,
       ),
     );
@@ -285,7 +280,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        remoteService: SshCodexService(),
         appServerClient: appServerClient,
       ),
     );
@@ -379,7 +373,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        remoteService: SshCodexService(),
         appServerClient: appServerClient,
       ),
     );
