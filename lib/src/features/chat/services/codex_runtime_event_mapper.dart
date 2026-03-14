@@ -1132,8 +1132,7 @@ class CodexRuntimeEventMapper {
     };
 
     final detail = switch (rawMethod) {
-      'item/reasoning/summaryPartAdded' =>
-        'Summary part ${_asInt(payload?['summaryIndex']) ?? '?'} added.',
+      'item/reasoning/summaryPartAdded' => null,
       'item/commandExecution/terminalInteraction' =>
         _asString(payload?['stdin']) ?? _asString(payload?['processId']),
       _ => null,

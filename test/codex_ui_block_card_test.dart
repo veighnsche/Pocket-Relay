@@ -244,6 +244,56 @@ void main() {
     expect(find.text('running'), findsOneWidget);
   });
 
+  testWidgets('renders thread token usage as a compact usage strip', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: ConversationEntryCard(
+          block: CodexUsageBlock(
+            id: 'usage_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'Thread token usage',
+            body:
+                'Last: input 10946 · cached 9216 · output 510 · reasoning 288 · total 11456\n'
+                'Total: input 21946 · cached 18216 · output 910 · reasoning 488 · total 23356\n'
+                'Context window: 258400',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Thread token usage'), findsOneWidget);
+    expect(find.text('ctx 258400'), findsOneWidget);
+    expect(find.text('last'), findsOneWidget);
+    expect(find.text('total'), findsOneWidget);
+    expect(find.text('input 10946'), findsOneWidget);
+    expect(find.text('output 910'), findsOneWidget);
+  });
+
+  testWidgets('collapses duplicate thread token usage sections', (tester) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: ConversationEntryCard(
+          block: CodexUsageBlock(
+            id: 'usage_2',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'Thread token usage',
+            body:
+                'Last: input 12 · cached 3 · output 7\n'
+                'Total: input 12 · cached 3 · output 7',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('last'), findsNothing);
+    expect(find.text('total'), findsNothing);
+    expect(find.text('input 12'), findsOneWidget);
+    expect(find.text('cached 3'), findsOneWidget);
+    expect(find.text('output 7'), findsOneWidget);
+  });
+
   testWidgets('renders changed files summary and diff toggle', (tester) async {
     await tester.pumpWidget(
       _buildTestApp(

@@ -89,6 +89,33 @@ void main() {
     expect(block.text, 'Ship the fix');
   });
 
+  test('dedupes app-server user-message echoes against the local prompt', () {
+    final reducer = CodexSessionReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    var state = reducer.addUserMessage(
+      CodexSessionState.initial(),
+      text: 'Ship the fix',
+      createdAt: now,
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now.add(const Duration(milliseconds: 10)),
+        itemType: CodexCanonicalItemType.userMessage,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_user',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{'text': 'Ship the fix'},
+      ),
+    );
+
+    expect(state.blocks, hasLength(1));
+    expect(state.blocks.single, isA<CodexUserMessageBlock>());
+    expect((state.blocks.single as CodexUserMessageBlock).text, 'Ship the fix');
+  });
+
   test('preserves spaces while assistant text is still streaming', () {
     final reducer = CodexSessionReducer();
     var state = CodexSessionState.initial();
@@ -184,6 +211,43 @@ void main() {
       (state.blocks.last as CodexStatusBlock).body,
       'Codex compacted the current thread context.',
     );
+  });
+
+  test('suppresses empty reasoning lifecycle blocks until text arrives', () {
+    final reducer = CodexSessionReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    var state = CodexSessionState.initial();
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemStartedEvent(
+        createdAt: now,
+        itemType: CodexCanonicalItemType.reasoning,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_reasoning',
+        status: CodexRuntimeItemStatus.inProgress,
+      ),
+    );
+
+    expect(state.blocks, isEmpty);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeContentDeltaEvent(
+        createdAt: now.add(const Duration(milliseconds: 1)),
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_reasoning',
+        streamKind: CodexRuntimeContentStreamKind.reasoningText,
+        delta: 'Inspecting the environment.',
+      ),
+    );
+
+    expect(state.blocks.single, isA<CodexTextBlock>());
+    final block = state.blocks.single as CodexTextBlock;
+    expect(block.kind, CodexUiBlockKind.reasoning);
+    expect(block.body, 'Inspecting the environment.');
   });
 
   test('opens and resolves approval requests', () {
@@ -364,6 +428,15 @@ void main() {
 
     expect(state.blocks, isEmpty);
     expect(state.transcriptBlocks, isEmpty);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: now,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+      ),
+    );
 
     state = reducer.reduceRuntimeEvent(
       state,

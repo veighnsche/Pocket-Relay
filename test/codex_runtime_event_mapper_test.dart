@@ -476,7 +476,7 @@ void main() {
 
       expect(reasoningEvent.itemType, CodexCanonicalItemType.reasoning);
       expect(reasoningEvent.itemId, 'item_123');
-      expect(reasoningEvent.detail, 'Summary part 2 added.');
+      expect(reasoningEvent.detail, isNull);
       expect(terminalEvent.itemType, CodexCanonicalItemType.commandExecution);
       expect(terminalEvent.itemId, 'item_456');
       expect(terminalEvent.detail, 'y\n');

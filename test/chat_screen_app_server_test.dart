@@ -31,7 +31,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'Hello Codex');
-    await tester.tap(find.text('Send'));
+    await tester.tap(find.byKey(const ValueKey('send')));
     await tester.pumpAndSettle();
 
     expect(appServerClient.connectCalls, 1);
@@ -269,6 +269,191 @@ void main() {
             'Pocket Relay does not manage external ChatGPT tokens, so this app-server auth refresh request was rejected.',
       ),
     ]);
+  });
+
+  testWidgets('streaming updates do not yank the transcript while scrolled up', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      PocketRelayApp(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        remoteService: SshCodexService(),
+        appServerClient: appServerClient,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    for (var index = 0; index < 24; index += 1) {
+      appServerClient.emit(
+        CodexAppServerNotificationEvent(
+          method: 'item/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_$index',
+            'item': <String, Object?>{
+              'id': 'item_$index',
+              'type': 'agentMessage',
+              'status': 'completed',
+              'text': 'Assistant message $index',
+            },
+          },
+        ),
+      );
+    }
+
+    await tester.pumpAndSettle();
+
+    final scrollableState = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    expect(scrollableState.position.maxScrollExtent, greaterThan(0));
+
+    await tester.drag(find.byType(ListView), const Offset(0, 320));
+    await tester.pumpAndSettle();
+
+    final pixelsBeforeStream = scrollableState.position.pixels;
+    expect(
+      pixelsBeforeStream,
+      lessThan(scrollableState.position.maxScrollExtent),
+    );
+
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/started',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_live',
+          'item': <String, Object?>{
+            'id': 'item_live',
+            'type': 'agentMessage',
+            'status': 'inProgress',
+          },
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/agentMessage/delta',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_live',
+          'itemId': 'item_live',
+          'delta': 'Live stream text',
+        },
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      scrollableState.position.pixels,
+      closeTo(pixelsBeforeStream, 1),
+    );
+    expect(
+      scrollableState.position.pixels,
+      lessThan(scrollableState.position.maxScrollExtent - 40),
+    );
+  });
+
+  testWidgets('thread token usage is rendered like a normal transcript card', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      PocketRelayApp(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        remoteService: SshCodexService(),
+        appServerClient: appServerClient,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/started',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turn': <String, Object?>{
+            'id': 'turn_live',
+            'model': 'gpt-5.3-codex',
+          },
+        },
+      ),
+    );
+
+    for (var index = 0; index < 20; index += 1) {
+      appServerClient.emit(
+        CodexAppServerNotificationEvent(
+          method: 'item/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_$index',
+            'item': <String, Object?>{
+              'id': 'item_$index',
+              'type': 'agentMessage',
+              'status': 'completed',
+              'text': 'Assistant message $index',
+            },
+          },
+        ),
+      );
+    }
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'thread/tokenUsage/updated',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_live',
+          'tokenUsage': <String, Object?>{
+            'last': <String, Object?>{
+              'inputTokens': 10,
+              'cachedInputTokens': 2,
+              'outputTokens': 4,
+              'reasoningOutputTokens': 1,
+              'totalTokens': 17,
+            },
+            'total': <String, Object?>{
+              'inputTokens': 20,
+              'cachedInputTokens': 3,
+              'outputTokens': 8,
+              'reasoningOutputTokens': 1,
+              'totalTokens': 32,
+            },
+            'modelContextWindow': 200000,
+          },
+        },
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Thread token usage'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Thread token usage'), findsOneWidget);
+    expect(find.text('ctx 200000'), findsOneWidget);
   });
 }
 

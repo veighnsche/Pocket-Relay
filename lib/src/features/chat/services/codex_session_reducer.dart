@@ -344,18 +344,19 @@ class CodexSessionReducer {
       event.itemId!: nextItem,
     };
 
-    final nextState = _upsertBlock(
-      state.copyWith(
-        activeItems: removeAfterUpsert
-            ? <String, CodexSessionActiveItem>{
-                ...nextActiveItems..remove(event.itemId!),
-              }
-            : nextActiveItems,
-      ),
-      nextBlock,
+    final nextState = state.copyWith(
+      activeItems: removeAfterUpsert
+          ? <String, CodexSessionActiveItem>{
+              ...nextActiveItems..remove(event.itemId!),
+            }
+          : nextActiveItems,
     );
 
-    return nextState;
+    if (_shouldSuppressItemBlock(state, nextItem)) {
+      return nextState;
+    }
+
+    return _upsertBlock(nextState, nextBlock);
   }
 
   CodexSessionState _applyContentDelta(
@@ -839,6 +840,28 @@ class CodexSessionReducer {
         'Codex compacted the current thread context.',
       _ => currentBody,
     };
+  }
+
+  bool _shouldSuppressItemBlock(
+    CodexSessionState state,
+    CodexSessionActiveItem item,
+  ) {
+    if (item.itemType == CodexCanonicalItemType.reasoning &&
+        item.body.trim().isEmpty) {
+      return true;
+    }
+
+    if (item.itemType != CodexCanonicalItemType.userMessage) {
+      return false;
+    }
+
+    final text = item.body.trim();
+    if (text.isEmpty) {
+      return true;
+    }
+
+    final latestBlock = state.blocks.isEmpty ? null : state.blocks.last;
+    return latestBlock is CodexUserMessageBlock && latestBlock.text == text;
   }
 
   static String? _extractTextFromSnapshot(Map<String, dynamic>? snapshot) {

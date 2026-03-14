@@ -40,6 +40,8 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  static const double _autoScrollResumeDistance = 72;
+
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
   final _sessionReducer = const CodexSessionReducer();
@@ -50,6 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
   CodexSessionState _sessionState = CodexSessionState.initial();
 
   bool _isLoading = true;
+  bool _shouldFollowTranscript = true;
   CodexAppServerClient? _appServerClient;
   StreamSubscription<CodexRemoteEvent>? _turnSubscription;
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
@@ -185,20 +188,23 @@ class _ChatScreenState extends State<ChatScreen> {
                             isConfigured: _profile.isReady,
                             onConfigure: _openSettingsSheet,
                           )
-                        : ListView.separated(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
-                            itemBuilder: (context, index) {
-                              return ConversationEntryCard(
-                                block: transcriptBlocks[index],
-                                onApproveRequest: _approveRequest,
-                                onDenyRequest: _denyRequest,
-                                onSubmitUserInput: _submitUserInput,
-                              );
-                            },
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 8),
-                            itemCount: transcriptBlocks.length,
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: _handleTranscriptScrollNotification,
+                            child: ListView.separated(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
+                              itemBuilder: (context, index) {
+                                return ConversationEntryCard(
+                                  block: transcriptBlocks[index],
+                                  onApproveRequest: _approveRequest,
+                                  onDenyRequest: _denyRequest,
+                                  onSubmitUserInput: _submitUserInput,
+                                );
+                              },
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 8),
+                              itemCount: transcriptBlocks.length,
+                            ),
                           ),
                   ),
                   if (pendingApprovalBlock != null ||
@@ -320,6 +326,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     _composerController.clear();
+    _requestTranscriptFollow();
     _applySessionState(
       _sessionReducer.addUserMessage(_sessionState, text: prompt),
       scrollToEnd: true,
@@ -367,6 +374,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) {
       return;
     }
+    _requestTranscriptFollow();
     _applySessionState(
       _sessionReducer.stopLegacyTurn(
         _sessionState,
@@ -377,6 +385,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _startFreshConversation() {
+    _requestTranscriptFollow();
     _applySessionState(
       _sessionReducer.startFreshThread(
         _sessionState,
@@ -389,6 +398,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _clearTranscript() {
+    _requestTranscriptFollow();
     _applySessionState(_sessionReducer.clearTranscript(_sessionState));
   }
 
@@ -415,12 +425,52 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
 
+      if (!_shouldFollowTranscript) {
+        return;
+      }
+
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
     });
+  }
+
+  bool _handleTranscriptScrollNotification(ScrollNotification notification) {
+    if (notification.depth != 0) {
+      return false;
+    }
+
+    final isUserDriven = switch (notification) {
+      ScrollUpdateNotification(:final dragDetails) => dragDetails != null,
+      OverscrollNotification(:final dragDetails) => dragDetails != null,
+      ScrollEndNotification() => true,
+      UserScrollNotification() => true,
+      _ => false,
+    };
+
+    if (!isUserDriven) {
+      return false;
+    }
+
+    _shouldFollowTranscript = _isNearTranscriptBottom(notification.metrics);
+    return false;
+  }
+
+  bool _isNearTranscriptBottom([ScrollMetrics? metrics]) {
+    final activeMetrics =
+        metrics ?? (_scrollController.hasClients ? _scrollController.position : null);
+    if (activeMetrics == null) {
+      return true;
+    }
+
+    return activeMetrics.maxScrollExtent - activeMetrics.pixels <=
+        _autoScrollResumeDistance;
+  }
+
+  void _requestTranscriptFollow() {
+    _shouldFollowTranscript = true;
   }
 
   void _showSnackBar(String message) {
