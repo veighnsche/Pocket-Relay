@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
+import 'package:pocket_relay/src/features/chat/services/codex_json_rpc_codec.dart';
 import 'package:dartssh2/dartssh2.dart';
 
 sealed class CodexAppServerEvent {
@@ -114,23 +115,30 @@ typedef CodexAppServerProcessLauncher =
 class CodexAppServerClient {
   CodexAppServerClient({
     CodexAppServerProcessLauncher? processLauncher,
+    CodexJsonRpcCodec? jsonRpcCodec,
+    CodexJsonRpcRequestTracker? requestTracker,
+    CodexJsonRpcInboundRequestStore? inboundRequestStore,
     this.clientName = 'pocket_relay',
     this.clientVersion = '1.0.0',
-  }) : _processLauncher = processLauncher ?? _openSshProcess;
+  }) : _processLauncher = processLauncher ?? _openSshProcess,
+       _jsonRpcCodec = jsonRpcCodec ?? const CodexJsonRpcCodec(),
+       _requestTracker = requestTracker ?? CodexJsonRpcRequestTracker(),
+       _inboundRequestStore =
+           inboundRequestStore ?? CodexJsonRpcInboundRequestStore();
 
   final CodexAppServerProcessLauncher _processLauncher;
+  final CodexJsonRpcCodec _jsonRpcCodec;
+  final CodexJsonRpcRequestTracker _requestTracker;
+  final CodexJsonRpcInboundRequestStore _inboundRequestStore;
   final String clientName;
   final String clientVersion;
 
   final _eventsController = StreamController<CodexAppServerEvent>.broadcast();
-  final _pendingRequests = <String, Completer<Object?>>{};
-  final _pendingServerRequests = <String, _PendingServerRequest>{};
 
   StreamSubscription<String>? _stdoutSubscription;
   StreamSubscription<String>? _stderrSubscription;
   CodexAppServerProcess? _process;
   ConnectionProfile? _profile;
-  int _nextRequestId = 1;
   bool _disconnecting = false;
   String? _threadId;
   String? _activeTurnId;
@@ -201,7 +209,7 @@ class CodexAppServerClient {
         },
       ).timeout(const Duration(seconds: 10));
 
-      _writeJson(<String, Object?>{'method': 'initialized'});
+      _writeMessage(const CodexJsonRpcNotification(method: 'initialized'));
       final payload = _asObject(initializeResponse);
       _emitEvent(
         CodexAppServerConnectedEvent(
@@ -352,9 +360,13 @@ class CodexAppServerClient {
     required String requestId,
     required Object? result,
   }) async {
-    final pending = _requirePendingServerRequest(requestId);
-    _pendingServerRequests.remove(requestId);
-    _writeJson(<String, Object?>{'id': pending.rawId, 'result': result});
+    final pending = _inboundRequestStore.take(requestId);
+    if (pending == null) {
+      throw CodexAppServerException(
+        'Unknown pending server request: $requestId',
+      );
+    }
+    _writeMessage(CodexJsonRpcResponse.success(id: pending.id, result: result));
   }
 
   Future<void> abortTurn({String? threadId, String? turnId}) async {
@@ -389,8 +401,10 @@ class CodexAppServerClient {
     _stdoutSubscription = null;
     _stderrSubscription = null;
 
-    _failPendingRequests('App-server session disconnected.');
-    _pendingServerRequests.clear();
+    _requestTracker.failPending(
+      const CodexAppServerException('App-server session disconnected.'),
+    );
+    _inboundRequestStore.clear();
 
     if (process != null) {
       final exitCode = process.exitCode;
@@ -404,13 +418,24 @@ class CodexAppServerClient {
   Future<Object?> _sendRequest(String method, Map<String, Object?> params) {
     _requireConnected();
 
-    final id = _nextRequestId++;
-    final key = _requestKey(id);
-    final completer = Completer<Object?>();
-    _pendingRequests[key] = completer;
-
-    _writeJson(<String, Object?>{'id': id, 'method': method, 'params': params});
-    return completer.future;
+    final trackedRequest = _requestTracker.createRequest(
+      method,
+      params: params,
+    );
+    _writeMessage(trackedRequest.request);
+    return trackedRequest.response.then<Object?>(
+      (value) => value,
+      onError: (Object error, StackTrace stackTrace) {
+        if (error is CodexJsonRpcRemoteException) {
+          throw CodexAppServerException(
+            error.error.message,
+            code: error.error.code,
+            data: error.error.data,
+          );
+        }
+        throw error;
+      },
+    );
   }
 
   void _handleStdoutLine(String line) {
@@ -419,94 +444,46 @@ class CodexAppServerClient {
       return;
     }
 
-    try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is! Map<String, dynamic>) {
+    switch (_jsonRpcCodec.decodeLine(trimmed)) {
+      case CodexJsonRpcMalformedMessage(:final problem):
         _emitEvent(
           CodexAppServerDiagnosticEvent(
-            message: 'Unexpected app-server message: $trimmed',
-            isError: false,
+            message: 'Malformed app-server message: $problem',
+            isError: true,
           ),
         );
-        return;
-      }
+      case CodexJsonRpcDecodedMessage(:final message):
+        switch (message) {
+          case CodexJsonRpcRequest():
+            _inboundRequestStore.remember(message);
+            _emitEvent(
+              CodexAppServerRequestEvent(
+                requestId: message.id.token,
+                method: message.method,
+                params: message.params,
+              ),
+            );
+          case CodexJsonRpcNotification():
+            _updateRuntimePointers(message.method, message.params);
+            _emitEvent(
+              CodexAppServerNotificationEvent(
+                method: message.method,
+                params: message.params,
+              ),
+            );
+          case CodexJsonRpcResponse():
+            if (_requestTracker.completeResponse(message)) {
+              return;
+            }
 
-      final method = _asString(decoded['method']);
-      final hasId = decoded.containsKey('id');
-      final hasResult = decoded.containsKey('result');
-      final hasError = decoded.containsKey('error');
-
-      if (method != null && hasId) {
-        final rawId = decoded['id'];
-        final requestId = rawId?.toString() ?? '';
-        _pendingServerRequests[requestId] = _PendingServerRequest(
-          requestId: requestId,
-          rawId: rawId,
-          method: method,
-        );
-        _emitEvent(
-          CodexAppServerRequestEvent(
-            requestId: requestId,
-            method: method,
-            params: decoded['params'],
-          ),
-        );
-        return;
-      }
-
-      if (method != null) {
-        _updateRuntimePointers(method, decoded['params']);
-        _emitEvent(
-          CodexAppServerNotificationEvent(
-            method: method,
-            params: decoded['params'],
-          ),
-        );
-        return;
-      }
-
-      if (hasId && (hasResult || hasError)) {
-        final key = _requestKey(decoded['id']);
-        final completer = _pendingRequests.remove(key);
-        if (completer == null) {
-          _emitEvent(
-            CodexAppServerDiagnosticEvent(
-              message:
-                  'Received response for unknown request ${decoded['id']}.',
-              isError: false,
-            ),
-          );
-          return;
+            _emitEvent(
+              CodexAppServerDiagnosticEvent(
+                message:
+                    'Received response for unknown request ${message.id.displayValue}.',
+                isError: false,
+              ),
+            );
         }
-
-        if (hasError) {
-          final error = _asObject(decoded['error']);
-          completer.completeError(
-            CodexAppServerException(
-              _asString(error?['message']) ?? 'App-server request failed.',
-              code: (error?['code'] as num?)?.toInt(),
-              data: error?['data'],
-            ),
-          );
-        } else {
-          completer.complete(decoded['result']);
-        }
-        return;
-      }
-
-      _emitEvent(
-        CodexAppServerDiagnosticEvent(
-          message: 'Unhandled app-server payload: $trimmed',
-          isError: false,
-        ),
-      );
-    } catch (error) {
-      _emitEvent(
-        CodexAppServerDiagnosticEvent(
-          message: 'Failed to parse app-server stdout: $error',
-          isError: true,
-        ),
-      );
     }
   }
 
@@ -535,22 +512,13 @@ class CodexAppServerClient {
     unawaited(_disconnect(emitDisconnectedEvent: true));
   }
 
-  void _failPendingRequests(String message) {
-    for (final completer in _pendingRequests.values) {
-      if (!completer.isCompleted) {
-        completer.completeError(CodexAppServerException(message));
-      }
-    }
-    _pendingRequests.clear();
-  }
-
-  void _writeJson(Map<String, Object?> payload) {
+  void _writeMessage(CodexJsonRpcMessage message) {
     final process = _process;
     if (process == null) {
       throw const CodexAppServerException('App-server is not connected.');
     }
 
-    final line = '${jsonEncode(payload)}\n';
+    final line = _jsonRpcCodec.encodeLine(message);
     process.stdin.add(Uint8List.fromList(utf8.encode(line)));
   }
 
@@ -576,8 +544,8 @@ class CodexAppServerClient {
     }
   }
 
-  _PendingServerRequest _requirePendingServerRequest(String requestId) {
-    final pending = _pendingServerRequests[requestId];
+  CodexJsonRpcRequest _requirePendingServerRequest(String requestId) {
+    final pending = _inboundRequestStore.lookup(requestId);
     if (pending == null) {
       throw CodexAppServerException(
         'Unknown pending server request: $requestId',
@@ -593,16 +561,11 @@ class CodexAppServerClient {
         .transform(const LineSplitter());
   }
 
-  static String _requestKey(Object? id) {
-    return switch (id) {
-      int value => 'i:$value',
-      String value => 's:$value',
-      _ => 'o:${id ?? 'null'}',
-    };
-  }
-
   static Map<String, dynamic>? _asObject(Object? value) {
-    return value is Map<String, dynamic> ? value : null;
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
   }
 
   static Map<String, dynamic> _requireObject(Object? value, String label) {
@@ -626,18 +589,6 @@ class CodexAppServerClient {
         ? 'danger-full-access'
         : 'workspace-write';
   }
-}
-
-class _PendingServerRequest {
-  const _PendingServerRequest({
-    required this.requestId,
-    required this.rawId,
-    required this.method,
-  });
-
-  final String requestId;
-  final Object? rawId;
-  final String method;
 }
 
 Future<CodexAppServerProcess> _openSshProcess({

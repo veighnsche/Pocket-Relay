@@ -171,11 +171,11 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     final request = events.whereType<CodexAppServerRequestEvent>().single;
-    expect(request.requestId, '99');
+    expect(request.requestId, 'i:99');
     expect(request.method, 'item/tool/requestUserInput');
 
     await client.answerUserInput(
-      requestId: '99',
+      requestId: 'i:99',
       answers: const <String, List<String>>{
         'q1': <String>['vince'],
       },
@@ -188,7 +188,7 @@ void main() {
     });
     await Future<void>.delayed(Duration.zero);
 
-    await client.resolveApproval(requestId: 'approval-1', approved: true);
+    await client.resolveApproval(requestId: 's:approval-1', approved: true);
 
     expect(process.writtenMessages[2], <String, Object?>{
       'id': 99,
