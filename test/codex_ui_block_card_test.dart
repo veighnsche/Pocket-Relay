@@ -26,6 +26,36 @@ void main() {
     expect(find.text('Investigating the next step.'), findsOneWidget);
   });
 
+  testWidgets('renders code fences with readable text in dark mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light(),
+        darkTheme: ThemeData.dark(),
+        themeMode: ThemeMode.dark,
+        home: Scaffold(
+          body: ConversationEntryCard(
+            block: CodexTextBlock(
+              id: 'reasoning_code_1',
+              kind: CodexUiBlockKind.reasoning,
+              createdAt: DateTime(2026, 3, 14, 12),
+              title: 'Reasoning',
+              body: '```dart\nfinal answer = 42;\n```',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('final answer = 42;'), findsOneWidget);
+
+    final codeStyle = _findStyleForText(tester, 'final answer = 42;');
+
+    expect(codeStyle, isNotNull);
+    expect(codeStyle?.color, const Color(0xFF1C1917));
+  });
+
   testWidgets('renders approval request actions', (tester) async {
     String? approvedRequestId;
 
@@ -225,4 +255,53 @@ void main() {
     expect(find.text('Hide diff'), findsOneWidget);
     expect(find.textContaining('diff --git a/lib/main.dart'), findsOneWidget);
   });
+}
+
+TextStyle? _findStyleForText(WidgetTester tester, String text) {
+  for (final widget in tester.widgetList<SelectableText>(
+    find.byType(SelectableText),
+  )) {
+    final span = widget.textSpan;
+    if (span == null) {
+      continue;
+    }
+    final style = _styleForInlineText(span, text);
+    if (style != null) {
+      return style;
+    }
+  }
+
+  for (final widget in tester.widgetList<RichText>(find.byType(RichText))) {
+    final style = _styleForInlineText(widget.text, text);
+    if (style != null) {
+      return style;
+    }
+  }
+
+  return null;
+}
+
+TextStyle? _styleForInlineText(
+  InlineSpan span,
+  String text, [
+  TextStyle? inheritedStyle,
+]) {
+  if (span is! TextSpan) {
+    return null;
+  }
+
+  final mergedStyle = inheritedStyle?.merge(span.style) ?? span.style;
+
+  if ((span.text ?? '').contains(text)) {
+    return mergedStyle;
+  }
+
+  for (final child in span.children ?? const <InlineSpan>[]) {
+    final childStyle = _styleForInlineText(child, text, mergedStyle);
+    if (childStyle != null) {
+      return childStyle;
+    }
+  }
+
+  return null;
 }

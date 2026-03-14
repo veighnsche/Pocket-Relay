@@ -171,6 +171,7 @@ class _TextBlockCard extends StatelessWidget {
       h2: theme.textTheme.titleLarge,
       h3: theme.textTheme.titleMedium,
       code: theme.textTheme.bodyMedium?.copyWith(
+        color: const Color(0xFF1C1917),
         fontFamily: 'monospace',
         backgroundColor: const Color(0xFFF0EBDE),
       ),
@@ -366,6 +367,7 @@ class _ProposedPlanCardState extends State<_ProposedPlanCard> {
         borderRadius: BorderRadius.circular(16),
       ),
       code: theme.textTheme.bodyMedium?.copyWith(
+        color: const Color(0xFF1C1917),
         fontFamily: 'monospace',
         backgroundColor: const Color(0xFFF0EBDE),
       ),
