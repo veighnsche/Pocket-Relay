@@ -53,6 +53,7 @@ Rules for every phase:
 ```text
 lib/src/features/chat/
   application/
+    chat_session_controller.dart
     runtime_event_mapper.dart
     runtime_event_mapper_notification_mapper.dart
     runtime_event_mapper_request_mapper.dart
@@ -70,12 +71,12 @@ lib/src/features/chat/
       empty_state.dart
       transcript/
         conversation_entry_card.dart
+        transcript_list.dart
         cards/
         support/
   services/
     codex_app_server_client.dart
     codex_json_rpc_codec.dart
-    codex_runtime_event_mapper.dart
 ```
 
 ## Proposed Target Tree
@@ -243,33 +244,21 @@ Result:
 - request tracking stayed local to the mapper instead of leaking into `ChatScreen`
 - canonical item and request normalization still live in one shared helper library
 
-### Phase 4: Simplify ChatScreen
+### Phase 4: Completed ChatScreen Simplification
 
-Primary target:
+Done:
 
-- pull orchestration out of `chat_screen.dart`
+- create `application/chat_session_controller.dart`
+- create `presentation/widgets/transcript/transcript_list.dart`
+- move app-server session orchestration, request handling, and reducer binding out of `chat_screen.dart`
+- move scroll-follow, transcript list rendering, and pending-request tray rendering into `transcript_list.dart`
+- add controller-level coverage so session flow can be tested without pumping the full screen
 
-Files to create:
+Result:
 
-- `application/chat_session_controller.dart`
-- `presentation/widgets/transcript/transcript_list.dart`
-
-Responsibilities:
-
-- `chat_session_controller.dart`: connect, send, stop, approval, input, reconnect, session subscription
-- `transcript_list.dart`: list rendering, separators, scroll controller binding, follow behavior handoff
-- `chat_screen.dart`: compose the page and bind callbacks
-
-Rules:
-
-- no protocol handling inside `ChatScreen`
-- no transcript business rules inside scroll-follow code
-- controller owns side effects; reducer owns transcript behavior
-
-Exit criteria:
-
-- `ChatScreen` is mostly layout and callback binding
-- session flow bugs can be tested without card rendering noise
+- `chat_screen.dart` is down to page composition, settings-sheet presentation, composer binding, and snackbars
+- `chat_session_controller.dart` now owns connect/send/stop, approvals, input submission, unsupported-request handling, and event subscription
+- `transcript_list.dart` owns list rendering and auto-follow behavior
 
 ### Phase 5: Decide Whether To Split Infrastructure Further
 
