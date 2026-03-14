@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 
 class FakeCodexAppServerClient extends CodexAppServerClient {
   FakeCodexAppServerClient()

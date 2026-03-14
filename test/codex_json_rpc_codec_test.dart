@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pocket_relay/src/features/chat/services/codex_json_rpc_codec.dart';
+import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_json_rpc_codec.dart';
 
 void main() {
   const codec = CodexJsonRpcCodec();

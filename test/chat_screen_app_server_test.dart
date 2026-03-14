@@ -1,12 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
-import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
-import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 
 import 'support/fake_codex_app_server_client.dart';
 

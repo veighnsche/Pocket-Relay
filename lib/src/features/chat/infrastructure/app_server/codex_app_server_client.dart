@@ -1,0 +1,182 @@
+import 'package:pocket_relay/src/core/models/connection_models.dart';
+
+export 'codex_app_server_models.dart';
+
+import 'codex_app_server_connection.dart';
+import 'codex_app_server_models.dart';
+import 'codex_app_server_request_api.dart';
+import 'codex_app_server_ssh_process.dart';
+import 'codex_json_rpc_codec.dart';
+
+class CodexAppServerClient {
+  CodexAppServerClient({
+    CodexAppServerProcessLauncher? processLauncher,
+    CodexJsonRpcCodec? jsonRpcCodec,
+    CodexJsonRpcRequestTracker? requestTracker,
+    CodexJsonRpcInboundRequestStore? inboundRequestStore,
+    this.clientName = 'pocket_relay',
+    this.clientVersion = '1.0.0',
+  }) : _connection = CodexAppServerConnection(
+         processLauncher: processLauncher ?? openSshCodexAppServerProcess,
+         jsonRpcCodec: jsonRpcCodec ?? const CodexJsonRpcCodec(),
+         requestTracker: requestTracker ?? CodexJsonRpcRequestTracker(),
+         inboundRequestStore:
+             inboundRequestStore ?? CodexJsonRpcInboundRequestStore(),
+         clientName: clientName,
+         clientVersion: clientVersion,
+       );
+
+  final String clientName;
+  final String clientVersion;
+  final CodexAppServerConnection _connection;
+  final CodexAppServerRequestApi _requestApi = const CodexAppServerRequestApi();
+
+  Stream<CodexAppServerEvent> get events => _connection.events;
+  bool get isConnected => _connection.isConnected;
+  String? get threadId => _connection.threadId;
+  String? get activeTurnId => _connection.activeTurnId;
+
+  Future<void> connect({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    await _connection.connect(profile: profile, secrets: secrets);
+  }
+
+  Future<CodexAppServerSession> startSession({
+    String? cwd,
+    String? model,
+    String? resumeThreadId,
+  }) async {
+    return _requestApi.startSession(
+      _connection,
+      cwd: cwd,
+      model: model,
+      resumeThreadId: resumeThreadId,
+    );
+  }
+
+  Future<CodexAppServerTurn> sendUserMessage({
+    required String threadId,
+    required String text,
+    String? model,
+  }) async {
+    return _requestApi.sendUserMessage(
+      _connection,
+      threadId: threadId,
+      text: text,
+      model: model,
+    );
+  }
+
+  Future<void> answerUserInput({
+    required String requestId,
+    required Map<String, List<String>> answers,
+  }) async {
+    await _requestApi.answerUserInput(
+      _connection,
+      requestId: requestId,
+      answers: answers,
+    );
+  }
+
+  Future<void> respondDynamicToolCall({
+    required String requestId,
+    required bool success,
+    List<Map<String, Object?>> contentItems = const <Map<String, Object?>>[],
+  }) async {
+    await _requestApi.respondDynamicToolCall(
+      _connection,
+      requestId: requestId,
+      success: success,
+      contentItems: contentItems,
+    );
+  }
+
+  Future<void> respondAuthTokensRefresh({
+    required String requestId,
+    required String accessToken,
+    required String chatgptAccountId,
+    String? chatgptPlanType,
+  }) async {
+    await _requestApi.respondAuthTokensRefresh(
+      _connection,
+      requestId: requestId,
+      accessToken: accessToken,
+      chatgptAccountId: chatgptAccountId,
+      chatgptPlanType: chatgptPlanType,
+    );
+  }
+
+  Future<void> resolveApproval({
+    required String requestId,
+    required bool approved,
+  }) async {
+    await _requestApi.resolveApproval(
+      _connection,
+      requestId: requestId,
+      approved: approved,
+    );
+  }
+
+  Future<void> rejectServerRequest({
+    required String requestId,
+    required String message,
+    int code = -32000,
+    Object? data,
+  }) async {
+    await _connection.rejectServerRequest(
+      requestId: requestId,
+      message: message,
+      code: code,
+      data: data,
+    );
+  }
+
+  Future<void> resolvePermissionsRequest({
+    required String requestId,
+    required bool approved,
+    String scope = 'turn',
+  }) async {
+    await _requestApi.resolvePermissionsRequest(
+      _connection,
+      requestId: requestId,
+      approved: approved,
+      scope: scope,
+    );
+  }
+
+  Future<void> respondToElicitation({
+    required String requestId,
+    required CodexAppServerElicitationAction action,
+    Object? content,
+    Object? metadata,
+  }) async {
+    await _requestApi.respondToElicitation(
+      _connection,
+      requestId: requestId,
+      action: action,
+      content: content,
+      metadata: metadata,
+    );
+  }
+
+  Future<void> sendServerResult({
+    required String requestId,
+    required Object? result,
+  }) async {
+    await _connection.sendServerResult(requestId: requestId, result: result);
+  }
+
+  Future<void> abortTurn({String? threadId, String? turnId}) async {
+    await _requestApi.abortTurn(
+      _connection,
+      threadId: threadId,
+      turnId: turnId,
+    );
+  }
+
+  Future<void> disconnect() async {
+    await _connection.disconnect();
+  }
+}

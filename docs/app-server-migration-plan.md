@@ -10,6 +10,8 @@ The app-server migration is complete enough to treat as the default architecture
 
 This document is the active refactor plan for the post-migration codebase.
 
+Detailed Phase 5 preflight planning and the rationale behind the infra cut live in `docs/pre-phase-5-infrastructure-plan.md`.
+
 ## Refactor Goals
 
 This refactor is meant to stop chat-layer bug whack-a-mole.
@@ -60,6 +62,14 @@ lib/src/features/chat/
     runtime_event_mapper_support.dart
     transcript_policy.dart
     transcript_reducer.dart
+  infrastructure/
+    app_server/
+      codex_app_server_client.dart
+      codex_app_server_connection.dart
+      codex_app_server_models.dart
+      codex_app_server_request_api.dart
+      codex_app_server_ssh_process.dart
+      codex_json_rpc_codec.dart
   models/
     codex_runtime_event.dart
     codex_session_state.dart
@@ -74,9 +84,6 @@ lib/src/features/chat/
         transcript_list.dart
         cards/
         support/
-  services/
-    codex_app_server_client.dart
-    codex_json_rpc_codec.dart
 ```
 
 ## Proposed Target Tree
@@ -102,6 +109,10 @@ lib/src/features/chat/
   infrastructure/
     app_server/
       codex_app_server_client.dart
+      codex_app_server_connection.dart
+      codex_app_server_models.dart
+      codex_app_server_request_api.dart
+      codex_app_server_ssh_process.dart
       codex_json_rpc_codec.dart
 
   presentation/
@@ -260,31 +271,25 @@ Result:
 - `chat_session_controller.dart` now owns connect/send/stop, approvals, input submission, unsupported-request handling, and event subscription
 - `transcript_list.dart` owns list rendering and auto-follow behavior
 
-### Phase 5: Decide Whether To Split Infrastructure Further
+### Phase 5: Completed Infrastructure Split
 
-Primary target:
+Done:
 
-- only split `codex_app_server_client.dart` if it is still too large after the upper layers are separated
+- move transport files from `services/` to `infrastructure/app_server/`
+- keep `CodexAppServerClient` as the stable public facade
+- extract `codex_app_server_connection.dart` for process lifecycle, decode loop, request tracking, inbound-request storage, and runtime pointer updates
+- extract `codex_app_server_request_api.dart` for app-server method wrappers and host-request response helpers
+- extract `codex_app_server_ssh_process.dart` for SSH bootstrap and concrete remote process wiring
+- extract `codex_app_server_models.dart` to hold shared transport/event/process types without creating cycles
+- move `codex_json_rpc_codec.dart` under the infrastructure tree
+- rewire the app layer and tests onto the new infrastructure path
 
-Possible files:
+Result:
 
-- `infrastructure/app_server/codex_app_server_client.dart`
-- `infrastructure/app_server/codex_json_rpc_codec.dart`
-
-Optional later cuts only if justified:
-
-- request tracking helpers
-- process/session lifecycle helpers
-
-Rules:
-
-- do not split transport files just to satisfy a file-count target
-- keep JSON-RPC ownership inside infrastructure
-
-Exit criteria:
-
-- transport code is isolated from screen and transcript code
-- approvals, request matching, and disconnect behavior remain fully covered
+- `CodexAppServerClient` is now a small facade instead of a 929 LOC god file
+- transport lifecycle, request APIs, SSH bootstrap, and shared transport models have explicit ownership boundaries
+- the application layer still talks to one stable client surface
+- `dart analyze` and the full test suite still pass after the cut
 
 ## Definition Of Done
 

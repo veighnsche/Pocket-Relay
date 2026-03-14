@@ -5,14 +5,10 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen.dart';
-import 'package:pocket_relay/src/features/chat/services/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 
 class PocketRelayApp extends StatefulWidget {
-  const PocketRelayApp({
-    super.key,
-    this.profileStore,
-    this.appServerClient,
-  });
+  const PocketRelayApp({super.key, this.profileStore, this.appServerClient});
 
   final CodexProfileStore? profileStore;
   final CodexAppServerClient? appServerClient;
