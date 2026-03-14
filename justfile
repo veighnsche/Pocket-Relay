@@ -20,6 +20,26 @@ run-ios:
 
 [no-exit-message]
 [script]
+icons:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{ justfile_directory() }}"
+    mkdir -p assets/icons
+
+    magick icon.png \
+      -trim +repage \
+      -resize 824x824 \
+      -gravity center \
+      -background none \
+      -extent 1024x1024 \
+      assets/icons/app_icon_master.png
+
+    flutter pub get
+    dart run flutter_launcher_icons
+
+[no-exit-message]
+[script]
 run-android-emulator:
     #!/usr/bin/env bash
     set -euo pipefail
