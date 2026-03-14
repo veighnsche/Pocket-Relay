@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
-import 'package:pocket_relay/src/core/utils/thread_utils.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_remote_event.dart';
-import 'package:pocket_relay/src/features/chat/models/conversation_entry.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/connection_banner.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/conversation_entry_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
+import 'package:pocket_relay/src/features/chat/services/codex_session_reducer.dart';
 import 'package:pocket_relay/src/features/chat/services/ssh_codex_service.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
 import 'package:flutter/material.dart';
@@ -30,14 +30,13 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
-  final List<ConversationEntry> _entries = [];
+  final _sessionReducer = const CodexSessionReducer();
 
   ConnectionProfile _profile = ConnectionProfile.defaults();
   ConnectionSecrets _secrets = const ConnectionSecrets();
+  CodexSessionState _sessionState = CodexSessionState.initial();
 
   bool _isLoading = true;
-  bool _isBusy = false;
-  String? _threadId;
   StreamSubscription<CodexRemoteEvent>? _turnSubscription;
 
   @override
@@ -138,13 +137,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
                     child: ConnectionBanner(
                       profile: _profile,
-                      threadId: _threadId,
-                      isBusy: _isBusy,
+                      threadId: _sessionState.threadId,
+                      isBusy: _sessionState.isBusy,
                       onConfigure: _openSettingsSheet,
                     ),
                   ),
                   Expanded(
-                    child: _entries.isEmpty
+                    child: _sessionState.transcript.isEmpty
                         ? EmptyState(
                             isConfigured: _profile.isReady,
                             onConfigure: _openSettingsSheet,
@@ -154,12 +153,12 @@ class _ChatScreenState extends State<ChatScreen> {
                             padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
                             itemBuilder: (context, index) {
                               return ConversationEntryCard(
-                                entry: _entries[index],
+                                entry: _sessionState.transcript[index],
                               );
                             },
                             separatorBuilder: (context, index) =>
                                 const SizedBox(height: 12),
-                            itemCount: _entries.length,
+                            itemCount: _sessionState.transcript.length,
                           ),
                   ),
                   SafeArea(
@@ -169,7 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: ChatComposer(
                         controller: _composerController,
                         enabled: _profile.isReady && !_isLoading,
-                        isBusy: _isBusy,
+                        isBusy: _sessionState.isBusy,
                         onSend: _sendPrompt,
                         onStop: _stopActiveTurn,
                       ),
@@ -208,14 +207,14 @@ class _ChatScreenState extends State<ChatScreen> {
       _profile = result.profile;
       _secrets = result.secrets;
       if (_profile.ephemeralSession) {
-        _threadId = null;
+        _sessionState = _sessionReducer.detachThread(_sessionState);
       }
     });
   }
 
   Future<void> _sendPrompt() async {
     final prompt = _composerController.text.trim();
-    if (prompt.isEmpty || _isBusy) {
+    if (prompt.isEmpty || _sessionState.isBusy) {
       return;
     }
 
@@ -235,39 +234,33 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     _composerController.clear();
-
-    setState(() {
-      _isBusy = true;
-    });
-
-    _upsertEntry(
-      ConversationEntry(
-        id: _newEntryId('user'),
-        kind: ConversationEntryKind.user,
-        title: 'You',
-        body: prompt,
-        createdAt: DateTime.now(),
-      ),
+    _applySessionState(
+      _sessionReducer.addUserMessage(_sessionState, text: prompt),
+      scrollToEnd: true,
     );
 
     await _turnSubscription?.cancel();
+    _applySessionState(_sessionReducer.startLegacyTurn(_sessionState));
     _turnSubscription = widget.remoteService
         .runTurn(
           profile: _profile,
           secrets: _secrets,
           prompt: prompt,
-          threadId: _profile.ephemeralSession ? null : _threadId,
+          threadId: _profile.ephemeralSession ? null : _sessionState.threadId,
         )
         .listen(
-          _handleRemoteEvent,
+          (event) => _applySessionState(
+            _sessionReducer.reduceLegacyRemoteEvent(
+              _sessionState,
+              event,
+              ephemeralSession: _profile.ephemeralSession,
+            ),
+            scrollToEnd: true,
+          ),
           onDone: () {
-            if (!mounted) {
-              return;
-            }
-
-            setState(() {
-              _isBusy = false;
-            });
+            _applySessionState(
+              _sessionReducer.finishLegacyStream(_sessionState),
+            );
           },
         );
   }
@@ -278,139 +271,44 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) {
       return;
     }
-
-    setState(() {
-      _isBusy = false;
-    });
-
-    _upsertEntry(
-      ConversationEntry(
-        id: _newEntryId('status'),
-        kind: ConversationEntryKind.status,
-        title: 'Run stopped',
-        body: 'The active remote Codex turn was cancelled.',
-        createdAt: DateTime.now(),
+    _applySessionState(
+      _sessionReducer.stopLegacyTurn(
+        _sessionState,
+        message: 'The active remote Codex turn was cancelled.',
       ),
+      scrollToEnd: true,
     );
   }
 
   void _startFreshConversation() {
-    setState(() {
-      _threadId = null;
-    });
-
-    _upsertEntry(
-      ConversationEntry(
-        id: _newEntryId('status'),
-        kind: ConversationEntryKind.status,
-        title: 'New thread',
-        body: 'The next prompt will start a fresh remote Codex session.',
-        createdAt: DateTime.now(),
+    _applySessionState(
+      _sessionReducer.startFreshThread(
+        _sessionState,
+        message: 'The next prompt will start a fresh remote Codex session.',
       ),
+      scrollToEnd: true,
     );
   }
 
   void _clearTranscript() {
-    setState(() {
-      _entries.clear();
-      _threadId = null;
-    });
+    _applySessionState(_sessionReducer.clearTranscript(_sessionState));
   }
 
-  void _handleRemoteEvent(CodexRemoteEvent event) {
-    switch (event) {
-      case ThreadStartedEvent(:final threadId):
-        if (_profile.ephemeralSession) {
-          return;
-        }
-
-        final alreadyKnown = _threadId == threadId;
-        setState(() {
-          _threadId = threadId;
-        });
-        if (!alreadyKnown) {
-          _upsertEntry(
-            ConversationEntry(
-              id: 'thread_$threadId',
-              kind: ConversationEntryKind.status,
-              title: 'Thread ready',
-              body: 'Remote session ${shortenThreadId(threadId)} is active.',
-              createdAt: DateTime.now(),
-            ),
-          );
-        }
-      case EntryUpsertedEvent(:final entry):
-        _upsertEntry(entry);
-      case InformationalEvent(:final message, :final isError):
-        _upsertEntry(
-          ConversationEntry(
-            id: _newEntryId(isError ? 'error' : 'status'),
-            kind: isError
-                ? ConversationEntryKind.error
-                : ConversationEntryKind.status,
-            title: isError ? 'Remote issue' : 'Status',
-            body: message,
-            createdAt: DateTime.now(),
-          ),
-        );
-      case TurnFinishedEvent():
-        if (mounted) {
-          setState(() {
-            _isBusy = false;
-            if (_profile.ephemeralSession) {
-              _threadId = null;
-            }
-          });
-        }
-
-        _upsertEntry(
-          ConversationEntry(
-            id: _newEntryId('usage'),
-            kind: ConversationEntryKind.usage,
-            title: 'Turn complete',
-            body: _buildUsageSummary(event),
-            createdAt: DateTime.now(),
-          ),
-        );
+  void _applySessionState(
+    CodexSessionState nextState, {
+    bool scrollToEnd = false,
+  }) {
+    if (!mounted) {
+      return;
     }
-  }
-
-  String _buildUsageSummary(TurnFinishedEvent event) {
-    final parts = <String>[];
-    final usage = event.usage;
-
-    if (usage?.inputTokens != null) {
-      parts.add('input ${usage!.inputTokens}');
-    }
-    if ((usage?.cachedInputTokens ?? 0) > 0) {
-      parts.add('cached ${usage!.cachedInputTokens}');
-    }
-    if (usage?.outputTokens != null) {
-      parts.add('output ${usage!.outputTokens}');
-    }
-    if (event.exitCode != null) {
-      parts.add('exit ${event.exitCode}');
-    }
-
-    if (parts.isEmpty) {
-      return 'The remote Codex turn finished.';
-    }
-
-    return parts.join(' · ');
-  }
-
-  void _upsertEntry(ConversationEntry entry) {
-    final index = _entries.indexWhere((existing) => existing.id == entry.id);
 
     setState(() {
-      if (index == -1) {
-        _entries.add(entry);
-      } else {
-        _entries[index] = entry;
-      }
+      _sessionState = nextState;
     });
 
-    _scrollToEnd();
+    if (scrollToEnd) {
+      _scrollToEnd();
+    }
   }
 
   void _scrollToEnd() {
@@ -425,10 +323,6 @@ class _ChatScreenState extends State<ChatScreen> {
         curve: Curves.easeOut,
       );
     });
-  }
-
-  String _newEntryId(String prefix) {
-    return '$prefix-${DateTime.now().microsecondsSinceEpoch}';
   }
 
   void _showSnackBar(String message) {
