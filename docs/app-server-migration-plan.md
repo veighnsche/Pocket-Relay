@@ -60,7 +60,10 @@ lib/src/features/chat/
     runtime_event_mapper_notification_mapper.dart
     runtime_event_mapper_request_mapper.dart
     runtime_event_mapper_support.dart
+    transcript_changed_files_parser.dart
+    transcript_item_block_factory.dart
     transcript_item_policy.dart
+    transcript_item_support.dart
     transcript_policy.dart
     transcript_policy_support.dart
     transcript_reducer.dart
@@ -103,7 +106,10 @@ lib/src/features/chat/
   application/
     chat_session_controller.dart
     transcript_reducer.dart
+    transcript_changed_files_parser.dart
+    transcript_item_block_factory.dart
     transcript_item_policy.dart
+    transcript_item_support.dart
     transcript_policy.dart
     transcript_policy_support.dart
     transcript_request_policy.dart
@@ -303,15 +309,21 @@ Done:
 
 - keep `TranscriptPolicy` as the stable reducer-facing facade
 - extract `application/transcript_request_policy.dart` for approvals and user-input request state
-- extract `application/transcript_item_policy.dart` for item lifecycle, content deltas, block construction, and changed-file parsing
+- extract `application/transcript_item_policy.dart` for item lifecycle and content deltas
+- extract `application/transcript_item_block_factory.dart` for item-to-block construction, default titles, and work-log preview rules
+- extract `application/transcript_changed_files_parser.dart` for changed-file and unified-diff parsing
+- extract `application/transcript_item_support.dart` for stream-kind normalization, snapshot text extraction, and fallback lifecycle text
 - extract `application/transcript_policy_support.dart` for shared block upsert, status-entry, usage-summary, and event-id helpers
 - keep `TranscriptReducer` and the existing reducer tests on the same public surface
 
 Result:
 
 - `transcript_policy.dart` is now a small coordination layer instead of the transcript god file
-- request handling and item/delta handling have explicit ownership boundaries inside the application layer
-- the main remaining transcript hotspot is now `transcript_item_policy.dart`, not the facade
+- request handling, item-state transitions, block construction, and diff parsing now have explicit ownership boundaries inside the application layer
+- changed-file parsing no longer lives inside item-state policy
+- `transcript_item_policy.dart` now owns item-state transitions instead of acting as a second god file
+- item normalization no longer lives inside the policy layer
+- the main remaining large-file hotspots are now outside the transcript-policy cluster
 - `dart analyze` and the full test suite still pass after the cut
 
 ## Definition Of Done

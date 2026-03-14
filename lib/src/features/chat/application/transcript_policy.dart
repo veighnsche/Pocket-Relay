@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/features/chat/application/transcript_changed_files_parser.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_item_policy.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_request_policy.dart';
@@ -7,13 +8,17 @@ import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
 class TranscriptPolicy {
   const TranscriptPolicy({
+    TranscriptChangedFilesParser changedFilesParser =
+        const TranscriptChangedFilesParser(),
     TranscriptPolicySupport support = const TranscriptPolicySupport(),
     TranscriptItemPolicy itemPolicy = const TranscriptItemPolicy(),
     TranscriptRequestPolicy requestPolicy = const TranscriptRequestPolicy(),
-  }) : _support = support,
+  }) : _changedFilesParser = changedFilesParser,
+       _support = support,
        _itemPolicy = itemPolicy,
        _requestPolicy = requestPolicy;
 
+  final TranscriptChangedFilesParser _changedFilesParser;
   final TranscriptPolicySupport _support;
   final TranscriptItemPolicy _itemPolicy;
   final TranscriptRequestPolicy _requestPolicy;
@@ -179,7 +184,7 @@ class TranscriptPolicy {
         id: 'turn_diff_${event.turnId ?? event.createdAt.toIso8601String()}',
         createdAt: event.createdAt,
         title: 'Changed files',
-        files: _itemPolicy.changedFilesFromSources(
+        files: _changedFilesParser.changedFilesFromSources(
           snapshot: null,
           body: event.unifiedDiff,
           rawPayload: event.rawPayload,
