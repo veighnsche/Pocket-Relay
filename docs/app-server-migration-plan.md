@@ -60,8 +60,11 @@ lib/src/features/chat/
     runtime_event_mapper_notification_mapper.dart
     runtime_event_mapper_request_mapper.dart
     runtime_event_mapper_support.dart
+    transcript_item_policy.dart
     transcript_policy.dart
+    transcript_policy_support.dart
     transcript_reducer.dart
+    transcript_request_policy.dart
   infrastructure/
     app_server/
       codex_app_server_client.dart
@@ -100,7 +103,10 @@ lib/src/features/chat/
   application/
     chat_session_controller.dart
     transcript_reducer.dart
+    transcript_item_policy.dart
     transcript_policy.dart
+    transcript_policy_support.dart
+    transcript_request_policy.dart
     runtime_event_mapper.dart
     runtime_event_mapper_notification_mapper.dart
     runtime_event_mapper_request_mapper.dart
@@ -289,6 +295,23 @@ Result:
 - `CodexAppServerClient` is now a small facade instead of a 929 LOC god file
 - transport lifecycle, request APIs, SSH bootstrap, and shared transport models have explicit ownership boundaries
 - the application layer still talks to one stable client surface
+- `dart analyze` and the full test suite still pass after the cut
+
+### Phase 6: Completed Transcript Policy Decomposition
+
+Done:
+
+- keep `TranscriptPolicy` as the stable reducer-facing facade
+- extract `application/transcript_request_policy.dart` for approvals and user-input request state
+- extract `application/transcript_item_policy.dart` for item lifecycle, content deltas, block construction, and changed-file parsing
+- extract `application/transcript_policy_support.dart` for shared block upsert, status-entry, usage-summary, and event-id helpers
+- keep `TranscriptReducer` and the existing reducer tests on the same public surface
+
+Result:
+
+- `transcript_policy.dart` is now a small coordination layer instead of the transcript god file
+- request handling and item/delta handling have explicit ownership boundaries inside the application layer
+- the main remaining transcript hotspot is now `transcript_item_policy.dart`, not the facade
 - `dart analyze` and the full test suite still pass after the cut
 
 ## Definition Of Done
