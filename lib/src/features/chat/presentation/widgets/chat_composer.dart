@@ -64,11 +64,10 @@ class ChatComposer extends StatelessWidget {
                     icon: const Icon(Icons.stop_circle_outlined),
                     label: const Text('Stop'),
                   )
-                : FilledButton.icon(
+                : IconButton.filled(
                     key: const ValueKey('send'),
                     onPressed: enabled ? onSend : null,
                     icon: const Icon(Icons.send_rounded),
-                    label: const Text('Send'),
                   ),
           ),
         ],
