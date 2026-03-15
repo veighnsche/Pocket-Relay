@@ -801,6 +801,134 @@ void main() {
     },
   );
 
+  testWidgets(
+    'starts a new changed-files card when the same file-change item resumes after approval',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'file_change_1',
+              'type': 'fileChange',
+              'status': 'inProgress',
+              'changes': <Object?>[
+                <String, Object?>{
+                  'path': 'README.md',
+                  'kind': <String, Object?>{'type': 'add'},
+                  'diff': 'first line\n',
+                },
+              ],
+            },
+          },
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Changed files'), findsOneWidget);
+      expect(find.text('README.md'), findsOneWidget);
+      expect(find.text('updating'), findsOneWidget);
+
+      appServerClient.emit(
+        const CodexAppServerRequestEvent(
+          requestId: 'i:99',
+          method: 'item/fileChange/requestApproval',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'file_change_1',
+            'reason': 'Write files',
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Changed files'), findsOneWidget);
+      expect(find.text('updating'), findsNothing);
+      expect(find.text('File change approval'), findsOneWidget);
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'serverRequest/resolved',
+          params: <String, Object?>{'threadId': 'thread_123', 'requestId': 99},
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'file_change_1',
+              'type': 'fileChange',
+              'status': 'completed',
+              'changes': <Object?>[
+                <String, Object?>{
+                  'path': 'README.md',
+                  'kind': <String, Object?>{'type': 'add'},
+                  'diff': 'first line\n',
+                },
+                <String, Object?>{
+                  'path': 'lib/app.dart',
+                  'kind': <String, Object?>{'type': 'update'},
+                  'diff':
+                      '--- a/lib/app.dart\n'
+                      '+++ b/lib/app.dart\n'
+                      '@@ -1 +1 @@\n'
+                      '-old\n'
+                      '+new\n',
+                },
+              ],
+            },
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Changed files'), findsNWidgets(2));
+      expect(find.text('README.md'), findsNWidgets(2));
+      expect(find.text('lib/app.dart'), findsOneWidget);
+      expect(find.text('File change approval resolved'), findsOneWidget);
+
+      final firstChangedFilesDy = tester
+          .getTopLeft(find.text('Changed files').first)
+          .dy;
+      final resolvedDy = tester
+          .getTopLeft(find.text('File change approval resolved'))
+          .dy;
+      final secondChangedFilesDy = tester
+          .getTopLeft(find.text('Changed files').last)
+          .dy;
+
+      expect(firstChangedFilesDy, lessThan(resolvedDy));
+      expect(resolvedDy, lessThan(secondChangedFilesDy));
+    },
+  );
+
   testWidgets('approval actions are routed to the app-server client', (
     tester,
   ) async {
