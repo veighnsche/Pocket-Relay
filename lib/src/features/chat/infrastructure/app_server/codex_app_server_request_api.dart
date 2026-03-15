@@ -330,7 +330,7 @@ class CodexAppServerRequestApi {
   }
 
   static String _approvalPolicyFor(ConnectionProfile profile) {
-    return profile.dangerouslyBypassSandbox ? 'never' : 'onRequest';
+    return profile.dangerouslyBypassSandbox ? 'never' : 'on-request';
   }
 
   static String _sandboxFor(ConnectionProfile profile) {

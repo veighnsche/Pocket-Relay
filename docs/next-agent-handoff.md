@@ -24,17 +24,10 @@ The most relevant planning documents already in the repo are:
 
 Important note:
 
-- `docs/transcript-immutability-migration-plan.md` now contains a deviation log
-  because the worktree did not follow the originally planned "tests-only first
-  commit" sequence
-- the same document now also contains the rebased migration path that should be
-  treated as authoritative going forward
-- that rebased path has itself already needed a documented boundary correction:
-  `Commit B` and `Commit C` were tightened in the docs before preserving that
-  this was a planning correction rather than implementation progress
-- the transcript migration has now landed through the automated Commit D
-  scenario matrix in `5e16045` and `30decf7`; the remaining work is the final
-  manual/emulator parity sweep and stale-doc cleanup
+- `docs/transcript-immutability-migration-plan.md` is now the canonical
+  transcript chronology status summary
+- the transcript ownership rewrite is already in place; the remaining work is
+  live verification plus the local build/runtime blocker described in that doc
 
 This document is the short operational handoff for the next agent.
 
@@ -69,9 +62,6 @@ Reference Codex areas:
 Current state:
 
 - the transcript ownership rewrite is already in place
-- the migration did not follow the originally documented clean commit sequence,
-  but the rebased plan in `docs/transcript-immutability-migration-plan.md` is
-  the authoritative record
 - live artifacts now explicitly own assistant/reasoning/plan/changed-files/work
   and resolved-request transcript runs
 - render-time work-log grouping has been removed in favor of live work
@@ -86,26 +76,23 @@ Current state:
   - repeated plan updates
   - sequential distinct file-change artifacts
   - pending request chronology and request-open tail freeze
+  - same-item file-change resumption after approval interruption
 
-Practical status:
+Live verification status:
 
-- transcript immutability migration: about `85-90%` done
-- transcript parity confidence vs local reference Codex: about `80-85%`
-
-Target state:
-
-- flush assistant output before tool/work cells begin
-- flush work groups before assistant output resumes
-- freeze the current live artifact before request overlays take over
-- keep committed transcript history separate from active streaming state
-
-The transcript ownership model is now substantially in place. The remaining
-work here is emulator/manual parity verification and stale-doc cleanup, not
-another ownership rewrite.
+- a real app-server run already confirmed chronological `assistant ->
+  assistant -> updated plan` behavior, with earlier cards staying frozen
+- a real emulator run also confirmed sequential file changes render as separate
+  `Changed files` cards in order
+- the current worktree fixes one additional live transport bug:
+  `approvalPolicy` now uses `on-request` instead of `onRequest`
+- a fresh live rerun is currently blocked by local build/runtime issues:
+  Android rebuilds cannot currently be installed from this environment, and
+  Linux debug runs are missing `libsecret`
 
 Remaining concrete tasks:
 
-- run the emulator/manual Commit D sweep for:
+- rerun the emulator/manual Commit D sweep once a fresh build can be launched:
   - assistant -> work -> assistant
   - assistant -> approval open -> resolved -> assistant resumes
   - assistant -> user-input open -> resolved -> assistant resumes
@@ -117,9 +104,8 @@ Remaining concrete tasks:
   chronology behavior
 - if a mismatch appears, add the smallest focused reducer/widget regression and
   patch only that behavior
-- clean stale docs that still describe transcript segmentation as future work,
-  especially `docs/codex-parity-maturity-plan.md` and this handoff once the
-  sweep is complete
+- if the live rerun stays clean, treat transcript chronology as done and move
+  on to reasoning parity
 
 Primary code areas:
 
@@ -187,9 +173,9 @@ Reference Codex areas:
 4. Work-only completion semantics
 
 This order matters. The transcript ownership rewrite is already in place, so it
-should be closed out with the manual parity sweep before broader parity work
-moves on. File-link work should still come after the display pipeline is more
-settled.
+should be closed out with the remaining live parity rerun before broader parity
+work moves on. File-link work should still come after the display pipeline is
+more settled.
 
 ## Guard Rails For The Next Agent
 
@@ -221,7 +207,7 @@ These are not active blockers, but they should be watched during future work:
 - `ConnectionSheet` is safe because it is currently remounted per sheet open;
   if that ownership model changes, it will need update-lifecycle handling
 - `TurnElapsedFooter` is currently correct for its timer role, but transcript
-  placement may change once in-flight segmentation exists
+  placement may still change if the transcript layout is consolidated further
 - transcript cards with local expansion state depend on `block.id` identity, so
   future list refactors must preserve keys
 
