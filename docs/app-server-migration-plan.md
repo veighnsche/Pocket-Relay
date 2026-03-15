@@ -131,7 +131,6 @@ lib/src/features/chat/
       codex_json_rpc_codec.dart
 
   presentation/
-    screens/
       chat_screen.dart
     widgets/
       chat_composer.dart
@@ -145,7 +144,6 @@ lib/src/features/chat/
           reasoning_card.dart
           plan_update_card.dart
           proposed_plan_card.dart
-          command_card.dart
           work_log_group_card.dart
           changed_files_card.dart
           approval_request_card.dart

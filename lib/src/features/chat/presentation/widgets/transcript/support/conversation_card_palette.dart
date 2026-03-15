@@ -104,7 +104,6 @@ BlockPalette paletteFor(CodexUiBlockKind kind, Brightness brightness) {
       ).withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.28),
       icon: Icons.checklist_rtl,
     ),
-    CodexUiBlockKind.fileChange ||
     CodexUiBlockKind.changedFiles => BlockPalette(
       accent: amberAccent(brightness),
       border: amberAccent(
@@ -200,7 +199,6 @@ IconData workLogIcon(CodexWorkLogEntryKind kind) {
     CodexWorkLogEntryKind.mcpToolCall => Icons.extension_outlined,
     CodexWorkLogEntryKind.dynamicToolCall => Icons.build_outlined,
     CodexWorkLogEntryKind.collabAgentToolCall => Icons.groups_2_outlined,
-    CodexWorkLogEntryKind.fileChange => Icons.drive_file_rename_outline,
     CodexWorkLogEntryKind.unknown => Icons.auto_awesome,
   };
 }
@@ -214,7 +212,6 @@ Color workLogAccent(CodexWorkLogEntryKind kind, Brightness brightness) {
     CodexWorkLogEntryKind.mcpToolCall => amberAccent(brightness),
     CodexWorkLogEntryKind.dynamicToolCall => redAccent(brightness),
     CodexWorkLogEntryKind.collabAgentToolCall => purpleAccent(brightness),
-    CodexWorkLogEntryKind.fileChange => amberAccent(brightness),
     CodexWorkLogEntryKind.unknown => tealAccent(brightness),
   };
 }

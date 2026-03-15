@@ -29,25 +29,7 @@ class TranscriptItemBlockFactory {
   }
 
   String defaultItemTitle(CodexCanonicalItemType itemType) {
-    return switch (itemType) {
-      CodexCanonicalItemType.userMessage => 'You',
-      CodexCanonicalItemType.assistantMessage => 'Codex',
-      CodexCanonicalItemType.reasoning => 'Reasoning',
-      CodexCanonicalItemType.plan => 'Proposed plan',
-      CodexCanonicalItemType.commandExecution => 'Command',
-      CodexCanonicalItemType.fileChange => 'Changed files',
-      CodexCanonicalItemType.webSearch => 'Web search',
-      CodexCanonicalItemType.imageView => 'Image view',
-      CodexCanonicalItemType.imageGeneration => 'Image generation',
-      CodexCanonicalItemType.mcpToolCall => 'MCP tool call',
-      CodexCanonicalItemType.dynamicToolCall => 'Tool call',
-      CodexCanonicalItemType.collabAgentToolCall => 'Agent tool call',
-      CodexCanonicalItemType.reviewEntered => 'Review started',
-      CodexCanonicalItemType.reviewExited => 'Review finished',
-      CodexCanonicalItemType.contextCompaction => 'Context compacted',
-      CodexCanonicalItemType.error => 'Error',
-      _ => 'Codex',
-    };
+    return codexItemTitle(itemType);
   }
 
   CodexWorkLogEntryKind workLogEntryKindFor(CodexCanonicalItemType itemType) {
@@ -63,7 +45,6 @@ class TranscriptItemBlockFactory {
         CodexWorkLogEntryKind.dynamicToolCall,
       CodexCanonicalItemType.collabAgentToolCall =>
         CodexWorkLogEntryKind.collabAgentToolCall,
-      CodexCanonicalItemType.fileChange => CodexWorkLogEntryKind.fileChange,
       _ => CodexWorkLogEntryKind.unknown,
     };
   }

@@ -40,7 +40,6 @@ Completed items:
   settings UI
 - removed unused `CodexAppServerClient` facade methods
   `resolvePermissionsRequest(...)` and `sendServerResult(...)`
-- removed unused `latestUsageSummary` from `CodexActiveTurnState`
 - removed the write-only active-turn fields `turnDiffSnapshot`, `hasWork`,
   and `hasReasoning`
 - removed the dead auth-refresh response API from the app-server client and
@@ -74,6 +73,25 @@ Completed items:
 
 Scope:
 - keep the structural ownership model converged as follow-up cleanup lands
+
+### Group 4: Runtime Surface Cleanup
+
+Status: completed on 2026-03-15
+
+Completed items:
+
+- removed the no-op runtime surfaces for `transport/connected` session-start
+  events, `session/started`, and `turn/diff/updated`
+- removed the unused session-level `latestUsageSummary` field
+- removed the dead `CodexCanonicalRequestType.dynamicToolCall` request variant
+- removed the dead `CodexUiBlockKind.fileChange` and
+  `CodexWorkLogEntryKind.fileChange` variants
+- centralized default item titles under one shared helper so runtime mapping
+  and transcript projection use the same labels
+- updated stale architecture and chronology docs to match the current code
+
+Scope:
+- keep runtime model surface aligned with the transcript and controller owners
 
 ## Verification
 

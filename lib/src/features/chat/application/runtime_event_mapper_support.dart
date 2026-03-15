@@ -189,25 +189,8 @@ String _normalizeType(Object? raw) {
       .toLowerCase();
 }
 
-String? _itemTitle(CodexCanonicalItemType itemType) {
-  return switch (itemType) {
-    CodexCanonicalItemType.assistantMessage => 'Assistant message',
-    CodexCanonicalItemType.userMessage => 'User message',
-    CodexCanonicalItemType.reasoning => 'Reasoning',
-    CodexCanonicalItemType.plan => 'Plan',
-    CodexCanonicalItemType.commandExecution => 'Ran command',
-    CodexCanonicalItemType.fileChange => 'Changed files',
-    CodexCanonicalItemType.mcpToolCall => 'MCP tool call',
-    CodexCanonicalItemType.dynamicToolCall => 'Tool call',
-    CodexCanonicalItemType.webSearch => 'Web search',
-    CodexCanonicalItemType.imageView => 'Image view',
-    CodexCanonicalItemType.imageGeneration => 'Image generation',
-    CodexCanonicalItemType.reviewEntered => 'Review started',
-    CodexCanonicalItemType.reviewExited => 'Review finished',
-    CodexCanonicalItemType.contextCompaction => 'Context compacted',
-    CodexCanonicalItemType.error => 'Error',
-    _ => null,
-  };
+String _itemTitle(CodexCanonicalItemType itemType) {
+  return codexItemTitle(itemType);
 }
 
 String? _itemDetail(Map<String, dynamic> item, Map<String, dynamic>? payload) {
@@ -250,7 +233,6 @@ CodexCanonicalRequestType _requestTypeFromMethod(String method) {
     'item/tool/requestUserInput' => CodexCanonicalRequestType.toolUserInput,
     'mcpServer/elicitation/request' =>
       CodexCanonicalRequestType.mcpServerElicitation,
-    'item/tool/call' => CodexCanonicalRequestType.dynamicToolCall,
     _ => CodexCanonicalRequestType.unknown,
   };
 }

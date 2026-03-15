@@ -43,15 +43,6 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
           rawPayload: event.params,
         ),
       ];
-    case 'session/started':
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSessionStartedEvent(
-          createdAt: now,
-          rawMethod: event.method,
-          rawPayload: event.params,
-          message: _eventReason(payload),
-        ),
-      ];
     case 'session/exited':
     case 'session/closed':
       pendingRequests.clear();
@@ -156,25 +147,6 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
           rawPayload: event.params,
           explanation: _asString(payload?['explanation']),
           steps: _toPlanSteps(_asList(payload?['plan'])),
-        ),
-      ];
-    case 'turn/diff/updated':
-      final unifiedDiff = _stringFromCandidates(<Object?>[
-        payload?['unifiedDiff'],
-        payload?['diff'],
-        payload?['patch'],
-      ]);
-      if (unifiedDiff == null || unifiedDiff.isEmpty) {
-        return const <CodexRuntimeEvent>[];
-      }
-      return <CodexRuntimeEvent>[
-        CodexRuntimeTurnDiffUpdatedEvent(
-          createdAt: now,
-          threadId: _asString(payload?['threadId']),
-          turnId: _asString(payload?['turnId']),
-          rawMethod: event.method,
-          rawPayload: event.params,
-          unifiedDiff: unifiedDiff,
         ),
       ];
     case 'item/started':

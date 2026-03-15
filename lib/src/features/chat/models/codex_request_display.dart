@@ -10,7 +10,6 @@ String codexRequestTitle(CodexCanonicalRequestType requestType) {
       'Permissions request',
     CodexCanonicalRequestType.toolUserInput => 'Input required',
     CodexCanonicalRequestType.mcpServerElicitation => 'MCP input required',
-    CodexCanonicalRequestType.dynamicToolCall => 'Tool call',
     CodexCanonicalRequestType.unknown => 'Request',
   };
 }

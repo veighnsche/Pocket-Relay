@@ -136,36 +136,6 @@ class TranscriptPolicySupport {
     };
   }
 
-  String buildRuntimeUsageSummary(CodexRuntimeTurnCompletedEvent event) {
-    final parts = <String>[];
-    final usage = event.usage;
-
-    if (usage?.inputTokens != null) {
-      parts.add('input ${usage!.inputTokens}');
-    }
-    if ((usage?.cachedInputTokens ?? 0) > 0) {
-      parts.add('cached ${usage!.cachedInputTokens}');
-    }
-    if (usage?.outputTokens != null) {
-      parts.add('output ${usage!.outputTokens}');
-    }
-    if (event.totalCostUsd != null) {
-      parts.add('cost \$${event.totalCostUsd!.toStringAsFixed(4)}');
-    }
-    if (event.stopReason != null && event.stopReason!.trim().isNotEmpty) {
-      parts.add(event.stopReason!);
-    }
-    if (event.errorMessage != null && event.errorMessage!.trim().isNotEmpty) {
-      parts.add(event.errorMessage!);
-    }
-
-    if (parts.isEmpty) {
-      return 'The active Codex turn finished.';
-    }
-
-    return parts.join(' · ');
-  }
-
   String eventEntryId(String prefix, DateTime createdAt) {
     return '$prefix-${createdAt.microsecondsSinceEpoch}';
   }

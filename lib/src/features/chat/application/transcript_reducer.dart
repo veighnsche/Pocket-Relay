@@ -53,8 +53,6 @@ class TranscriptReducer {
   ) {
     final normalizedState = _normalizeTurnState(state, event);
     switch (event) {
-      case CodexRuntimeSessionStartedEvent():
-        return normalizedState;
       case CodexRuntimeSessionStateChangedEvent():
         return normalizedState.copyWith(connectionStatus: event.state);
       case CodexRuntimeSessionExitedEvent():
@@ -86,8 +84,6 @@ class TranscriptReducer {
         return _policy.applyTurnAborted(normalizedState, event);
       case CodexRuntimeTurnPlanUpdatedEvent():
         return _policy.applyTurnPlanUpdated(normalizedState, event);
-      case CodexRuntimeTurnDiffUpdatedEvent():
-        return normalizedState;
       case CodexRuntimeItemStartedEvent():
         return _policy.applyItemLifecycle(
           normalizedState,
@@ -130,12 +126,10 @@ class TranscriptReducer {
     CodexRuntimeEvent event,
   ) {
     return switch (event) {
-      CodexRuntimeSessionStartedEvent() ||
       CodexRuntimeSessionStateChangedEvent() ||
       CodexRuntimeSessionExitedEvent() ||
       CodexRuntimeThreadStartedEvent() ||
       CodexRuntimeThreadStateChangedEvent() ||
-      CodexRuntimeTurnDiffUpdatedEvent() ||
       CodexRuntimeTurnCompletedEvent() ||
       CodexRuntimeTurnAbortedEvent() => state,
       _ => _policy.rolloverTurnIfNeeded(
