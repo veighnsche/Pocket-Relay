@@ -1,14 +1,9 @@
 import 'dart:convert';
 
-import 'package:pocket_relay/src/features/chat/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
 class TranscriptChangedFilesParser {
-  const TranscriptChangedFilesParser({
-    TranscriptPolicySupport support = const TranscriptPolicySupport(),
-  }) : _support = support;
-
-  final TranscriptPolicySupport _support;
+  const TranscriptChangedFilesParser();
 
   List<CodexChangedFile> changedFilesFromSources({
     Map<String, dynamic>? snapshot,

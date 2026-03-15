@@ -58,11 +58,6 @@ class ChatSessionController extends ChangeNotifier {
   CodexUserInputRequestBlock? get pendingUserInputBlock =>
       _sessionState.primaryPendingUserInputBlock;
 
-  bool get hasVisibleConversation =>
-      transcriptBlocks.isNotEmpty ||
-      pendingApprovalBlock != null ||
-      pendingUserInputBlock != null;
-
   Future<void> initialize() async {
     if (_didInitialize) {
       return;

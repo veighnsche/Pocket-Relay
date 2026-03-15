@@ -533,13 +533,9 @@ class TranscriptRequestPolicy {
             ? existing
             : incoming,
       (
-        CodexApprovalRequestBlock existing,
+        CodexApprovalRequestBlock _,
         CodexUserInputRequestBlock incoming,
-      ) =>
-        _isRichUserInputResolution(incoming) ||
-                existing.requestType == CodexCanonicalRequestType.unknown
-            ? incoming
-            : incoming,
+      ) => incoming,
       _ => incomingBlock,
     };
   }

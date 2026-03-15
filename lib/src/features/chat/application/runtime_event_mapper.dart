@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_json_rpc_codec.dart';
@@ -74,12 +72,6 @@ class CodexRuntimeEventMapper {
           now,
           pendingRequests: _pendingRequests,
         );
-    }
-  }
-
-  Stream<CodexRuntimeEvent> bind(Stream<CodexAppServerEvent> events) async* {
-    await for (final event in events) {
-      yield* Stream<CodexRuntimeEvent>.fromIterable(mapEvent(event));
     }
   }
 }
