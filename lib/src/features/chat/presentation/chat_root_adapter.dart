@@ -16,6 +16,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_m
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_host.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_renderer.dart';
 
 class ChatRootAdapter extends StatefulWidget {
   const ChatRootAdapter({
@@ -194,13 +195,20 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       context,
     ).rendererFor(ChatRootRegion.settingsOverlay);
 
-    final result = switch (settingsRenderer) {
-      ChatRootRegionRenderer.cupertino || ChatRootRegionRenderer.flutter =>
-        await overlayDelegate.openConnectionSettings(
+    final openSettingsResult = switch (settingsRenderer) {
+      ChatRootRegionRenderer.cupertino =>
+        overlayDelegate.openConnectionSettings(
           context: context,
           connectionSettings: connectionSettings,
+          renderer: ConnectionSettingsRenderer.cupertino,
         ),
+      ChatRootRegionRenderer.flutter => overlayDelegate.openConnectionSettings(
+        context: context,
+        connectionSettings: connectionSettings,
+        renderer: ConnectionSettingsRenderer.material,
+      ),
     };
+    final result = await openSettingsResult;
 
     if (!mounted ||
         controller != _sessionController ||

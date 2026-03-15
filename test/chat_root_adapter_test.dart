@@ -15,6 +15,9 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_renderer.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/settings/presentation/cupertino_connection_sheet.dart';
 
 import 'support/fake_codex_app_server_client.dart';
 
@@ -46,8 +49,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(overlayDelegate.connectionSettingsPayloads, hasLength(1));
+    expect(
+      overlayDelegate.connectionSettingsRenderers,
+      <ConnectionSettingsRenderer>[ConnectionSettingsRenderer.material],
+    );
     expect(find.text('Renamed Box · changed.example.com'), findsOneWidget);
   });
+
+  testWidgets(
+    'routes connection settings through the cupertino settings overlay path for the iOS foundation policy',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: const FlutterChatRootOverlayDelegate(),
+          regionPolicy: const ChatRootRegionPolicy.cupertinoFoundation(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Connection settings'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CupertinoConnectionSheet), findsOneWidget);
+      expect(find.byType(ConnectionSheet), findsNothing);
+    },
+  );
 
   testWidgets('routes snackbar effects through the overlay delegate', (
     tester,
@@ -477,7 +507,7 @@ void main() {
 
 Widget _buildAdapterApp({
   required FakeCodexAppServerClient appServerClient,
-  required _FakeChatRootOverlayDelegate overlayDelegate,
+  required ChatRootOverlayDelegate overlayDelegate,
   ChatRootRendererDelegate rendererDelegate =
       const FlutterChatRootRendererDelegate(),
   ChatRootPlatformPolicy platformPolicy =
@@ -533,6 +563,8 @@ class _FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
   connectionSettingsResultFuture;
   final List<ChatConnectionSettingsLaunchContract> connectionSettingsPayloads =
       <ChatConnectionSettingsLaunchContract>[];
+  final List<ConnectionSettingsRenderer> connectionSettingsRenderers =
+      <ConnectionSettingsRenderer>[];
   final List<ChatChangedFileDiffContract> changedFileDiffs =
       <ChatChangedFileDiffContract>[];
   final List<String> snackBarMessages = <String>[];
@@ -541,8 +573,10 @@ class _FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
     required BuildContext context,
     required ChatConnectionSettingsLaunchContract connectionSettings,
+    required ConnectionSettingsRenderer renderer,
   }) async {
     connectionSettingsPayloads.add(connectionSettings);
+    connectionSettingsRenderers.add(renderer);
     return connectionSettingsResultFuture ?? connectionSettingsResult;
   }
 

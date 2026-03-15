@@ -2,56 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_draft.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_presenter.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
 
-class ConnectionSheet extends StatefulWidget {
+class ConnectionSheet extends StatelessWidget {
   const ConnectionSheet({
     super.key,
-    required this.initialProfile,
-    required this.initialSecrets,
+    required this.viewModel,
+    required this.actions,
   });
 
-  final ConnectionProfile initialProfile;
-  final ConnectionSecrets initialSecrets;
-
-  @override
-  State<ConnectionSheet> createState() => _ConnectionSheetState();
-}
-
-class _ConnectionSheetState extends State<ConnectionSheet> {
-  final _presenter = const ConnectionSettingsPresenter();
-  late final Map<ConnectionSettingsFieldId, TextEditingController> _controllers;
-  late ConnectionSettingsFormState _formState;
-
-  @override
-  void initState() {
-    super.initState();
-    _formState = ConnectionSettingsFormState.initial(
-      profile: widget.initialProfile,
-      secrets: widget.initialSecrets,
-    );
-    final draft = _formState.draft;
-    _controllers = <ConnectionSettingsFieldId, TextEditingController>{
-      for (final fieldId in ConnectionSettingsFieldId.values)
-        fieldId: TextEditingController(text: draft.valueForField(fieldId)),
-    };
-  }
-
-  @override
-  void dispose() {
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
+  final ConnectionSettingsHostViewModel viewModel;
+  final ConnectionSettingsHostActions actions;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = context.pocketPalette;
-    final contract = _buildContract();
-    final identityFields = _fieldMap(contract.identitySection.fields);
+    final contract = viewModel.contract;
+    final identityFields = viewModel.fieldMap(contract.identitySection.fields);
 
     return Material(
       color: palette.sheetBackground,
@@ -173,7 +141,7 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                           contract.authenticationSection.selectedMode,
                         },
                         onSelectionChanged: (selection) {
-                          _updateAuthMode(selection.first);
+                          actions.onAuthModeChanged(selection.first);
                         },
                       ),
                       const SizedBox(height: 14),
@@ -209,7 +177,7 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                           (toggle) => SwitchListTile.adaptive(
                             value: toggle.value,
                             onChanged: (value) {
-                              _updateToggle(toggle.id, value);
+                              actions.onToggleChanged(toggle.id, value);
                             },
                             contentPadding: EdgeInsets.zero,
                             title: Text(toggle.title),
@@ -224,14 +192,14 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: actions.onCancel,
                         child: const Text('Cancel'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton(
-                        onPressed: _save,
+                        onPressed: actions.onSave,
                         child: Text(contract.saveAction.label),
                       ),
                     ),
@@ -245,36 +213,16 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
     );
   }
 
-  ConnectionSettingsContract _buildContract([
-    ConnectionSettingsFormState? formState,
-  ]) {
-    return _presenter.present(
-      initialProfile: widget.initialProfile,
-      initialSecrets: widget.initialSecrets,
-      formState: formState ?? _formState,
-    );
-  }
-
-  Map<ConnectionSettingsFieldId, ConnectionSettingsTextFieldContract> _fieldMap(
-    List<ConnectionSettingsTextFieldContract> fields,
-  ) {
-    return <ConnectionSettingsFieldId, ConnectionSettingsTextFieldContract>{
-      for (final field in fields) field.id: field,
-    };
-  }
-
   Widget _buildTextField(ConnectionSettingsTextFieldContract field) {
     return TextField(
-      controller: _controllers[field.id],
+      key: ValueKey<String>('connection_settings_${field.id.name}'),
+      controller: viewModel.controllerForField(field.id),
       obscureText: field.obscureText,
-      keyboardType: switch (field.keyboardType) {
-        ConnectionSettingsKeyboardType.text => TextInputType.text,
-        ConnectionSettingsKeyboardType.number => TextInputType.number,
-      },
+      keyboardType: _textInputType(field.keyboardType),
       minLines: field.minLines,
       maxLines: field.maxLines,
       onChanged: (value) {
-        _updateField(field.id, value);
+        actions.onFieldChanged(field.id, value);
       },
       decoration: InputDecoration(
         labelText: field.label,
@@ -285,45 +233,13 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
       ),
     );
   }
+}
 
-  void _updateField(ConnectionSettingsFieldId fieldId, String value) {
-    setState(() {
-      _formState = _formState.copyWith(
-        draft: _formState.draft.copyWithField(fieldId, value),
-      );
-    });
-  }
-
-  void _updateAuthMode(AuthMode authMode) {
-    setState(() {
-      _formState = _formState.copyWith(
-        draft: _formState.draft.copyWith(authMode: authMode),
-      );
-    });
-  }
-
-  void _updateToggle(ConnectionSettingsToggleId toggleId, bool value) {
-    setState(() {
-      _formState = _formState.copyWith(
-        draft: _formState.draft.copyWithToggle(toggleId, value),
-      );
-    });
-  }
-
-  void _save() {
-    final nextState = _formState.revealValidationErrors();
-    final contract = _buildContract(nextState);
-    setState(() {
-      _formState = nextState;
-    });
-
-    final payload = contract.saveAction.submitPayload;
-    if (!contract.saveAction.canSubmit || payload == null) {
-      return;
-    }
-
-    Navigator.of(context).pop(payload);
-  }
+TextInputType _textInputType(ConnectionSettingsKeyboardType keyboardType) {
+  return switch (keyboardType) {
+    ConnectionSettingsKeyboardType.text => TextInputType.text,
+    ConnectionSettingsKeyboardType.number => TextInputType.number,
+  };
 }
 
 IconData _iconForAuthOption(ConnectionSettingsAuthOptionContract option) {

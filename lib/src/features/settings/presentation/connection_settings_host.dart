@@ -1,0 +1,168 @@
+import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_presenter.dart';
+
+typedef ConnectionSettingsHostBuilder =
+    Widget Function(
+      BuildContext context,
+      ConnectionSettingsHostViewModel viewModel,
+      ConnectionSettingsHostActions actions,
+    );
+
+class ConnectionSettingsHost extends StatefulWidget {
+  const ConnectionSettingsHost({
+    super.key,
+    required this.initialProfile,
+    required this.initialSecrets,
+    required this.onCancel,
+    required this.onSubmit,
+    required this.builder,
+  });
+
+  final ConnectionProfile initialProfile;
+  final ConnectionSecrets initialSecrets;
+  final VoidCallback onCancel;
+  final ValueChanged<ConnectionSettingsSubmitPayload> onSubmit;
+  final ConnectionSettingsHostBuilder builder;
+
+  @override
+  State<ConnectionSettingsHost> createState() => _ConnectionSettingsHostState();
+}
+
+class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
+  final _presenter = const ConnectionSettingsPresenter();
+  late final Map<ConnectionSettingsFieldId, TextEditingController> _controllers;
+  late ConnectionSettingsFormState _formState;
+
+  @override
+  void initState() {
+    super.initState();
+    _formState = ConnectionSettingsFormState.initial(
+      profile: widget.initialProfile,
+      secrets: widget.initialSecrets,
+    );
+    final draft = _formState.draft;
+    _controllers = <ConnectionSettingsFieldId, TextEditingController>{
+      for (final fieldId in ConnectionSettingsFieldId.values)
+        fieldId: TextEditingController(text: draft.valueForField(fieldId)),
+    };
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final contract = _buildContract();
+    return widget.builder(
+      context,
+      ConnectionSettingsHostViewModel(
+        contract: contract,
+        fieldControllers: _controllers,
+      ),
+      ConnectionSettingsHostActions(
+        onFieldChanged: _updateField,
+        onAuthModeChanged: _updateAuthMode,
+        onToggleChanged: _updateToggle,
+        onCancel: widget.onCancel,
+        onSave: _save,
+      ),
+    );
+  }
+
+  ConnectionSettingsContract _buildContract([
+    ConnectionSettingsFormState? formState,
+  ]) {
+    return _presenter.present(
+      initialProfile: widget.initialProfile,
+      initialSecrets: widget.initialSecrets,
+      formState: formState ?? _formState,
+    );
+  }
+
+  void _updateField(ConnectionSettingsFieldId fieldId, String value) {
+    setState(() {
+      _formState = _formState.copyWith(
+        draft: _formState.draft.copyWithField(fieldId, value),
+      );
+    });
+  }
+
+  void _updateAuthMode(AuthMode authMode) {
+    setState(() {
+      _formState = _formState.copyWith(
+        draft: _formState.draft.copyWith(authMode: authMode),
+      );
+    });
+  }
+
+  void _updateToggle(ConnectionSettingsToggleId toggleId, bool value) {
+    setState(() {
+      _formState = _formState.copyWith(
+        draft: _formState.draft.copyWithToggle(toggleId, value),
+      );
+    });
+  }
+
+  void _save() {
+    final nextState = _formState.revealValidationErrors();
+    final contract = _buildContract(nextState);
+    setState(() {
+      _formState = nextState;
+    });
+
+    final payload = contract.saveAction.submitPayload;
+    if (!contract.saveAction.canSubmit || payload == null) {
+      return;
+    }
+
+    widget.onSubmit(payload);
+  }
+}
+
+class ConnectionSettingsHostViewModel {
+  const ConnectionSettingsHostViewModel({
+    required this.contract,
+    required this.fieldControllers,
+  });
+
+  final ConnectionSettingsContract contract;
+  final Map<ConnectionSettingsFieldId, TextEditingController> fieldControllers;
+
+  TextEditingController controllerForField(ConnectionSettingsFieldId fieldId) {
+    return fieldControllers[fieldId]!;
+  }
+
+  Map<ConnectionSettingsFieldId, ConnectionSettingsTextFieldContract> fieldMap(
+    Iterable<ConnectionSettingsTextFieldContract> fields,
+  ) {
+    return <ConnectionSettingsFieldId, ConnectionSettingsTextFieldContract>{
+      for (final field in fields) field.id: field,
+    };
+  }
+}
+
+class ConnectionSettingsHostActions {
+  const ConnectionSettingsHostActions({
+    required this.onFieldChanged,
+    required this.onAuthModeChanged,
+    required this.onToggleChanged,
+    required this.onCancel,
+    required this.onSave,
+  });
+
+  final void Function(ConnectionSettingsFieldId fieldId, String value)
+  onFieldChanged;
+  final ValueChanged<AuthMode> onAuthModeChanged;
+  final void Function(ConnectionSettingsToggleId toggleId, bool value)
+  onToggleChanged;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+}

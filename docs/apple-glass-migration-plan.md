@@ -97,26 +97,25 @@ Phase 6 is complete.
 
 Phase 7 is now in progress on this branch.
 
-The next thing to do is Phase 7 Slice 2:
+The next thing to do is Phase 7 Slice 3:
 
-- settings host extraction and Cupertino settings renderer
+- Cupertino app chrome and shell actions
 
 Reason:
 
-- Slice 1 already moved shell selection above the fixed
-  `FlutterChatScreenRenderer` host and added explicit platform policy for a
-  mixed iOS renderer profile
-- settings still remain blocked behind `ConnectionSheet` as both renderer and
-  state host, so a Cupertino settings path would still duplicate form
-  lifecycle and submit plumbing
-- the next honest Cupertino surface is therefore settings, not app chrome or
-  composer
+- Slice 2 extracted the shared settings host and added a real Cupertino
+  settings renderer from the same contract and state path
+- the iOS settings overlay path is now policy-driven instead of hardwired to
+  the Material bottom sheet
+- the most visible remaining Material cues on iPhone are now the top app
+  chrome and screen action presentation
 
 ## Phase 7 Start Checklist
 
 Phase 7 is now started in a meaningful way. Slice 1 closed the shell-selection
-and platform-policy foundation items below. The remaining unchecked items are
-the structural gates for later Phase 7 slices.
+and platform-policy foundation items below, and Slice 2 closed the settings
+host/renderer split items. The remaining unchecked items are the structural
+gates for later Phase 7 slices.
 
 ### Structural checklist
 
@@ -1874,6 +1873,27 @@ next slices structurally honest.
 
 ### Slice 2: Settings host extraction and Cupertino settings renderer
 
+This slice is complete on this branch.
+
+Slice 2 delivered:
+
+- extracting `ConnectionSettingsHost` as the renderer-neutral owner of
+  settings draft state, validation reveal state, controller syncing, and
+  submit payload construction
+- reducing `ConnectionSheet` to the Material settings renderer path only
+- adding `CupertinoConnectionSheet` as a second renderer from the same host
+  and contract
+- routing settings launch through renderer-aware overlay delegate paths:
+  Material bottom sheet for the Flutter path and Cupertino popup presentation
+  for the iOS path
+- tests proving:
+  - Material validation and auth-mode switching still come from the shared
+    host
+  - Cupertino validation and submit behavior come from the same host
+  - the root adapter routes iOS foundation settings through the Cupertino
+    overlay path
+  - shared submit semantics remain identical across both settings renderers
+
 This slice should cover:
 
 - extracting a renderer-neutral settings host above `ConnectionSheet`
@@ -1986,13 +2006,14 @@ Unless broader behavior is explicitly requested, Phase 7 should preserve:
 
 The next active Phase 7 slice is:
 
-- settings host extraction and Cupertino settings renderer
+- Cupertino app chrome and shell actions
 
 Reason:
 
-- Slice 1 already made shell selection and platform policy explicit at the
-  adapter boundary
-- settings still need a shared host before a second renderer can be added
+- Slice 2 already removed the settings-host blocker and added the first real
+  Cupertino surface
+- the remaining high-visibility Material cues are now concentrated in app
+  chrome and screen action presentation
 - the mixed iOS profile has to be modeled explicitly before app chrome,
   settings, and composer work can land cleanly
 
