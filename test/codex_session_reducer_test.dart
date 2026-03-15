@@ -71,10 +71,11 @@ void main() {
       expect(state.connectionStatus, CodexRuntimeSessionState.running);
       expect(state.activeTurn, isNotNull);
       expect(state.activeTurn?.itemsById, isEmpty);
-      expect(state.activeTurn?.segments, hasLength(1));
-      final segment = state.activeTurn!.segments.single as CodexTurnTextSegment;
-      expect(segment.kind, CodexUiBlockKind.assistantMessage);
-      expect(segment.body, 'Hello, world');
+      expect(state.activeTurn?.artifacts, hasLength(1));
+      final artifact =
+          state.activeTurn!.artifacts.single as CodexTurnTextArtifact;
+      expect(artifact.kind, CodexUiBlockKind.assistantMessage);
+      expect(artifact.body, 'Hello, world');
       expect(state.blocks, isEmpty);
       final block = state.transcriptBlocks.single as CodexTextBlock;
       expect(block.kind, CodexUiBlockKind.assistantMessage);
@@ -110,7 +111,7 @@ void main() {
 
     expect(state.activeTurn?.turnId, 'turn_123');
     expect(state.activeTurn?.threadId, 'thread_123');
-    expect(state.activeTurn?.segments, hasLength(1));
+    expect(state.activeTurn?.artifacts, hasLength(1));
     expect(state.transcriptBlocks.single, isA<CodexTextBlock>());
     expect((state.transcriptBlocks.single as CodexTextBlock).body, 'Hello');
   });
@@ -141,7 +142,7 @@ void main() {
   });
 
   test(
-    'promotes the local echo to sent when the app-server confirms the user message',
+    'does not rewrite a local echo after later transcript history exists',
     () {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
@@ -178,7 +179,7 @@ void main() {
       expect(committedUserMessages, hasLength(1));
       expect(
         committedUserMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        CodexUserMessageDeliveryState.localEcho,
       );
 
       final userMessages = state.transcriptBlocks
@@ -188,15 +189,48 @@ void main() {
       expect(userMessages.single.text, 'Ship the fix');
       expect(
         userMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        CodexUserMessageDeliveryState.localEcho,
       );
-      expect(userMessages.single.providerItemId, 'item_user');
+      expect(userMessages.single.providerItemId, isNull);
       expect(
         state.transcriptBlocks.whereType<CodexStatusBlock>(),
         hasLength(1),
       );
     },
   );
+
+  test('promotes the local echo while it is still the transcript tail', () {
+    final reducer = TranscriptReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    var state = reducer.addUserMessage(
+      CodexSessionState.initial(),
+      text: 'Ship the fix',
+      createdAt: now,
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now.add(const Duration(milliseconds: 10)),
+        itemType: CodexCanonicalItemType.userMessage,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_user_tail',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{'text': 'Ship the fix'},
+      ),
+    );
+
+    final userMessages = state.transcriptBlocks
+        .whereType<CodexUserMessageBlock>()
+        .toList(growable: false);
+    expect(userMessages, hasLength(1));
+    expect(
+      userMessages.single.deliveryState,
+      CodexUserMessageDeliveryState.sent,
+    );
+    expect(userMessages.single.providerItemId, 'item_user_tail');
+  });
 
   test(
     'keeps a single sent user block when the same app-server item is updated and then completed',
@@ -211,16 +245,8 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeWarningEvent(
-          createdAt: now.add(const Duration(milliseconds: 5)),
-          summary: 'Connected to the remote session.',
-        ),
-      );
-
-      state = reducer.reduceRuntimeEvent(
-        state,
         CodexRuntimeItemUpdatedEvent(
-          createdAt: now.add(const Duration(milliseconds: 10)),
+          createdAt: now.add(const Duration(milliseconds: 5)),
           itemType: CodexCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -233,7 +259,7 @@ void main() {
       state = reducer.reduceRuntimeEvent(
         state,
         CodexRuntimeItemCompletedEvent(
-          createdAt: now.add(const Duration(milliseconds: 20)),
+          createdAt: now.add(const Duration(milliseconds: 10)),
           itemType: CodexCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -310,6 +336,75 @@ void main() {
     expect(block.body, 'The shell session');
     expect(block.isRunning, isTrue);
   });
+
+  test(
+    'starts a new assistant card when the same item resumes after an intervening warning',
+    () {
+      final reducer = TranscriptReducer();
+      var state = CodexSessionState.initial();
+      final now = DateTime(2026, 3, 14, 12);
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemStartedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.assistantMessage,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_streaming',
+          status: CodexRuntimeItemStatus.inProgress,
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeContentDeltaEvent(
+          createdAt: now,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_streaming',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'First',
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeWarningEvent(
+          createdAt: now.add(const Duration(milliseconds: 1)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          summary: 'Intervening warning',
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeContentDeltaEvent(
+          createdAt: now.add(const Duration(milliseconds: 2)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_streaming',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'Second',
+        ),
+      );
+
+      expect(state.activeTurn?.artifacts, hasLength(3));
+      final frozenArtifact =
+          state.activeTurn!.artifacts.first as CodexTurnTextArtifact;
+      expect(frozenArtifact.id, 'item_item_streaming');
+      expect(frozenArtifact.body, 'First');
+      expect(frozenArtifact.isStreaming, isFalse);
+
+      expect(state.transcriptBlocks, hasLength(3));
+      final firstBlock = state.transcriptBlocks.first as CodexTextBlock;
+      expect(firstBlock.body, 'First');
+      expect(firstBlock.isRunning, isFalse);
+      expect(state.transcriptBlocks[1], isA<CodexStatusBlock>());
+      final resumedBlock = state.transcriptBlocks.last as CodexTextBlock;
+      expect(resumedBlock.id, isNot(firstBlock.id));
+      expect(resumedBlock.body, 'Second');
+      expect(resumedBlock.isRunning, isTrue);
+    },
+  );
 
   test('renders review and compaction items as status blocks', () {
     final reducer = TranscriptReducer();
@@ -529,6 +624,71 @@ void main() {
     expect(submittedBlock.body, contains('Vince'));
     expect(submittedBlock.isResolved, isTrue);
   });
+
+  test(
+    'coalesces duplicate user-input resolution events into one request block',
+    () {
+      final reducer = TranscriptReducer();
+      var state = CodexSessionState.initial();
+      final now = DateTime(2026, 3, 14, 12);
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeUserInputRequestedEvent(
+          createdAt: now,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          requestId: 's:user-input-1',
+          questions: const <CodexRuntimeUserInputQuestion>[
+            CodexRuntimeUserInputQuestion(
+              id: 'q1',
+              header: 'Name',
+              question: 'What is your name?',
+            ),
+          ],
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeRequestResolvedEvent(
+          createdAt: now.add(const Duration(milliseconds: 10)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          requestId: 's:user-input-1',
+          requestType: CodexCanonicalRequestType.toolUserInput,
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeUserInputResolvedEvent(
+          createdAt: now.add(const Duration(milliseconds: 20)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          requestId: 's:user-input-1',
+          answers: const <String, List<String>>{
+            'q1': <String>['Vince'],
+          },
+        ),
+      );
+
+      final resolvedBlocks = state.transcriptBlocks
+          .whereType<CodexUserInputRequestBlock>()
+          .toList(growable: false);
+      expect(resolvedBlocks, hasLength(1));
+      expect(resolvedBlocks.single.id, 'request_s:user-input-1');
+      expect(resolvedBlocks.single.title, 'Input submitted');
+      expect(resolvedBlocks.single.body, contains('Vince'));
+      expect(
+        state.transcriptBlocks.map((block) => block.id).toSet().length,
+        state.transcriptBlocks.length,
+      );
+    },
+  );
 
   test('tracks thread and turn ids and captures usage summaries', () {
     final reducer = TranscriptReducer();
@@ -1000,17 +1160,27 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnDiffUpdatedEvent(
+      CodexRuntimeItemCompletedEvent(
         createdAt: now.add(const Duration(seconds: 2)),
         threadId: 'thread_123',
         turnId: 'turn_123',
-        unifiedDiff:
-            'diff --git a/lib/main.dart b/lib/main.dart\n'
-            '--- a/lib/main.dart\n'
-            '+++ b/lib/main.dart\n'
-            '@@ -1 +1 @@\n'
-            '-old\n'
-            '+new\n',
+        itemId: 'file_change_1',
+        itemType: CodexCanonicalItemType.fileChange,
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{
+          'changes': <Object?>[
+            <String, Object?>{
+              'path': 'lib/main.dart',
+              'kind': <String, Object?>{'type': 'update'},
+              'diff':
+                  '--- a/lib/main.dart\n'
+                  '+++ b/lib/main.dart\n'
+                  '@@ -1 +1 @@\n'
+                  '-old\n'
+                  '+new\n',
+            },
+          ],
+        },
       ),
     );
 
@@ -1081,13 +1251,13 @@ void main() {
       expect(state.activeTurn?.timer.turnId, 'turn_123');
       expect(state.activeTurn?.hasReasoning, isTrue);
       expect(state.activeTurn?.hasWork, isTrue);
-      expect(state.activeTurn?.segments, hasLength(2));
-      expect(state.activeTurn?.segments.first, isA<CodexTurnTextSegment>());
-      expect(state.activeTurn?.segments.last, isA<CodexTurnWorkSegment>());
+      expect(state.activeTurn?.artifacts, hasLength(2));
+      expect(state.activeTurn?.artifacts.first, isA<CodexTurnTextArtifact>());
+      expect(state.activeTurn?.artifacts.last, isA<CodexTurnWorkArtifact>());
     },
   );
 
-  test('groups consecutive work-log entries in transcript blocks', () {
+  test('groups consecutive work-log entries in one live work artifact', () {
     final reducer = TranscriptReducer();
     var state = CodexSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
@@ -1133,6 +1303,12 @@ void main() {
     );
 
     expect(state.blocks, isEmpty);
+    expect(state.activeTurn?.artifacts, hasLength(1));
+    final artifact =
+        state.activeTurn!.artifacts.single as CodexTurnWorkArtifact;
+    expect(artifact.entries, hasLength(2));
+    expect(artifact.entries.first.title, 'git status');
+    expect(artifact.entries.last.entryKind, CodexWorkLogEntryKind.webSearch);
     expect(state.transcriptBlocks, hasLength(1));
     final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
     expect(group.entries, hasLength(2));
@@ -1140,7 +1316,105 @@ void main() {
     expect(group.entries.last.entryKind, CodexWorkLogEntryKind.webSearch);
   });
 
-  test('renders proposed plan and changed files as dedicated blocks', () {
+  test(
+    'starts a new work group when a resolved request interrupts work history',
+    () {
+      final reducer = TranscriptReducer();
+      var state = CodexSessionState.initial();
+      final now = DateTime(2026, 3, 14, 12);
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnStartedEvent(
+          createdAt: now,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemCompletedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.commandExecution,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_command_1',
+          status: CodexRuntimeItemStatus.completed,
+          detail: 'git status',
+          snapshot: const <String, Object?>{
+            'result': <String, Object?>{'output': 'clean'},
+            'exitCode': 0,
+          },
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeRequestOpenedEvent(
+          createdAt: now.add(const Duration(milliseconds: 100)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_command_1',
+          requestId: 'approval_1',
+          requestType: CodexCanonicalRequestType.fileChangeApproval,
+          detail: 'Write files',
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeRequestResolvedEvent(
+          createdAt: now.add(const Duration(milliseconds: 200)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_command_1',
+          requestId: 'approval_1',
+          requestType: CodexCanonicalRequestType.fileChangeApproval,
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemCompletedEvent(
+          createdAt: now.add(const Duration(milliseconds: 300)),
+          itemType: CodexCanonicalItemType.webSearch,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_search_2',
+          status: CodexRuntimeItemStatus.completed,
+          detail: 'Search docs',
+        ),
+      );
+
+      expect(state.activeTurn?.artifacts, hasLength(3));
+      expect(state.activeTurn?.artifacts.first, isA<CodexTurnWorkArtifact>());
+      expect(state.activeTurn?.artifacts[1], isA<CodexTurnBlockArtifact>());
+      expect(state.activeTurn?.artifacts.last, isA<CodexTurnWorkArtifact>());
+
+      final firstWork =
+          state.activeTurn!.artifacts.first as CodexTurnWorkArtifact;
+      final resolvedRequestBlock =
+          (state.activeTurn!.artifacts[1] as CodexTurnBlockArtifact).block
+              as CodexApprovalRequestBlock;
+      final resumedWork =
+          state.activeTurn!.artifacts.last as CodexTurnWorkArtifact;
+
+      expect(firstWork.entries, hasLength(1));
+      expect(firstWork.entries.single.title, 'git status');
+      expect(firstWork.entries.single.isRunning, isFalse);
+      expect(resolvedRequestBlock.isResolved, isTrue);
+      expect(resolvedRequestBlock.title, 'File change approval resolved');
+      expect(resumedWork.entries, hasLength(1));
+      expect(
+        resumedWork.entries.single.entryKind,
+        CodexWorkLogEntryKind.webSearch,
+      );
+
+      expect(state.transcriptBlocks, hasLength(3));
+      expect(state.transcriptBlocks.first, isA<CodexWorkLogGroupBlock>());
+      expect(state.transcriptBlocks[1], isA<CodexApprovalRequestBlock>());
+      expect(state.transcriptBlocks.last, isA<CodexWorkLogGroupBlock>());
+    },
+  );
+
+  test('keeps turn diff snapshots out of visible transcript history', () {
     final reducer = TranscriptReducer();
     var state = CodexSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
@@ -1173,11 +1447,133 @@ void main() {
     );
 
     expect(state.blocks, isEmpty);
-    expect(state.transcriptBlocks.first, isA<CodexProposedPlanBlock>());
-    final changedFiles = state.transcriptBlocks.last as CodexChangedFilesBlock;
-    expect(changedFiles.files.single.path, 'lib/main.dart');
-    expect(changedFiles.unifiedDiff, contains('diff --git'));
+    expect(state.transcriptBlocks, hasLength(1));
+    expect(state.transcriptBlocks.single, isA<CodexProposedPlanBlock>());
+    expect(state.activeTurn?.turnDiffSnapshot, isNotNull);
+    expect(
+      state.activeTurn?.turnDiffSnapshot?.unifiedDiff,
+      contains('diff --git a/lib/main.dart b/lib/main.dart'),
+    );
   });
+
+  test(
+    'replaces the active turn diff snapshot when repeated updates arrive',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeTurnStartedEvent(
+          createdAt: now,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnDiffUpdatedEvent(
+          createdAt: now.add(const Duration(milliseconds: 100)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          unifiedDiff:
+              'diff --git a/README.md b/README.md\n'
+              '--- a/README.md\n'
+              '+++ b/README.md\n'
+              '@@ -1 +1 @@\n'
+              '-old\n'
+              '+new\n',
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnDiffUpdatedEvent(
+          createdAt: now.add(const Duration(milliseconds: 200)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          unifiedDiff:
+              'diff --git a/README.md b/README.md\n'
+              '--- a/README.md\n'
+              '+++ b/README.md\n'
+              '@@ -1 +1,2 @@\n'
+              '-old\n'
+              '+new\n'
+              '+second\n',
+        ),
+      );
+
+      expect(state.blocks, isEmpty);
+      expect(state.transcriptBlocks, isEmpty);
+      expect(
+        state.activeTurn?.turnDiffSnapshot?.createdAt,
+        now.add(const Duration(milliseconds: 200)),
+      );
+      expect(
+        state.activeTurn?.turnDiffSnapshot?.unifiedDiff,
+        contains('+second'),
+      );
+    },
+  );
+
+  test(
+    'ignores mismatched turn diff snapshots instead of rolling back turns',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeTurnStartedEvent(
+          createdAt: now,
+          threadId: 'thread_123',
+          turnId: 'turn_456',
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeContentDeltaEvent(
+          createdAt: now.add(const Duration(milliseconds: 50)),
+          threadId: 'thread_123',
+          turnId: 'turn_456',
+          itemId: 'item_456',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'Current turn',
+        ),
+      );
+
+      final baselineBlocks = List<CodexUiBlock>.from(state.blocks);
+      final baselineArtifacts = List<CodexTurnArtifact>.from(
+        state.activeTurn?.artifacts ?? const <CodexTurnArtifact>[],
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnDiffUpdatedEvent(
+          createdAt: now.add(const Duration(seconds: 1)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          unifiedDiff:
+              'diff --git a/README.md b/README.md\n'
+              '--- a/README.md\n'
+              '+++ b/README.md\n'
+              '@@ -1 +1 @@\n'
+              '-old\n'
+              '+new\n',
+        ),
+      );
+
+      expect(state.activeTurn?.turnId, 'turn_456');
+      expect(state.activeTurn?.artifacts, baselineArtifacts);
+      expect(state.activeTurn?.turnDiffSnapshot, isNull);
+      expect(state.blocks, baselineBlocks);
+      expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
+      expect(
+        (state.transcriptBlocks.last as CodexTextBlock).body,
+        'Current turn',
+      );
+    },
+  );
 
   test('renders a multi-file file-change item as one changed-files block', () {
     final reducer = TranscriptReducer();
@@ -1233,6 +1629,86 @@ void main() {
       contains('diff --git a/lib/app.dart b/lib/app.dart'),
     );
   });
+
+  test(
+    'starts a new changed-files card when the same file-change item resumes after an intervening warning',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeItemStartedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.fileChange,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'file_change_1',
+          status: CodexRuntimeItemStatus.inProgress,
+          snapshot: const <String, Object?>{
+            'changes': <Object?>[
+              <String, Object?>{
+                'path': 'README.md',
+                'kind': <String, Object?>{'type': 'add'},
+                'diff': 'first line\n',
+              },
+            ],
+          },
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeWarningEvent(
+          createdAt: now.add(const Duration(milliseconds: 1)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          summary: 'Intervening warning',
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemUpdatedEvent(
+          createdAt: now.add(const Duration(milliseconds: 2)),
+          itemType: CodexCanonicalItemType.fileChange,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'file_change_1',
+          status: CodexRuntimeItemStatus.inProgress,
+          snapshot: const <String, Object?>{
+            'changes': <Object?>[
+              <String, Object?>{
+                'path': 'README.md',
+                'kind': <String, Object?>{'type': 'add'},
+                'diff': 'first line\n',
+              },
+              <String, Object?>{
+                'path': 'lib/app.dart',
+                'kind': <String, Object?>{'type': 'update'},
+                'diff':
+                    '--- a/lib/app.dart\n'
+                    '+++ b/lib/app.dart\n'
+                    '@@ -1 +1 @@\n'
+                    '-old\n'
+                    '+new\n',
+              },
+            ],
+          },
+        ),
+      );
+
+      final changedFilesBlocks = state.transcriptBlocks
+          .whereType<CodexChangedFilesBlock>()
+          .toList(growable: false);
+      expect(changedFilesBlocks, hasLength(2));
+      expect(changedFilesBlocks.first.files.single.path, 'README.md');
+      expect(changedFilesBlocks.first.isRunning, isFalse);
+      expect(changedFilesBlocks.last.files, hasLength(2));
+      expect(changedFilesBlocks.last.files.first.path, 'README.md');
+      expect(changedFilesBlocks.last.files.last.path, 'lib/app.dart');
+      expect(changedFilesBlocks.last.isRunning, isTrue);
+    },
+  );
 
   test(
     'keeps the structured diff when file-change output deltas contain plain text',
@@ -1298,7 +1774,7 @@ void main() {
   );
 
   test(
-    'prefers the turn diff snapshot over completed file-change item cards',
+    'keeps file-change history immutable when turn diff snapshots arrive',
     () {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
@@ -1345,13 +1821,22 @@ void main() {
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(1));
       expect(changedFilesBlocks.single.files.single.path, 'README.md');
-      expect(changedFilesBlocks.single.files.single.additions, 2);
-      expect(changedFilesBlocks.single.unifiedDiff, contains('+second line'));
+      expect(changedFilesBlocks.single.files.single.additions, 1);
+      expect(changedFilesBlocks.single.unifiedDiff, contains('+first line'));
+      expect(
+        changedFilesBlocks.single.unifiedDiff,
+        isNot(contains('+second line')),
+      );
+      expect(state.activeTurn?.turnDiffSnapshot, isNotNull);
+      expect(
+        state.activeTurn?.turnDiffSnapshot?.unifiedDiff,
+        contains('+second line'),
+      );
     },
   );
 
   test(
-    'keeps a running file-change item visible until the turn diff finalizes it',
+    'keeps a running file-change item visible when turn diff snapshots update',
     () {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
@@ -1396,9 +1881,13 @@ void main() {
       final changedFilesBlocks = state.transcriptBlocks
           .whereType<CodexChangedFilesBlock>()
           .toList(growable: false);
-      expect(changedFilesBlocks, hasLength(2));
-      expect(changedFilesBlocks.first.isRunning, isTrue);
-      expect(changedFilesBlocks.last.isRunning, isFalse);
+      expect(changedFilesBlocks, hasLength(1));
+      expect(changedFilesBlocks.single.isRunning, isTrue);
+      expect(state.activeTurn?.turnDiffSnapshot, isNotNull);
+      expect(
+        state.activeTurn?.turnDiffSnapshot?.unifiedDiff,
+        contains('+second line'),
+      );
     },
   );
 
@@ -1457,37 +1946,40 @@ void main() {
     expect(plans.last.steps.last.step, 'Append visible plan updates');
   });
 
-  test('sorts committed and live transcript rows by creation time', () {
-    final reducer = TranscriptReducer();
-    final startedAt = DateTime(2026, 3, 14, 12);
-    var state = reducer.reduceRuntimeEvent(
-      CodexSessionState.initial(),
-      CodexRuntimeContentDeltaEvent(
-        createdAt: startedAt,
-        threadId: 'thread_123',
-        turnId: 'turn_123',
-        itemId: 'item_123',
-        streamKind: CodexRuntimeContentStreamKind.assistantText,
-        delta: 'Earlier live row',
-      ),
-    );
+  test(
+    'keeps committed history ahead of the live tail instead of resorting by time',
+    () {
+      final reducer = TranscriptReducer();
+      final startedAt = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeContentDeltaEvent(
+          createdAt: startedAt,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'Earlier live row',
+        ),
+      );
 
-    state = reducer.addUserMessage(
-      state,
-      text: 'Later committed row',
-      createdAt: startedAt.add(const Duration(seconds: 1)),
-    );
+      state = reducer.addUserMessage(
+        state,
+        text: 'Later committed row',
+        createdAt: startedAt.add(const Duration(seconds: 1)),
+      );
 
-    expect(state.transcriptBlocks, hasLength(2));
-    expect(state.transcriptBlocks.first, isA<CodexTextBlock>());
-    expect(
-      (state.transcriptBlocks.first as CodexTextBlock).body,
-      'Earlier live row',
-    );
-    expect(state.transcriptBlocks.last, isA<CodexUserMessageBlock>());
-    expect(
-      (state.transcriptBlocks.last as CodexUserMessageBlock).text,
-      'Later committed row',
-    );
-  });
+      expect(state.transcriptBlocks, hasLength(2));
+      expect(state.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+      expect(
+        (state.transcriptBlocks.first as CodexUserMessageBlock).text,
+        'Later committed row',
+      );
+      expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
+      expect(
+        (state.transcriptBlocks.last as CodexTextBlock).body,
+        'Earlier live row',
+      );
+    },
+  );
 }

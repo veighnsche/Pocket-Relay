@@ -55,18 +55,6 @@ class TranscriptPolicySupport {
         state.pendingUserInputRequests.isNotEmpty;
   }
 
-  CodexSessionState upsertBlock(CodexSessionState state, CodexUiBlock block) {
-    final nextBlocks = List<CodexUiBlock>.from(state.blocks);
-    final index = nextBlocks.indexWhere((existing) => existing.id == block.id);
-    if (index == -1) {
-      nextBlocks.add(block);
-    } else {
-      nextBlocks[index] = block;
-    }
-
-    return state.copyWith(blocks: nextBlocks);
-  }
-
   CodexSessionState appendBlock(CodexSessionState state, CodexUiBlock block) {
     return state.copyWith(blocks: <CodexUiBlock>[...state.blocks, block]);
   }

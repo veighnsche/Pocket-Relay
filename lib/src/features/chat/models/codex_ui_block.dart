@@ -95,6 +95,27 @@ class CodexWorkLogEntry {
   final String? preview;
   final bool isRunning;
   final int? exitCode;
+
+  CodexWorkLogEntry copyWith({
+    DateTime? createdAt,
+    CodexWorkLogEntryKind? entryKind,
+    String? title,
+    String? turnId,
+    String? preview,
+    bool? isRunning,
+    int? exitCode,
+  }) {
+    return CodexWorkLogEntry(
+      id: id,
+      createdAt: createdAt ?? this.createdAt,
+      entryKind: entryKind ?? this.entryKind,
+      title: title ?? this.title,
+      turnId: turnId ?? this.turnId,
+      preview: preview ?? this.preview,
+      isRunning: isRunning ?? this.isRunning,
+      exitCode: exitCode ?? this.exitCode,
+    );
+  }
 }
 
 final class CodexUserMessageBlock extends CodexUiBlock {
@@ -304,6 +325,14 @@ final class CodexWorkLogGroupBlock extends CodexUiBlock {
   }) : super(kind: CodexUiBlockKind.workLogGroup);
 
   final List<CodexWorkLogEntry> entries;
+
+  CodexWorkLogGroupBlock copyWith({List<CodexWorkLogEntry>? entries}) {
+    return CodexWorkLogGroupBlock(
+      id: id,
+      createdAt: createdAt,
+      entries: entries ?? this.entries,
+    );
+  }
 }
 
 final class CodexChangedFilesBlock extends CodexUiBlock {

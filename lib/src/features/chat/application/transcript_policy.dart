@@ -1,4 +1,3 @@
-import 'package:pocket_relay/src/features/chat/application/transcript_changed_files_parser.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_item_policy.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_request_policy.dart';
@@ -10,17 +9,13 @@ import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
 class TranscriptPolicy {
   const TranscriptPolicy({
-    TranscriptChangedFilesParser changedFilesParser =
-        const TranscriptChangedFilesParser(),
     TranscriptPolicySupport support = const TranscriptPolicySupport(),
     TranscriptItemPolicy itemPolicy = const TranscriptItemPolicy(),
     TranscriptRequestPolicy requestPolicy = const TranscriptRequestPolicy(),
-  }) : _changedFilesParser = changedFilesParser,
-       _support = support,
+  }) : _support = support,
        _itemPolicy = itemPolicy,
        _requestPolicy = requestPolicy;
 
-  final TranscriptChangedFilesParser _changedFilesParser;
   final TranscriptPolicySupport _support;
   final TranscriptItemPolicy _itemPolicy;
   final TranscriptRequestPolicy _requestPolicy;
@@ -37,7 +32,7 @@ class TranscriptPolicy {
       deliveryState: CodexUserMessageDeliveryState.localEcho,
     );
 
-    return _support.upsertBlock(
+    return _support.appendBlock(
       state.copyWith(connectionStatus: CodexRuntimeSessionState.running),
       block,
     );
@@ -54,7 +49,7 @@ class TranscriptPolicy {
     }
 
     final eventTime = createdAt ?? DateTime.now();
-    return _support.upsertBlock(
+    return _support.appendBlock(
       cleared,
       CodexStatusBlock(
         id: _support.eventEntryId('status', eventTime),
@@ -95,7 +90,7 @@ class TranscriptPolicy {
     }
 
     final finalizedTurn = _finalizeCommittedTurn(currentTurn, createdAt);
-    final finalizedState = _support.upsertBlock(
+    final finalizedState = _support.appendBlock(
       _commitActiveTurn(
         state.copyWith(clearActiveTurn: true),
         activeTurn: finalizedTurn.$1,
@@ -134,7 +129,7 @@ class TranscriptPolicy {
     if (finalizedTurn.$1 == null) {
       return nextState;
     }
-    return _support.upsertBlock(
+    return _support.appendBlock(
       nextState,
       _turnBoundaryBlock(
         createdAt: event.createdAt,
@@ -169,7 +164,7 @@ class TranscriptPolicy {
     if (event.exitKind != CodexRuntimeSessionExitKind.error) {
       return nextState;
     }
-    return _support.upsertBlock(
+    return _support.appendBlock(
       nextState,
       CodexErrorBlock(
         id: _support.eventEntryId('session-exit', event.createdAt),
@@ -202,7 +197,7 @@ class TranscriptPolicy {
       ),
       activeTurn: finalizedTurn.$1,
     );
-    return _support.upsertBlock(
+    return _support.appendBlock(
       nextState,
       _turnBoundaryBlock(
         createdAt: event.createdAt,
@@ -224,7 +219,7 @@ class TranscriptPolicy {
       state.activeTurn,
       event.createdAt,
     );
-    return _support.upsertBlock(
+    return _support.appendBlock(
       _commitActiveTurn(
         state.copyWith(
           connectionStatus: CodexRuntimeSessionState.ready,
@@ -270,29 +265,31 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeTurnDiffUpdatedEvent event,
   ) {
-    final nextState = _stateWithTranscriptBlock(
-      state,
-      CodexChangedFilesBlock(
-        id: 'turn_diff_${event.turnId ?? event.createdAt.toIso8601String()}',
-        createdAt: event.createdAt,
-        title: 'Changed files',
-        files: _changedFilesParser.changedFilesFromSources(
-          snapshot: null,
-          body: event.unifiedDiff,
-          rawPayload: event.rawPayload,
-        ),
-        unifiedDiff: event.unifiedDiff,
-        turnId: event.turnId,
-      ),
+    final activeTurn = state.activeTurn;
+    if (activeTurn != null &&
+        event.turnId != null &&
+        activeTurn.turnId != event.turnId) {
+      return state;
+    }
+
+    final ensuredActiveTurn = _ensureActiveTurn(
+      activeTurn,
       turnId: event.turnId,
       threadId: event.threadId,
+      createdAt: event.createdAt,
     );
-    final activeTurn = nextState.activeTurn;
-    if (activeTurn == null || activeTurn.turnId != event.turnId) {
-      return nextState;
+    if (ensuredActiveTurn == null) {
+      return state;
     }
-    return nextState.copyWith(
-      activeTurn: _removeCompletedFileChangeSegments(activeTurn),
+
+    return state.copyWith(
+      activeTurn: ensuredActiveTurn.copyWith(
+        turnDiffSnapshot: CodexTurnDiffSnapshot(
+          turnId: ensuredActiveTurn.turnId,
+          createdAt: event.createdAt,
+          unifiedDiff: event.unifiedDiff,
+        ),
+      ),
     );
   }
 
@@ -451,12 +448,12 @@ class TranscriptPolicy {
     }
 
     var nextState = state;
-    for (final block in projectCodexTurnSegments(activeTurn.segments)) {
-      nextState = _support.upsertBlock(nextState, block);
+    for (final block in projectCodexTurnArtifacts(activeTurn.artifacts)) {
+      nextState = _support.appendBlock(nextState, block);
     }
     if (includePendingUsage &&
         activeTurn.pendingThreadTokenUsageBlock != null) {
-      nextState = _support.upsertBlock(
+      nextState = _support.appendBlock(
         nextState,
         activeTurn.pendingThreadTokenUsageBlock!,
       );
@@ -516,7 +513,7 @@ class TranscriptPolicy {
       createdAt: block.createdAt,
     );
     if (activeTurn == null) {
-      return _support.upsertBlock(state, block);
+      return _support.appendBlock(state, block);
     }
 
     return state.copyWith(activeTurn: _upsertTurnBlock(activeTurn, block));
@@ -545,18 +542,18 @@ class TranscriptPolicy {
     CodexActiveTurnState activeTurn,
     CodexUiBlock block,
   ) {
-    final segment = CodexTurnBlockSegment(block: block);
-    final nextSegments = List<CodexTurnSegment>.from(activeTurn.segments);
-    final index = nextSegments.indexWhere(
+    final artifact = CodexTurnBlockArtifact(block: block);
+    var nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
+    final index = nextArtifacts.indexWhere(
       (existing) => existing.id == block.id,
     );
     if (index == -1) {
-      nextSegments.add(segment);
+      nextArtifacts = appendCodexTurnArtifact(nextArtifacts, artifact);
     } else {
-      nextSegments[index] = segment;
+      nextArtifacts[index] = artifact;
     }
 
-    return activeTurn.copyWith(segments: nextSegments);
+    return activeTurn.copyWith(artifacts: nextArtifacts);
   }
 
   CodexActiveTurnState _appendTurnBlock(
@@ -564,36 +561,10 @@ class TranscriptPolicy {
     CodexUiBlock block,
   ) {
     return activeTurn.copyWith(
-      segments: <CodexTurnSegment>[
-        ...activeTurn.segments,
-        CodexTurnBlockSegment(block: block),
-      ],
-    );
-  }
-
-  CodexActiveTurnState _removeCompletedFileChangeSegments(
-    CodexActiveTurnState activeTurn,
-  ) {
-    final removedSegmentIds = activeTurn.segments
-        .whereType<CodexTurnChangedFilesSegment>()
-        .where(
-          (segment) => activeTurn.itemsById[segment.itemId]?.isRunning != true,
-        )
-        .map((segment) => segment.id)
-        .toSet();
-    if (removedSegmentIds.isEmpty) {
-      return activeTurn;
-    }
-
-    final nextSegments = activeTurn.segments
-        .where((segment) => !removedSegmentIds.contains(segment.id))
-        .toList(growable: false);
-    final nextItemSegmentIds = Map<String, String>.from(
-      activeTurn.itemSegmentIds,
-    )..removeWhere((_, segmentId) => removedSegmentIds.contains(segmentId));
-    return activeTurn.copyWith(
-      segments: nextSegments,
-      itemSegmentIds: nextItemSegmentIds,
+      artifacts: appendCodexTurnArtifact(
+        activeTurn.artifacts,
+        CodexTurnBlockArtifact(block: block),
+      ),
     );
   }
 
@@ -603,8 +574,9 @@ class TranscriptPolicy {
     required DateTime createdAt,
   }) {
     final usedIds = <String>{
-      ...state.blocks.map((block) => block.id),
-      ...?state.activeTurn?.segments.map((segment) => segment.id),
+      ...codexUiBlockIds(state.blocks),
+      if (state.activeTurn != null)
+        ...codexTurnArtifactIds(state.activeTurn!.artifacts),
     };
     final baseId = _support.eventEntryId(prefix, createdAt);
     if (!usedIds.contains(baseId)) {

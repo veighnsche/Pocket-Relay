@@ -187,12 +187,10 @@ class CodexSessionState {
 
   bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
 
-  List<CodexUiBlock> get transcriptBlocks => _buildTranscriptBlocks(
-    _sortTranscriptBlocks(<CodexUiBlock>[
-      ...blocks.where(_shouldAppearInTranscript),
-      if (activeTurn != null) ...projectCodexTurnSegments(activeTurn!.segments),
-    ]),
-  );
+  List<CodexUiBlock> get transcriptBlocks => <CodexUiBlock>[
+    ...blocks.where(_shouldAppearInTranscript),
+    if (activeTurn != null) ...projectCodexTurnArtifacts(activeTurn!.artifacts),
+  ];
 
   CodexApprovalRequestBlock? get primaryPendingApprovalBlock =>
       _firstPendingBlock<CodexApprovalRequestBlock>(
@@ -226,78 +224,137 @@ class CodexSessionState {
   }
 }
 
-List<CodexUiBlock> projectCodexTurnSegments(
-  Iterable<CodexTurnSegment> segments,
+List<CodexUiBlock> projectCodexTurnArtifacts(
+  Iterable<CodexTurnArtifact> artifacts,
 ) {
   final projected = <CodexUiBlock>[];
 
-  for (final segment in segments) {
-    switch (segment) {
-      case CodexTurnTextSegment():
+  for (final artifact in artifacts) {
+    switch (artifact) {
+      case CodexTurnTextArtifact():
         projected.add(
           CodexTextBlock(
-            id: segment.id,
-            kind: segment.kind,
-            createdAt: segment.createdAt,
-            title: segment.title,
-            body: segment.body,
-            isRunning: segment.isStreaming,
+            id: artifact.id,
+            kind: artifact.kind,
+            createdAt: artifact.createdAt,
+            title: artifact.title,
+            body: artifact.body,
+            isRunning: artifact.isStreaming,
           ),
         );
-      case CodexTurnWorkSegment():
-        projected.addAll(
-          segment.entries.map(
-            (entry) => CodexWorkLogEntryBlock(
-              id: entry.id,
-              createdAt: entry.createdAt,
-              entryKind: entry.entryKind,
-              title: entry.title,
-              turnId: entry.turnId,
-              preview: entry.preview,
-              isRunning: entry.isRunning,
-              exitCode: entry.exitCode,
-            ),
+      case CodexTurnWorkArtifact():
+        projected.add(
+          CodexWorkLogGroupBlock(
+            id: artifact.id,
+            createdAt: artifact.createdAt,
+            entries: artifact.entries,
           ),
         );
-      case CodexTurnPlanSegment():
+      case CodexTurnPlanArtifact():
         projected.add(
           CodexProposedPlanBlock(
-            id: segment.id,
-            createdAt: segment.createdAt,
-            title: segment.title,
-            markdown: segment.markdown,
-            isStreaming: segment.isStreaming,
+            id: artifact.id,
+            createdAt: artifact.createdAt,
+            title: artifact.title,
+            markdown: artifact.markdown,
+            isStreaming: artifact.isStreaming,
           ),
         );
-      case CodexTurnChangedFilesSegment():
+      case CodexTurnChangedFilesArtifact():
         projected.add(
           CodexChangedFilesBlock(
-            id: segment.id,
-            createdAt: segment.createdAt,
-            title: segment.title,
-            files: segment.files,
-            unifiedDiff: segment.unifiedDiff,
-            isRunning: segment.isStreaming,
+            id: artifact.id,
+            createdAt: artifact.createdAt,
+            title: artifact.title,
+            files: artifact.files,
+            unifiedDiff: artifact.unifiedDiff,
+            isRunning: artifact.isStreaming,
           ),
         );
-      case CodexTurnBlockSegment():
-        projected.add(segment.block);
+      case CodexTurnBlockArtifact():
+        projected.add(artifact.block);
     }
   }
 
   return projected;
 }
 
-List<CodexUiBlock> _sortTranscriptBlocks(List<CodexUiBlock> blocks) {
-  final indexed = blocks.indexed.toList(growable: false);
-  indexed.sort((left, right) {
-    final createdAtComparison = left.$2.createdAt.compareTo(right.$2.createdAt);
-    if (createdAtComparison != 0) {
-      return createdAtComparison;
-    }
-    return left.$1.compareTo(right.$1);
-  });
-  return indexed.map((entry) => entry.$2).toList(growable: false);
+List<CodexTurnArtifact> appendCodexTurnArtifact(
+  List<CodexTurnArtifact> artifacts,
+  CodexTurnArtifact nextArtifact,
+) {
+  final nextArtifacts = List<CodexTurnArtifact>.from(artifacts);
+  if (nextArtifacts.isNotEmpty) {
+    nextArtifacts[nextArtifacts.length - 1] = freezeCodexTurnArtifact(
+      nextArtifacts.last,
+    );
+  }
+  nextArtifacts.add(nextArtifact);
+  return nextArtifacts;
+}
+
+CodexTurnArtifact freezeCodexTurnArtifact(CodexTurnArtifact artifact) {
+  return switch (artifact) {
+    CodexTurnTextArtifact(:final isStreaming) when isStreaming =>
+      CodexTurnTextArtifact(
+        id: artifact.id,
+        createdAt: artifact.createdAt,
+        kind: artifact.kind,
+        title: artifact.title,
+        body: artifact.body,
+        itemId: artifact.itemId,
+        isStreaming: false,
+      ),
+    CodexTurnWorkArtifact() => CodexTurnWorkArtifact(
+      id: artifact.id,
+      createdAt: artifact.createdAt,
+      entries: artifact.entries
+          .map((entry) => entry.copyWith(isRunning: false))
+          .toList(growable: false),
+    ),
+    CodexTurnPlanArtifact(:final isStreaming) when isStreaming =>
+      CodexTurnPlanArtifact(
+        id: artifact.id,
+        createdAt: artifact.createdAt,
+        title: artifact.title,
+        markdown: artifact.markdown,
+        itemId: artifact.itemId,
+        isStreaming: false,
+      ),
+    CodexTurnChangedFilesArtifact(:final isStreaming) when isStreaming =>
+      CodexTurnChangedFilesArtifact(
+        id: artifact.id,
+        createdAt: artifact.createdAt,
+        title: artifact.title,
+        itemId: artifact.itemId,
+        files: artifact.files,
+        unifiedDiff: artifact.unifiedDiff,
+        isStreaming: false,
+      ),
+    CodexTurnBlockArtifact(:final block) => CodexTurnBlockArtifact(
+      block: _freezeCodexUiBlock(block),
+    ),
+    _ => artifact,
+  };
+}
+
+CodexUiBlock _freezeCodexUiBlock(CodexUiBlock block) {
+  return switch (block) {
+    CodexTextBlock(:final isRunning) when isRunning => block.copyWith(
+      isRunning: false,
+    ),
+    CodexProposedPlanBlock(:final isStreaming) when isStreaming =>
+      block.copyWith(isStreaming: false),
+    CodexChangedFilesBlock(:final isRunning) when isRunning => block.copyWith(
+      isRunning: false,
+    ),
+    CodexCommandExecutionBlock(:final isRunning) when isRunning =>
+      block.copyWith(isRunning: false),
+    CodexWorkLogEntryBlock(:final isRunning) when isRunning => block.copyWith(
+      isRunning: false,
+    ),
+    _ => block,
+  };
 }
 
 bool _shouldAppearInTranscript(CodexUiBlock block) {
@@ -307,54 +364,6 @@ bool _shouldAppearInTranscript(CodexUiBlock block) {
     CodexStatusBlock(:final isTranscriptSignal) => isTranscriptSignal,
     _ => true,
   };
-}
-
-List<CodexUiBlock> _buildTranscriptBlocks(Iterable<CodexUiBlock> blocks) {
-  final transcript = <CodexUiBlock>[];
-  final pendingWorkEntries = <CodexWorkLogEntryBlock>[];
-
-  void flushWorkEntries() {
-    if (pendingWorkEntries.isEmpty) {
-      return;
-    }
-
-    final first = pendingWorkEntries.first;
-    final last = pendingWorkEntries.last;
-    transcript.add(
-      CodexWorkLogGroupBlock(
-        id: 'worklog_${first.id}_${last.id}',
-        createdAt: first.createdAt,
-        entries: pendingWorkEntries
-            .map(
-              (entry) => CodexWorkLogEntry(
-                id: entry.id,
-                createdAt: entry.createdAt,
-                entryKind: entry.entryKind,
-                title: entry.title,
-                turnId: entry.turnId,
-                preview: entry.preview,
-                isRunning: entry.isRunning,
-                exitCode: entry.exitCode,
-              ),
-            )
-            .toList(growable: false),
-      ),
-    );
-    pendingWorkEntries.clear();
-  }
-
-  for (final block in blocks) {
-    if (block is CodexWorkLogEntryBlock) {
-      pendingWorkEntries.add(block);
-      continue;
-    }
-
-    flushWorkEntries();
-    transcript.add(block);
-  }
-
-  flushWorkEntries();
-  return transcript;
 }
 
 T? _firstPendingBlock<T extends CodexUiBlock>(Iterable<T> blocks) {
@@ -470,6 +479,8 @@ class CodexSessionActiveItem {
     required this.createdAt,
     this.title,
     this.body = '',
+    this.aggregatedBody = '',
+    this.artifactBaseBody = '',
     this.isRunning = false,
     this.exitCode,
     this.snapshot,
@@ -484,13 +495,19 @@ class CodexSessionActiveItem {
   final DateTime createdAt;
   final String? title;
   final String body;
+  final String aggregatedBody;
+  final String artifactBaseBody;
   final bool isRunning;
   final int? exitCode;
   final Map<String, dynamic>? snapshot;
 
   CodexSessionActiveItem copyWith({
+    String? entryId,
+    DateTime? createdAt,
     String? title,
     String? body,
+    String? aggregatedBody,
+    String? artifactBaseBody,
     bool? isRunning,
     int? exitCode,
     Map<String, dynamic>? snapshot,
@@ -500,11 +517,13 @@ class CodexSessionActiveItem {
       threadId: threadId,
       turnId: turnId,
       itemType: itemType,
-      entryId: entryId,
+      entryId: entryId ?? this.entryId,
       blockKind: blockKind,
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
       title: title ?? this.title,
       body: body ?? this.body,
+      aggregatedBody: aggregatedBody ?? this.aggregatedBody,
+      artifactBaseBody: artifactBaseBody ?? this.artifactBaseBody,
       isRunning: isRunning ?? this.isRunning,
       exitCode: exitCode ?? this.exitCode,
       snapshot: snapshot ?? this.snapshot,
@@ -514,15 +533,39 @@ class CodexSessionActiveItem {
 
 enum CodexActiveTurnStatus { running, blocked, completing }
 
-sealed class CodexTurnSegment {
-  const CodexTurnSegment({required this.id, required this.createdAt});
+Iterable<String> codexUiBlockIds(Iterable<CodexUiBlock> blocks) sync* {
+  for (final block in blocks) {
+    yield block.id;
+    if (block case CodexWorkLogGroupBlock(:final entries)) {
+      for (final entry in entries) {
+        yield entry.id;
+      }
+    }
+  }
+}
+
+Iterable<String> codexTurnArtifactIds(
+  Iterable<CodexTurnArtifact> artifacts,
+) sync* {
+  for (final artifact in artifacts) {
+    yield artifact.id;
+    if (artifact case CodexTurnWorkArtifact(:final entries)) {
+      for (final entry in entries) {
+        yield entry.id;
+      }
+    }
+  }
+}
+
+sealed class CodexTurnArtifact {
+  const CodexTurnArtifact({required this.id, required this.createdAt});
 
   final String id;
   final DateTime createdAt;
 }
 
-final class CodexTurnTextSegment extends CodexTurnSegment {
-  const CodexTurnTextSegment({
+final class CodexTurnTextArtifact extends CodexTurnArtifact {
+  const CodexTurnTextArtifact({
     required super.id,
     required super.createdAt,
     required this.kind,
@@ -539,20 +582,18 @@ final class CodexTurnTextSegment extends CodexTurnSegment {
   final bool isStreaming;
 }
 
-final class CodexTurnWorkSegment extends CodexTurnSegment {
-  const CodexTurnWorkSegment({
+final class CodexTurnWorkArtifact extends CodexTurnArtifact {
+  const CodexTurnWorkArtifact({
     required super.id,
     required super.createdAt,
-    this.itemId,
     this.entries = const <CodexWorkLogEntry>[],
   });
 
-  final String? itemId;
   final List<CodexWorkLogEntry> entries;
 }
 
-final class CodexTurnPlanSegment extends CodexTurnSegment {
-  const CodexTurnPlanSegment({
+final class CodexTurnPlanArtifact extends CodexTurnArtifact {
+  const CodexTurnPlanArtifact({
     required super.id,
     required super.createdAt,
     required this.title,
@@ -567,8 +608,8 @@ final class CodexTurnPlanSegment extends CodexTurnSegment {
   final bool isStreaming;
 }
 
-final class CodexTurnChangedFilesSegment extends CodexTurnSegment {
-  const CodexTurnChangedFilesSegment({
+final class CodexTurnChangedFilesArtifact extends CodexTurnArtifact {
+  const CodexTurnChangedFilesArtifact({
     required super.id,
     required super.createdAt,
     required this.title,
@@ -585,11 +626,31 @@ final class CodexTurnChangedFilesSegment extends CodexTurnSegment {
   final bool isStreaming;
 }
 
-final class CodexTurnBlockSegment extends CodexTurnSegment {
-  CodexTurnBlockSegment({required this.block})
+final class CodexTurnBlockArtifact extends CodexTurnArtifact {
+  CodexTurnBlockArtifact({required this.block})
     : super(id: block.id, createdAt: block.createdAt);
 
   final CodexUiBlock block;
+}
+
+final class CodexTurnDiffSnapshot {
+  const CodexTurnDiffSnapshot({
+    required this.turnId,
+    required this.createdAt,
+    required this.unifiedDiff,
+  });
+
+  final String turnId;
+  final DateTime createdAt;
+  final String unifiedDiff;
+
+  CodexTurnDiffSnapshot copyWith({DateTime? createdAt, String? unifiedDiff}) {
+    return CodexTurnDiffSnapshot(
+      turnId: turnId,
+      createdAt: createdAt ?? this.createdAt,
+      unifiedDiff: unifiedDiff ?? this.unifiedDiff,
+    );
+  }
 }
 
 class CodexActiveTurnState {
@@ -598,12 +659,13 @@ class CodexActiveTurnState {
     this.threadId,
     required this.timer,
     this.status = CodexActiveTurnStatus.running,
-    this.segments = const <CodexTurnSegment>[],
+    this.artifacts = const <CodexTurnArtifact>[],
     this.itemsById = const <String, CodexSessionActiveItem>{},
-    this.itemSegmentIds = const <String, String>{},
+    this.itemArtifactIds = const <String, String>{},
     this.pendingApprovalRequests = const <String, CodexSessionPendingRequest>{},
     this.pendingUserInputRequests =
         const <String, CodexSessionPendingUserInputRequest>{},
+    this.turnDiffSnapshot,
     this.pendingThreadTokenUsageBlock,
     this.latestUsageSummary,
     this.hasWork = false,
@@ -614,12 +676,13 @@ class CodexActiveTurnState {
   final String? threadId;
   final CodexSessionTurnTimer timer;
   final CodexActiveTurnStatus status;
-  final List<CodexTurnSegment> segments;
+  final List<CodexTurnArtifact> artifacts;
   final Map<String, CodexSessionActiveItem> itemsById;
-  final Map<String, String> itemSegmentIds;
+  final Map<String, String> itemArtifactIds;
   final Map<String, CodexSessionPendingRequest> pendingApprovalRequests;
   final Map<String, CodexSessionPendingUserInputRequest>
   pendingUserInputRequests;
+  final CodexTurnDiffSnapshot? turnDiffSnapshot;
   final CodexUsageBlock? pendingThreadTokenUsageBlock;
   final String? latestUsageSummary;
   final bool hasWork;
@@ -633,11 +696,13 @@ class CodexActiveTurnState {
     String? threadId,
     CodexSessionTurnTimer? timer,
     CodexActiveTurnStatus? status,
-    List<CodexTurnSegment>? segments,
+    List<CodexTurnArtifact>? artifacts,
     Map<String, CodexSessionActiveItem>? itemsById,
-    Map<String, String>? itemSegmentIds,
+    Map<String, String>? itemArtifactIds,
     Map<String, CodexSessionPendingRequest>? pendingApprovalRequests,
     Map<String, CodexSessionPendingUserInputRequest>? pendingUserInputRequests,
+    CodexTurnDiffSnapshot? turnDiffSnapshot,
+    bool clearTurnDiffSnapshot = false,
     CodexUsageBlock? pendingThreadTokenUsageBlock,
     bool clearPendingThreadTokenUsageBlock = false,
     String? latestUsageSummary,
@@ -650,13 +715,16 @@ class CodexActiveTurnState {
       threadId: threadId ?? this.threadId,
       timer: timer ?? this.timer,
       status: status ?? this.status,
-      segments: segments ?? this.segments,
+      artifacts: artifacts ?? this.artifacts,
       itemsById: itemsById ?? this.itemsById,
-      itemSegmentIds: itemSegmentIds ?? this.itemSegmentIds,
+      itemArtifactIds: itemArtifactIds ?? this.itemArtifactIds,
       pendingApprovalRequests:
           pendingApprovalRequests ?? this.pendingApprovalRequests,
       pendingUserInputRequests:
           pendingUserInputRequests ?? this.pendingUserInputRequests,
+      turnDiffSnapshot: clearTurnDiffSnapshot
+          ? null
+          : (turnDiffSnapshot ?? this.turnDiffSnapshot),
       pendingThreadTokenUsageBlock: clearPendingThreadTokenUsageBlock
           ? null
           : (pendingThreadTokenUsageBlock ?? this.pendingThreadTokenUsageBlock),

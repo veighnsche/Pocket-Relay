@@ -22,6 +22,17 @@ The most relevant planning documents already in the repo are:
 - `docs/transcript-immutability-migration-plan.md`
 - `docs/component-lifecycle-audit-plan.md`
 
+Important note:
+
+- `docs/transcript-immutability-migration-plan.md` now contains a deviation log
+  because the worktree did not follow the originally planned "tests-only first
+  commit" sequence
+- the same document now also contains the rebased migration path that should be
+  treated as authoritative going forward
+- that rebased path has itself already needed a documented boundary correction:
+  `Commit B` and `Commit C` were tightened in the docs before preserving that
+  this was a planning correction rather than implementation progress
+
 This document is the short operational handoff for the next agent.
 
 ## What Is Still Left To Do
@@ -54,16 +65,22 @@ Reference Codex areas:
 
 Current state:
 
-- the app mostly commits directly into immutable transcript blocks
+- the worktree is in a partial transcript-immutability migration state
+- some append-only and tail-freezing behavior is already implemented
+- the migration did not follow the originally documented clean commit sequence
+- live artifacts now explicitly own assistant/reasoning/plan/changed-files/work
+  and resolved-request transcript runs
+- render-time work-log grouping has been removed in favor of live work
+  artifacts
 
 Target state:
 
-- introduce an explicit in-flight segment model
 - flush assistant output before tool/work cells begin
 - flush work groups before assistant output resumes
 - keep committed transcript history separate from active streaming state
 
-This is the largest remaining architecture task.
+The remaining task here is smaller now: finish the last mutation exceptions
+without regressing the explicit live-artifact model.
 
 Primary code areas:
 
@@ -127,7 +144,8 @@ Reference Codex areas:
 
 1. Reasoning parity
 2. In-flight transcript segmentation
-3. Markdown and file-link normalization
+3. User-message/request immutability cleanup
+4. Markdown and file-link normalization
 4. Work-only completion semantics
 
 This order matters. Reasoning and segmentation affect the shape of the

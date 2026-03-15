@@ -115,7 +115,7 @@ class TranscriptRequestPolicy {
               ),
       ),
     );
-    return _stateWithTranscriptBlock(
+    return _stateWithResolvedTranscriptBlock(
       nextState,
       resolvedBlock,
       turnId: event.turnId,
@@ -202,7 +202,7 @@ class TranscriptRequestPolicy {
               ),
       ),
     );
-    return _stateWithTranscriptBlock(
+    return _stateWithResolvedTranscriptBlock(
       nextState,
       resolvedBlock,
       turnId: event.turnId,
@@ -388,7 +388,7 @@ class TranscriptRequestPolicy {
     );
   }
 
-  CodexSessionState _stateWithTranscriptBlock(
+  CodexSessionState _stateWithResolvedTranscriptBlock(
     CodexSessionState state,
     CodexUiBlock block, {
     required String? turnId,
@@ -401,27 +401,83 @@ class TranscriptRequestPolicy {
       createdAt: block.createdAt,
     );
     if (activeTurn == null) {
-      return _support.upsertBlock(state, block);
+      if (state.blocks.any((existing) => existing.id == block.id)) {
+        return state;
+      }
+      return _support.appendBlock(state, block);
     }
 
-    return state.copyWith(activeTurn: _upsertTurnBlock(activeTurn, block));
+    final existingIndex = activeTurn.artifacts.indexWhere(
+      (artifact) => artifact.id == block.id,
+    );
+    if (existingIndex == -1) {
+      return state.copyWith(activeTurn: _appendTurnBlock(activeTurn, block));
+    }
+    if (existingIndex != activeTurn.artifacts.length - 1) {
+      return state;
+    }
+
+    return state.copyWith(
+      activeTurn: _replaceTailTurnBlock(
+        activeTurn,
+        _resolvedRequestBlockWithCreatedAt(
+          block,
+          createdAt: activeTurn.artifacts[existingIndex].createdAt,
+        ),
+      ),
+    );
   }
 
-  CodexActiveTurnState _upsertTurnBlock(
+  CodexActiveTurnState _appendTurnBlock(
     CodexActiveTurnState activeTurn,
     CodexUiBlock block,
   ) {
-    final segment = CodexTurnBlockSegment(block: block);
-    final nextSegments = List<CodexTurnSegment>.from(activeTurn.segments);
-    final index = nextSegments.indexWhere(
-      (existing) => existing.id == block.id,
+    return activeTurn.copyWith(
+      artifacts: appendCodexTurnArtifact(
+        activeTurn.artifacts,
+        CodexTurnBlockArtifact(block: block),
+      ),
     );
-    if (index == -1) {
-      nextSegments.add(segment);
-    } else {
-      nextSegments[index] = segment;
-    }
+  }
 
-    return activeTurn.copyWith(segments: nextSegments);
+  CodexActiveTurnState _replaceTailTurnBlock(
+    CodexActiveTurnState activeTurn,
+    CodexUiBlock block,
+  ) {
+    final nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
+    nextArtifacts[nextArtifacts.length - 1] = CodexTurnBlockArtifact(
+      block: block,
+    );
+    return activeTurn.copyWith(artifacts: nextArtifacts);
+  }
+
+  CodexUiBlock _resolvedRequestBlockWithCreatedAt(
+    CodexUiBlock block, {
+    required DateTime createdAt,
+  }) {
+    return switch (block) {
+      CodexApprovalRequestBlock() => CodexApprovalRequestBlock(
+        id: block.id,
+        createdAt: createdAt,
+        requestId: block.requestId,
+        requestType: block.requestType,
+        title: block.title,
+        body: block.body,
+        isResolved: block.isResolved,
+        resolutionLabel: block.resolutionLabel,
+      ),
+      CodexUserInputRequestBlock() => CodexUserInputRequestBlock(
+        id: block.id,
+        createdAt: createdAt,
+        requestId: block.requestId,
+        requestType: block.requestType,
+        title: block.title,
+        body: block.body,
+        isResolved: block.isResolved,
+        questions: block.questions,
+        answers: block.answers,
+      ),
+      _ => block,
+    };
   }
 }

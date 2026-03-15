@@ -139,6 +139,7 @@ class TranscriptReducer {
       CodexRuntimeSessionExitedEvent() ||
       CodexRuntimeThreadStartedEvent() ||
       CodexRuntimeThreadStateChangedEvent() ||
+      CodexRuntimeTurnDiffUpdatedEvent() ||
       CodexRuntimeTurnCompletedEvent() ||
       CodexRuntimeTurnAbortedEvent() => state,
       _ => _policy.rolloverTurnIfNeeded(
