@@ -16,7 +16,7 @@ void main() {
           isTextInputEnabled: true,
           isPrimaryActionEnabled: true,
           isBusy: false,
-          placeholder: 'Describe what you want Codex to do…',
+          placeholder: 'Message Codex',
           primaryAction: ChatComposerPrimaryAction.send,
         ),
       ),
@@ -37,7 +37,7 @@ void main() {
           isTextInputEnabled: true,
           isPrimaryActionEnabled: true,
           isBusy: false,
-          placeholder: 'Describe what you want Codex to do…',
+          placeholder: 'Message Codex',
           primaryAction: ChatComposerPrimaryAction.send,
         ),
       ),
@@ -63,7 +63,7 @@ void main() {
           isTextInputEnabled: true,
           isPrimaryActionEnabled: true,
           isBusy: false,
-          placeholder: 'Describe what you want Codex to do…',
+          placeholder: 'Message Codex',
           primaryAction: ChatComposerPrimaryAction.send,
         ),
         onChanged: (value) {
@@ -95,7 +95,7 @@ void main() {
           isTextInputEnabled: false,
           isPrimaryActionEnabled: true,
           isBusy: true,
-          placeholder: 'Describe what you want Codex to do…',
+          placeholder: 'Message Codex',
           primaryAction: ChatComposerPrimaryAction.stop,
         ),
         onStop: () async {
@@ -129,7 +129,7 @@ void main() {
           isTextInputEnabled: true,
           isPrimaryActionEnabled: true,
           isBusy: false,
-          placeholder: 'Describe what you want Codex to do…',
+          placeholder: 'Message Codex',
           primaryAction: ChatComposerPrimaryAction.send,
         ),
       ),
@@ -162,6 +162,31 @@ void main() {
         surfaceContext,
       ).withValues(alpha: 0.82),
     );
+  });
+
+  testWidgets('uses a compact centered layout in cupertino mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildComposerApp(
+        contract: const ChatComposerContract(
+          draftText: '',
+          isTextInputEnabled: true,
+          isPrimaryActionEnabled: true,
+          isBusy: false,
+          placeholder: 'Message Codex',
+          primaryAction: ChatComposerPrimaryAction.send,
+        ),
+      ),
+    );
+
+    final field = tester.widget<CupertinoTextField>(find.byType(CupertinoTextField));
+    final contentRow = tester.widget<Row>(
+      find.byKey(const ValueKey('chat_composer_content_row')),
+    );
+
+    expect(field.padding, const EdgeInsets.fromLTRB(2, 6, 8, 6));
+    expect(contentRow.crossAxisAlignment, CrossAxisAlignment.center);
   });
 }
 

@@ -100,7 +100,7 @@ ChatScreenContract _screenContract() {
       isTextInputEnabled: true,
       isPrimaryActionEnabled: true,
       isBusy: false,
-      placeholder: 'Describe what you want Codex to do…',
+      placeholder: 'Message Codex',
       primaryAction: ChatComposerPrimaryAction.send,
     ),
     connectionSettings: ChatConnectionSettingsLaunchContract(

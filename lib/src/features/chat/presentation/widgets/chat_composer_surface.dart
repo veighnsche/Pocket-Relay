@@ -120,6 +120,8 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   }
 
   Widget _buildCupertinoComposer(BuildContext context) {
+    const surfacePadding = EdgeInsets.fromLTRB(14, 8, 10, 8);
+    const inputPadding = EdgeInsets.fromLTRB(2, 6, 8, 6);
     final separatorColor = CupertinoDynamicColor.resolve(
       CupertinoColors.separator,
       context,
@@ -156,7 +158,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            padding: surfacePadding,
             child: _buildContent(
               input: CupertinoTextField(
                 controller: _controller,
@@ -168,7 +170,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
                 style: TextStyle(color: labelColor),
                 placeholderStyle: TextStyle(color: placeholderColor),
                 onChanged: widget.onChanged,
-                padding: const EdgeInsets.fromLTRB(4, 10, 10, 10),
+                padding: inputPadding,
                 decoration: const BoxDecoration(),
               ),
               primaryAction:
@@ -204,6 +206,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
                         size: 22,
                       ),
                     ),
+              crossAxisAlignment: CrossAxisAlignment.center,
             ),
           ),
         ),
@@ -211,9 +214,14 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     );
   }
 
-  Widget _buildContent({required Widget input, required Widget primaryAction}) {
+  Widget _buildContent({
+    required Widget input,
+    required Widget primaryAction,
+    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.end,
+  }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      key: const ValueKey('chat_composer_content_row'),
+      crossAxisAlignment: crossAxisAlignment,
       children: [
         Expanded(child: input),
         const SizedBox(width: 10),

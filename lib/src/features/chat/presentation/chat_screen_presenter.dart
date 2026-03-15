@@ -62,7 +62,7 @@ class ChatScreenPresenter {
         isTextInputEnabled: isConfigured && !isLoading && !isBusy,
         isPrimaryActionEnabled: isBusy || canSend,
         isBusy: isBusy,
-        placeholder: 'Describe what you want Codex to do…',
+        placeholder: 'Message Codex',
         primaryAction: isBusy
             ? ChatComposerPrimaryAction.stop
             : ChatComposerPrimaryAction.send,
