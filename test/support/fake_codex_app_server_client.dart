@@ -24,6 +24,23 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   final List<({String requestId, Map<String, List<String>> answers})>
   userInputResponses =
       <({String requestId, Map<String, List<String>> answers})>[];
+  final List<
+    ({
+      String requestId,
+      CodexAppServerElicitationAction action,
+      Object? content,
+      Object? metadata,
+    })
+  >
+  elicitationResponses =
+      <
+        ({
+          String requestId,
+          CodexAppServerElicitationAction action,
+          Object? content,
+          Object? metadata,
+        })
+      >[];
   final List<({String requestId, String message})> rejectedRequests =
       <({String requestId, String message})>[];
   final List<
@@ -106,6 +123,21 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required Map<String, List<String>> answers,
   }) async {
     userInputResponses.add((requestId: requestId, answers: answers));
+  }
+
+  @override
+  Future<void> respondToElicitation({
+    required String requestId,
+    required CodexAppServerElicitationAction action,
+    Object? content,
+    Object? metadata,
+  }) async {
+    elicitationResponses.add((
+      requestId: requestId,
+      action: action,
+      content: content,
+      metadata: metadata,
+    ));
   }
 
   @override

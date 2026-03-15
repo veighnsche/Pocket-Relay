@@ -558,6 +558,80 @@ void main() {
           'q1': <String>['Vince'],
         },
       );
+      expect(appServerClient.elicitationResponses, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'mcp elicitation requests are submitted through the elicitation response path',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerRequestEvent(
+          requestId: 's:elicitation-1',
+          method: 'mcpServer/elicitation/request',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'serverName': 'filesystem',
+            'message': 'Choose a directory',
+            'mode': 'form',
+            'requestedSchema': <String, Object?>{
+              'type': 'object',
+              'properties': <String, Object?>{
+                'path': <String, Object?>{'type': 'string'},
+              },
+            },
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('MCP input required'), findsOneWidget);
+      expect(find.text('Choose a directory'), findsOneWidget);
+
+      final responseField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == 'Response',
+      );
+
+      await tester.enterText(responseField, '/workspace/mobile');
+      await tester.ensureVisible(find.text('Submit response'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Submit response'));
+      await tester.pumpAndSettle();
+
+      expect(appServerClient.userInputResponses, isEmpty);
+      expect(appServerClient.elicitationResponses, hasLength(1));
+      expect(
+        appServerClient.elicitationResponses.single.requestId,
+        's:elicitation-1',
+      );
+      expect(
+        appServerClient.elicitationResponses.single.action,
+        CodexAppServerElicitationAction.accept,
+      );
+      expect(
+        appServerClient.elicitationResponses.single.content,
+        '/workspace/mobile',
+      );
     },
   );
 

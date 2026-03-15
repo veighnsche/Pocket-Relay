@@ -26,8 +26,8 @@ renderer can consume the same ownership model.
 - Phase 1, top-level chat screen ownership move: completed on this branch
 - Phase 2, connection settings form contract extraction: completed on this
   branch
-- Phase 3, pending user-input form contract extraction: slice 1 completed on
-  this branch, slice 2 completed on this branch, slice 3 not started
+- Phase 3, pending user-input form contract extraction: completed on this
+  branch
 - Root architectural adapter work: not started
 - Apple-native glass components: not started
 
@@ -41,13 +41,13 @@ renderer can consume the same ownership model.
   behavior.
 - The top-level chat screen already renders from a shared screen contract.
 - The connection settings surface already renders from a shared form contract.
+- Pending user-input requests already render from a shared request contract and
+  request-keyed form-state host.
 
 These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
-- Pending user-input request forms still keep canonical interactive state in a
-  Flutter card widget.
 - Transcript item dispatch is still mostly a Flutter-only block-to-widget
   switch.
 - Changed-file diff presentation still originates inside a Flutter card.
@@ -118,9 +118,24 @@ Phase 2 is complete and delivered:
 - `ConnectionSheet` reduced to Flutter renderer and input plumbing over the
   shared draft/state/contract path
 
+### Phase 3 Completed Scope
+
+Phase 3 is complete and delivered:
+
+- one renderer-neutral pending user-input draft model and form-state model
+- one pending user-input contract and presenter
+- one request-keyed pending user-input form host above the transcript card layer
+- transcript routing of pending user-input items through that shared host
+- `UserInputRequestCard` reduced to Flutter controller/layout plumbing over the
+  shared contract
+- widget coverage for submit flow, option-chip updates, request replacement,
+  and draft persistence across transcript movement
+- app-level coverage for both standard tool-input submission and MCP
+  elicitation submission through the existing controller transport boundary
+
 ## Phase 3 Deep Investigation
 
-Phase 3 is the next migration slice:
+Phase 3 covered:
 
 - pending user-input form contract extraction
 
@@ -290,9 +305,9 @@ Slice 2 covers:
 
 ### Slice 3: Runtime path verification
 
-This is the next active slice.
+This slice is complete on this branch.
 
-Slice 3 will cover:
+Slice 3 covers:
 
 - app-level verification that the shared request contract still submits through
   the existing controller path
