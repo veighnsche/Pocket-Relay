@@ -83,12 +83,9 @@ Before Phase 5 begins, this public surface should be treated as stable:
 - `CodexAppServerClient.sendUserMessage(...)`
 - `CodexAppServerClient.answerUserInput(...)`
 - `CodexAppServerClient.respondDynamicToolCall(...)`
-- `CodexAppServerClient.respondAuthTokensRefresh(...)`
 - `CodexAppServerClient.resolveApproval(...)`
 - `CodexAppServerClient.rejectServerRequest(...)`
-- `CodexAppServerClient.resolvePermissionsRequest(...)`
 - `CodexAppServerClient.respondToElicitation(...)`
-- `CodexAppServerClient.sendServerResult(...)`
 - `CodexAppServerClient.abortTurn(...)`
 - `CodexAppServerClient.disconnect()`
 - `CodexAppServerClient.events`
@@ -206,7 +203,7 @@ Current `codex_app_server_client.dart` contents map like this:
   candidate for `codex_app_server_models.dart` or keep beside the facade initially
 - `connect`, `_disconnect`, `_handleStdoutLine`, `_handleProcessClosed`, `_updateRuntimePointers`, `_writeMessage`, `_emitEvent`, `_decodeLines`:
   move toward `codex_app_server_connection.dart`
-- `startSession`, `sendUserMessage`, `answerUserInput`, `respondDynamicToolCall`, `respondAuthTokensRefresh`, `resolveApproval`, `rejectServerRequest`, `resolvePermissionsRequest`, `respondToElicitation`, `sendServerResult`, `abortTurn`:
+- `startSession`, `sendUserMessage`, `answerUserInput`, `respondDynamicToolCall`, `resolveApproval`, `rejectServerRequest`, `respondToElicitation`, `abortTurn`:
   move toward `codex_app_server_request_api.dart`
 - `_openSshProcess`, `_buildIdentities`, `_buildRemoteCommand`, `_SshCodexAppServerProcess`:
   move toward `codex_app_server_ssh_process.dart`

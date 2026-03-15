@@ -39,9 +39,7 @@ class SecureCodexProfileStore implements CodexProfileStore {
   @override
   Future<SavedProfile> load() async {
     await _ensurePreferencesReady();
-    final rawProfile =
-        await _preferences.getString(_profileKey) ??
-        await _preferences.getString(_legacyProfileKey);
+    final rawProfile = await _readProfile();
     await _preferences.remove(_obsoletePreferencesKey);
     final profile = rawProfile == null
         ? ConnectionProfile.defaults()
@@ -76,26 +74,63 @@ class SecureCodexProfileStore implements CodexProfileStore {
   ) async {
     await _ensurePreferencesReady();
     await _preferences.setString(_profileKey, jsonEncode(profile.toJson()));
+    await _preferences.remove(_legacyProfileKey);
     await _preferences.remove(_obsoletePreferencesKey);
 
-    await _writeSecret(_passwordKey, secrets.password);
-    await _writeSecret(_privateKeyKey, secrets.privateKeyPem);
-    await _writeSecret(_privateKeyPassphraseKey, secrets.privateKeyPassphrase);
+    await _writeSecret(_passwordKey, _legacyPasswordKey, secrets.password);
+    await _writeSecret(
+      _privateKeyKey,
+      _legacyPrivateKeyKey,
+      secrets.privateKeyPem,
+    );
+    await _writeSecret(
+      _privateKeyPassphraseKey,
+      _legacyPrivateKeyPassphraseKey,
+      secrets.privateKeyPassphrase,
+    );
   }
 
-  Future<void> _writeSecret(String key, String value) async {
+  Future<void> _writeSecret(String key, String legacyKey, String value) async {
     if (value.trim().isEmpty) {
       await _secureStorage.delete(key: key);
+      await _secureStorage.delete(key: legacyKey);
       return;
     }
 
     await _secureStorage.write(key: key, value: value);
+    await _secureStorage.delete(key: legacyKey);
   }
 
   Future<String> _readSecret(String key, String legacyKey) async {
-    return await _secureStorage.read(key: key) ??
-        await _secureStorage.read(key: legacyKey) ??
-        '';
+    final currentValue = await _secureStorage.read(key: key);
+    if (currentValue != null) {
+      return currentValue;
+    }
+
+    final legacyValue = await _secureStorage.read(key: legacyKey);
+    if (legacyValue == null) {
+      return '';
+    }
+
+    await _secureStorage.write(key: key, value: legacyValue);
+    await _secureStorage.delete(key: legacyKey);
+    return legacyValue;
+  }
+
+  Future<String?> _readProfile() async {
+    final currentProfile = await _preferences.getString(_profileKey);
+    if (currentProfile != null) {
+      return currentProfile;
+    }
+
+    final legacyProfile = await _preferences.getString(_legacyProfileKey);
+    if (legacyProfile == null) {
+      return null;
+    }
+
+    await _preferences.setString(_profileKey, legacyProfile);
+    await _preferences.remove(_legacyProfileKey);
+    return legacyProfile;
   }
 
   Future<void> _ensurePreferencesReady() {

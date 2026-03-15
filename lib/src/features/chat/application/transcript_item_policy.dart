@@ -2,7 +2,6 @@ import 'package:pocket_relay/src/features/chat/application/transcript_item_block
 import 'package:pocket_relay/src/features/chat/application/transcript_item_support.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_turn_segmenter.dart';
-import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
@@ -30,7 +29,7 @@ class TranscriptItemPolicy {
     CodexRuntimeItemLifecycleEvent event, {
     required bool removeAfterUpsert,
   }) {
-    final activeTurn = _ensureActiveTurn(
+    final activeTurn = _support.ensureActiveTurn(
       state.activeTurn,
       turnId: event.turnId,
       threadId: event.threadId,
@@ -72,7 +71,7 @@ class TranscriptItemPolicy {
       return state;
     }
 
-    final activeTurn = _ensureActiveTurn(
+    final activeTurn = _support.ensureActiveTurn(
       state.activeTurn,
       turnId: turnId,
       threadId: threadId,
@@ -447,27 +446,6 @@ class TranscriptItemPolicy {
         },
       ),
       item,
-    );
-  }
-
-  CodexActiveTurnState? _ensureActiveTurn(
-    CodexActiveTurnState? activeTurn, {
-    required String? turnId,
-    required String? threadId,
-    required DateTime createdAt,
-  }) {
-    if (activeTurn != null || turnId == null) {
-      return activeTurn;
-    }
-
-    return CodexActiveTurnState(
-      turnId: turnId,
-      threadId: threadId,
-      timer: CodexSessionTurnTimer(
-        turnId: turnId,
-        startedAt: createdAt,
-        activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
-      ),
     );
   }
 }

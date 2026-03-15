@@ -1,13 +1,17 @@
-import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_policy.dart';
+import 'package:pocket_relay/src/features/chat/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 
 class TranscriptReducer {
-  const TranscriptReducer({TranscriptPolicy policy = const TranscriptPolicy()})
-    : _policy = policy;
+  const TranscriptReducer({
+    TranscriptPolicy policy = const TranscriptPolicy(),
+    TranscriptPolicySupport support = const TranscriptPolicySupport(),
+  }) : _policy = policy,
+       _support = support;
 
   final TranscriptPolicy _policy;
+  final TranscriptPolicySupport _support;
 
   CodexSessionState addUserMessage(
     CodexSessionState state, {
@@ -64,27 +68,13 @@ class TranscriptReducer {
         }
         return _policy.applyThreadClosed(normalizedState, event);
       case CodexRuntimeTurnStartedEvent():
-        final currentTurn = normalizedState.activeTurn;
-        final nextActiveTurn = switch ((event.turnId, currentTurn)) {
-          (null, _) => currentTurn,
-          (final turnId?, final existingTurn?)
-              when existingTurn.turnId == turnId =>
-            existingTurn.copyWith(
-              threadId:
-                  event.threadId ??
-                  existingTurn.threadId ??
-                  normalizedState.threadId,
-            ),
-          (final turnId?, _) => CodexActiveTurnState(
-            turnId: turnId,
-            threadId: event.threadId ?? normalizedState.threadId,
-            timer: CodexSessionTurnTimer(
-              turnId: turnId,
-              startedAt: event.createdAt,
-              activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
-            ),
-          ),
-        };
+        final nextActiveTurn = _support.activeTurnForStartedEvent(
+          normalizedState.activeTurn,
+          turnId: event.turnId,
+          threadId: event.threadId,
+          fallbackThreadId: normalizedState.threadId,
+          createdAt: event.createdAt,
+        );
         return normalizedState.copyWith(
           connectionStatus: CodexRuntimeSessionState.running,
           threadId: event.threadId ?? normalizedState.threadId,
@@ -97,7 +87,7 @@ class TranscriptReducer {
       case CodexRuntimeTurnPlanUpdatedEvent():
         return _policy.applyTurnPlanUpdated(normalizedState, event);
       case CodexRuntimeTurnDiffUpdatedEvent():
-        return _policy.applyTurnDiffUpdated(normalizedState, event);
+        return normalizedState;
       case CodexRuntimeItemStartedEvent():
         return _policy.applyItemLifecycle(
           normalizedState,

@@ -626,7 +626,7 @@ void main() {
   );
 
   testWidgets(
-    'renders sequential distinct file-change items as separate changed-files cards',
+    'consolidates sequential distinct file-change items into one changed-files card',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
@@ -695,7 +695,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Changed files'), findsNWidgets(2));
+      expect(find.text('Changed files'), findsOneWidget);
+      expect(find.text('2 files'), findsOneWidget);
       final readmeDy = tester.getTopLeft(find.text('README.md')).dy;
       final appDy = tester.getTopLeft(find.text('lib/app.dart')).dy;
       expect(readmeDy, lessThan(appDy));

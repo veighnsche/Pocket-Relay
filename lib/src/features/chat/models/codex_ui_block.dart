@@ -6,7 +6,6 @@ enum CodexUiBlockKind {
   reasoning,
   plan,
   proposedPlan,
-  commandExecution,
   workLogEntry,
   workLogGroup,
   fileChange,
@@ -237,82 +236,6 @@ final class CodexProposedPlanBlock extends CodexUiBlock {
       markdown: markdown ?? this.markdown,
       turnId: turnId ?? this.turnId,
       isStreaming: isStreaming ?? this.isStreaming,
-    );
-  }
-}
-
-final class CodexCommandExecutionBlock extends CodexUiBlock {
-  const CodexCommandExecutionBlock({
-    required super.id,
-    required super.createdAt,
-    required this.command,
-    required this.output,
-    this.turnId,
-    this.isRunning = false,
-    this.exitCode,
-  }) : super(kind: CodexUiBlockKind.commandExecution);
-
-  final String command;
-  final String output;
-  final String? turnId;
-  final bool isRunning;
-  final int? exitCode;
-
-  CodexCommandExecutionBlock copyWith({
-    String? command,
-    String? output,
-    String? turnId,
-    bool? isRunning,
-    int? exitCode,
-  }) {
-    return CodexCommandExecutionBlock(
-      id: id,
-      createdAt: createdAt,
-      command: command ?? this.command,
-      output: output ?? this.output,
-      turnId: turnId ?? this.turnId,
-      isRunning: isRunning ?? this.isRunning,
-      exitCode: exitCode ?? this.exitCode,
-    );
-  }
-}
-
-final class CodexWorkLogEntryBlock extends CodexUiBlock {
-  const CodexWorkLogEntryBlock({
-    required super.id,
-    required super.createdAt,
-    required this.entryKind,
-    required this.title,
-    this.turnId,
-    this.preview,
-    this.isRunning = false,
-    this.exitCode,
-  }) : super(kind: CodexUiBlockKind.workLogEntry);
-
-  final CodexWorkLogEntryKind entryKind;
-  final String title;
-  final String? turnId;
-  final String? preview;
-  final bool isRunning;
-  final int? exitCode;
-
-  CodexWorkLogEntryBlock copyWith({
-    CodexWorkLogEntryKind? entryKind,
-    String? title,
-    String? turnId,
-    String? preview,
-    bool? isRunning,
-    int? exitCode,
-  }) {
-    return CodexWorkLogEntryBlock(
-      id: id,
-      createdAt: createdAt,
-      entryKind: entryKind ?? this.entryKind,
-      title: title ?? this.title,
-      turnId: turnId ?? this.turnId,
-      preview: preview ?? this.preview,
-      isRunning: isRunning ?? this.isRunning,
-      exitCode: exitCode ?? this.exitCode,
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:pocket_relay/src/features/chat/application/transcript_item_policy.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_request_policy.dart';
-import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/core/utils/duration_utils.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
@@ -129,14 +128,10 @@ class TranscriptPolicy {
       ),
     );
     return finalizedState.copyWith(
-      activeTurn: CodexActiveTurnState(
+      activeTurn: _support.startActiveTurn(
         turnId: turnId,
         threadId: threadId ?? state.threadId,
-        timer: CodexSessionTurnTimer(
-          turnId: turnId,
-          startedAt: createdAt,
-          activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
-        ),
+        createdAt: createdAt,
       ),
     );
   }
@@ -296,38 +291,6 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applyTurnDiffUpdated(
-    CodexSessionState state,
-    CodexRuntimeTurnDiffUpdatedEvent event,
-  ) {
-    final activeTurn = state.activeTurn;
-    if (activeTurn != null &&
-        event.turnId != null &&
-        activeTurn.turnId != event.turnId) {
-      return state;
-    }
-
-    final ensuredActiveTurn = _ensureActiveTurn(
-      activeTurn,
-      turnId: event.turnId,
-      threadId: event.threadId,
-      createdAt: event.createdAt,
-    );
-    if (ensuredActiveTurn == null) {
-      return state;
-    }
-
-    return state.copyWith(
-      activeTurn: ensuredActiveTurn.copyWith(
-        turnDiffSnapshot: CodexTurnDiffSnapshot(
-          turnId: ensuredActiveTurn.turnId,
-          createdAt: event.createdAt,
-          unifiedDiff: event.unifiedDiff,
-        ),
-      ),
-    );
-  }
-
   CodexSessionState applyItemLifecycle(
     CodexSessionState state,
     CodexRuntimeItemLifecycleEvent event, {
@@ -406,7 +369,7 @@ class TranscriptPolicy {
         title: event.title,
         body: event.message,
       );
-      final activeTurn = _ensureActiveTurn(
+      final activeTurn = _support.ensureActiveTurn(
         state.activeTurn,
         turnId: event.turnId,
         threadId: event.threadId,
@@ -449,27 +412,6 @@ class TranscriptPolicy {
       ),
       turnId: event.turnId,
       threadId: event.threadId,
-    );
-  }
-
-  CodexActiveTurnState? _ensureActiveTurn(
-    CodexActiveTurnState? activeTurn, {
-    required String? turnId,
-    required String? threadId,
-    required DateTime createdAt,
-  }) {
-    if (activeTurn != null || turnId == null) {
-      return activeTurn;
-    }
-
-    return CodexActiveTurnState(
-      turnId: turnId,
-      threadId: threadId,
-      timer: CodexSessionTurnTimer(
-        turnId: turnId,
-        startedAt: createdAt,
-        activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
-      ),
     );
   }
 
@@ -541,7 +483,7 @@ class TranscriptPolicy {
     required String? turnId,
     required String? threadId,
   }) {
-    final activeTurn = _ensureActiveTurn(
+    final activeTurn = _support.ensureActiveTurn(
       state.activeTurn,
       turnId: turnId,
       threadId: threadId,
@@ -560,7 +502,7 @@ class TranscriptPolicy {
     required String? turnId,
     required String? threadId,
   }) {
-    final activeTurn = _ensureActiveTurn(
+    final activeTurn = _support.ensureActiveTurn(
       state.activeTurn,
       turnId: turnId,
       threadId: threadId,

@@ -6,6 +6,63 @@ import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 class TranscriptPolicySupport {
   const TranscriptPolicySupport();
 
+  CodexActiveTurnState startActiveTurn({
+    required String turnId,
+    required String? threadId,
+    required DateTime createdAt,
+  }) {
+    return CodexActiveTurnState(
+      turnId: turnId,
+      threadId: threadId,
+      timer: CodexSessionTurnTimer(
+        turnId: turnId,
+        startedAt: createdAt,
+        activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
+      ),
+    );
+  }
+
+  CodexActiveTurnState? ensureActiveTurn(
+    CodexActiveTurnState? activeTurn, {
+    required String? turnId,
+    required String? threadId,
+    required DateTime createdAt,
+  }) {
+    if (activeTurn != null || turnId == null) {
+      return activeTurn;
+    }
+
+    return startActiveTurn(
+      turnId: turnId,
+      threadId: threadId,
+      createdAt: createdAt,
+    );
+  }
+
+  CodexActiveTurnState? activeTurnForStartedEvent(
+    CodexActiveTurnState? activeTurn, {
+    required String? turnId,
+    required String? threadId,
+    required String? fallbackThreadId,
+    required DateTime createdAt,
+  }) {
+    if (turnId == null) {
+      return activeTurn;
+    }
+
+    if (activeTurn != null && activeTurn.turnId == turnId) {
+      return activeTurn.copyWith(
+        threadId: threadId ?? activeTurn.threadId ?? fallbackThreadId,
+      );
+    }
+
+    return startActiveTurn(
+      turnId: turnId,
+      threadId: threadId ?? fallbackThreadId,
+      createdAt: createdAt,
+    );
+  }
+
   CodexSessionTurnTimer completeTurnTimer(
     CodexSessionTurnTimer? turnTimer,
     DateTime completedAt,
@@ -48,11 +105,6 @@ class TranscriptPolicySupport {
       resumedAt: resumedAt,
       monotonicAt: CodexMonotonicClock.now(),
     );
-  }
-
-  bool hasBlockingRequest(CodexSessionState state) {
-    return state.pendingApprovalRequests.isNotEmpty ||
-        state.pendingUserInputRequests.isNotEmpty;
   }
 
   CodexSessionState appendBlock(CodexSessionState state, CodexUiBlock block) {

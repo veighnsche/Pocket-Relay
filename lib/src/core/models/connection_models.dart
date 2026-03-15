@@ -10,7 +10,6 @@ class ConnectionProfile {
     required this.codexPath,
     required this.authMode,
     required this.hostFingerprint,
-    required this.skipGitRepoCheck,
     required this.dangerouslyBypassSandbox,
     required this.ephemeralSession,
   });
@@ -23,7 +22,6 @@ class ConnectionProfile {
   final String codexPath;
   final AuthMode authMode;
   final String hostFingerprint;
-  final bool skipGitRepoCheck;
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
 
@@ -37,7 +35,6 @@ class ConnectionProfile {
       codexPath: 'codex',
       authMode: AuthMode.password,
       hostFingerprint: '',
-      skipGitRepoCheck: true,
       dangerouslyBypassSandbox: false,
       ephemeralSession: false,
     );
@@ -58,7 +55,6 @@ class ConnectionProfile {
     String? codexPath,
     AuthMode? authMode,
     String? hostFingerprint,
-    bool? skipGitRepoCheck,
     bool? dangerouslyBypassSandbox,
     bool? ephemeralSession,
   }) {
@@ -71,7 +67,6 @@ class ConnectionProfile {
       codexPath: codexPath ?? this.codexPath,
       authMode: authMode ?? this.authMode,
       hostFingerprint: hostFingerprint ?? this.hostFingerprint,
-      skipGitRepoCheck: skipGitRepoCheck ?? this.skipGitRepoCheck,
       dangerouslyBypassSandbox:
           dangerouslyBypassSandbox ?? this.dangerouslyBypassSandbox,
       ephemeralSession: ephemeralSession ?? this.ephemeralSession,
@@ -93,7 +88,6 @@ class ConnectionProfile {
         fallback: defaults.authMode,
       ),
       hostFingerprint: json['hostFingerprint'] as String? ?? '',
-      skipGitRepoCheck: json['skipGitRepoCheck'] as bool? ?? true,
       dangerouslyBypassSandbox:
           json['dangerouslyBypassSandbox'] as bool? ?? false,
       ephemeralSession: json['ephemeralSession'] as bool? ?? false,
@@ -110,7 +104,6 @@ class ConnectionProfile {
       'codexPath': codexPath,
       'authMode': authMode.name,
       'hostFingerprint': hostFingerprint,
-      'skipGitRepoCheck': skipGitRepoCheck,
       'dangerouslyBypassSandbox': dangerouslyBypassSandbox,
       'ephemeralSession': ephemeralSession,
     };
@@ -127,7 +120,6 @@ class ConnectionProfile {
         other.codexPath == codexPath &&
         other.authMode == authMode &&
         other.hostFingerprint == hostFingerprint &&
-        other.skipGitRepoCheck == skipGitRepoCheck &&
         other.dangerouslyBypassSandbox == dangerouslyBypassSandbox &&
         other.ephemeralSession == ephemeralSession;
   }
@@ -142,7 +134,6 @@ class ConnectionProfile {
     codexPath,
     authMode,
     hostFingerprint,
-    skipGitRepoCheck,
     dangerouslyBypassSandbox,
     ephemeralSession,
   );

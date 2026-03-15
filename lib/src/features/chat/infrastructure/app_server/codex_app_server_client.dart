@@ -99,22 +99,6 @@ class CodexAppServerClient {
     );
   }
 
-  Future<void> respondAuthTokensRefresh({
-    required String requestId,
-    required String accessToken,
-    required String chatgptAccountId,
-    String? chatgptPlanType,
-  }) async {
-    _ensureNotDisposed();
-    await _requestApi.respondAuthTokensRefresh(
-      _connection,
-      requestId: requestId,
-      accessToken: accessToken,
-      chatgptAccountId: chatgptAccountId,
-      chatgptPlanType: chatgptPlanType,
-    );
-  }
-
   Future<void> resolveApproval({
     required String requestId,
     required bool approved,
@@ -142,20 +126,6 @@ class CodexAppServerClient {
     );
   }
 
-  Future<void> resolvePermissionsRequest({
-    required String requestId,
-    required bool approved,
-    String scope = 'turn',
-  }) async {
-    _ensureNotDisposed();
-    await _requestApi.resolvePermissionsRequest(
-      _connection,
-      requestId: requestId,
-      approved: approved,
-      scope: scope,
-    );
-  }
-
   Future<void> respondToElicitation({
     required String requestId,
     required CodexAppServerElicitationAction action,
@@ -170,14 +140,6 @@ class CodexAppServerClient {
       content: content,
       metadata: metadata,
     );
-  }
-
-  Future<void> sendServerResult({
-    required String requestId,
-    required Object? result,
-  }) async {
-    _ensureNotDisposed();
-    await _connection.sendServerResult(requestId: requestId, result: result);
   }
 
   Future<void> abortTurn({String? threadId, String? turnId}) async {
