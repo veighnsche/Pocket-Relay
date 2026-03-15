@@ -54,10 +54,13 @@ void main() {
       expect(saved.profile.workspaceDir, '/workspace/app');
       expect(saved.secrets.password, 'secret');
       expect(
-        await preferences.getString('codex_pocket.profile'),
+        await preferences.getString('pocket_relay.profile'),
         jsonEncode(profile.toJson()),
       );
+      expect(await preferences.getString('codex_pocket.profile'), isNull);
       expect(await preferences.getString('pocket_relay.preferences'), isNull);
+      expect(secureStorage.data['pocket_relay.secret.password'], 'secret');
+      expect(secureStorage.data['codex_pocket.secret.password'], isNull);
     },
   );
 

@@ -961,7 +961,6 @@ ConnectionProfile _profile({bool ephemeralSession = false}) {
     codexPath: 'codex',
     authMode: AuthMode.password,
     hostFingerprint: '',
-    skipGitRepoCheck: true,
     dangerouslyBypassSandbox: false,
     ephemeralSession: ephemeralSession,
   );

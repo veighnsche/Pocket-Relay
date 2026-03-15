@@ -732,7 +732,6 @@ class CodexActiveTurnState {
         const <String, CodexSessionPendingUserInputRequest>{},
     this.turnDiffSnapshot,
     this.pendingThreadTokenUsageBlock,
-    this.latestUsageSummary,
     this.hasWork = false,
     this.hasReasoning = false,
   });
@@ -749,7 +748,6 @@ class CodexActiveTurnState {
   pendingUserInputRequests;
   final CodexTurnDiffSnapshot? turnDiffSnapshot;
   final CodexUsageBlock? pendingThreadTokenUsageBlock;
-  final String? latestUsageSummary;
   final bool hasWork;
   final bool hasReasoning;
 
@@ -770,8 +768,6 @@ class CodexActiveTurnState {
     bool clearTurnDiffSnapshot = false,
     CodexUsageBlock? pendingThreadTokenUsageBlock,
     bool clearPendingThreadTokenUsageBlock = false,
-    String? latestUsageSummary,
-    bool clearLatestUsageSummary = false,
     bool? hasWork,
     bool? hasReasoning,
   }) {
@@ -793,9 +789,6 @@ class CodexActiveTurnState {
       pendingThreadTokenUsageBlock: clearPendingThreadTokenUsageBlock
           ? null
           : (pendingThreadTokenUsageBlock ?? this.pendingThreadTokenUsageBlock),
-      latestUsageSummary: clearLatestUsageSummary
-          ? null
-          : (latestUsageSummary ?? this.latestUsageSummary),
       hasWork: hasWork ?? this.hasWork,
       hasReasoning: hasReasoning ?? this.hasReasoning,
     );

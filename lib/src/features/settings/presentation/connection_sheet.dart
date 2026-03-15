@@ -38,7 +38,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
   late final TextEditingController _privateKeyPassphraseController;
 
   late AuthMode _authMode;
-  late bool _skipGitRepoCheck;
   late bool _dangerouslyBypassSandbox;
   late bool _ephemeralSession;
 
@@ -64,7 +63,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
     );
 
     _authMode = profile.authMode;
-    _skipGitRepoCheck = profile.skipGitRepoCheck;
     _dangerouslyBypassSandbox = profile.dangerouslyBypassSandbox;
     _ephemeralSession = profile.ephemeralSession;
   }
@@ -319,19 +317,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                     child: Column(
                       children: [
                         SwitchListTile.adaptive(
-                          value: _skipGitRepoCheck,
-                          onChanged: (value) {
-                            setState(() {
-                              _skipGitRepoCheck = value;
-                            });
-                          },
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Skip Codex repo trust check'),
-                          subtitle: const Text(
-                            'Useful when you point Codex at arbitrary workspaces on the remote box.',
-                          ),
-                        ),
-                        SwitchListTile.adaptive(
                           value: _dangerouslyBypassSandbox,
                           onChanged: (value) {
                             setState(() {
@@ -404,7 +389,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
       codexPath: _codexPathController.text.trim(),
       authMode: _authMode,
       hostFingerprint: _fingerprintController.text.trim(),
-      skipGitRepoCheck: _skipGitRepoCheck,
       dangerouslyBypassSandbox: _dangerouslyBypassSandbox,
       ephemeralSession: _ephemeralSession,
     );
@@ -435,7 +419,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
         _privateKeyPassphraseController.text !=
             widget.initialSecrets.privateKeyPassphrase ||
         _authMode != widget.initialProfile.authMode ||
-        _skipGitRepoCheck != widget.initialProfile.skipGitRepoCheck ||
         _dangerouslyBypassSandbox !=
             widget.initialProfile.dangerouslyBypassSandbox ||
         _ephemeralSession != widget.initialProfile.ephemeralSession;

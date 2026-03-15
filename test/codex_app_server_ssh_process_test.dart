@@ -36,7 +36,6 @@ ConnectionProfile _profile() {
     codexPath: 'codex',
     authMode: AuthMode.password,
     hostFingerprint: '',
-    skipGitRepoCheck: true,
     dangerouslyBypassSandbox: false,
     ephemeralSession: false,
   );
