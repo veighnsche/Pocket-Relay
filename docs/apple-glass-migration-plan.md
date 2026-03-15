@@ -51,8 +51,9 @@ Do not rely on chat history as the source of truth for migration status.
 ### Current Status
 
 - Phase 1, top-level chat screen ownership move: completed on this branch
-- Phase 2, connection settings form contract extraction: not started
-- Phase 3, pending user-input form contract extraction: not started
+- Phase 2, connection settings form contract extraction: completed on this
+  branch
+- Phase 3, pending user-input form contract extraction: next planned slice
 - Root architectural adapter work: not started
 - Apple-native glass components: not started
 
@@ -83,27 +84,72 @@ The following work is not part of Phase 1 and remains open:
 - root architectural adapter
 - Apple-native glass surfaces
 
+### Phase 2 Completed Scope
+
+The following work is considered complete:
+
+- one renderer-neutral connection settings draft model built from
+  `ConnectionProfile` and `ConnectionSecrets`
+- one connection settings form state model that controls validation visibility
+- one connection settings contract that owns:
+  - settings sections
+  - text field descriptors
+  - auth mode selection
+  - visible auth fields
+  - run-mode toggles
+  - field validation errors
+  - dirty-state and submit-state
+  - submit payload
+- one connection settings presenter that derives the full contract from:
+  - initial `ConnectionProfile`
+  - initial `ConnectionSecrets`
+  - current settings form state
+- `ConnectionSheet` reduced to Flutter renderer and input plumbing over the
+  shared draft/state/contract path
+- widget-local form validators removed as the source of truth
+- widget-local `ConnectionProfile` and `ConnectionSecrets` assembly removed from
+  the sheet
+
+### Phase 2 Explicit Non-Completion
+
+The following work is not part of Phase 2 and remains open:
+
+- user-input request form extraction
+- changed-file diff sheet ownership below the screen level
+- transcript card renderer internals
+- root architectural adapter
+- Apple-native settings rendering
+- Apple-native glass surfaces
+
+### Phase 2 Verification Completed
+
+Phase 2 verification now includes:
+
+- presenter tests for validation, auth visibility, dirty-state, and save payload
+- widget tests that prove the sheet consumes presenter-derived validation
+  without the old `Form` validator path
+- targeted analysis and regression tests for the settings surface and chat host
+
 ### Next Planned Slice
 
 The next planned slice is:
 
-- Phase 2, connection settings surface contract extraction
+- Phase 3, pending user-input form contract extraction
 
 That slice should cover:
 
-- settings sections
+- request form draft state
 - field descriptors
-- validation state
-- field visibility rules
-- dirty-state and submit-state derivation
-- submit payload contract
+- option selection state
+- validation and submit-state derivation
+- submit payload contract for request answers
 
 That slice should not cover:
 
 - Apple-native rendering
-- transcript card refactors
-- user-input request form extraction
+- transcript card visual redesign
 - root adapter work
+- settings surface redesign
 
 If the next implementation attempt changes that plan, this section must be
 updated before coding starts.

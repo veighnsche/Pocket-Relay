@@ -13,6 +13,7 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/t
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -162,7 +163,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       if (screen.turnIndicator case final turnIndicator?)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-                          child: TurnElapsedFooter(turnTimer: turnIndicator.timer),
+                          child: TurnElapsedFooter(
+                            turnTimer: turnIndicator.timer,
+                          ),
                         ),
                       SafeArea(
                         top: false,
@@ -202,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _openSettingsSheet(
     ChatConnectionSettingsLaunchContract connectionSettings,
   ) async {
-    final result = await showModalBottomSheet<ConnectionSheetResult>(
+    final result = await showModalBottomSheet<ConnectionSettingsSubmitPayload>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
