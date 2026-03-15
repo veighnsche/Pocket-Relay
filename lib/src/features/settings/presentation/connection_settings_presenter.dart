@@ -122,7 +122,7 @@ class ConnectionSettingsPresenter {
             value: draft.codexPath,
             hintText: 'codex or just codex-mcp',
             helperText:
-                'Command run inside the workspace before app-server args are appended. Pocket Relay uses your remote login shell when available.',
+                'Command run inside the workspace before app-server args are appended.',
             errorText: codexPathError,
           ),
           ConnectionSettingsTextFieldContract(
