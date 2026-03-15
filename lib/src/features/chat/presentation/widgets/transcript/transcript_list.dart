@@ -1,32 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 
-class TranscriptListController extends ChangeNotifier {
-  void requestFollow() {
-    notifyListeners();
-  }
-}
-
 class TranscriptList extends StatefulWidget {
   const TranscriptList({
     super.key,
-    required this.controller,
     required this.surface,
+    required this.followBehavior,
     required this.onConfigure,
+    required this.onAutoFollowEligibilityChanged,
+    this.surfaceChangeToken,
     this.onOpenChangedFileDiff,
     this.onApproveRequest,
     this.onDenyRequest,
     this.onSubmitUserInput,
   });
 
-  final TranscriptListController controller;
   final ChatTranscriptSurfaceContract surface;
+  final ChatTranscriptFollowContract followBehavior;
   final VoidCallback onConfigure;
+  final ValueChanged<bool> onAutoFollowEligibilityChanged;
+  final Object? surfaceChangeToken;
   final void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff;
   final Future<void> Function(String requestId)? onApproveRequest;
   final Future<void> Function(String requestId)? onDenyRequest;
@@ -41,35 +40,33 @@ class TranscriptList extends StatefulWidget {
 }
 
 class _TranscriptListState extends State<TranscriptList> {
-  static const double _autoScrollResumeDistance = 72;
-
   final _scrollController = ScrollController();
-  bool _shouldFollowTranscript = true;
 
   bool get _hasVisibleConversation => !widget.surface.showsEmptyState;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_handleFollowRequest);
-  }
+  Object get _surfaceChangeToken => widget.surfaceChangeToken ?? widget.surface;
 
   @override
   void didUpdateWidget(covariant TranscriptList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_handleFollowRequest);
-      widget.controller.addListener(_handleFollowRequest);
+
+    final previousRequestId = oldWidget.followBehavior.request?.id;
+    final nextRequestId = widget.followBehavior.request?.id;
+    if (previousRequestId != nextRequestId && nextRequestId != null) {
+      _scrollToEnd();
+      return;
     }
 
-    if (_shouldFollowTranscript && _hasVisibleConversation) {
+    final previousSurfaceChangeToken =
+        oldWidget.surfaceChangeToken ?? oldWidget.surface;
+    if (_surfaceChangeToken != previousSurfaceChangeToken &&
+        widget.followBehavior.isAutoFollowEnabled &&
+        _hasVisibleConversation) {
       _scrollToEnd();
     }
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_handleFollowRequest);
     _scrollController.dispose();
     super.dispose();
   }
@@ -152,14 +149,9 @@ class _TranscriptListState extends State<TranscriptList> {
     );
   }
 
-  void _handleFollowRequest() {
-    _shouldFollowTranscript = true;
-    _scrollToEnd();
-  }
-
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients || !_shouldFollowTranscript) {
+      if (!_scrollController.hasClients) {
         return;
       }
 
@@ -187,7 +179,9 @@ class _TranscriptListState extends State<TranscriptList> {
       return false;
     }
 
-    _shouldFollowTranscript = _isNearTranscriptBottom(notification.metrics);
+    widget.onAutoFollowEligibilityChanged(
+      _isNearTranscriptBottom(notification.metrics),
+    );
     return false;
   }
 
@@ -200,7 +194,7 @@ class _TranscriptListState extends State<TranscriptList> {
     }
 
     return activeMetrics.maxScrollExtent - activeMetrics.pixels <=
-        _autoScrollResumeDistance;
+        widget.followBehavior.resumeDistance;
   }
 
   Set<String> _activePendingUserInputRequestIds() {

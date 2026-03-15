@@ -28,8 +28,8 @@ renderer can consume the same ownership model.
   branch
 - Phase 3, pending user-input form contract extraction: completed on this
   branch
-- Phase 4, transcript card and overlay seam tightening: slice 1 completed on
-  this branch, slice 2 completed on this branch, slice 3 not started
+- Phase 4, transcript card and overlay seam tightening: completed on this
+  branch
 - Root architectural adapter work: not started
 - Apple-native glass components: not started
 
@@ -47,6 +47,8 @@ renderer can consume the same ownership model.
   request-keyed form-state host.
 - Changed-files rows and per-file diff sheets now render from shared contracts,
   with diff-sheet launch owned above the card widget.
+- Transcript follow behavior is now modeled above `TranscriptList` and routed
+  through a shared follow contract and host.
 
 These are the parts we should build on, not reopen.
 
@@ -54,7 +56,6 @@ These are the parts we should build on, not reopen.
 
 - Transcript item dispatch is still mostly a Flutter-only block-to-widget
   switch.
-- Transcript follow behavior is still widget-local.
 - The screen-level transcript contract still collapses pending requests to the
   primary approval and primary user-input items.
 
@@ -135,6 +136,21 @@ Phase 3 is complete and delivered:
   and draft persistence across transcript movement
 - app-level coverage for both standard tool-input submission and MCP
   elicitation submission through the existing controller transport boundary
+
+### Phase 4 Completed Scope
+
+Phase 4 is complete and delivered:
+
+- one transcript item contract layer below the screen contract
+- one changed-files presentation contract and projector for file rows, summary
+  stats, and per-file diff sheet content
+- one screen-level effect boundary for changed-file diff opening
+- one shared transcript follow contract and host above `TranscriptList`
+- modeled follow requests for send, clear, and new-thread actions
+- transcript-list rendering reduced to scroll geometry, viewport reporting, and
+  card rendering over shared contracts
+- projector, widget, and app-level coverage proving changed-files and
+  follow-behavior ownership no longer originates in the renderer
 
 ## Phase 3 Deep Investigation
 
@@ -659,9 +675,9 @@ transcript.
 
 ### Slice 3: Transcript follow behavior contract
 
-This is the next active slice.
+This slice is complete on this branch.
 
-This slice should cover:
+Slice 3 covers:
 
 - one explicit transcript follow behavior contract or host
 - modeled follow requests from screen actions such as send, clear, and new thread

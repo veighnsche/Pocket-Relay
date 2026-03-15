@@ -9,6 +9,8 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_mapper.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_host.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
@@ -36,7 +38,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _composerController = TextEditingController();
-  final _transcriptListController = TranscriptListController();
+  final _transcriptFollowHost = ChatTranscriptFollowHost();
   final _effectMapper = const ChatScreenEffectMapper();
   final _screenPresenter = const ChatScreenPresenter();
   late ChatSessionController _sessionController;
@@ -78,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _screenEffectSubscription?.cancel();
     _sessionController.dispose();
-    _transcriptListController.dispose();
+    _transcriptFollowHost.dispose();
     _composerController.dispose();
     super.dispose();
   }
@@ -86,7 +88,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _sessionController,
+      animation: Listenable.merge(<Listenable>[
+        _sessionController,
+        _transcriptFollowHost,
+      ]),
       builder: (context, _) {
         final screen = _buildScreenContract();
         final theme = Theme.of(context);
@@ -154,9 +159,15 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       Expanded(
                         child: TranscriptList(
-                          controller: _transcriptListController,
                           surface: screen.transcriptSurface,
+                          followBehavior: screen.transcriptFollow,
+                          surfaceChangeToken: _sessionController.sessionState,
                           onConfigure: () => _requestConnectionSettings(screen),
+                          onAutoFollowEligibilityChanged: (isNearBottom) {
+                            _transcriptFollowHost.updateAutoFollowEligibility(
+                              isNearBottom: isNearBottom,
+                            );
+                          },
                           onApproveRequest: _sessionController.approveRequest,
                           onDenyRequest: _sessionController.denyRequest,
                           onOpenChangedFileDiff: _requestChangedFileDiff,
@@ -202,6 +213,7 @@ class _ChatScreenState extends State<ChatScreen> {
       profile: _sessionController.profile,
       secrets: _sessionController.secrets,
       sessionState: _sessionController.sessionState,
+      transcriptFollow: _transcriptFollowHost.contract,
     );
   }
 
@@ -289,7 +301,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendPrompt() async {
-    _transcriptListController.requestFollow();
+    _transcriptFollowHost.requestFollow(
+      source: ChatTranscriptFollowRequestSource.sendPrompt,
+    );
     final sent = await _sessionController.sendPrompt(_composerController.text);
     if (sent) {
       _composerController.clear();
@@ -301,12 +315,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _startFreshConversation() {
-    _transcriptListController.requestFollow();
+    _transcriptFollowHost.requestFollow(
+      source: ChatTranscriptFollowRequestSource.newThread,
+    );
     _sessionController.startFreshConversation();
   }
 
   void _clearTranscript() {
-    _transcriptListController.requestFollow();
+    _transcriptFollowHost.requestFollow(
+      source: ChatTranscriptFollowRequestSource.clearTranscript,
+    );
     _sessionController.clearTranscript();
   }
 

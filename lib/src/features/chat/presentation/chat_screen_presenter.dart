@@ -1,6 +1,7 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_surface_projector.dart';
 
 class ChatScreenPresenter {
@@ -16,6 +17,7 @@ class ChatScreenPresenter {
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     required CodexSessionState sessionState,
+    required ChatTranscriptFollowContract transcriptFollow,
   }) {
     final isConfigured = profile.isReady;
     final isBusy = sessionState.isBusy;
@@ -52,6 +54,7 @@ class ChatScreenPresenter {
         profile: profile,
         sessionState: sessionState,
       ),
+      transcriptFollow: transcriptFollow,
       composer: ChatComposerContract(
         isTextInputEnabled: isConfigured && !isLoading && !isBusy,
         isPrimaryActionEnabled: isBusy || canSend,

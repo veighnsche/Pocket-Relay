@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 
 enum ChatScreenActionId { openSettings, newThread, clearTranscript }
@@ -93,6 +94,7 @@ class ChatScreenContract {
     required this.header,
     required this.actions,
     required this.transcriptSurface,
+    required this.transcriptFollow,
     required this.composer,
     required this.connectionSettings,
     this.turnIndicator,
@@ -102,6 +104,7 @@ class ChatScreenContract {
   final ChatHeaderContract header;
   final List<ChatScreenActionContract> actions;
   final ChatTranscriptSurfaceContract transcriptSurface;
+  final ChatTranscriptFollowContract transcriptFollow;
   final ChatComposerContract composer;
   final ChatConnectionSettingsLaunchContract connectionSettings;
   final ChatTurnIndicatorContract? turnIndicator;

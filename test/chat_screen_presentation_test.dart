@@ -7,9 +7,16 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_mapper.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_host.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_surface_projector.dart';
+
+const _defaultTranscriptFollowContract = ChatTranscriptFollowContract(
+  isAutoFollowEnabled: true,
+  resumeDistance: ChatTranscriptFollowHost.defaultResumeDistance,
+);
 
 void main() {
   group('ChatScreenPresenter', () {
@@ -26,6 +33,7 @@ void main() {
           profile: profile,
           secrets: secrets,
           sessionState: CodexSessionState.initial(),
+          transcriptFollow: _defaultTranscriptFollowContract,
         );
 
         expect(contract.header.title, 'Pocket Relay');
@@ -45,6 +53,10 @@ void main() {
         expect(contract.composer.primaryAction, ChatComposerPrimaryAction.send);
         expect(contract.connectionSettings.initialProfile, same(profile));
         expect(contract.connectionSettings.initialSecrets, same(secrets));
+        expect(
+          contract.transcriptFollow,
+          same(_defaultTranscriptFollowContract),
+        );
       },
     );
 
@@ -66,6 +78,7 @@ void main() {
         profile: _configuredProfile(),
         secrets: const ConnectionSecrets(password: 'secret'),
         sessionState: sessionState,
+        transcriptFollow: _defaultTranscriptFollowContract,
       );
 
       expect(contract.composer.isBusy, isTrue);
@@ -229,6 +242,42 @@ void main() {
     );
   });
 
+  group('ChatTranscriptFollowHost', () {
+    test(
+      'models follow requests and viewport eligibility above the widget',
+      () {
+        final host = ChatTranscriptFollowHost();
+
+        expect(host.contract.isAutoFollowEnabled, isTrue);
+        expect(host.contract.request, isNull);
+
+        host.updateAutoFollowEligibility(isNearBottom: false);
+
+        expect(host.contract.isAutoFollowEnabled, isFalse);
+        expect(host.contract.request, isNull);
+
+        host.requestFollow(
+          source: ChatTranscriptFollowRequestSource.clearTranscript,
+        );
+
+        final firstRequest = host.contract.request;
+        expect(host.contract.isAutoFollowEnabled, isTrue);
+        expect(
+          firstRequest?.source,
+          ChatTranscriptFollowRequestSource.clearTranscript,
+        );
+
+        host.requestFollow(source: ChatTranscriptFollowRequestSource.newThread);
+
+        expect(host.contract.request?.id, greaterThan(firstRequest!.id));
+        expect(
+          host.contract.request?.source,
+          ChatTranscriptFollowRequestSource.newThread,
+        );
+      },
+    );
+  });
+
   test('maps snackbar messages into screen effects', () {
     const mapper = ChatScreenEffectMapper();
 
@@ -248,6 +297,7 @@ void main() {
       profile: profile,
       secrets: secrets,
       sessionState: CodexSessionState.initial(),
+      transcriptFollow: _defaultTranscriptFollowContract,
     );
 
     final effect = mapper.mapAction(

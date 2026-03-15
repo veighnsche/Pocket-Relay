@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
@@ -15,6 +16,10 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/s
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
 
 const _itemProjector = ChatTranscriptItemProjector();
+const _defaultFollowBehavior = ChatTranscriptFollowContract(
+  isAutoFollowEnabled: true,
+  resumeDistance: 72,
+);
 
 void main() {
   testWidgets('renders reasoning blocks with markdown text', (tester) async {
@@ -435,7 +440,6 @@ void main() {
   testWidgets(
     'preserves user-input drafts when a request moves within the transcript surface',
     (tester) async {
-      final controller = TranscriptListController();
       final block = CodexUserInputRequestBlock(
         id: 'input_1',
         createdAt: DateTime(2026, 3, 14, 12),
@@ -455,9 +459,11 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           child: TranscriptList(
-            controller: controller,
             surface: _surfaceContract(mainItems: <CodexUiBlock>[block]),
+            followBehavior: _defaultFollowBehavior,
             onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+            surfaceChangeToken: 'main',
           ),
         ),
       );
@@ -468,9 +474,11 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           child: TranscriptList(
-            controller: controller,
             surface: _surfaceContract(pinnedItems: <CodexUiBlock>[block]),
+            followBehavior: _defaultFollowBehavior,
             onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+            surfaceChangeToken: 'pinned',
           ),
         ),
       );
@@ -522,7 +530,6 @@ void main() {
   testWidgets(
     'keys transcript cards by block id so local state does not leak',
     (tester) async {
-      final controller = TranscriptListController();
       final markdownLines = <String>[
         '# Ship mobile widgets',
         '',
@@ -535,7 +542,6 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           child: TranscriptList(
-            controller: controller,
             surface: _surfaceContract(
               mainItems: <CodexUiBlock>[
                 CodexProposedPlanBlock(
@@ -546,7 +552,10 @@ void main() {
                 ),
               ],
             ),
+            followBehavior: _defaultFollowBehavior,
             onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+            surfaceChangeToken: 'plan_1',
           ),
         ),
       );
@@ -558,7 +567,6 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           child: TranscriptList(
-            controller: controller,
             surface: _surfaceContract(
               mainItems: <CodexUiBlock>[
                 CodexProposedPlanBlock(
@@ -569,7 +577,10 @@ void main() {
                 ),
               ],
             ),
+            followBehavior: _defaultFollowBehavior,
             onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+            surfaceChangeToken: 'plan_2',
           ),
         ),
       );
@@ -577,6 +588,76 @@ void main() {
 
       expect(find.text('Expand plan'), findsOneWidget);
       expect(find.text('Collapse plan'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'routes follow eligibility and follow requests through the transcript contract',
+    (tester) async {
+      bool? isNearBottom;
+      final blocks = List<CodexUiBlock>.generate(
+        24,
+        (index) => CodexTextBlock(
+          id: 'assistant_$index',
+          kind: CodexUiBlockKind.assistantMessage,
+          createdAt: DateTime(2026, 3, 14, 12, 0, index),
+          title: 'Codex',
+          body: 'Assistant message $index',
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            surface: _surfaceContract(mainItems: blocks),
+            followBehavior: _defaultFollowBehavior,
+            onConfigure: () {},
+            onAutoFollowEligibilityChanged: (value) {
+              isNearBottom = value;
+            },
+            surfaceChangeToken: 'initial',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollableState = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      scrollableState.position.jumpTo(scrollableState.position.maxScrollExtent);
+      await tester.pump();
+
+      await tester.drag(find.byType(ListView), const Offset(0, 320));
+      await tester.pumpAndSettle();
+
+      expect(isNearBottom, isFalse);
+      expect(
+        scrollableState.position.pixels,
+        lessThan(scrollableState.position.maxScrollExtent),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            surface: _surfaceContract(mainItems: blocks),
+            followBehavior: _followBehavior(
+              requestId: 1,
+              source: ChatTranscriptFollowRequestSource.sendPrompt,
+            ),
+            onConfigure: () {},
+            onAutoFollowEligibilityChanged: (value) {
+              isNearBottom = value;
+            },
+            surfaceChangeToken: 'initial',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        scrollableState.position.pixels,
+        closeTo(scrollableState.position.maxScrollExtent, 1),
+      );
     },
   );
 
@@ -1079,6 +1160,21 @@ ChatTranscriptSurfaceContract _surfaceContract({
         .map(_itemProjector.project)
         .toList(growable: false),
     emptyState: emptyState,
+  );
+}
+
+ChatTranscriptFollowContract _followBehavior({
+  bool isAutoFollowEnabled = true,
+  int? requestId,
+  ChatTranscriptFollowRequestSource source =
+      ChatTranscriptFollowRequestSource.sendPrompt,
+}) {
+  return ChatTranscriptFollowContract(
+    isAutoFollowEnabled: isAutoFollowEnabled,
+    resumeDistance: 72,
+    request: requestId == null
+        ? null
+        : ChatTranscriptFollowRequestContract(id: requestId, source: source),
   );
 }
 
