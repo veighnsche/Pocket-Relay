@@ -165,7 +165,6 @@ class CodexSessionState {
     this.blocks = const <CodexUiBlock>[],
     this.pendingLocalUserMessageBlockIds = const <String>[],
     this.localUserMessageProviderBindings = const <String, String>{},
-    this.latestUsageSummary,
   });
 
   factory CodexSessionState.initial() {
@@ -178,7 +177,6 @@ class CodexSessionState {
   final List<CodexUiBlock> blocks;
   final List<String> pendingLocalUserMessageBlockIds;
   final Map<String, String> localUserMessageProviderBindings;
-  final String? latestUsageSummary;
 
   Map<String, CodexSessionPendingRequest> get pendingApprovalRequests =>
       activeTurn?.pendingApprovalRequests ??
@@ -217,8 +215,6 @@ class CodexSessionState {
     bool clearPendingLocalUserMessageBlockIds = false,
     Map<String, String>? localUserMessageProviderBindings,
     bool clearLocalUserMessageProviderBindings = false,
-    String? latestUsageSummary,
-    bool clearLatestUsageSummary = false,
   }) {
     return CodexSessionState(
       connectionStatus: connectionStatus ?? this.connectionStatus,
@@ -233,9 +229,6 @@ class CodexSessionState {
           ? const <String, String>{}
           : (localUserMessageProviderBindings ??
                 this.localUserMessageProviderBindings),
-      latestUsageSummary: clearLatestUsageSummary
-          ? null
-          : (latestUsageSummary ?? this.latestUsageSummary),
     );
   }
 }
@@ -419,7 +412,6 @@ String codexRequestTitle(CodexCanonicalRequestType requestType) {
       'Permissions request',
     CodexCanonicalRequestType.toolUserInput => 'Input required',
     CodexCanonicalRequestType.mcpServerElicitation => 'MCP input required',
-    CodexCanonicalRequestType.dynamicToolCall => 'Tool call',
     CodexCanonicalRequestType.unknown => 'Request',
   };
 }

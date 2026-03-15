@@ -126,7 +126,7 @@ I count `33` concrete shipped behaviors in `lib/`.
     [`TranscriptPolicy.addUserMessage()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart#L28).
 22. Promote the local echo to sent when the provider reports the matching user
     item in
-    [`TranscriptItemPolicy._reconcileCommittedUserMessageBlocks()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_item_policy.dart#L182).
+    [`TranscriptItemPolicy._suppressedLocalUserMessageState()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_item_policy.dart#L282).
 23. Track session, thread, and turn lifecycle through runtime events in
     [`TranscriptReducer.reduceRuntimeEvent()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_reducer.dart#L30).
 24. Track elapsed turn time, including pausing while blocking requests are
@@ -137,7 +137,7 @@ I count `33` concrete shipped behaviors in `lib/`.
 25. Project active items into turn segments and then into transcript blocks in
     [`TranscriptTurnSegmenter`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_turn_segmenter.dart)
     and
-    [`projectCodexTurnSegments()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart#L229).
+    [`projectCodexTurnArtifacts()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart#L236).
 26. Render assistant messages in
     [`AssistantMessageCard`](/home/vince/Projects/codex_pocket/lib/src/features/chat/presentation/widgets/transcript/cards/assistant_message_card.dart)
     through
@@ -579,7 +579,6 @@ These should not survive as organizing concepts inside `features/chat/`:
 
 These should also be reviewed for removal or demotion:
 
-- `skipGitRepoCheck`, unless a real runtime consumer is introduced
 - modeled-but-unused enum values and block kinds
 - helper files that exist only to patch over generic layer buckets
 

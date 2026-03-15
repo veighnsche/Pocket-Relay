@@ -70,8 +70,29 @@ enum CodexCanonicalRequestType {
   permissionsRequestApproval,
   toolUserInput,
   mcpServerElicitation,
-  dynamicToolCall,
   unknown,
+}
+
+String codexItemTitle(CodexCanonicalItemType itemType) {
+  return switch (itemType) {
+    CodexCanonicalItemType.userMessage => 'You',
+    CodexCanonicalItemType.assistantMessage => 'Codex',
+    CodexCanonicalItemType.reasoning => 'Reasoning',
+    CodexCanonicalItemType.plan => 'Proposed plan',
+    CodexCanonicalItemType.commandExecution => 'Command',
+    CodexCanonicalItemType.fileChange => 'Changed files',
+    CodexCanonicalItemType.mcpToolCall => 'MCP tool call',
+    CodexCanonicalItemType.dynamicToolCall => 'Tool call',
+    CodexCanonicalItemType.collabAgentToolCall => 'Agent tool call',
+    CodexCanonicalItemType.webSearch => 'Web search',
+    CodexCanonicalItemType.imageView => 'Image view',
+    CodexCanonicalItemType.imageGeneration => 'Image generation',
+    CodexCanonicalItemType.reviewEntered => 'Review started',
+    CodexCanonicalItemType.reviewExited => 'Review finished',
+    CodexCanonicalItemType.contextCompaction => 'Context compacted',
+    CodexCanonicalItemType.error => 'Error',
+    CodexCanonicalItemType.unknown => 'Codex',
+  };
 }
 
 class CodexRuntimeTurnUsage {
@@ -141,20 +162,6 @@ sealed class CodexRuntimeEvent {
   final String? requestId;
   final String? rawMethod;
   final Object? rawPayload;
-}
-
-final class CodexRuntimeSessionStartedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSessionStartedEvent({
-    required super.createdAt,
-    super.threadId,
-    super.rawMethod,
-    super.rawPayload,
-    this.userAgent,
-    this.message,
-  });
-
-  final String? userAgent;
-  final String? message;
 }
 
 final class CodexRuntimeSessionStateChangedEvent extends CodexRuntimeEvent {
@@ -277,19 +284,6 @@ final class CodexRuntimeTurnPlanUpdatedEvent extends CodexRuntimeEvent {
 
   final String? explanation;
   final List<CodexRuntimePlanStep> steps;
-}
-
-final class CodexRuntimeTurnDiffUpdatedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeTurnDiffUpdatedEvent({
-    required super.createdAt,
-    required this.unifiedDiff,
-    super.threadId,
-    super.turnId,
-    super.rawMethod,
-    super.rawPayload,
-  });
-
-  final String unifiedDiff;
 }
 
 sealed class CodexRuntimeItemLifecycleEvent extends CodexRuntimeEvent {

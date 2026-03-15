@@ -8,7 +8,6 @@ enum CodexUiBlockKind {
   proposedPlan,
   workLogEntry,
   workLogGroup,
-  fileChange,
   changedFiles,
   approvalRequest,
   userInputRequest,
@@ -70,7 +69,6 @@ enum CodexWorkLogEntryKind {
   mcpToolCall,
   dynamicToolCall,
   collabAgentToolCall,
-  fileChange,
   unknown,
 }
 

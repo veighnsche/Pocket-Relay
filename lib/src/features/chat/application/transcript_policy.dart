@@ -79,7 +79,6 @@ class TranscriptPolicy {
       blocks: const <CodexUiBlock>[],
       clearPendingLocalUserMessageBlockIds: true,
       clearLocalUserMessageProviderBindings: true,
-      clearLatestUsageSummary: true,
     );
   }
 
@@ -220,7 +219,6 @@ class TranscriptPolicy {
         state.copyWith(
           connectionStatus: CodexRuntimeSessionState.ready,
           clearActiveTurn: true,
-          latestUsageSummary: _support.buildRuntimeUsageSummary(event),
         ),
       ),
       activeTurn: finalizedTurn.$1,

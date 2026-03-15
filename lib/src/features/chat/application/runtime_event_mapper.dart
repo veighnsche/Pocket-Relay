@@ -16,11 +16,6 @@ class CodexRuntimeEventMapper {
       case CodexAppServerConnectedEvent(:final userAgent):
         _pendingRequests.clear();
         return <CodexRuntimeEvent>[
-          CodexRuntimeSessionStartedEvent(
-            createdAt: now,
-            rawMethod: 'transport/connected',
-            userAgent: userAgent,
-          ),
           CodexRuntimeSessionStateChangedEvent(
             createdAt: now,
             state: CodexRuntimeSessionState.ready,

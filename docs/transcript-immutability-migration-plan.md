@@ -8,8 +8,7 @@ It is no longer an active redesign plan.
 - committed transcript history is append-only
 - only the current contiguous live tail may mutate
 - request overlays stay off the timeline until they resolve
-- aggregate turn snapshots such as `turn/diff/updated` do not own visible
-  transcript cards
+- turn-level metadata does not own visible transcript cards
 - if the same item resumes after any visible interruption, it must fork a new
   card instead of rewriting older history
 
@@ -27,8 +26,8 @@ The structural rewrite is in place:
 - resolved requests append back into history and duplicate notifications are
   idempotent
 - local user prompts no longer mutate when provider echoes arrive later
-- `turn/diff/updated` is stored as turn snapshot state rather than as a visible
-  transcript owner
+- file-change artifacts are derived from item snapshots and item output, not
+  from a separate turn-level transcript owner
 
 Primary code areas:
 

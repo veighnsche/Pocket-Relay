@@ -1112,7 +1112,6 @@ void main() {
 
     expect(state.threadId, 'thread_123');
     expect(state.activeTurn, isNull);
-    expect(state.latestUsageSummary, 'input 12 · cached 3 · output 7');
     expect(state.blocks, hasLength(1));
     final boundary = state.blocks.last as CodexTurnBoundaryBlock;
     expect(boundary.elapsed, const Duration(seconds: 5));
@@ -2003,102 +2002,6 @@ void main() {
     },
   );
 
-  test('ignores turn diff updates that have no visible projection', () {
-    final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
-    final now = DateTime(2026, 3, 14, 12);
-
-    state = reducer.reduceRuntimeEvent(
-      state,
-      CodexRuntimeContentDeltaEvent(
-        createdAt: now,
-        threadId: 'thread_123',
-        turnId: 'turn_123',
-        itemId: 'plan_1',
-        streamKind: CodexRuntimeContentStreamKind.planText,
-        delta: '# Ship it\n\n- add widgets',
-      ),
-    );
-    state = reducer.reduceRuntimeEvent(
-      state,
-      CodexRuntimeTurnDiffUpdatedEvent(
-        createdAt: now.add(const Duration(seconds: 1)),
-        threadId: 'thread_123',
-        turnId: 'turn_123',
-        unifiedDiff:
-            'diff --git a/lib/main.dart b/lib/main.dart\n'
-            '--- a/lib/main.dart\n'
-            '+++ b/lib/main.dart\n'
-            '@@ -1 +1 @@\n'
-            '-old\n'
-            '+new\n',
-      ),
-    );
-
-    expect(state.blocks, isEmpty);
-    expect(state.transcriptBlocks, hasLength(1));
-    expect(state.transcriptBlocks.single, isA<CodexProposedPlanBlock>());
-    expect(state.activeTurn?.turnId, 'turn_123');
-  });
-
-  test(
-    'ignores mismatched turn diff updates instead of rolling back turns',
-    () {
-      final reducer = TranscriptReducer();
-      final now = DateTime(2026, 3, 14, 12);
-      var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeTurnStartedEvent(
-          createdAt: now,
-          threadId: 'thread_123',
-          turnId: 'turn_456',
-        ),
-      );
-
-      state = reducer.reduceRuntimeEvent(
-        state,
-        CodexRuntimeContentDeltaEvent(
-          createdAt: now.add(const Duration(milliseconds: 50)),
-          threadId: 'thread_123',
-          turnId: 'turn_456',
-          itemId: 'item_456',
-          streamKind: CodexRuntimeContentStreamKind.assistantText,
-          delta: 'Current turn',
-        ),
-      );
-
-      final baselineBlocks = List<CodexUiBlock>.from(state.blocks);
-      final baselineArtifacts = List<CodexTurnArtifact>.from(
-        state.activeTurn?.artifacts ?? const <CodexTurnArtifact>[],
-      );
-
-      state = reducer.reduceRuntimeEvent(
-        state,
-        CodexRuntimeTurnDiffUpdatedEvent(
-          createdAt: now.add(const Duration(seconds: 1)),
-          threadId: 'thread_123',
-          turnId: 'turn_123',
-          unifiedDiff:
-              'diff --git a/README.md b/README.md\n'
-              '--- a/README.md\n'
-              '+++ b/README.md\n'
-              '@@ -1 +1 @@\n'
-              '-old\n'
-              '+new\n',
-        ),
-      );
-
-      expect(state.activeTurn?.turnId, 'turn_456');
-      expect(state.activeTurn?.artifacts, baselineArtifacts);
-      expect(state.blocks, baselineBlocks);
-      expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
-      expect(
-        (state.transcriptBlocks.last as CodexTextBlock).body,
-        'Current turn',
-      );
-    },
-  );
-
   test('renders a multi-file file-change item as one changed-files block', () {
     final reducer = TranscriptReducer();
     final now = DateTime(2026, 3, 14, 12);
@@ -2425,23 +2328,6 @@ void main() {
         ),
       );
 
-      state = reducer.reduceRuntimeEvent(
-        state,
-        CodexRuntimeTurnDiffUpdatedEvent(
-          createdAt: now.add(const Duration(seconds: 1)),
-          threadId: 'thread_123',
-          turnId: 'turn_123',
-          unifiedDiff:
-              'diff --git a/README.md b/README.md\n'
-              'new file mode 100644\n'
-              '--- /dev/null\n'
-              '+++ b/README.md\n'
-              '@@ -0,0 +1,2 @@\n'
-              '+first line\n'
-              '+second line\n',
-        ),
-      );
-
       final changedFilesBlocks = state.transcriptBlocks
           .whereType<CodexChangedFilesBlock>()
           .toList(growable: false);
@@ -2453,57 +2339,6 @@ void main() {
         changedFilesBlocks.single.unifiedDiff,
         isNot(contains('+second line')),
       );
-    },
-  );
-
-  test(
-    'keeps a running file-change item visible when turn diff snapshots update',
-    () {
-      final reducer = TranscriptReducer();
-      final now = DateTime(2026, 3, 14, 12);
-      var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
-          createdAt: now,
-          itemType: CodexCanonicalItemType.fileChange,
-          threadId: 'thread_123',
-          turnId: 'turn_123',
-          itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.inProgress,
-          snapshot: const <String, Object?>{
-            'changes': <Object?>[
-              <String, Object?>{
-                'path': 'README.md',
-                'kind': <String, Object?>{'type': 'add'},
-                'diff': 'first line\n',
-              },
-            ],
-          },
-        ),
-      );
-
-      state = reducer.reduceRuntimeEvent(
-        state,
-        CodexRuntimeTurnDiffUpdatedEvent(
-          createdAt: now.add(const Duration(seconds: 1)),
-          threadId: 'thread_123',
-          turnId: 'turn_123',
-          unifiedDiff:
-              'diff --git a/README.md b/README.md\n'
-              'new file mode 100644\n'
-              '--- /dev/null\n'
-              '+++ b/README.md\n'
-              '@@ -0,0 +1,2 @@\n'
-              '+first line\n'
-              '+second line\n',
-        ),
-      );
-
-      final changedFilesBlocks = state.transcriptBlocks
-          .whereType<CodexChangedFilesBlock>()
-          .toList(growable: false);
-      expect(changedFilesBlocks, hasLength(1));
-      expect(changedFilesBlocks.single.isRunning, isTrue);
     },
   );
 
