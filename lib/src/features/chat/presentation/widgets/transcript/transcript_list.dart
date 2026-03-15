@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
@@ -74,7 +73,7 @@ class _TranscriptListState extends State<TranscriptList> {
   @override
   Widget build(BuildContext context) {
     return PendingUserInputFormScope(
-      activeRequestIds: _activePendingUserInputRequestIds(),
+      activeRequestIds: widget.surface.activePendingUserInputRequestIds,
       child: _buildContent(context),
     );
   }
@@ -195,25 +194,5 @@ class _TranscriptListState extends State<TranscriptList> {
 
     return activeMetrics.maxScrollExtent - activeMetrics.pixels <=
         widget.followBehavior.resumeDistance;
-  }
-
-  Set<String> _activePendingUserInputRequestIds() {
-    final activeRequestIds = <String>{};
-
-    for (final item in widget.surface.mainItems) {
-      if (item case final ChatUserInputRequestItemContract userInputItem
-          when !userInputItem.request.isResolved) {
-        activeRequestIds.add(userInputItem.request.requestId);
-      }
-    }
-
-    for (final item in widget.surface.pinnedItems) {
-      if (item case final ChatUserInputRequestItemContract userInputItem
-          when !userInputItem.request.isResolved) {
-        activeRequestIds.add(userInputItem.request.requestId);
-      }
-    }
-
-    return activeRequestIds;
   }
 }

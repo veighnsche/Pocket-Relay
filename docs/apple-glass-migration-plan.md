@@ -52,6 +52,8 @@ renderer can consume the same ownership model.
   transcript blocks.
 - Pending-request selection rules and pinned ordering are now routed through a
   shared presentation placement projector and surface contract seam.
+- Active pending user-input request IDs are now explicit transcript-surface
+  contract data instead of being rediscovered inside `TranscriptList`.
 - Changed-files rows and per-file diff sheets now render from shared contracts,
   with diff-sheet launch owned above the card widget.
 - Transcript follow behavior is now modeled above `TranscriptList` and routed
@@ -61,9 +63,6 @@ These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
-- `TranscriptList` still derives active pending-user-input request IDs by
-  scanning rendered items instead of consuming explicit activation data from
-  the transcript surface contract.
 - Runtime and controller convenience getters for primary pending requests still
   exist and should be cleaned up once the remaining presentation ownership work
   is complete.
@@ -73,17 +72,17 @@ These are the parts we should build on, not reopen.
 
 The next thing to do is not the root architectural adapter.
 
-The next thing to do is Slice 4 of Phase 5:
+The next thing to do is Slice 5 of Phase 5:
 
-- decide and extract pending-input activation ownership at the transcript
-  surface boundary
+- clean up remaining runtime and controller convenience seams for pending
+  placement
 
 Reason:
 
-- Slice 3 already integrated pending placement into the transcript surface
-  contract path
-- `TranscriptList` still rediscovers active pending-user-input IDs from
-  rendered items
+- Slice 4 already moved pending-input activation ownership to the transcript
+  surface contract
+- the remaining pending-placement leakage is now in leftover runtime/controller
+  convenience APIs
 - adding the root adapter before fixing that would freeze an incomplete
   transcript boundary into the adapter seam
 
@@ -1064,21 +1063,23 @@ placement behavior from runtime state.
 
 ### Slice 4: Pending-input activation ownership
 
-This is the next active slice.
+Slice 4 is completed on this branch.
 
-Slice 4 should cover:
+Slice 4 covered:
 
 - deciding whether visible pending-user-input request IDs belong in the surface
   contract
-- if they do, routing `PendingUserInputFormScope` activation from the explicit
+- routing `PendingUserInputFormScope` activation from the explicit surface
   contract instead of `TranscriptList` item scanning
 - widget tests proving pending-input draft lifetime follows explicit contract
   data rather than renderer-side rediscovery
 
-This slice should finish ownership of pending-input activation at the same
-boundary as pending placement.
+This slice finished ownership of pending-input activation at the same boundary
+as pending placement.
 
 ### Slice 5: Runtime and controller seam cleanup
+
+This is the next active slice.
 
 Slice 5 should cover:
 
@@ -1200,15 +1201,15 @@ Phase 5 verification must include:
 
 The next active Phase 5 slice is:
 
-- pending-input activation ownership
+- runtime and controller seam cleanup
 
 Reason:
 
 - it closes the last major transcript-surface ownership gap before adapter work
-- Slice 3 already removed the transcript surface's dependence on runtime
-  convenience getters for pending placement
-- it removes `TranscriptList`'s remaining renderer-side rediscovery of pending
-  user-input activation
+- Slice 4 already removed `TranscriptList`'s renderer-side rediscovery of
+  pending user-input activation
+- it removes the remaining runtime/controller convenience APIs that still
+  encode presentation placement policy
 - it gives later adapter work a transcript surface boundary that is explicit
   rather than partially inherited from runtime state
 

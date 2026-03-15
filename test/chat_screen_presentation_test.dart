@@ -178,6 +178,7 @@ void main() {
           surface.pendingRequestPlacement.visibleUserInputRequest?.requestId,
           'request_2',
         );
+        expect(surface.activePendingUserInputRequestIds, <String>{'request_2'});
       },
     );
 
@@ -194,6 +195,7 @@ void main() {
         expect(surface.mainItems, isEmpty);
         expect(surface.pinnedItems, isEmpty);
         expect(surface.pendingRequestPlacement.hasVisibleRequests, isFalse);
+        expect(surface.activePendingUserInputRequestIds, isEmpty);
       },
     );
 
@@ -279,6 +281,9 @@ void main() {
           surface.pendingRequestPlacement.visibleUserInputRequest?.requestId,
           'request_override_input',
         );
+        expect(surface.activePendingUserInputRequestIds, <String>{
+          'request_override_input',
+        });
       },
     );
   });

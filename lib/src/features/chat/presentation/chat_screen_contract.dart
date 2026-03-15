@@ -45,6 +45,7 @@ class ChatTranscriptSurfaceContract {
     required this.mainItems,
     required this.pinnedItems,
     required this.pendingRequestPlacement,
+    required this.activePendingUserInputRequestIds,
     this.emptyState,
   });
 
@@ -52,6 +53,7 @@ class ChatTranscriptSurfaceContract {
   final List<ChatTranscriptItemContract> mainItems;
   final List<ChatTranscriptItemContract> pinnedItems;
   final ChatPendingRequestPlacementContract pendingRequestPlacement;
+  final Set<String> activePendingUserInputRequestIds;
   final ChatEmptyStateContract? emptyState;
 
   bool get showsEmptyState => emptyState != null;

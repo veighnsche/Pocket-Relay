@@ -491,6 +491,30 @@ void main() {
   );
 
   testWidgets(
+    'routes active pending user-input ids through the surface contract',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            surface: _surfaceContract(
+              emptyState: const ChatEmptyStateContract(isConfigured: true),
+              activePendingUserInputRequestIds: <String>{'input_explicit'},
+            ),
+            followBehavior: _defaultFollowBehavior,
+            onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+          ),
+        ),
+      );
+
+      final scope = tester.widgetList<PendingUserInputFormScope>(
+        find.byType(PendingUserInputFormScope),
+      ).last;
+      expect(scope.activeRequestIds, <String>{'input_explicit'});
+    },
+  );
+
+  testWidgets(
     'renders proposed plans with extracted title and collapse control',
     (tester) async {
       final markdownLines = <String>[
@@ -1152,6 +1176,7 @@ ChatTranscriptSurfaceContract _surfaceContract({
   bool isConfigured = true,
   List<CodexUiBlock> mainItems = const <CodexUiBlock>[],
   List<CodexUiBlock> pinnedItems = const <CodexUiBlock>[],
+  Set<String>? activePendingUserInputRequestIds,
   ChatEmptyStateContract? emptyState,
 }) {
   return ChatTranscriptSurfaceContract(
@@ -1164,8 +1189,30 @@ ChatTranscriptSurfaceContract _surfaceContract({
       visibleApprovalRequest: null,
       visibleUserInputRequest: null,
     ),
+    activePendingUserInputRequestIds:
+        activePendingUserInputRequestIds ??
+        _activePendingUserInputRequestIdsForBlocks(
+          mainItems: mainItems,
+          pinnedItems: pinnedItems,
+        ),
     emptyState: emptyState,
   );
+}
+
+Set<String> _activePendingUserInputRequestIdsForBlocks({
+  required List<CodexUiBlock> mainItems,
+  required List<CodexUiBlock> pinnedItems,
+}) {
+  final activeRequestIds = <String>{};
+
+  for (final block in <CodexUiBlock>[...mainItems, ...pinnedItems]) {
+    if (block case final CodexUserInputRequestBlock userInputBlock
+        when !userInputBlock.isResolved) {
+      activeRequestIds.add(userInputBlock.requestId);
+    }
+  }
+
+  return activeRequestIds;
 }
 
 ChatTranscriptFollowContract _followBehavior({
