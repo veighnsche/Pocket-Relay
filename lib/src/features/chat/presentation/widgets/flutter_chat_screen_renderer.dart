@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
 
@@ -183,6 +184,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
     required this.screen,
     required this.onScreenAction,
     required this.onAutoFollowEligibilityChanged,
+    this.emptyStateRenderer = ChatEmptyStateRenderer.flutter,
     this.surfaceChangeToken,
     this.onOpenChangedFileDiff,
     this.onApproveRequest,
@@ -193,6 +195,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
   final ChatScreenContract screen;
   final ValueChanged<ChatScreenActionId> onScreenAction;
   final ValueChanged<bool> onAutoFollowEligibilityChanged;
+  final ChatEmptyStateRenderer emptyStateRenderer;
   final Object? surfaceChangeToken;
   final void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff;
   final Future<void> Function(String requestId)? onApproveRequest;
@@ -213,6 +216,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
         onScreenAction(ChatScreenActionId.openSettings);
       },
       onAutoFollowEligibilityChanged: onAutoFollowEligibilityChanged,
+      emptyStateRenderer: emptyStateRenderer,
       onApproveRequest: onApproveRequest,
       onDenyRequest: onDenyRequest,
       onOpenChangedFileDiff: onOpenChangedFileDiff,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 
+enum ChatEmptyStateRenderer { flutter, cupertino }
+
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,

@@ -181,13 +181,6 @@ class ConnectionSettingsPresenter {
         title: 'Run mode',
         toggles: <ConnectionSettingsToggleContract>[
           ConnectionSettingsToggleContract(
-            id: ConnectionSettingsToggleId.skipGitRepoCheck,
-            title: 'Skip Codex repo trust check',
-            subtitle:
-                'Useful when you point Codex at arbitrary workspaces on the remote box.',
-            value: draft.skipGitRepoCheck,
-          ),
-          ConnectionSettingsToggleContract(
             id: ConnectionSettingsToggleId.dangerouslyBypassSandbox,
             title: 'Dangerous full access',
             subtitle:
@@ -220,7 +213,6 @@ class ConnectionSettingsPresenter {
                   codexPath: draft.codexPath.trim(),
                   authMode: draft.authMode,
                   hostFingerprint: draft.hostFingerprint.trim(),
-                  skipGitRepoCheck: draft.skipGitRepoCheck,
                   dangerouslyBypassSandbox: draft.dangerouslyBypassSandbox,
                   ephemeralSession: draft.ephemeralSession,
                 ),
@@ -250,7 +242,6 @@ class ConnectionSettingsPresenter {
         draft.privateKeyPem != initialSecrets.privateKeyPem ||
         draft.privateKeyPassphrase != initialSecrets.privateKeyPassphrase ||
         draft.authMode != initialProfile.authMode ||
-        draft.skipGitRepoCheck != initialProfile.skipGitRepoCheck ||
         draft.dangerouslyBypassSandbox !=
             initialProfile.dangerouslyBypassSandbox ||
         draft.ephemeralSession != initialProfile.ephemeralSession;

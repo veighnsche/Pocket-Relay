@@ -335,6 +335,9 @@ CodexTurnArtifact freezeCodexTurnArtifact(CodexTurnArtifact artifact) {
         itemId: artifact.itemId,
         files: artifact.files,
         unifiedDiff: artifact.unifiedDiff,
+        entries: artifact.entries
+            .map((entry) => entry.copyWith(isRunning: false))
+            .toList(growable: false),
         isStreaming: false,
       ),
     CodexTurnBlockArtifact(:final block) => CodexTurnBlockArtifact(
@@ -352,11 +355,6 @@ CodexUiBlock _freezeCodexUiBlock(CodexUiBlock block) {
     CodexProposedPlanBlock(:final isStreaming) when isStreaming =>
       block.copyWith(isStreaming: false),
     CodexChangedFilesBlock(:final isRunning) when isRunning => block.copyWith(
-      isRunning: false,
-    ),
-    CodexCommandExecutionBlock(:final isRunning) when isRunning =>
-      block.copyWith(isRunning: false),
-    CodexWorkLogEntryBlock(:final isRunning) when isRunning => block.copyWith(
       isRunning: false,
     ),
     _ => block,
@@ -563,17 +561,102 @@ final class CodexTurnChangedFilesArtifact extends CodexTurnArtifact {
     required super.id,
     required super.createdAt,
     required this.title,
-    this.itemId,
-    this.files = const <CodexChangedFile>[],
-    this.unifiedDiff,
+    String? itemId,
+    List<CodexChangedFile>? files,
+    String? unifiedDiff,
+    this.entries = const <CodexChangedFilesEntry>[],
     this.isStreaming = false,
-  });
+  }) : _itemId = itemId,
+       _files = files,
+       _unifiedDiff = unifiedDiff;
 
   final String title;
-  final String? itemId;
+  final String? _itemId;
+  final List<CodexChangedFile>? _files;
+  final String? _unifiedDiff;
+  final List<CodexChangedFilesEntry> entries;
+  final bool isStreaming;
+
+  String? get itemId => _itemId ?? entries.lastOrNull?.itemId;
+
+  List<CodexChangedFile> get files {
+    final explicitFiles = _files;
+    if (explicitFiles != null) {
+      return explicitFiles;
+    }
+
+    return _mergedChangedFiles(entries);
+  }
+
+  String? get unifiedDiff {
+    final explicitUnifiedDiff = _unifiedDiff;
+    if (explicitUnifiedDiff != null) {
+      return explicitUnifiedDiff;
+    }
+
+    return _mergedUnifiedDiff(entries);
+  }
+}
+
+final class CodexChangedFilesEntry {
+  const CodexChangedFilesEntry({
+    required this.id,
+    required this.itemId,
+    required this.createdAt,
+    this.files = const <CodexChangedFile>[],
+    this.unifiedDiff,
+    this.isRunning = false,
+  });
+
+  final String id;
+  final String itemId;
+  final DateTime createdAt;
   final List<CodexChangedFile> files;
   final String? unifiedDiff;
-  final bool isStreaming;
+  final bool isRunning;
+
+  CodexChangedFilesEntry copyWith({
+    List<CodexChangedFile>? files,
+    String? unifiedDiff,
+    bool? isRunning,
+  }) {
+    return CodexChangedFilesEntry(
+      id: id,
+      itemId: itemId,
+      createdAt: createdAt,
+      files: files ?? this.files,
+      unifiedDiff: unifiedDiff ?? this.unifiedDiff,
+      isRunning: isRunning ?? this.isRunning,
+    );
+  }
+}
+
+List<CodexChangedFile> _mergedChangedFiles(
+  Iterable<CodexChangedFilesEntry> entries,
+) {
+  final mergedByPath = <String, CodexChangedFile>{};
+
+  for (final entry in entries) {
+    for (final file in entry.files) {
+      mergedByPath[file.path] = file;
+    }
+  }
+
+  return mergedByPath.values.toList(growable: false);
+}
+
+String? _mergedUnifiedDiff(Iterable<CodexChangedFilesEntry> entries) {
+  final parts = entries
+      .map((entry) => entry.unifiedDiff?.trim())
+      .whereType<String>()
+      .where((diff) => diff.isNotEmpty)
+      .toList(growable: false);
+
+  if (parts.isEmpty) {
+    return null;
+  }
+
+  return parts.join('\n');
 }
 
 final class CodexTurnBlockArtifact extends CodexTurnArtifact {

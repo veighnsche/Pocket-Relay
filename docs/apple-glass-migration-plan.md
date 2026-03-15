@@ -82,12 +82,9 @@ These are the parts we should build on, not reopen.
 ## What Is Still Not Ready For Native Ownership
 
 - Apple-native renderer implementations are still not started.
-- The root adapter still hardwires the active screen through the Material
-  `FlutterChatScreenRenderer` shell.
-- The settings form host still lives inside the Material `ConnectionSheet`
-  widget, so a second renderer would currently duplicate form-state plumbing.
-- Top-level feedback still routes through `SnackBar`, and the composer remains
-  the main shell-level Material control surface on iPhone.
+- Default iOS enablement is still not turned on at the app root.
+- Top-level changed-file diff presentation still follows the Flutter transcript
+  lane.
 - The transcript feed is still intentionally Flutter-owned while the first
   native surfaces are cut.
 
@@ -97,18 +94,18 @@ Phase 6 is complete.
 
 Phase 7 is now in progress on this branch.
 
-The next thing to do is Phase 7 Slice 4:
+The next thing to do is Phase 7 Slice 6:
 
-- Cupertino composer surface
+- default iOS enablement and parity hardening
 
 Reason:
 
-- Slice 3 already moved the iOS shell onto Cupertino app chrome and
-  Cupertino-style action presentation
-- the most visible remaining Material control surface on iPhone is now the
-  composer
-- composer draft ownership is already above the renderer, so the next slice
-  can stay focused on renderer work instead of state work
+- Slices 4 and 5 removed the remaining highest-visibility Material shell cues
+  from the explicit iOS foundation path
+- the last Phase 7 ownership gate is making that iOS path the default on
+  iPhone without regressing the existing adapter and shared-contract behavior
+- transcript ownership still needs to remain on the Flutter lane while the
+  surrounding shell becomes Cupertino-first
 
 ## Phase 7 Start Checklist
 
@@ -1932,6 +1929,21 @@ This slice should remove the most obvious Material shell cues on iPhone.
 
 ### Slice 4: Cupertino composer surface
 
+This slice is complete on this branch.
+
+Slice 4 delivered:
+
+- adding a real `CupertinoChatComposer` renderer built from the shared composer
+  contract
+- routing the iOS foundation path to Cupertino send and stop affordances while
+  preserving adapter-owned draft state
+- parity for disabled, busy, clear-on-success, and retain-on-failure behavior
+  under the iOS renderer path
+- tests proving:
+  - the composer resyncs from the shared contract
+  - send and stop actions still forward through adapter-owned callbacks
+  - successful sends clear the adapter-owned draft while failed sends retain it
+
 This slice should cover:
 
 - a Cupertino composer renderer built from the existing composer contract
@@ -1942,6 +1954,23 @@ Because draft ownership already moved above the renderer, this slice should be
 mostly renderer work, not state work.
 
 ### Slice 5: iOS feedback and first-launch cleanup
+
+This slice is complete on this branch.
+
+Slice 5 delivered:
+
+- adding explicit renderer policy for top-level transient feedback and
+  first-launch empty-state rendering
+- replacing the iOS path's `SnackBar` presentation with a Cupertino transient
+  feedback overlay
+- adding a Cupertino first-launch empty state and configure CTA while keeping
+  transcript ownership in the existing Flutter region
+- tests proving:
+  - default all-Flutter feedback still routes through the Material overlay path
+  - the iOS foundation path now renders Cupertino feedback instead of
+    `SnackBar`
+  - the iOS foundation path uses the Cupertino empty-state CTA when the profile
+    is not configured
 
 This slice should cover:
 
@@ -2022,15 +2051,16 @@ Unless broader behavior is explicitly requested, Phase 7 should preserve:
 
 The next active Phase 7 slice is:
 
-- Cupertino composer surface
+- default iOS enablement and parity hardening
 
 Reason:
 
-- Slice 3 already removed the highest-visibility Material shell cues in the
-  iOS app chrome path
-- the remaining high-visibility Material control surface is now the composer
-- the mixed iOS profile has to be modeled explicitly before app chrome,
-  settings, and composer work can land cleanly
+- Slices 4 and 5 completed the explicit Cupertino shell, settings, composer,
+  feedback, and first-launch cleanup work for the iOS foundation path
+- the next step is to turn that path on by default for iPhone while proving the
+  adapter still owns routing and the transcript lane remains Flutter-owned
+- this is the last Phase 7 slice before native glass styling can become the
+  next focused track
 
 ## Minimum Outcome Required Before Any Glass Work
 

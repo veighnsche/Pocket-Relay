@@ -31,12 +31,6 @@ class ChatTranscriptItemProjector {
       ),
       final CodexProposedPlanBlock proposedPlanBlock =>
         ChatProposedPlanItemContract(block: proposedPlanBlock),
-      final CodexCommandExecutionBlock commandBlock =>
-        ChatCommandExecutionItemContract(block: commandBlock),
-      final CodexWorkLogEntryBlock workLogEntryBlock =>
-        ChatWorkLogGroupItemContract(
-          block: _workLogGroupBlockForEntry(workLogEntryBlock),
-        ),
       final CodexWorkLogGroupBlock workLogGroupBlock =>
         ChatWorkLogGroupItemContract(block: workLogGroupBlock),
       final CodexChangedFilesBlock changedFilesBlock =>
@@ -70,26 +64,5 @@ class ChatTranscriptItemProjector {
       final ChatUserInputRequestContract userInputRequest =>
         ChatUserInputRequestItemContract(request: userInputRequest),
     };
-  }
-
-  CodexWorkLogGroupBlock _workLogGroupBlockForEntry(
-    CodexWorkLogEntryBlock block,
-  ) {
-    return CodexWorkLogGroupBlock(
-      id: block.id,
-      createdAt: block.createdAt,
-      entries: <CodexWorkLogEntry>[
-        CodexWorkLogEntry(
-          id: block.id,
-          createdAt: block.createdAt,
-          entryKind: block.entryKind,
-          title: block.title,
-          turnId: block.turnId,
-          preview: block.preview,
-          isRunning: block.isRunning,
-          exitCode: block.exitCode,
-        ),
-      ],
-    );
   }
 }

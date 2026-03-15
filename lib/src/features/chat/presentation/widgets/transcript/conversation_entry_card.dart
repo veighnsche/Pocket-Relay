@@ -4,7 +4,6 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/assistant_message_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/command_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/error_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/pending_user_input_request_host.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/plan_update_card.dart';
@@ -52,9 +51,6 @@ class ConversationEntryCard extends StatelessWidget {
       ),
       final ChatProposedPlanItemContract proposedPlanItem => ProposedPlanCard(
         block: proposedPlanItem.block,
-      ),
-      final ChatCommandExecutionItemContract commandItem => CommandCard(
-        block: commandItem.block,
       ),
       final ChatWorkLogGroupItemContract workLogGroupItem => WorkLogGroupCard(
         block: workLogGroupItem.block,

@@ -137,7 +137,9 @@ class TranscriptTurnArtifactBuilder {
         id: 'changed_files_group_${item.entryId}',
         createdAt: item.createdAt,
         title: item.title ?? _blockFactory.defaultItemTitle(item.itemType),
+        itemId: item.itemId,
         entries: <CodexChangedFilesEntry>[entry],
+        isStreaming: item.isRunning,
       );
       nextArtifacts = appendCodexTurnArtifact(nextArtifacts, nextArtifact);
       artifactId = nextArtifact.id;
@@ -187,7 +189,9 @@ class TranscriptTurnArtifactBuilder {
       id: artifact.id,
       createdAt: artifact.createdAt,
       title: artifact.title,
+      itemId: entry.itemId,
       entries: nextEntries,
+      isStreaming: entry.isRunning,
     );
   }
 

@@ -2,12 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_transient_feedback.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_renderer.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
 import 'package:pocket_relay/src/features/settings/presentation/cupertino_connection_sheet.dart';
+
+enum ChatTransientFeedbackRenderer { material, cupertino }
 
 abstract interface class ChatRootOverlayDelegate {
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
@@ -21,7 +24,11 @@ abstract interface class ChatRootOverlayDelegate {
     required ChatChangedFileDiffContract diff,
   });
 
-  void showSnackBar({required BuildContext context, required String message});
+  void showTransientFeedback({
+    required BuildContext context,
+    required String message,
+    required ChatTransientFeedbackRenderer renderer,
+  });
 }
 
 class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
@@ -94,9 +101,21 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
   }
 
   @override
-  void showSnackBar({required BuildContext context, required String message}) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void showTransientFeedback({
+    required BuildContext context,
+    required String message,
+    required ChatTransientFeedbackRenderer renderer,
+  }) {
+    switch (renderer) {
+      case ChatTransientFeedbackRenderer.material:
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      case ChatTransientFeedbackRenderer.cupertino:
+        const CupertinoTransientFeedbackPresenter().show(
+          context: context,
+          message: message,
+        );
+    }
   }
 }

@@ -16,6 +16,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_m
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_host.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_renderer.dart';
 
 class ChatRootAdapter extends StatefulWidget {
@@ -124,6 +125,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
   ) {
     return widget.rendererDelegate.buildTranscriptRegion(
       renderer: regionPolicy.rendererFor(ChatRootRegion.transcript),
+      emptyStateRenderer: _emptyStateRendererFor(regionPolicy),
       screen: screen,
       surfaceChangeToken: _sessionController.sessionState,
       onScreenAction: (action) => _handleScreenAction(action, screen),
@@ -306,7 +308,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
   void _handleScreenEffect(ChatScreenEffect effect) {
     switch (effect) {
       case ChatShowSnackBarEffect(:final message):
-        _showSnackBar(message);
+        _showTransientFeedback(message);
       case ChatOpenConnectionSettingsEffect(:final payload):
         unawaited(_openConnectionSettings(payload));
       case ChatOpenChangedFileDiffEffect(:final payload):
@@ -314,11 +316,34 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     }
   }
 
-  void _showSnackBar(String message) {
+  ChatEmptyStateRenderer _emptyStateRendererFor(
+    ChatRootRegionPolicy regionPolicy,
+  ) {
+    return switch (regionPolicy.rendererFor(ChatRootRegion.emptyState)) {
+      ChatRootRegionRenderer.flutter => ChatEmptyStateRenderer.flutter,
+      ChatRootRegionRenderer.cupertino => ChatEmptyStateRenderer.cupertino,
+    };
+  }
+
+  ChatTransientFeedbackRenderer _feedbackRendererFor(
+    ChatRootRegionPolicy regionPolicy,
+  ) {
+    return switch (regionPolicy.rendererFor(ChatRootRegion.feedbackOverlay)) {
+      ChatRootRegionRenderer.flutter => ChatTransientFeedbackRenderer.material,
+      ChatRootRegionRenderer.cupertino =>
+        ChatTransientFeedbackRenderer.cupertino,
+    };
+  }
+
+  void _showTransientFeedback(String message) {
     if (!mounted) {
       return;
     }
 
-    widget.overlayDelegate.showSnackBar(context: context, message: message);
+    widget.overlayDelegate.showTransientFeedback(
+      context: context,
+      message: message,
+      renderer: _feedbackRendererFor(_resolvedRegionPolicy(context)),
+    );
   }
 }

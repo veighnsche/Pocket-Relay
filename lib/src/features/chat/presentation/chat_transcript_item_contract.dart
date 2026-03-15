@@ -54,16 +54,6 @@ final class ChatProposedPlanItemContract extends ChatTranscriptItemContract {
   String get id => block.id;
 }
 
-final class ChatCommandExecutionItemContract
-    extends ChatTranscriptItemContract {
-  const ChatCommandExecutionItemContract({required this.block});
-
-  final CodexCommandExecutionBlock block;
-
-  @override
-  String get id => block.id;
-}
-
 final class ChatWorkLogGroupItemContract extends ChatTranscriptItemContract {
   const ChatWorkLogGroupItemContract({required this.block});
 

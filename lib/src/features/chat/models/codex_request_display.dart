@@ -3,7 +3,6 @@ import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 String codexRequestTitle(CodexCanonicalRequestType requestType) {
   return switch (requestType) {
     CodexCanonicalRequestType.commandExecutionApproval => 'Command approval',
-    CodexCanonicalRequestType.fileReadApproval => 'File read approval',
     CodexCanonicalRequestType.fileChangeApproval => 'File change approval',
     CodexCanonicalRequestType.applyPatchApproval => 'Patch approval',
     CodexCanonicalRequestType.execCommandApproval => 'Command approval',
@@ -12,7 +11,6 @@ String codexRequestTitle(CodexCanonicalRequestType requestType) {
     CodexCanonicalRequestType.toolUserInput => 'Input required',
     CodexCanonicalRequestType.mcpServerElicitation => 'MCP input required',
     CodexCanonicalRequestType.dynamicToolCall => 'Tool call',
-    CodexCanonicalRequestType.authTokensRefresh => 'Auth refresh',
     CodexCanonicalRequestType.unknown => 'Request',
   };
 }

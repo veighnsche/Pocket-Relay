@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_c
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 
@@ -13,6 +14,7 @@ class TranscriptList extends StatefulWidget {
     required this.followBehavior,
     required this.onConfigure,
     required this.onAutoFollowEligibilityChanged,
+    this.emptyStateRenderer = ChatEmptyStateRenderer.flutter,
     this.surfaceChangeToken,
     this.onOpenChangedFileDiff,
     this.onApproveRequest,
@@ -24,6 +26,7 @@ class TranscriptList extends StatefulWidget {
   final ChatTranscriptFollowContract followBehavior;
   final VoidCallback onConfigure;
   final ValueChanged<bool> onAutoFollowEligibilityChanged;
+  final ChatEmptyStateRenderer emptyStateRenderer;
   final Object? surfaceChangeToken;
   final void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff;
   final Future<void> Function(String requestId)? onApproveRequest;
@@ -81,10 +84,16 @@ class _TranscriptListState extends State<TranscriptList> {
   Widget _buildContent(BuildContext context) {
     final emptyState = widget.surface.emptyState;
     if (emptyState != null) {
-      return EmptyState(
-        isConfigured: emptyState.isConfigured,
-        onConfigure: widget.onConfigure,
-      );
+      return switch (widget.emptyStateRenderer) {
+        ChatEmptyStateRenderer.flutter => EmptyState(
+          isConfigured: emptyState.isConfigured,
+          onConfigure: widget.onConfigure,
+        ),
+        ChatEmptyStateRenderer.cupertino => CupertinoEmptyState(
+          isConfigured: emptyState.isConfigured,
+          onConfigure: widget.onConfigure,
+        ),
+      };
     }
 
     return Column(

@@ -3,7 +3,9 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_c
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_app_chrome.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_screen_renderer.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 
 abstract interface class ChatRootRendererDelegate {
@@ -23,6 +25,7 @@ abstract interface class ChatRootRendererDelegate {
 
   Widget buildTranscriptRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatEmptyStateRenderer emptyStateRenderer,
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
@@ -91,6 +94,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildTranscriptRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatEmptyStateRenderer emptyStateRenderer,
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
@@ -105,6 +109,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
       ChatRootRegionRenderer.cupertino ||
       ChatRootRegionRenderer.flutter => FlutterChatTranscriptRegion(
         screen: screen,
+        emptyStateRenderer: emptyStateRenderer,
         surfaceChangeToken: surfaceChangeToken,
         onScreenAction: onScreenAction,
         onAutoFollowEligibilityChanged: onAutoFollowEligibilityChanged,
@@ -125,7 +130,12 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     required Future<void> Function() onStopActiveTurn,
   }) {
     return switch (renderer) {
-      ChatRootRegionRenderer.cupertino ||
+      ChatRootRegionRenderer.cupertino => CupertinoChatComposerRegion(
+        composer: composer,
+        onComposerDraftChanged: onComposerDraftChanged,
+        onSendPrompt: onSendPrompt,
+        onStopActiveTurn: onStopActiveTurn,
+      ),
       ChatRootRegionRenderer.flutter => FlutterChatComposerRegion(
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,

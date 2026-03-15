@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
-enum ChatRootRegion { appChrome, transcript, composer, settingsOverlay }
+enum ChatRootRegion {
+  appChrome,
+  transcript,
+  composer,
+  settingsOverlay,
+  feedbackOverlay,
+  emptyState,
+}
 
 enum ChatRootScreenShellRenderer { flutter, cupertino }
 
@@ -13,6 +20,8 @@ class ChatRootRegionPolicy {
     required this.transcript,
     required this.composer,
     required this.settingsOverlay,
+    required this.feedbackOverlay,
+    required this.emptyState,
   });
 
   const ChatRootRegionPolicy.allFlutter()
@@ -22,6 +31,8 @@ class ChatRootRegionPolicy {
         transcript: ChatRootRegionRenderer.flutter,
         composer: ChatRootRegionRenderer.flutter,
         settingsOverlay: ChatRootRegionRenderer.flutter,
+        feedbackOverlay: ChatRootRegionRenderer.flutter,
+        emptyState: ChatRootRegionRenderer.flutter,
       );
 
   const ChatRootRegionPolicy.cupertinoFoundation()
@@ -31,6 +42,8 @@ class ChatRootRegionPolicy {
         transcript: ChatRootRegionRenderer.flutter,
         composer: ChatRootRegionRenderer.cupertino,
         settingsOverlay: ChatRootRegionRenderer.cupertino,
+        feedbackOverlay: ChatRootRegionRenderer.cupertino,
+        emptyState: ChatRootRegionRenderer.cupertino,
       );
 
   final ChatRootScreenShellRenderer screenShell;
@@ -38,6 +51,8 @@ class ChatRootRegionPolicy {
   final ChatRootRegionRenderer transcript;
   final ChatRootRegionRenderer composer;
   final ChatRootRegionRenderer settingsOverlay;
+  final ChatRootRegionRenderer feedbackOverlay;
+  final ChatRootRegionRenderer emptyState;
 
   ChatRootRegionRenderer rendererFor(ChatRootRegion region) {
     return switch (region) {
@@ -45,6 +60,8 @@ class ChatRootRegionPolicy {
       ChatRootRegion.transcript => transcript,
       ChatRootRegion.composer => composer,
       ChatRootRegion.settingsOverlay => settingsOverlay,
+      ChatRootRegion.feedbackOverlay => feedbackOverlay,
+      ChatRootRegion.emptyState => emptyState,
     };
   }
 }

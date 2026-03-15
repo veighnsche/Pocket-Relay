@@ -402,7 +402,7 @@ void main() {
           ),
           'request_older': CodexSessionPendingRequest(
             requestId: 'request_older',
-            requestType: CodexCanonicalRequestType.fileReadApproval,
+            requestType: CodexCanonicalRequestType.fileChangeApproval,
             createdAt: DateTime(2026, 3, 15, 12, 0, 1),
             detail: 'Older approval',
           ),
@@ -412,7 +412,7 @@ void main() {
       );
 
       expect(placement.visibleApprovalRequest?.requestId, 'request_older');
-      expect(placement.visibleApprovalRequest?.title, 'File read approval');
+      expect(placement.visibleApprovalRequest?.title, 'File change approval');
       expect(placement.visibleUserInputRequest, isNull);
       expect(placement.orderedVisibleRequests, hasLength(1));
     });
@@ -501,7 +501,7 @@ void main() {
             ),
             'request_second': CodexSessionPendingRequest(
               requestId: 'request_second',
-              requestType: CodexCanonicalRequestType.fileReadApproval,
+              requestType: CodexCanonicalRequestType.fileChangeApproval,
               createdAt: createdAt,
               detail: 'Second approval',
             ),
@@ -519,28 +519,34 @@ void main() {
     const projector = ChatTranscriptItemProjector();
 
     test(
-      'projects work-log entry blocks into work-log group item contracts',
+      'projects work-log groups into work-log group item contracts',
       () {
-        final entryBlock = CodexWorkLogEntryBlock(
+        final groupBlock = CodexWorkLogGroupBlock(
           id: 'worklog_1',
           createdAt: DateTime(2026, 3, 15, 12),
-          entryKind: CodexWorkLogEntryKind.commandExecution,
-          title: 'Read docs',
-          turnId: 'turn_1',
-          preview: 'Found the CLI docs',
-          isRunning: true,
-          exitCode: 0,
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_1',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title: 'Read docs',
+              turnId: 'turn_1',
+              preview: 'Found the CLI docs',
+              isRunning: true,
+              exitCode: 0,
+            ),
+          ],
         );
 
-        final item = projector.project(entryBlock);
+        final item = projector.project(groupBlock);
 
         expect(item, isA<ChatWorkLogGroupItemContract>());
         final groupItem = item as ChatWorkLogGroupItemContract;
-        expect(groupItem.block.id, entryBlock.id);
+        expect(groupItem.block, same(groupBlock));
         expect(groupItem.block.entries, hasLength(1));
-        expect(groupItem.block.entries.single.title, entryBlock.title);
-        expect(groupItem.block.entries.single.turnId, entryBlock.turnId);
-        expect(groupItem.block.entries.single.preview, entryBlock.preview);
+        expect(groupItem.block.entries.single.title, 'Read docs');
+        expect(groupItem.block.entries.single.turnId, 'turn_1');
+        expect(groupItem.block.entries.single.preview, 'Found the CLI docs');
         expect(groupItem.block.entries.single.isRunning, isTrue);
         expect(groupItem.block.entries.single.exitCode, 0);
       },

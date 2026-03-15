@@ -18,7 +18,6 @@ enum ConnectionSettingsKeyboardType { text, number }
 enum ConnectionSettingsAuthOptionIcon { password, privateKey }
 
 enum ConnectionSettingsToggleId {
-  skipGitRepoCheck,
   dangerouslyBypassSandbox,
   ephemeralSession,
 }

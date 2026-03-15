@@ -14,7 +14,6 @@ class ConnectionSettingsDraft {
     required this.privateKeyPem,
     required this.privateKeyPassphrase,
     required this.authMode,
-    required this.skipGitRepoCheck,
     required this.dangerouslyBypassSandbox,
     required this.ephemeralSession,
   });
@@ -35,7 +34,6 @@ class ConnectionSettingsDraft {
       privateKeyPem: secrets.privateKeyPem,
       privateKeyPassphrase: secrets.privateKeyPassphrase,
       authMode: profile.authMode,
-      skipGitRepoCheck: profile.skipGitRepoCheck,
       dangerouslyBypassSandbox: profile.dangerouslyBypassSandbox,
       ephemeralSession: profile.ephemeralSession,
     );
@@ -52,7 +50,6 @@ class ConnectionSettingsDraft {
   final String privateKeyPem;
   final String privateKeyPassphrase;
   final AuthMode authMode;
-  final bool skipGitRepoCheck;
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
 
@@ -68,7 +65,6 @@ class ConnectionSettingsDraft {
     String? privateKeyPem,
     String? privateKeyPassphrase,
     AuthMode? authMode,
-    bool? skipGitRepoCheck,
     bool? dangerouslyBypassSandbox,
     bool? ephemeralSession,
   }) {
@@ -84,7 +80,6 @@ class ConnectionSettingsDraft {
       privateKeyPem: privateKeyPem ?? this.privateKeyPem,
       privateKeyPassphrase: privateKeyPassphrase ?? this.privateKeyPassphrase,
       authMode: authMode ?? this.authMode,
-      skipGitRepoCheck: skipGitRepoCheck ?? this.skipGitRepoCheck,
       dangerouslyBypassSandbox:
           dangerouslyBypassSandbox ?? this.dangerouslyBypassSandbox,
       ephemeralSession: ephemeralSession ?? this.ephemeralSession,
@@ -133,9 +128,6 @@ class ConnectionSettingsDraft {
     bool value,
   ) {
     return switch (toggleId) {
-      ConnectionSettingsToggleId.skipGitRepoCheck => copyWith(
-        skipGitRepoCheck: value,
-      ),
       ConnectionSettingsToggleId.dangerouslyBypassSandbox => copyWith(
         dangerouslyBypassSandbox: value,
       ),
