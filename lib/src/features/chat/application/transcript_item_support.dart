@@ -37,6 +37,8 @@ class TranscriptItemSupport {
       snapshot['aggregatedOutput'],
       snapshot['aggregated_output'],
       snapshot['text'],
+      _textFromStructuredEntries(snapshot['summary']),
+      _textFromStructuredEntries(snapshot['content']),
       snapshot['summary'],
       snapshot['review'],
       snapshot['revisedPrompt'],
@@ -45,6 +47,7 @@ class TranscriptItemSupport {
       nestedResult?['output'],
       nestedResult?['text'],
       nestedResult?['path'],
+      _textFromStructuredEntries(nestedResult?['content']),
     ]);
   }
 
@@ -56,5 +59,37 @@ class TranscriptItemSupport {
         'Codex compacted the current thread context.',
       _ => null,
     };
+  }
+
+  String? _textFromStructuredEntries(Object? value) {
+    if (value is! List) {
+      return null;
+    }
+
+    final textParts = <String>[];
+    for (final entry in value) {
+      if (entry is String && entry.isNotEmpty) {
+        textParts.add(entry);
+        continue;
+      }
+
+      if (entry is! Map) {
+        continue;
+      }
+
+      final object = Map<String, dynamic>.from(entry);
+      final text = _support.stringFromCandidates(<Object?>[
+        object['text'],
+        (object['content'] as Map?)?['text'],
+      ]);
+      if (text != null && text.isNotEmpty) {
+        textParts.add(text);
+      }
+    }
+
+    if (textParts.isEmpty) {
+      return null;
+    }
+    return textParts.join('\n');
   }
 }

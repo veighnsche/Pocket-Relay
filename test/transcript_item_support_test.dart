@@ -39,6 +39,23 @@ void main() {
       }),
       'flat output',
     );
+    expect(
+      support.extractTextFromSnapshot(const <String, Object?>{
+        'summary': <Object?>[
+          <String, Object?>{'type': 'summary_text', 'text': 'step one'},
+          <String, Object?>{'type': 'summary_text', 'text': 'step two'},
+        ],
+      }),
+      'step one\nstep two',
+    );
+    expect(
+      support.extractTextFromSnapshot(const <String, Object?>{
+        'content': <Object?>[
+          <String, Object?>{'type': 'reasoning_text', 'text': 'raw trace'},
+        ],
+      }),
+      'raw trace',
+    );
   });
 
   test('provides default lifecycle body text only for status-like items', () {

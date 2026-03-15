@@ -271,6 +271,36 @@ void main() {
     expect(block.body, 'Inspecting the environment.');
   });
 
+  test('renders reasoning from completed snapshot summaries without deltas', () {
+    final reducer = TranscriptReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    final state = reducer.reduceRuntimeEvent(
+      CodexSessionState.initial(),
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now,
+        itemType: CodexCanonicalItemType.reasoning,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_reasoning',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{
+          'summary': <Object?>[
+            <String, Object?>{
+              'type': 'summary_text',
+              'text': 'Inspecting the environment.',
+            },
+          ],
+        },
+      ),
+    );
+
+    expect(state.transcriptBlocks.single, isA<CodexTextBlock>());
+    final block = state.transcriptBlocks.single as CodexTextBlock;
+    expect(block.kind, CodexUiBlockKind.reasoning);
+    expect(block.body, 'Inspecting the environment.');
+    expect(block.isRunning, isFalse);
+  });
+
   test('opens and resolves approval requests', () {
     final reducer = TranscriptReducer();
     var state = CodexSessionState.initial();
