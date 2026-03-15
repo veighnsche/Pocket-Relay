@@ -183,6 +183,53 @@ void main() {
     );
 
     test(
+      'keeps active pending user-input ids limited to the visible request when multiple pending inputs exist',
+      () {
+        final activeTurn = CodexActiveTurnState(
+          turnId: 'turn_1',
+          timer: CodexSessionTurnTimer(
+            turnId: 'turn_1',
+            startedAt: DateTime(2026, 3, 15, 12),
+          ),
+          pendingUserInputRequests:
+              <String, CodexSessionPendingUserInputRequest>{
+                'request_newer': CodexSessionPendingUserInputRequest(
+                  requestId: 'request_newer',
+                  requestType: CodexCanonicalRequestType.toolUserInput,
+                  createdAt: DateTime(2026, 3, 15, 12, 0, 2),
+                  detail: 'Newer input',
+                ),
+                'request_older': CodexSessionPendingUserInputRequest(
+                  requestId: 'request_older',
+                  requestType: CodexCanonicalRequestType.toolUserInput,
+                  createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+                  detail: 'Older input',
+                ),
+              },
+        );
+        final sessionState = CodexSessionState.initial().copyWith(
+          activeTurn: activeTurn,
+        );
+
+        final surface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: sessionState,
+        );
+
+        expect(surface.pinnedItems, hasLength(1));
+        expect(
+          (surface.pinnedItems.single as ChatUserInputRequestItemContract)
+              .request
+              .requestId,
+          'request_older',
+        );
+        expect(surface.activePendingUserInputRequestIds, <String>{
+          'request_older',
+        });
+      },
+    );
+
+    test(
       'projects an empty state when no transcript or pending items are visible',
       () {
         final surface = projector.project(
@@ -433,6 +480,33 @@ void main() {
         isA<ChatUserInputRequestContract>(),
       );
     });
+
+    test(
+      'keeps insertion order when requests share the same createdAt timestamp',
+      () {
+        final createdAt = DateTime(2026, 3, 15, 12, 0, 1);
+        final placement = projector.project(
+          pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+            'request_first': CodexSessionPendingRequest(
+              requestId: 'request_first',
+              requestType: CodexCanonicalRequestType.fileChangeApproval,
+              createdAt: createdAt,
+              detail: 'First approval',
+            ),
+            'request_second': CodexSessionPendingRequest(
+              requestId: 'request_second',
+              requestType: CodexCanonicalRequestType.fileReadApproval,
+              createdAt: createdAt,
+              detail: 'Second approval',
+            ),
+          },
+          pendingUserInputRequests:
+              const <String, CodexSessionPendingUserInputRequest>{},
+        );
+
+        expect(placement.visibleApprovalRequest?.requestId, 'request_first');
+      },
+    );
   });
 
   group('ChatTranscriptItemProjector', () {

@@ -491,6 +491,75 @@ void main() {
   );
 
   testWidgets(
+    'does not leak pending-user-input drafts when visibility promotes to the next request',
+    (tester) async {
+      final firstBlock = CodexUserInputRequestBlock(
+        id: 'input_1',
+        createdAt: DateTime(2026, 3, 14, 12),
+        requestId: 'input_1',
+        requestType: CodexCanonicalRequestType.toolUserInput,
+        title: 'Input required',
+        body: 'First request',
+        questions: const <CodexRuntimeUserInputQuestion>[
+          CodexRuntimeUserInputQuestion(
+            id: 'q1',
+            header: 'Project',
+            question: 'Which first project should I use?',
+          ),
+        ],
+      );
+      final secondBlock = CodexUserInputRequestBlock(
+        id: 'input_2',
+        createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+        requestId: 'input_2',
+        requestType: CodexCanonicalRequestType.toolUserInput,
+        title: 'Input required',
+        body: 'Second request',
+        questions: const <CodexRuntimeUserInputQuestion>[
+          CodexRuntimeUserInputQuestion(
+            id: 'q1',
+            header: 'Project',
+            question: 'Which second project should I use?',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            surface: _surfaceContract(pinnedItems: <CodexUiBlock>[firstBlock]),
+            followBehavior: _defaultFollowBehavior,
+            onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+            surfaceChangeToken: 'first',
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), 'Pocket Relay');
+      await tester.pump();
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            surface: _surfaceContract(pinnedItems: <CodexUiBlock>[secondBlock]),
+            followBehavior: _defaultFollowBehavior,
+            onConfigure: () {},
+            onAutoFollowEligibilityChanged: (_) {},
+            surfaceChangeToken: 'second',
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Which first project should I use?'), findsNothing);
+      expect(find.text('Which second project should I use?'), findsOneWidget);
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.controller?.text, isEmpty);
+    },
+  );
+
+  testWidgets(
     'routes active pending user-input ids through the surface contract',
     (tester) async {
       await tester.pumpWidget(
@@ -507,9 +576,11 @@ void main() {
         ),
       );
 
-      final scope = tester.widgetList<PendingUserInputFormScope>(
-        find.byType(PendingUserInputFormScope),
-      ).last;
+      final scope = tester
+          .widgetList<PendingUserInputFormScope>(
+            find.byType(PendingUserInputFormScope),
+          )
+          .last;
       expect(scope.activeRequestIds, <String>{'input_explicit'});
     },
   );

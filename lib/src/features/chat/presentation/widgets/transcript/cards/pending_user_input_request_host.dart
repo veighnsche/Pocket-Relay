@@ -78,6 +78,7 @@ class _PendingUserInputRequestHostState
         scope.setSubmissionState(
           widget.request,
           PendingUserInputSubmissionState.idle,
+          createIfMissing: false,
         );
         setState(() {});
       }

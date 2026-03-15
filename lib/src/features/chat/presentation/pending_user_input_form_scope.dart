@@ -56,9 +56,14 @@ class PendingUserInputFormScopeState extends State<PendingUserInputFormScope> {
 
   void setSubmissionState(
     ChatUserInputRequestContract request,
-    PendingUserInputSubmissionState submissionState,
-  ) {
-    _store.setSubmissionState(request, submissionState);
+    PendingUserInputSubmissionState submissionState, {
+    bool createIfMissing = true,
+  }) {
+    _store.setSubmissionState(
+      request,
+      submissionState,
+      createIfMissing: createIfMissing,
+    );
   }
 
   @override
@@ -84,6 +89,8 @@ class _PendingUserInputFormScopeMarker extends InheritedWidget {
 class PendingUserInputFormStore {
   final Map<String, _PendingUserInputFormEntry> _entries =
       <String, _PendingUserInputFormEntry>{};
+
+  bool hasStateFor(String requestId) => _entries.containsKey(requestId);
 
   PendingUserInputFormState stateFor(ChatUserInputRequestContract request) {
     if (request.isResolved) {
@@ -120,9 +127,25 @@ class PendingUserInputFormStore {
 
   void setSubmissionState(
     ChatUserInputRequestContract request,
-    PendingUserInputSubmissionState submissionState,
-  ) {
-    final entry = _entryFor(request);
+    PendingUserInputSubmissionState submissionState, {
+    bool createIfMissing = true,
+  }) {
+    final entry = _entries[request.requestId];
+    if (entry == null) {
+      if (!createIfMissing || request.isResolved) {
+        return;
+      }
+
+      final nextState = PendingUserInputFormState.initial(
+        request: request,
+      ).copyWith(submissionState: submissionState);
+      _entries[request.requestId] = _PendingUserInputFormEntry(
+        fieldIds: _fieldIdsFor(request),
+        formState: nextState,
+      );
+      return;
+    }
+
     _entries[request.requestId] = entry.copyWith(
       formState: entry.formState.copyWith(submissionState: submissionState),
     );

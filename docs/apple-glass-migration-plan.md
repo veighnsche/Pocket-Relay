@@ -30,7 +30,7 @@ renderer can consume the same ownership model.
   branch
 - Phase 4, transcript card and overlay seam tightening: completed on this
   branch
-- Phase 5, transcript surface parity and pending-request placement: in progress
+- Phase 5, transcript surface parity and pending-request placement: completed
   on this branch
 - Root architectural adapter work: not started
 - Apple-native glass components: not started
@@ -54,6 +54,8 @@ renderer can consume the same ownership model.
   shared presentation placement projector and surface contract seam.
 - Active pending user-input request IDs are now explicit transcript-surface
   contract data instead of being rediscovered inside `TranscriptList`.
+- Pending-request promotion, non-broadening behavior, and pending-input draft
+  continuity are now covered at projector, widget, and app levels.
 - Changed-files rows and per-file diff sheets now render from shared contracts,
   with diff-sheet launch owned above the card widget.
 - Transcript follow behavior is now modeled above `TranscriptList` and routed
@@ -63,27 +65,22 @@ These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
-- Placement promotion and parity hardening coverage is still incomplete for the
-  explicit pending-request placement seam.
 - The first root architectural adapter does not exist yet.
 
 ## Next Active Work
 
-The next thing to do is not the root architectural adapter.
+Phase 5 is complete.
 
-The next thing to do is Slice 6 of Phase 5:
+The next thing to do is Phase 6:
 
-- harden pending-request parity and promotion behavior with ownership-oriented
-  tests
+- introduce the first root architectural adapter
 
 Reason:
 
-- Slice 5 already removed the leftover runtime convenience getters for primary
-  pending requests
-- the remaining work is proving promotion, parity, and non-broadening behavior
-  around the explicit placement seam
-- adding the root adapter before fixing that would freeze an incomplete
-  transcript boundary into the adapter seam
+- the transcript surface boundary is now explicit and test-covered enough to
+  support adapter work
+- adding native rendering before the root adapter would still skip the
+  application-level ownership seam this plan is meant to establish
 
 ## Target Architecture
 
@@ -1095,9 +1092,9 @@ convenience getters.
 
 ### Slice 6: Parity hardening and promotion coverage
 
-This is the next active slice.
+This slice is complete on this branch.
 
-Slice 6 should cover:
+Slice 6 delivered:
 
 - ownership-oriented widget and app-level tests for placement promotion when the
   visible request resolves
@@ -1107,6 +1104,10 @@ Slice 6 should cover:
   multiple pending requests
 - verification that the pending-input draft host still behaves correctly under
   the explicit placement contract
+- deterministic same-timestamp pending-request selection by preserving request
+  insertion order
+- no-op submission cleanup when a pruned pending-input form entry is already
+  gone
 
 This slice completes Phase 5 and is the gate before Phase 6 root adapter work.
 
@@ -1199,19 +1200,16 @@ Phase 5 verification must include:
 - app-level tests proving that when the visible pending request resolves, the
   next correct request becomes visible without broadening the UI unexpectedly
 
-The next active Phase 5 slice is:
-
-- parity hardening and promotion coverage
+Phase 5 is complete.
 
 Reason:
 
-- it closes the last major transcript-surface ownership gap before adapter work
-- Slice 5 already removed the remaining runtime/controller convenience APIs
-  that encoded pending placement policy
-- it proves the explicit placement seam behaves correctly as visible requests
-  resolve and promote
-- it gives later adapter work a transcript surface boundary that is explicit
-  rather than partially inherited from runtime state
+- the last transcript-surface ownership gap was closing parity and promotion
+  coverage around the explicit placement seam
+- Slice 6 delivered that coverage and hardened the remaining same-timestamp and
+  pruned-form-state edge cases
+- later adapter work can now inherit an explicit transcript boundary instead of
+  partially implicit pending-request behavior
 
 ### Phase 6
 

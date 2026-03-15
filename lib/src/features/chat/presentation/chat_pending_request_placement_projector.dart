@@ -51,8 +51,17 @@ class ChatPendingRequestPlacementProjector {
     Iterable<T> requests,
     DateTime Function(T request) createdAtOf,
   ) {
-    final sorted = requests.toList(growable: false)
-      ..sort((left, right) => createdAtOf(left).compareTo(createdAtOf(right)));
-    return sorted.isEmpty ? null : sorted.first;
+    T? oldestRequest;
+    DateTime? oldestCreatedAt;
+
+    for (final request in requests) {
+      final createdAt = createdAtOf(request);
+      if (oldestRequest == null || createdAt.isBefore(oldestCreatedAt!)) {
+        oldestRequest = request;
+        oldestCreatedAt = createdAt;
+      }
+    }
+
+    return oldestRequest;
   }
 }

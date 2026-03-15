@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_draft.dart';
+import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_presenter.dart';
 
 void main() {
@@ -209,5 +210,46 @@ void main() {
         'q1': <String>['Pocket Relay'],
       });
     });
+  });
+
+  group('PendingUserInputFormStore', () {
+    test(
+      'does not recreate pruned state when submission cleanup runs after a request stops being active',
+      () {
+        final store = PendingUserInputFormStore();
+        final request = ChatUserInputRequestContract(
+          id: 'input_store_1',
+          createdAt: DateTime(2026, 3, 15, 12),
+          requestId: 'input_store_1',
+          requestType: CodexCanonicalRequestType.toolUserInput,
+          title: 'Input required',
+          body: 'Need clarification.',
+          isResolved: false,
+          questions: const <CodexRuntimeUserInputQuestion>[
+            CodexRuntimeUserInputQuestion(
+              id: 'q1',
+              header: 'Project',
+              question: 'Which project?',
+            ),
+          ],
+        );
+
+        store.setSubmissionState(
+          request,
+          PendingUserInputSubmissionState.submitting,
+        );
+        expect(store.hasStateFor(request.requestId), isTrue);
+
+        store.pruneActiveRequestIds(const <String>{});
+        expect(store.hasStateFor(request.requestId), isFalse);
+
+        store.setSubmissionState(
+          request,
+          PendingUserInputSubmissionState.idle,
+          createIfMissing: false,
+        );
+        expect(store.hasStateFor(request.requestId), isFalse);
+      },
+    );
   });
 }
