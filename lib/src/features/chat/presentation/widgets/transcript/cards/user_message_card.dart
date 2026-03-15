@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 
 class UserMessageCard extends StatelessWidget {
   const UserMessageCard({super.key, required this.block});
@@ -8,6 +9,26 @@ class UserMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cards = ConversationCardPalette.of(context);
+    final brightness = Theme.of(context).brightness;
+    final isLocalEcho =
+        block.deliveryState == CodexUserMessageDeliveryState.localEcho;
+    final accent = isLocalEcho
+        ? neutralAccent(brightness)
+        : tealAccent(brightness);
+    final background = cards.tintedSurface(
+      accent,
+      lightAlpha: isLocalEcho ? 0.03 : 0.05,
+      darkAlpha: isLocalEcho ? 0.08 : 0.12,
+    );
+    final border = Border.all(
+      color: cards.accentBorder(
+        accent,
+        lightAlpha: isLocalEcho ? 0.14 : 0.18,
+        darkAlpha: isLocalEcho ? 0.20 : 0.28,
+      ),
+    );
+
     return Align(
       alignment: Alignment.centerRight,
       child: ConstrainedBox(
@@ -16,38 +37,17 @@ class UserMessageCard extends StatelessWidget {
           margin: const EdgeInsets.only(left: 48),
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F766E),
+            color: background,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x220F766E),
-                blurRadius: 16,
-                offset: Offset(0, 8),
-              ),
-            ],
+            border: border,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'You',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SelectableText(
-                block.text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  height: 1.35,
-                ),
-              ),
-            ],
+          child: SelectableText(
+            block.text,
+            style: TextStyle(
+              color: cards.textPrimary,
+              fontSize: 15,
+              height: 1.35,
+            ),
           ),
         ),
       ),

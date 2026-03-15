@@ -228,7 +228,7 @@ class UsageSection {
     List<String>? notes,
   }) {
     return UsageSection(
-      label: label,
+      label: label ?? this.label,
       metrics: metrics ?? this.metrics,
       notes: notes ?? this.notes,
     );
@@ -253,6 +253,19 @@ class UsageSection {
     }
 
     return true;
+  }
+
+  String? metricValue(String metricLabel) {
+    for (final metric in metrics) {
+      if (metric.label == metricLabel) {
+        return metric.value;
+      }
+    }
+    return null;
+  }
+
+  int? metricIntValue(String metricLabel) {
+    return int.tryParse(metricValue(metricLabel) ?? '');
   }
 }
 
@@ -304,7 +317,53 @@ UsageSection _parseUsageSection(String source, {String? label}) {
     notes.add(segment);
   }
 
-  return UsageSection(label: label, metrics: metrics, notes: notes);
+  return _normalizeUsageSection(
+    UsageSection(label: label, metrics: metrics, notes: notes),
+  );
+}
+
+UsageSection _normalizeUsageSection(UsageSection section) {
+  final input = section.metricIntValue('input');
+  final cached = section.metricIntValue('cached') ?? 0;
+  final output = section.metricIntValue('output');
+  final reasoning = section.metricIntValue('reasoning') ?? 0;
+
+  final hasTokenBreakdown =
+      input != null ||
+      output != null ||
+      cached > 0 ||
+      reasoning > 0;
+  if (!hasTokenBreakdown) {
+    return section;
+  }
+
+  final normalizedInput = input == null
+      ? null
+      : ((input - cached) < 0 ? 0 : (input - cached));
+  final normalizedOutput = output == null
+      ? null
+      : ((output - reasoning) < 0 ? 0 : (output - reasoning));
+  final normalizedReasoning = output == null
+      ? (reasoning > 0 ? reasoning : null)
+      : (reasoning > 0 ? reasoning : 0);
+  final blendedTotal =
+      (normalizedInput ?? 0) + (normalizedOutput ?? 0) + (normalizedReasoning ?? 0);
+
+  final normalizedMetrics = <UsageMetric>[
+    if (normalizedInput != null)
+      UsageMetric(label: 'input', value: '$normalizedInput'),
+    if (cached > 0) UsageMetric(label: 'cached', value: '$cached'),
+    if (normalizedOutput != null)
+      UsageMetric(label: 'output', value: '$normalizedOutput'),
+    if (normalizedReasoning != null && normalizedReasoning > 0)
+      UsageMetric(label: 'reasoning', value: '$normalizedReasoning'),
+    if (normalizedInput != null ||
+        normalizedOutput != null ||
+        normalizedReasoning != null)
+      UsageMetric(label: 'total', value: '$blendedTotal'),
+  ];
+
+  return section.copyWith(metrics: normalizedMetrics);
 }
 
 String _displayTitle(String title) {

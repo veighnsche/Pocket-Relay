@@ -59,6 +59,8 @@ class TranscriptTurnSegmenter {
           id: segmentId,
           createdAt: item.createdAt,
           text: item.body,
+          deliveryState: CodexUserMessageDeliveryState.sent,
+          providerItemId: item.itemId,
         ),
       ),
       CodexUiBlockKind.reasoning when item.body.trim().isEmpty => null,

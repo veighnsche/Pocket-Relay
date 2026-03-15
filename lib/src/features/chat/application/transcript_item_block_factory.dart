@@ -18,6 +18,8 @@ class TranscriptItemBlockFactory {
         id: item.entryId,
         createdAt: item.createdAt,
         text: item.body,
+        deliveryState: CodexUserMessageDeliveryState.sent,
+        providerItemId: item.itemId,
       ),
       CodexUiBlockKind.commandExecution => CodexCommandExecutionBlock(
         id: item.entryId,
@@ -143,9 +145,7 @@ class TranscriptItemBlockFactory {
     };
   }
 
-  CodexWorkLogEntryKind workLogEntryKindFor(
-    CodexCanonicalItemType itemType,
-  ) {
+  CodexWorkLogEntryKind workLogEntryKindFor(CodexCanonicalItemType itemType) {
     return switch (itemType) {
       CodexCanonicalItemType.commandExecution =>
         CodexWorkLogEntryKind.commandExecution,

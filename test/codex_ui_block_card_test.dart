@@ -129,6 +129,81 @@ void main() {
     );
   });
 
+  testWidgets(
+    'renders user messages without header labels and with distinct bubble states',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: Column(
+            children: [
+              ConversationEntryCard(
+                block: CodexUserMessageBlock(
+                  id: 'user_local_1',
+                  createdAt: DateTime(2026, 3, 14, 12),
+                  text: 'Draft prompt',
+                  deliveryState: CodexUserMessageDeliveryState.localEcho,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ConversationEntryCard(
+                block: CodexUserMessageBlock(
+                  id: 'user_session_1',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+                  text: 'Delivered prompt',
+                  deliveryState: CodexUserMessageDeliveryState.sent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('You'), findsNothing);
+      expect(find.text('local echo'), findsNothing);
+      expect(find.text('sent'), findsNothing);
+      expect(find.text('Draft prompt'), findsOneWidget);
+      expect(find.text('Delivered prompt'), findsOneWidget);
+
+      final localBubble = _findDecoratedContainerColorForText(
+        tester,
+        'Draft prompt',
+      );
+      final sentBubble = _findDecoratedContainerColorForText(
+        tester,
+        'Delivered prompt',
+      );
+
+      expect(localBubble, isNotNull);
+      expect(sentBubble, isNotNull);
+      expect(localBubble, isNot(equals(sentBubble)));
+      expect(
+        _findStyleForText(tester, 'Delivered prompt')?.color,
+        const Color(0xFF1C1917),
+      );
+    },
+  );
+
+  testWidgets('uses readable user message text in dark mode', (tester) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        themeMode: ThemeMode.dark,
+        child: ConversationEntryCard(
+          block: CodexUserMessageBlock(
+            id: 'user_dark_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            text: 'Dark prompt',
+            deliveryState: CodexUserMessageDeliveryState.sent,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      _findStyleForText(tester, 'Dark prompt')?.color,
+      const Color(0xFFF4F2ED),
+    );
+  });
+
   testWidgets('renders a live elapsed footer as a standalone widget', (
     tester,
   ) async {
@@ -450,15 +525,21 @@ void main() {
 
     expect(find.text('Thread usage'), findsOneWidget);
     expect(find.text('ctx 258.4k'), findsOneWidget);
-    expect(find.text('current'), findsOneWidget);
-    expect(find.text('total'), findsOneWidget);
+    expect(find.text('current'), findsAtLeastNWidgets(1));
+    expect(find.text('total'), findsAtLeastNWidgets(1));
     expect(find.text('in'), findsOneWidget);
     expect(find.text('cache'), findsOneWidget);
     expect(find.text('out'), findsOneWidget);
     expect(find.text('rsn'), findsOneWidget);
     expect(find.text('all'), findsOneWidget);
-    expect(find.text('10.9k'), findsOneWidget);
-    expect(find.text('910'), findsOneWidget);
+    expect(find.text('1.7k'), findsOneWidget);
+    expect(find.text('2.2k'), findsOneWidget);
+    expect(find.text('9.2k'), findsOneWidget);
+    expect(find.text('288'), findsOneWidget);
+    expect(find.text('18.2k'), findsOneWidget);
+    expect(find.text('422'), findsOneWidget);
+    expect(find.text('488'), findsOneWidget);
+    expect(find.text('4.6k'), findsOneWidget);
   });
 
   testWidgets(
@@ -479,14 +560,18 @@ void main() {
         ),
       );
 
-      expect(find.text('current'), findsOneWidget);
-      expect(find.text('total'), findsOneWidget);
+      expect(find.text('current'), findsAtLeastNWidgets(1));
+      expect(find.text('total'), findsAtLeastNWidgets(1));
       expect(find.text('in'), findsOneWidget);
       expect(find.text('cache'), findsOneWidget);
       expect(find.text('out'), findsOneWidget);
-      expect(find.text('12'), findsNWidgets(2));
+      expect(find.text('rsn'), findsOneWidget);
+      expect(find.text('all'), findsOneWidget);
+      expect(find.text('9'), findsNWidgets(2));
       expect(find.text('3'), findsNWidgets(2));
       expect(find.text('7'), findsNWidgets(2));
+      expect(find.text('16'), findsNWidgets(2));
+      expect(find.text('-'), findsNWidgets(2));
     },
   );
 
@@ -521,6 +606,31 @@ void main() {
     );
 
     expect(find.text('end · 1:05'), findsOneWidget);
+  });
+
+  testWidgets('renders deferred thread usage inside the turn completion card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: ConversationEntryCard(
+          block: CodexTurnBoundaryBlock(
+            id: 'turn_end_usage_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            usage: CodexUsageBlock(
+              id: 'usage_embedded_1',
+              createdAt: DateTime(2026, 3, 14, 12),
+              title: 'Thread token usage',
+              body: 'Last: input 12 | Total: input 24\nContext window: 200000',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Thread usage'), findsOneWidget);
+    expect(find.text('ctx 200k'), findsOneWidget);
+    expect(find.text('end'), findsOneWidget);
   });
 
   testWidgets('keeps the turn completion separator flush on wide layouts', (
@@ -813,6 +923,10 @@ TextStyle? _findStyleForText(WidgetTester tester, String text) {
   for (final widget in tester.widgetList<SelectableText>(
     find.byType(SelectableText),
   )) {
+    if (widget.data == text) {
+      return widget.style;
+    }
+
     final span = widget.textSpan;
     if (span == null) {
       continue;
@@ -834,6 +948,20 @@ TextStyle? _findStyleForText(WidgetTester tester, String text) {
 }
 
 Color? _findDecoratedContainerColorForText(WidgetTester tester, String text) {
+  final selectableTextFinder = find.byWidgetPredicate(
+    (widget) => widget is SelectableText && widget.data == text,
+  );
+  if (selectableTextFinder.evaluate().isNotEmpty) {
+    for (final container in tester.widgetList<Container>(
+      find.ancestor(of: selectableTextFinder, matching: find.byType(Container)),
+    )) {
+      final decoration = container.decoration;
+      if (decoration is BoxDecoration && decoration.color != null) {
+        return decoration.color;
+      }
+    }
+  }
+
   for (final container in tester.widgetList<Container>(
     find.ancestor(of: find.text(text), matching: find.byType(Container)),
   )) {

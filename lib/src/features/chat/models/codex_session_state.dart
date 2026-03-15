@@ -185,17 +185,14 @@ class CodexSessionState {
       activeTurn?.pendingUserInputRequests ??
       const <String, CodexSessionPendingUserInputRequest>{};
 
-  Map<String, CodexSessionActiveItem> get activeItems =>
-      activeTurn?.itemsById ?? const <String, CodexSessionActiveItem>{};
-
   bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
 
-  List<CodexUiBlock> get transcriptBlocks =>
-      _buildTranscriptBlocks(<CodexUiBlock>[
-        ...blocks.where(_shouldAppearInTranscript),
-        if (activeTurn != null)
-          ...projectCodexTurnSegments(activeTurn!.segments),
-      ]);
+  List<CodexUiBlock> get transcriptBlocks => _buildTranscriptBlocks(
+    _sortTranscriptBlocks(<CodexUiBlock>[
+      ...blocks.where(_shouldAppearInTranscript),
+      if (activeTurn != null) ...projectCodexTurnSegments(activeTurn!.segments),
+    ]),
+  );
 
   CodexApprovalRequestBlock? get primaryPendingApprovalBlock =>
       _firstPendingBlock<CodexApprovalRequestBlock>(
@@ -289,6 +286,18 @@ List<CodexUiBlock> projectCodexTurnSegments(
   }
 
   return projected;
+}
+
+List<CodexUiBlock> _sortTranscriptBlocks(List<CodexUiBlock> blocks) {
+  final indexed = blocks.indexed.toList(growable: false);
+  indexed.sort((left, right) {
+    final createdAtComparison = left.$2.createdAt.compareTo(right.$2.createdAt);
+    if (createdAtComparison != 0) {
+      return createdAtComparison;
+    }
+    return left.$1.compareTo(right.$1);
+  });
+  return indexed.map((entry) => entry.$2).toList(growable: false);
 }
 
 bool _shouldAppearInTranscript(CodexUiBlock block) {

@@ -69,7 +69,6 @@ void main() {
       );
 
       expect(state.connectionStatus, CodexRuntimeSessionState.running);
-      expect(state.activeItems, isEmpty);
       expect(state.activeTurn, isNotNull);
       expect(state.activeTurn?.itemsById, isEmpty);
       expect(state.activeTurn?.segments, hasLength(1));
@@ -83,6 +82,38 @@ void main() {
       expect(block.isRunning, isFalse);
     },
   );
+
+  test('preserves bootstrapped turn state when turn start arrives late', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeContentDeltaEvent(
+        createdAt: now,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        streamKind: CodexRuntimeContentStreamKind.assistantText,
+        delta: 'Hello',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: now.add(const Duration(milliseconds: 50)),
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+      ),
+    );
+
+    expect(state.activeTurn?.turnId, 'turn_123');
+    expect(state.activeTurn?.threadId, 'thread_123');
+    expect(state.activeTurn?.segments, hasLength(1));
+    expect(state.transcriptBlocks.single, isA<CodexTextBlock>());
+    expect((state.transcriptBlocks.single as CodexTextBlock).body, 'Hello');
+  });
 
   test('renders official user-message items as user transcript blocks', () {
     final reducer = TranscriptReducer();
@@ -106,34 +137,124 @@ void main() {
     expect(state.transcriptBlocks.single, isA<CodexUserMessageBlock>());
     final block = state.transcriptBlocks.single as CodexUserMessageBlock;
     expect(block.text, 'Ship the fix');
+    expect(block.deliveryState, CodexUserMessageDeliveryState.sent);
   });
 
-  test('dedupes app-server user-message echoes against the local prompt', () {
-    final reducer = TranscriptReducer();
-    final now = DateTime(2026, 3, 14, 12);
-    var state = reducer.addUserMessage(
-      CodexSessionState.initial(),
-      text: 'Ship the fix',
-      createdAt: now,
-    );
+  test(
+    'promotes the local echo to sent when the app-server confirms the user message',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.addUserMessage(
+        CodexSessionState.initial(),
+        text: 'Ship the fix',
+        createdAt: now,
+      );
 
-    state = reducer.reduceRuntimeEvent(
-      state,
-      CodexRuntimeItemCompletedEvent(
-        createdAt: now.add(const Duration(milliseconds: 10)),
-        itemType: CodexCanonicalItemType.userMessage,
-        threadId: 'thread_123',
-        turnId: 'turn_123',
-        itemId: 'item_user',
-        status: CodexRuntimeItemStatus.completed,
-        snapshot: const <String, Object?>{'text': 'Ship the fix'},
-      ),
-    );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeWarningEvent(
+          createdAt: now.add(const Duration(milliseconds: 5)),
+          summary: 'Connected to the remote session.',
+        ),
+      );
 
-    expect(state.blocks, hasLength(1));
-    expect(state.blocks.single, isA<CodexUserMessageBlock>());
-    expect((state.blocks.single as CodexUserMessageBlock).text, 'Ship the fix');
-  });
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemCompletedEvent(
+          createdAt: now.add(const Duration(milliseconds: 10)),
+          itemType: CodexCanonicalItemType.userMessage,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_user',
+          status: CodexRuntimeItemStatus.completed,
+          snapshot: const <String, Object?>{'text': 'Ship the fix'},
+        ),
+      );
+
+      final committedUserMessages = state.blocks
+          .whereType<CodexUserMessageBlock>()
+          .toList(growable: false);
+      expect(committedUserMessages, hasLength(1));
+      expect(
+        committedUserMessages.single.deliveryState,
+        CodexUserMessageDeliveryState.sent,
+      );
+
+      final userMessages = state.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .toList(growable: false);
+      expect(userMessages, hasLength(1));
+      expect(userMessages.single.text, 'Ship the fix');
+      expect(
+        userMessages.single.deliveryState,
+        CodexUserMessageDeliveryState.sent,
+      );
+      expect(userMessages.single.providerItemId, 'item_user');
+      expect(
+        state.transcriptBlocks.whereType<CodexStatusBlock>(),
+        hasLength(1),
+      );
+    },
+  );
+
+  test(
+    'keeps a single sent user block when the same app-server item is updated and then completed',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.addUserMessage(
+        CodexSessionState.initial(),
+        text: 'this is a second test',
+        createdAt: now,
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeWarningEvent(
+          createdAt: now.add(const Duration(milliseconds: 5)),
+          summary: 'Connected to the remote session.',
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemUpdatedEvent(
+          createdAt: now.add(const Duration(milliseconds: 10)),
+          itemType: CodexCanonicalItemType.userMessage,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_user_2',
+          status: CodexRuntimeItemStatus.inProgress,
+          snapshot: const <String, Object?>{'text': 'this is a second test'},
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemCompletedEvent(
+          createdAt: now.add(const Duration(milliseconds: 20)),
+          itemType: CodexCanonicalItemType.userMessage,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_user_2',
+          status: CodexRuntimeItemStatus.completed,
+          snapshot: const <String, Object?>{'text': 'this is a second test'},
+        ),
+      );
+
+      final userMessages = state.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .toList(growable: false);
+      expect(userMessages, hasLength(1));
+      expect(userMessages.single.text, 'this is a second test');
+      expect(
+        userMessages.single.deliveryState,
+        CodexUserMessageDeliveryState.sent,
+      );
+      expect(userMessages.single.providerItemId, 'item_user_2');
+    },
+  );
 
   test('preserves spaces while assistant text is still streaming', () {
     final reducer = TranscriptReducer();
@@ -271,35 +392,38 @@ void main() {
     expect(block.body, 'Inspecting the environment.');
   });
 
-  test('renders reasoning from completed snapshot summaries without deltas', () {
-    final reducer = TranscriptReducer();
-    final now = DateTime(2026, 3, 14, 12);
-    final state = reducer.reduceRuntimeEvent(
-      CodexSessionState.initial(),
-      CodexRuntimeItemCompletedEvent(
-        createdAt: now,
-        itemType: CodexCanonicalItemType.reasoning,
-        threadId: 'thread_123',
-        turnId: 'turn_123',
-        itemId: 'item_reasoning',
-        status: CodexRuntimeItemStatus.completed,
-        snapshot: const <String, Object?>{
-          'summary': <Object?>[
-            <String, Object?>{
-              'type': 'summary_text',
-              'text': 'Inspecting the environment.',
-            },
-          ],
-        },
-      ),
-    );
+  test(
+    'renders reasoning from completed snapshot summaries without deltas',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      final state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeItemCompletedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.reasoning,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_reasoning',
+          status: CodexRuntimeItemStatus.completed,
+          snapshot: const <String, Object?>{
+            'summary': <Object?>[
+              <String, Object?>{
+                'type': 'summary_text',
+                'text': 'Inspecting the environment.',
+              },
+            ],
+          },
+        ),
+      );
 
-    expect(state.transcriptBlocks.single, isA<CodexTextBlock>());
-    final block = state.transcriptBlocks.single as CodexTextBlock;
-    expect(block.kind, CodexUiBlockKind.reasoning);
-    expect(block.body, 'Inspecting the environment.');
-    expect(block.isRunning, isFalse);
-  });
+      expect(state.transcriptBlocks.single, isA<CodexTextBlock>());
+      final block = state.transcriptBlocks.single as CodexTextBlock;
+      expect(block.kind, CodexUiBlockKind.reasoning);
+      expect(block.body, 'Inspecting the environment.');
+      expect(block.isRunning, isFalse);
+    },
+  );
 
   test('opens and resolves approval requests', () {
     final reducer = TranscriptReducer();
@@ -518,6 +642,108 @@ void main() {
     },
   );
 
+  test('commits the previous turn and boundary when a new turn starts', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final startedAt = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: startedAt,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: startedAt.add(const Duration(milliseconds: 1)),
+        itemType: CodexCanonicalItemType.assistantMessage,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{'text': 'First turn'},
+      ),
+    );
+
+    monotonicNow = const Duration(seconds: 4);
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: startedAt.add(const Duration(seconds: 4)),
+        threadId: 'thread_123',
+        turnId: 'turn_456',
+      ),
+    );
+
+    expect(state.activeTurn?.turnId, 'turn_456');
+    expect(state.blocks, hasLength(2));
+    expect(state.blocks.first, isA<CodexTextBlock>());
+    expect((state.blocks.first as CodexTextBlock).body, 'First turn');
+    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
+    expect(
+      (state.blocks.last as CodexTurnBoundaryBlock).elapsed,
+      const Duration(seconds: 4),
+    );
+  });
+
+  test('ignores late completion events for an already rolled-over turn', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final startedAt = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: startedAt,
+        itemType: CodexCanonicalItemType.assistantMessage,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{'text': 'First turn'},
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: startedAt.add(const Duration(seconds: 1)),
+        threadId: 'thread_123',
+        turnId: 'turn_456',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeContentDeltaEvent(
+        createdAt: startedAt.add(const Duration(seconds: 2)),
+        threadId: 'thread_123',
+        turnId: 'turn_456',
+        itemId: 'item_456',
+        streamKind: CodexRuntimeContentStreamKind.assistantText,
+        delta: 'Second turn',
+      ),
+    );
+
+    final baselineBlocks = List<CodexUiBlock>.from(state.blocks);
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnCompletedEvent(
+        createdAt: startedAt.add(const Duration(seconds: 3)),
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        state: CodexRuntimeTurnState.completed,
+      ),
+    );
+
+    expect(state.connectionStatus, CodexRuntimeSessionState.running);
+    expect(state.activeTurn?.turnId, 'turn_456');
+    expect(state.blocks, baselineBlocks);
+    expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
+    expect((state.transcriptBlocks.last as CodexTextBlock).body, 'Second turn');
+  });
+
   test(
     'pauses elapsed work time while approval is pending and resumes after resolution',
     () {
@@ -589,6 +815,49 @@ void main() {
       );
     },
   );
+
+  test('commits the live turn before clearing thread state on close', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final startedAt = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: startedAt,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: startedAt.add(const Duration(milliseconds: 1)),
+        itemType: CodexCanonicalItemType.assistantMessage,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{'text': 'Before close'},
+      ),
+    );
+
+    monotonicNow = const Duration(seconds: 3);
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeThreadStateChangedEvent(
+        createdAt: startedAt.add(const Duration(seconds: 3)),
+        threadId: 'thread_123',
+        state: CodexRuntimeThreadState.closed,
+      ),
+    );
+
+    expect(state.threadId, isNull);
+    expect(state.activeTurn, isNull);
+    expect(state.blocks, hasLength(2));
+    expect(state.blocks.first, isA<CodexTextBlock>());
+    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
+  });
 
   test('keeps warnings and errors non-fatal to the UI state', () {
     final reducer = TranscriptReducer();
@@ -695,14 +964,76 @@ void main() {
     );
 
     expect(state.activeTurn, isNull);
-    expect(state.blocks, hasLength(2));
-    expect(state.blocks.first, isA<CodexUsageBlock>());
-    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
-    expect(state.blocks.whereType<CodexUsageBlock>(), hasLength(1));
-    expect((state.blocks.first as CodexUsageBlock).title, 'Thread token usage');
-    expect((state.blocks.first as CodexUsageBlock).body, contains('input 24'));
-    expect(state.transcriptBlocks.first, isA<CodexUsageBlock>());
-    expect(state.transcriptBlocks.last, isA<CodexTurnBoundaryBlock>());
+    expect(state.blocks, hasLength(1));
+    final boundary = state.blocks.single as CodexTurnBoundaryBlock;
+    expect(boundary.usage, isNotNull);
+    expect(boundary.usage?.title, 'Thread token usage');
+    expect(boundary.usage?.body, contains('input 24'));
+    expect(state.transcriptBlocks, hasLength(1));
+    expect(state.transcriptBlocks.single, isA<CodexTurnBoundaryBlock>());
+  });
+
+  test('keeps changed files above the turn-end usage footer', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: now,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeStatusEvent(
+        createdAt: now.add(const Duration(seconds: 1)),
+        threadId: 'thread_123',
+        rawMethod: 'thread/tokenUsage/updated',
+        title: 'Thread token usage',
+        message: 'Last: input 12 | Total: input 24\nContext window: 200000',
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnDiffUpdatedEvent(
+        createdAt: now.add(const Duration(seconds: 2)),
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        unifiedDiff:
+            'diff --git a/lib/main.dart b/lib/main.dart\n'
+            '--- a/lib/main.dart\n'
+            '+++ b/lib/main.dart\n'
+            '@@ -1 +1 @@\n'
+            '-old\n'
+            '+new\n',
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnCompletedEvent(
+        createdAt: now.add(const Duration(seconds: 3)),
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        state: CodexRuntimeTurnState.completed,
+        usage: const CodexRuntimeTurnUsage(
+          inputTokens: 12,
+          cachedInputTokens: 3,
+          outputTokens: 7,
+        ),
+      ),
+    );
+
+    expect(state.transcriptBlocks, hasLength(2));
+    expect(state.transcriptBlocks.first, isA<CodexChangedFilesBlock>());
+    final boundary = state.transcriptBlocks.last as CodexTurnBoundaryBlock;
+    expect(boundary.usage, isNotNull);
+    expect(boundary.usage?.title, 'Thread token usage');
   });
 
   test(
@@ -846,5 +1177,39 @@ void main() {
     final changedFiles = state.transcriptBlocks.last as CodexChangedFilesBlock;
     expect(changedFiles.files.single.path, 'lib/main.dart');
     expect(changedFiles.unifiedDiff, contains('diff --git'));
+  });
+
+  test('sorts committed and live transcript rows by creation time', () {
+    final reducer = TranscriptReducer();
+    final startedAt = DateTime(2026, 3, 14, 12);
+    var state = reducer.reduceRuntimeEvent(
+      CodexSessionState.initial(),
+      CodexRuntimeContentDeltaEvent(
+        createdAt: startedAt,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        streamKind: CodexRuntimeContentStreamKind.assistantText,
+        delta: 'Earlier live row',
+      ),
+    );
+
+    state = reducer.addUserMessage(
+      state,
+      text: 'Later committed row',
+      createdAt: startedAt.add(const Duration(seconds: 1)),
+    );
+
+    expect(state.transcriptBlocks, hasLength(2));
+    expect(state.transcriptBlocks.first, isA<CodexTextBlock>());
+    expect(
+      (state.transcriptBlocks.first as CodexTextBlock).body,
+      'Earlier live row',
+    );
+    expect(state.transcriptBlocks.last, isA<CodexUserMessageBlock>());
+    expect(
+      (state.transcriptBlocks.last as CodexUserMessageBlock).text,
+      'Later committed row',
+    );
   });
 }

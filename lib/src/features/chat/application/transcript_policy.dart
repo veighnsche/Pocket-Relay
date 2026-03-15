@@ -34,6 +34,7 @@ class TranscriptPolicy {
       id: _support.eventEntryId('user', createdAt ?? DateTime.now()),
       createdAt: createdAt ?? DateTime.now(),
       text: text,
+      deliveryState: CodexUserMessageDeliveryState.localEcho,
     );
 
     return _support.upsertBlock(
@@ -93,20 +94,53 @@ class TranscriptPolicy {
       return state;
     }
 
-    return _commitActiveTurn(
-      state.copyWith(
-        activeTurn: CodexActiveTurnState(
+    final finalizedTurn = _finalizeCommittedTurn(currentTurn, createdAt);
+    final finalizedState = _support.upsertBlock(
+      _commitActiveTurn(
+        state.copyWith(clearActiveTurn: true),
+        activeTurn: finalizedTurn.$1,
+      ),
+      _turnBoundaryBlock(
+        createdAt: createdAt,
+        elapsed: finalizedTurn.$2,
+        usage: finalizedTurn.$1?.pendingThreadTokenUsageBlock,
+      ),
+    );
+    return finalizedState.copyWith(
+      activeTurn: CodexActiveTurnState(
+        turnId: turnId,
+        threadId: threadId ?? state.threadId,
+        timer: CodexSessionTurnTimer(
           turnId: turnId,
-          threadId: threadId ?? state.threadId,
-          timer: CodexSessionTurnTimer(
-            turnId: turnId,
-            startedAt: createdAt,
-            activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
-          ),
+          startedAt: createdAt,
+          activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
         ),
       ),
-      activeTurn: currentTurn,
-      includePendingUsage: true,
+    );
+  }
+
+  CodexSessionState applyThreadClosed(
+    CodexSessionState state,
+    CodexRuntimeThreadStateChangedEvent event,
+  ) {
+    final finalizedTurn = _finalizeCommittedTurn(
+      state.activeTurn,
+      event.createdAt,
+    );
+    final nextState = _commitActiveTurn(
+      state.copyWith(clearThreadId: true, clearActiveTurn: true),
+      activeTurn: finalizedTurn.$1,
+    );
+    if (finalizedTurn.$1 == null) {
+      return nextState;
+    }
+    return _support.upsertBlock(
+      nextState,
+      _turnBoundaryBlock(
+        createdAt: event.createdAt,
+        elapsed: finalizedTurn.$2,
+        usage: finalizedTurn.$1?.pendingThreadTokenUsageBlock,
+      ),
     );
   }
 
@@ -152,28 +186,28 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeTurnCompletedEvent event,
   ) {
-    final completedTimer = _support.completeTurnTimer(
-      state.activeTurn?.timer,
+    if (_hasMismatchedActiveTurn(state, event.turnId)) {
+      return state;
+    }
+
+    final finalizedTurn = _finalizeCommittedTurn(
+      state.activeTurn,
       event.createdAt,
     );
-    final elapsed = state.activeTurn == null
-        ? null
-        : completedTimer.elapsedAt(event.createdAt);
     final nextState = _commitActiveTurn(
       state.copyWith(
         connectionStatus: CodexRuntimeSessionState.ready,
         clearActiveTurn: true,
         latestUsageSummary: _support.buildRuntimeUsageSummary(event),
       ),
-      activeTurn: state.activeTurn,
-      includePendingUsage: true,
+      activeTurn: finalizedTurn.$1,
     );
     return _support.upsertBlock(
       nextState,
-      CodexTurnBoundaryBlock(
-        id: _support.eventEntryId('turn-end', event.createdAt),
+      _turnBoundaryBlock(
         createdAt: event.createdAt,
-        elapsed: elapsed,
+        elapsed: finalizedTurn.$2,
+        usage: finalizedTurn.$1?.pendingThreadTokenUsageBlock,
       ),
     );
   }
@@ -182,29 +216,30 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeTurnAbortedEvent event,
   ) {
-    final completedTimer = _support.completeTurnTimer(
-      state.activeTurn?.timer,
+    if (_hasMismatchedActiveTurn(state, event.turnId)) {
+      return state;
+    }
+
+    final finalizedTurn = _finalizeCommittedTurn(
+      state.activeTurn,
       event.createdAt,
     );
-    final elapsed = state.activeTurn == null
-        ? null
-        : completedTimer.elapsedAt(event.createdAt);
     return _support.upsertBlock(
       _commitActiveTurn(
         state.copyWith(
           connectionStatus: CodexRuntimeSessionState.ready,
           clearActiveTurn: true,
         ),
-        activeTurn: state.activeTurn,
+        activeTurn: finalizedTurn.$1,
         includePendingUsage: true,
       ),
       CodexStatusBlock(
         id: _support.eventEntryId('status', event.createdAt),
         createdAt: event.createdAt,
         title: 'Turn aborted',
-        body: elapsed == null
+        body: finalizedTurn.$2 == null
             ? (event.reason ?? 'The active turn was aborted.')
-            : '${event.reason ?? 'The active turn was aborted.'}\n\nElapsed ${formatElapsedDuration(elapsed)}.',
+            : '${event.reason ?? 'The active turn was aborted.'}\n\nElapsed ${formatElapsedDuration(finalizedTurn.$2!)}.',
         isTranscriptSignal: true,
       ),
     );
@@ -416,6 +451,45 @@ class TranscriptPolicy {
       );
     }
     return nextState;
+  }
+
+  bool _hasMismatchedActiveTurn(CodexSessionState state, String? turnId) {
+    final activeTurn = state.activeTurn;
+    return activeTurn != null && turnId != null && activeTurn.turnId != turnId;
+  }
+
+  (CodexActiveTurnState?, Duration?) _finalizeCommittedTurn(
+    CodexActiveTurnState? activeTurn,
+    DateTime createdAt,
+  ) {
+    if (activeTurn == null) {
+      return (null, null);
+    }
+
+    final completedTimer = _support.completeTurnTimer(
+      activeTurn.timer,
+      createdAt,
+    );
+    return (
+      activeTurn.copyWith(
+        timer: completedTimer,
+        status: CodexActiveTurnStatus.completing,
+      ),
+      completedTimer.elapsedAt(createdAt),
+    );
+  }
+
+  CodexTurnBoundaryBlock _turnBoundaryBlock({
+    required DateTime createdAt,
+    required Duration? elapsed,
+    CodexUsageBlock? usage,
+  }) {
+    return CodexTurnBoundaryBlock(
+      id: _support.eventEntryId('turn-end', createdAt),
+      createdAt: createdAt,
+      elapsed: elapsed,
+      usage: usage,
+    );
   }
 
   CodexSessionState _stateWithTranscriptBlock(

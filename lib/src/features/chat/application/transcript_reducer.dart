@@ -53,37 +53,36 @@ class TranscriptReducer {
         return normalizedState.copyWith(threadId: event.providerThreadId);
       case CodexRuntimeThreadStateChangedEvent():
         final isClosed = event.state == CodexRuntimeThreadState.closed;
-        final activeTurn = isClosed && normalizedState.activeTurn != null
-            ? normalizedState.activeTurn!.copyWith(
-                timer: normalizedState.activeTurn!.timer.complete(
-                  completedAt: event.createdAt,
-                  monotonicAt: CodexMonotonicClock.now(),
-                ),
-              )
-            : normalizedState.activeTurn;
-        return normalizedState.copyWith(
-          clearThreadId: isClosed,
-          activeTurn: isClosed ? activeTurn : normalizedState.activeTurn,
-          clearActiveTurn: isClosed,
-        );
+        if (!isClosed) {
+          return normalizedState;
+        }
+        return _policy.applyThreadClosed(normalizedState, event);
       case CodexRuntimeTurnStartedEvent():
-        final nextTimer = event.turnId == null
-            ? null
-            : CodexSessionTurnTimer(
-                turnId: event.turnId!,
-                startedAt: event.createdAt,
-                activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
-              );
+        final currentTurn = normalizedState.activeTurn;
+        final nextActiveTurn = switch ((event.turnId, currentTurn)) {
+          (null, _) => currentTurn,
+          (final turnId?, final existingTurn?)
+              when existingTurn.turnId == turnId =>
+            existingTurn.copyWith(
+              threadId:
+                  event.threadId ??
+                  existingTurn.threadId ??
+                  normalizedState.threadId,
+            ),
+          (final turnId?, _) => CodexActiveTurnState(
+            turnId: turnId,
+            threadId: event.threadId ?? normalizedState.threadId,
+            timer: CodexSessionTurnTimer(
+              turnId: turnId,
+              startedAt: event.createdAt,
+              activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
+            ),
+          ),
+        };
         return normalizedState.copyWith(
           connectionStatus: CodexRuntimeSessionState.running,
           threadId: event.threadId ?? normalizedState.threadId,
-          activeTurn: event.turnId == null
-              ? normalizedState.activeTurn
-              : CodexActiveTurnState(
-                  turnId: event.turnId!,
-                  threadId: event.threadId ?? normalizedState.threadId,
-                  timer: nextTimer!,
-                ),
+          activeTurn: nextActiveTurn,
         );
       case CodexRuntimeTurnCompletedEvent():
         return _policy.applyTurnCompleted(normalizedState, event);

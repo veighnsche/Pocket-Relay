@@ -37,6 +37,7 @@ void main() {
     final messageBlock =
         controller.transcriptBlocks.first as CodexUserMessageBlock;
     expect(messageBlock.text, 'Hello controller');
+    expect(messageBlock.deliveryState, CodexUserMessageDeliveryState.localEcho);
   });
 
   test('invalid prompt submission emits snackbar feedback', () async {

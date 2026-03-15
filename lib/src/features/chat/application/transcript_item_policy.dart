@@ -35,23 +35,29 @@ class TranscriptItemPolicy {
       threadId: event.threadId,
       createdAt: event.createdAt,
     );
-    final existing =
-        activeTurn?.itemsById[event.itemId!] ??
-        state.activeItems[event.itemId!];
+    final existing = activeTurn?.itemsById[event.itemId!];
     final nextItem = _activeItemFromLifecycle(event, existing: existing);
-    final shouldSuppress = _shouldSuppressItemSegment(state, nextItem);
+    final reconciledBlocks = _reconcileCommittedUserMessageBlocks(
+      state.blocks,
+      nextItem,
+    );
+    if (reconciledBlocks != null) {
+      return state.copyWith(
+        blocks: reconciledBlocks,
+        activeTurn: _nextActiveTurnForSuppressedLifecycle(
+          activeTurn,
+          nextItem,
+          removeAfterUpsert: removeAfterUpsert,
+        ),
+      );
+    }
+
     return state.copyWith(
-      activeTurn: shouldSuppress
-          ? _nextActiveTurnForSuppressedLifecycle(
-              activeTurn,
-              nextItem,
-              removeAfterUpsert: removeAfterUpsert,
-            )
-          : _nextActiveTurnForLifecycle(
-              activeTurn,
-              nextItem,
-              removeAfterUpsert: removeAfterUpsert,
-            ),
+      activeTurn: _nextActiveTurnForLifecycle(
+        activeTurn,
+        nextItem,
+        removeAfterUpsert: removeAfterUpsert,
+      ),
     );
   }
 
@@ -173,21 +179,43 @@ class TranscriptItemPolicy {
     return value is num ? value.toInt() : null;
   }
 
-  bool _shouldSuppressItemSegment(
-    CodexSessionState state,
+  List<CodexUiBlock>? _reconcileCommittedUserMessageBlocks(
+    List<CodexUiBlock> blocks,
     CodexSessionActiveItem item,
   ) {
     if (item.itemType != CodexCanonicalItemType.userMessage) {
-      return false;
+      return null;
     }
 
     final text = item.body.trim();
-    if (text.isEmpty) {
-      return true;
+    final matchedProviderIndex = blocks.lastIndexWhere(
+      (block) =>
+          block is CodexUserMessageBlock && block.providerItemId == item.itemId,
+    );
+    final matchIndex = matchedProviderIndex != -1
+        ? matchedProviderIndex
+        : (text.isEmpty
+              ? -1
+              : blocks.lastIndexWhere(
+                  (block) =>
+                      block is CodexUserMessageBlock &&
+                      block.deliveryState ==
+                          CodexUserMessageDeliveryState.localEcho &&
+                      block.text.trim() == text,
+                ));
+
+    if (matchIndex == -1) {
+      return null;
     }
 
-    final latestBlock = state.blocks.isEmpty ? null : state.blocks.last;
-    return latestBlock is CodexUserMessageBlock && latestBlock.text == text;
+    final nextBlocks = List<CodexUiBlock>.from(blocks);
+    final block = nextBlocks[matchIndex] as CodexUserMessageBlock;
+    nextBlocks[matchIndex] = block.copyWith(
+      text: text.isEmpty ? block.text : item.body,
+      deliveryState: CodexUserMessageDeliveryState.sent,
+      providerItemId: item.itemId,
+    );
+    return nextBlocks;
   }
 
   CodexActiveTurnState? _nextActiveTurnForSuppressedLifecycle(
@@ -207,7 +235,19 @@ class TranscriptItemPolicy {
       nextItems.remove(item.itemId);
     }
 
-    return activeTurn.copyWith(itemsById: nextItems);
+    final nextItemSegmentIds = <String, String>{...activeTurn.itemSegmentIds};
+    final segmentId = nextItemSegmentIds.remove(item.itemId);
+    final nextSegments = segmentId == null
+        ? activeTurn.segments
+        : activeTurn.segments
+              .where((segment) => segment.id != segmentId)
+              .toList(growable: false);
+
+    return activeTurn.copyWith(
+      itemsById: nextItems,
+      itemSegmentIds: nextItemSegmentIds,
+      segments: nextSegments,
+    );
   }
 
   CodexActiveTurnState? _nextActiveTurnForLifecycle(

@@ -82,10 +82,33 @@ final class CodexUserMessageBlock extends CodexUiBlock {
     required super.id,
     required super.createdAt,
     required this.text,
+    required this.deliveryState,
+    this.providerItemId,
   }) : super(kind: CodexUiBlockKind.userMessage);
 
   final String text;
+  final CodexUserMessageDeliveryState deliveryState;
+  final String? providerItemId;
+
+  CodexUserMessageBlock copyWith({
+    String? text,
+    CodexUserMessageDeliveryState? deliveryState,
+    String? providerItemId,
+    bool clearProviderItemId = false,
+  }) {
+    return CodexUserMessageBlock(
+      id: id,
+      createdAt: createdAt,
+      text: text ?? this.text,
+      deliveryState: deliveryState ?? this.deliveryState,
+      providerItemId: clearProviderItemId
+          ? null
+          : (providerItemId ?? this.providerItemId),
+    );
+  }
 }
+
+enum CodexUserMessageDeliveryState { localEcho, sent }
 
 final class CodexTextBlock extends CodexUiBlock {
   const CodexTextBlock({
@@ -423,8 +446,10 @@ final class CodexTurnBoundaryBlock extends CodexUiBlock {
     required super.createdAt,
     this.label = 'end',
     this.elapsed,
+    this.usage,
   }) : super(kind: CodexUiBlockKind.turnBoundary);
 
   final String label;
   final Duration? elapsed;
+  final CodexUsageBlock? usage;
 }

@@ -97,6 +97,99 @@ void main() {
     expect(find.textContaining('end'), findsOneWidget);
   });
 
+  testWidgets(
+    'promotes the local user echo to sent when the app-server reports the prompt',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Hello Codex');
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{'id': 'thread_123'},
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'running'},
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'configWarning',
+          params: <String, Object?>{
+            'summary': 'Connected to the remote session.',
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/updated',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'item_user_1',
+              'type': 'userMessage',
+              'status': 'inProgress',
+              'text': 'Hello Codex',
+            },
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'item_user_1',
+              'type': 'userMessage',
+              'status': 'completed',
+              'text': 'Hello Codex',
+            },
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hello Codex'), findsOneWidget);
+      expect(find.text('You'), findsNothing);
+      expect(find.text('local echo'), findsNothing);
+      expect(find.text('sent'), findsNothing);
+      expect(
+        find.textContaining('Connected to the remote session.'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('approval actions are routed to the app-server client', (
     tester,
   ) async {
@@ -530,9 +623,9 @@ void main() {
 
     expect(find.text('Thread usage'), findsOneWidget);
     expect(find.text('ctx 200k'), findsOneWidget);
-    expect(find.textContaining('end'), findsOneWidget);
+    expect(find.textContaining('end'), findsAtLeastNWidgets(1));
 
-    final endRect = tester.getRect(find.textContaining('end'));
+    final endRect = tester.getRect(find.textContaining('end').last);
     final usageRect = tester.getRect(find.text('Thread usage'));
     expect(usageRect.top, lessThan(endRect.top));
   });

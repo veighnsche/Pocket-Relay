@@ -62,6 +62,29 @@ void main() {
     expect(changedFiles.unifiedDiff, contains('diff --git'));
   });
 
+  test('builds user-message blocks as sent messages', () {
+    final block = factory.blockFromActiveItem(
+      CodexSessionActiveItem(
+        itemId: 'user_1',
+        threadId: 'thread_1',
+        turnId: 'turn_1',
+        itemType: CodexCanonicalItemType.userMessage,
+        entryId: 'item_user_1',
+        blockKind: factory.blockKindForItemType(
+          CodexCanonicalItemType.userMessage,
+        ),
+        createdAt: createdAt,
+        body: 'Ship the fix',
+      ),
+    );
+
+    expect(block, isA<CodexUserMessageBlock>());
+    final userMessage = block as CodexUserMessageBlock;
+    expect(userMessage.text, 'Ship the fix');
+    expect(userMessage.deliveryState, CodexUserMessageDeliveryState.sent);
+    expect(userMessage.providerItemId, 'user_1');
+  });
+
   test('provides stable default titles for known item types', () {
     expect(
       factory.defaultItemTitle(CodexCanonicalItemType.reasoning),
