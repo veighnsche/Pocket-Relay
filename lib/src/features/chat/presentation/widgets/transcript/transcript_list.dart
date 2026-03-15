@@ -101,6 +101,7 @@ class _TranscriptListState extends State<TranscriptList> {
               itemBuilder: (context, index) {
                 final block = widget.transcriptBlocks[index];
                 return ConversationEntryCard(
+                  key: ValueKey<String>('transcript_${block.id}'),
                   block: block,
                   turnTimer: _turnTimerForBlock(block),
                   onApproveRequest: widget.onApproveRequest,
@@ -124,6 +125,9 @@ class _TranscriptListState extends State<TranscriptList> {
                   children: [
                     if (widget.pendingApprovalBlock != null)
                       ConversationEntryCard(
+                        key: ValueKey<String>(
+                          'pending_${widget.pendingApprovalBlock!.id}',
+                        ),
                         block: widget.pendingApprovalBlock!,
                         onApproveRequest: widget.onApproveRequest,
                         onDenyRequest: widget.onDenyRequest,
@@ -134,6 +138,9 @@ class _TranscriptListState extends State<TranscriptList> {
                       const SizedBox(height: 8),
                     if (widget.pendingUserInputBlock != null)
                       ConversationEntryCard(
+                        key: ValueKey<String>(
+                          'pending_${widget.pendingUserInputBlock!.id}',
+                        ),
                         block: widget.pendingUserInputBlock!,
                         onApproveRequest: widget.onApproveRequest,
                         onDenyRequest: widget.onDenyRequest,

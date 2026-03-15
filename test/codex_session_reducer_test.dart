@@ -1,10 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
 void main() {
+  var monotonicNow = Duration.zero;
+
+  setUp(() {
+    monotonicNow = Duration.zero;
+    CodexMonotonicClock.debugSetNowProvider(() => monotonicNow);
+  });
+
+  tearDown(() {
+    CodexMonotonicClock.debugSetNowProvider(null);
+  });
+
   test(
     'creates and updates assistant entries from lifecycle and delta events',
     () {
@@ -360,6 +372,7 @@ void main() {
         turnId: 'turn_123',
       ),
     );
+    monotonicNow = const Duration(seconds: 5);
     state = reducer.reduceRuntimeEvent(
       state,
       CodexRuntimeTurnCompletedEvent(
@@ -403,6 +416,7 @@ void main() {
       ),
     );
 
+    monotonicNow = const Duration(seconds: 9);
     state = reducer.reduceRuntimeEvent(
       state,
       CodexRuntimeSessionExitedEvent(
@@ -418,6 +432,119 @@ void main() {
       const Duration(seconds: 9),
     );
   });
+
+  test(
+    'uses monotonic elapsed time instead of wall-clock span on completion',
+    () {
+      final reducer = TranscriptReducer();
+      var state = CodexSessionState.initial();
+      final startedAt = DateTime(2026, 3, 14, 12);
+      final completedAt = startedAt.add(const Duration(minutes: 10));
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnStartedEvent(
+          createdAt: startedAt,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+        ),
+      );
+
+      monotonicNow = const Duration(seconds: 5);
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnCompletedEvent(
+          createdAt: completedAt,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          state: CodexRuntimeTurnState.completed,
+        ),
+      );
+
+      final timer = state.turnTimers['turn_123'];
+      expect(timer?.elapsedAt(completedAt), const Duration(seconds: 5));
+      expect(
+        (state.blocks.single as CodexTurnBoundaryBlock).elapsed,
+        const Duration(seconds: 5),
+      );
+    },
+  );
+
+  test(
+    'pauses elapsed work time while approval is pending and resumes after resolution',
+    () {
+      final reducer = TranscriptReducer();
+      var state = CodexSessionState.initial();
+      final startedAt = DateTime(2026, 3, 14, 12);
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnStartedEvent(
+          createdAt: startedAt,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+        ),
+      );
+
+      monotonicNow = const Duration(seconds: 4);
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeRequestOpenedEvent(
+          createdAt: startedAt.add(const Duration(seconds: 4)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          requestId: 'approval_1',
+          requestType: CodexCanonicalRequestType.execCommandApproval,
+          detail: 'Approve command',
+        ),
+      );
+
+      expect(state.turnTimers['turn_123']?.isPaused, isTrue);
+      expect(
+        state.turnTimers['turn_123']?.elapsedAt(
+          startedAt.add(const Duration(seconds: 20)),
+          monotonicNow: const Duration(seconds: 20),
+        ),
+        const Duration(seconds: 4),
+      );
+
+      monotonicNow = const Duration(seconds: 20);
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeRequestResolvedEvent(
+          createdAt: startedAt.add(const Duration(seconds: 20)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          requestId: 'approval_1',
+          requestType: CodexCanonicalRequestType.execCommandApproval,
+        ),
+      );
+
+      expect(state.turnTimers['turn_123']?.isPaused, isFalse);
+
+      monotonicNow = const Duration(seconds: 25);
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeTurnCompletedEvent(
+          createdAt: startedAt.add(const Duration(seconds: 25)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          state: CodexRuntimeTurnState.completed,
+        ),
+      );
+
+      expect(
+        state.turnTimers['turn_123']?.elapsedAt(startedAt),
+        const Duration(seconds: 9),
+      );
+      expect(
+        (state.blocks.last as CodexTurnBoundaryBlock).elapsed,
+        const Duration(seconds: 9),
+      );
+    },
+  );
 
   test('keeps warnings and errors non-fatal to the UI state', () {
     final reducer = TranscriptReducer();

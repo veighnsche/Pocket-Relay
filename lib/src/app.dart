@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -17,19 +19,73 @@ class PocketRelayApp extends StatefulWidget {
 }
 
 class _PocketRelayAppState extends State<PocketRelayApp> {
-  late final CodexProfileStore _profileStore;
+  CodexProfileStore? _ownedProfileStore;
+  CodexAppServerClient? _ownedAppServerClient;
+  late CodexProfileStore _profileStore;
+  late CodexAppServerClient _appServerClient;
   SavedProfile? _savedProfile;
+  int _profileLoadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
-    _profileStore = widget.profileStore ?? SecureCodexProfileStore();
+    _bindDependencies();
     _loadSavedProfile();
   }
 
+  @override
+  void didUpdateWidget(covariant PocketRelayApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profileStore == widget.profileStore &&
+        oldWidget.appServerClient == widget.appServerClient) {
+      return;
+    }
+
+    _bindDependencies();
+    if (oldWidget.profileStore == widget.profileStore) {
+      return;
+    }
+
+    setState(() {
+      _savedProfile = null;
+    });
+    _loadSavedProfile();
+  }
+
+  @override
+  void dispose() {
+    final ownedClient = _ownedAppServerClient;
+    if (ownedClient != null) {
+      unawaited(ownedClient.dispose());
+    }
+    super.dispose();
+  }
+
+  void _bindDependencies() {
+    _profileStore =
+        widget.profileStore ??
+        (_ownedProfileStore ??= SecureCodexProfileStore());
+
+    if (widget.appServerClient case final injectedClient?) {
+      final ownedClient = _ownedAppServerClient;
+      _ownedAppServerClient = null;
+      if (ownedClient != null) {
+        unawaited(ownedClient.dispose());
+      }
+      _appServerClient = injectedClient;
+      return;
+    }
+
+    _appServerClient = _ownedAppServerClient ??= CodexAppServerClient();
+  }
+
   Future<void> _loadSavedProfile() async {
-    final savedProfile = await _profileStore.load();
-    if (!mounted) {
+    final loadGeneration = ++_profileLoadGeneration;
+    final profileStore = _profileStore;
+    final savedProfile = await profileStore.load();
+    if (!mounted ||
+        loadGeneration != _profileLoadGeneration ||
+        profileStore != _profileStore) {
       return;
     }
 
@@ -52,7 +108,7 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : ChatScreen(
               profileStore: _profileStore,
-              appServerClient: widget.appServerClient ?? CodexAppServerClient(),
+              appServerClient: _appServerClient,
               initialSavedProfile: savedProfile,
             ),
     );

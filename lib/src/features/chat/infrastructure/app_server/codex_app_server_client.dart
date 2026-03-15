@@ -30,6 +30,7 @@ class CodexAppServerClient {
   final String clientVersion;
   final CodexAppServerConnection _connection;
   final CodexAppServerRequestApi _requestApi = const CodexAppServerRequestApi();
+  bool _isDisposed = false;
 
   Stream<CodexAppServerEvent> get events => _connection.events;
   bool get isConnected => _connection.isConnected;
@@ -40,6 +41,7 @@ class CodexAppServerClient {
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) async {
+    _ensureNotDisposed();
     await _connection.connect(profile: profile, secrets: secrets);
   }
 
@@ -48,6 +50,7 @@ class CodexAppServerClient {
     String? model,
     String? resumeThreadId,
   }) async {
+    _ensureNotDisposed();
     return _requestApi.startSession(
       _connection,
       cwd: cwd,
@@ -61,6 +64,7 @@ class CodexAppServerClient {
     required String text,
     String? model,
   }) async {
+    _ensureNotDisposed();
     return _requestApi.sendUserMessage(
       _connection,
       threadId: threadId,
@@ -73,6 +77,7 @@ class CodexAppServerClient {
     required String requestId,
     required Map<String, List<String>> answers,
   }) async {
+    _ensureNotDisposed();
     await _requestApi.answerUserInput(
       _connection,
       requestId: requestId,
@@ -85,6 +90,7 @@ class CodexAppServerClient {
     required bool success,
     List<Map<String, Object?>> contentItems = const <Map<String, Object?>>[],
   }) async {
+    _ensureNotDisposed();
     await _requestApi.respondDynamicToolCall(
       _connection,
       requestId: requestId,
@@ -99,6 +105,7 @@ class CodexAppServerClient {
     required String chatgptAccountId,
     String? chatgptPlanType,
   }) async {
+    _ensureNotDisposed();
     await _requestApi.respondAuthTokensRefresh(
       _connection,
       requestId: requestId,
@@ -112,6 +119,7 @@ class CodexAppServerClient {
     required String requestId,
     required bool approved,
   }) async {
+    _ensureNotDisposed();
     await _requestApi.resolveApproval(
       _connection,
       requestId: requestId,
@@ -125,6 +133,7 @@ class CodexAppServerClient {
     int code = -32000,
     Object? data,
   }) async {
+    _ensureNotDisposed();
     await _connection.rejectServerRequest(
       requestId: requestId,
       message: message,
@@ -138,6 +147,7 @@ class CodexAppServerClient {
     required bool approved,
     String scope = 'turn',
   }) async {
+    _ensureNotDisposed();
     await _requestApi.resolvePermissionsRequest(
       _connection,
       requestId: requestId,
@@ -152,6 +162,7 @@ class CodexAppServerClient {
     Object? content,
     Object? metadata,
   }) async {
+    _ensureNotDisposed();
     await _requestApi.respondToElicitation(
       _connection,
       requestId: requestId,
@@ -165,10 +176,12 @@ class CodexAppServerClient {
     required String requestId,
     required Object? result,
   }) async {
+    _ensureNotDisposed();
     await _connection.sendServerResult(requestId: requestId, result: result);
   }
 
   Future<void> abortTurn({String? threadId, String? turnId}) async {
+    _ensureNotDisposed();
     await _requestApi.abortTurn(
       _connection,
       threadId: threadId,
@@ -177,6 +190,25 @@ class CodexAppServerClient {
   }
 
   Future<void> disconnect() async {
+    if (_isDisposed) {
+      return;
+    }
     await _connection.disconnect();
+  }
+
+  Future<void> dispose() async {
+    if (_isDisposed) {
+      return;
+    }
+    _isDisposed = true;
+    await _connection.dispose();
+  }
+
+  void _ensureNotDisposed() {
+    if (_isDisposed) {
+      throw const CodexAppServerException(
+        'App-server client has been disposed.',
+      );
+    }
   }
 }

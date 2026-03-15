@@ -286,6 +286,66 @@ void main() {
     });
   });
 
+  testWidgets('resyncs user-input fields when the backing request changes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: ConversationEntryCard(
+          block: CodexUserInputRequestBlock(
+            id: 'input_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            requestId: 'input_1',
+            requestType: CodexCanonicalRequestType.toolUserInput,
+            title: 'Input required',
+            body: 'First request.',
+            questions: const <CodexRuntimeUserInputQuestion>[
+              CodexRuntimeUserInputQuestion(
+                id: 'q1',
+                header: 'Project',
+                question: 'Which project should I use?',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'Local draft');
+    await tester.pump();
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: ConversationEntryCard(
+          block: CodexUserInputRequestBlock(
+            id: 'input_2',
+            createdAt: DateTime(2026, 3, 14, 12, 0, 5),
+            requestId: 'input_2',
+            requestType: CodexCanonicalRequestType.toolUserInput,
+            title: 'Input submitted',
+            body: 'Second request.',
+            isResolved: true,
+            questions: const <CodexRuntimeUserInputQuestion>[
+              CodexRuntimeUserInputQuestion(
+                id: 'q2',
+                header: 'Workspace',
+                question: 'Which workspace should I use?',
+              ),
+            ],
+            answers: <String, List<String>>{
+              'q2': <String>['/workspace/mobile'],
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Workspace'), findsOneWidget);
+    expect(find.text('Project'), findsNothing);
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    expect(textField.controller?.text, '/workspace/mobile');
+  });
+
   testWidgets(
     'renders proposed plans with extracted title and collapse control',
     (tester) async {
@@ -321,6 +381,67 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Collapse plan'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'keys transcript cards by block id so local state does not leak',
+    (tester) async {
+      final controller = TranscriptListController();
+      final markdownLines = <String>[
+        '# Ship mobile widgets',
+        '',
+        '## Summary',
+        '',
+        for (var index = 0; index < 24; index += 1)
+          '- Step ${index + 1} for the rollout',
+      ];
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            controller: controller,
+            isConfigured: true,
+            transcriptBlocks: <CodexUiBlock>[
+              CodexProposedPlanBlock(
+                id: 'plan_1',
+                createdAt: DateTime(2026, 3, 14, 12),
+                title: 'Proposed plan',
+                markdown: markdownLines.join('\n'),
+              ),
+            ],
+            turnTimers: const <String, CodexSessionTurnTimer>{},
+            onConfigure: () {},
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Expand plan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Collapse plan'), findsOneWidget);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TranscriptList(
+            controller: controller,
+            isConfigured: true,
+            transcriptBlocks: <CodexUiBlock>[
+              CodexProposedPlanBlock(
+                id: 'plan_2',
+                createdAt: DateTime(2026, 3, 14, 12, 0, 5),
+                title: 'Proposed plan',
+                markdown: markdownLines.join('\n'),
+              ),
+            ],
+            turnTimers: const <String, CodexSessionTurnTimer>{},
+            onConfigure: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Expand plan'), findsOneWidget);
+      expect(find.text('Collapse plan'), findsNothing);
     },
   );
 

@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_policy.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
@@ -63,7 +64,10 @@ class TranscriptReducer {
                                 turnId: state.turnId!,
                                 startedAt: event.createdAt,
                               ))
-                          .copyWith(completedAt: event.createdAt),
+                          .complete(
+                            completedAt: event.createdAt,
+                            monotonicAt: CodexMonotonicClock.now(),
+                          ),
                 }
               : state.turnTimers,
           clearPendingThreadTokenUsageBlock: isClosed,
@@ -83,6 +87,7 @@ class TranscriptReducer {
                   event.turnId!: CodexSessionTurnTimer(
                     turnId: event.turnId!,
                     startedAt: event.createdAt,
+                    activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
                   ),
                 },
           clearPendingThreadTokenUsageBlock: true,

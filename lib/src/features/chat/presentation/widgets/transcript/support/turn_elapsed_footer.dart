@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/utils/duration_utils.dart';
+import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 
@@ -27,7 +28,8 @@ class _TurnElapsedFooterState extends State<TurnElapsedFooter> {
   @override
   void didUpdateWidget(covariant TurnElapsedFooter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.turnTimer.isRunning != widget.turnTimer.isRunning) {
+    if (oldWidget.turnTimer.isTicking != widget.turnTimer.isTicking ||
+        oldWidget.turnTimer.isRunning != widget.turnTimer.isRunning) {
       _syncTimer();
     }
   }
@@ -40,7 +42,7 @@ class _TurnElapsedFooterState extends State<TurnElapsedFooter> {
 
   void _syncTimer() {
     _timer?.cancel();
-    if (!widget.turnTimer.isRunning) {
+    if (!widget.turnTimer.isTicking) {
       return;
     }
 
@@ -55,7 +57,10 @@ class _TurnElapsedFooterState extends State<TurnElapsedFooter> {
   Widget build(BuildContext context) {
     final cards = ConversationCardPalette.of(context);
     final accent = widget.accent ?? tealAccent(Theme.of(context).brightness);
-    final elapsed = widget.turnTimer.elapsedAt(DateTime.now());
+    final elapsed = widget.turnTimer.elapsedAt(
+      DateTime.now(),
+      monotonicNow: CodexMonotonicClock.now(),
+    );
     final label = widget.turnTimer.isRunning ? 'Elapsed' : 'Completed in';
 
     return Padding(

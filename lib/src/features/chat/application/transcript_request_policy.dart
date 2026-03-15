@@ -19,6 +19,7 @@ class TranscriptRequestPolicy {
       return state;
     }
 
+    final wasBlocking = _support.hasBlockingRequest(state);
     if (event.requestType == CodexCanonicalRequestType.mcpServerElicitation) {
       final pendingUserInput = CodexSessionPendingUserInputRequest(
         requestId: requestId,
@@ -30,14 +31,21 @@ class TranscriptRequestPolicy {
         detail: event.detail,
         args: event.args,
       );
+      final nextState = state.copyWith(
+        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
+          ...state.pendingUserInputRequests,
+          requestId: pendingUserInput,
+        },
+        turnTimers: wasBlocking
+            ? state.turnTimers
+            : _support.pauseTurnTimer(
+                state.turnTimers,
+                event.turnId ?? state.turnId,
+                event.createdAt,
+              ),
+      );
       return _support.upsertBlock(
-        state.copyWith(
-          pendingUserInputRequests:
-              <String, CodexSessionPendingUserInputRequest>{
-                ...state.pendingUserInputRequests,
-                requestId: pendingUserInput,
-              },
-        ),
+        nextState,
         CodexUserInputRequestBlock(
           id: 'request_$requestId',
           createdAt: event.createdAt,
@@ -60,13 +68,21 @@ class TranscriptRequestPolicy {
       args: event.args,
     );
 
+    final nextState = state.copyWith(
+      pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+        ...state.pendingApprovalRequests,
+        requestId: pendingRequest,
+      },
+      turnTimers: wasBlocking
+          ? state.turnTimers
+          : _support.pauseTurnTimer(
+              state.turnTimers,
+              event.turnId ?? state.turnId,
+              event.createdAt,
+            ),
+    );
     return _support.upsertBlock(
-      state.copyWith(
-        pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-          ...state.pendingApprovalRequests,
-          requestId: pendingRequest,
-        },
-      ),
+      nextState,
       CodexApprovalRequestBlock(
         id: 'request_$requestId',
         createdAt: event.createdAt,
@@ -94,11 +110,20 @@ class TranscriptRequestPolicy {
       ...state.pendingUserInputRequests,
     }..remove(requestId);
 
+    final nextState = state.copyWith(
+      pendingApprovalRequests: nextApprovalRequests,
+      pendingUserInputRequests: nextInputRequests,
+      turnTimers:
+          nextApprovalRequests.isNotEmpty || nextInputRequests.isNotEmpty
+          ? state.turnTimers
+          : _support.resumeTurnTimer(
+              state.turnTimers,
+              event.turnId ?? state.turnId,
+              event.createdAt,
+            ),
+    );
     return _support.upsertBlock(
-      state.copyWith(
-        pendingApprovalRequests: nextApprovalRequests,
-        pendingUserInputRequests: nextInputRequests,
-      ),
+      nextState,
       _resolvedRequestBlock(
         id: 'request_$requestId',
         createdAt: event.createdAt,
@@ -119,6 +144,7 @@ class TranscriptRequestPolicy {
       return state;
     }
 
+    final wasBlocking = _support.hasBlockingRequest(state);
     final pendingRequest = CodexSessionPendingUserInputRequest(
       requestId: requestId,
       requestType: CodexCanonicalRequestType.toolUserInput,
@@ -130,13 +156,21 @@ class TranscriptRequestPolicy {
       args: event.rawPayload,
     );
 
+    final nextState = state.copyWith(
+      pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
+        ...state.pendingUserInputRequests,
+        requestId: pendingRequest,
+      },
+      turnTimers: wasBlocking
+          ? state.turnTimers
+          : _support.pauseTurnTimer(
+              state.turnTimers,
+              event.turnId ?? state.turnId,
+              event.createdAt,
+            ),
+    );
     return _support.upsertBlock(
-      state.copyWith(
-        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
-          ...state.pendingUserInputRequests,
-          requestId: pendingRequest,
-        },
-      ),
+      nextState,
       CodexUserInputRequestBlock(
         id: 'request_$requestId',
         createdAt: event.createdAt,
@@ -158,12 +192,23 @@ class TranscriptRequestPolicy {
       return state;
     }
 
+    final nextInputRequests = <String, CodexSessionPendingUserInputRequest>{
+      ...state.pendingUserInputRequests,
+    }..remove(requestId);
+    final nextState = state.copyWith(
+      pendingUserInputRequests: nextInputRequests,
+      turnTimers:
+          state.pendingApprovalRequests.isNotEmpty ||
+              nextInputRequests.isNotEmpty
+          ? state.turnTimers
+          : _support.resumeTurnTimer(
+              state.turnTimers,
+              event.turnId ?? state.turnId,
+              event.createdAt,
+            ),
+    );
     return _support.upsertBlock(
-      state.copyWith(
-        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
-          ...state.pendingUserInputRequests,
-        }..remove(requestId),
-      ),
+      nextState,
       CodexUserInputRequestBlock(
         id: 'request_$requestId',
         createdAt: event.createdAt,

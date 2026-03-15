@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
@@ -18,15 +19,68 @@ class TranscriptPolicySupport {
     return <String, CodexSessionTurnTimer>{
       ...turnTimers,
       turnId:
-          existing?.copyWith(
-            completedAt: existing.completedAt ?? completedAt,
+          existing?.complete(
+            completedAt: completedAt,
+            monotonicAt: CodexMonotonicClock.now(),
           ) ??
           CodexSessionTurnTimer(
             turnId: turnId,
             startedAt: completedAt,
             completedAt: completedAt,
+            completedElapsed: Duration.zero,
           ),
     };
+  }
+
+  Map<String, CodexSessionTurnTimer> pauseTurnTimer(
+    Map<String, CodexSessionTurnTimer> turnTimers,
+    String? turnId,
+    DateTime pausedAt,
+  ) {
+    if (turnId == null || turnId.isEmpty) {
+      return turnTimers;
+    }
+
+    final existing = turnTimers[turnId];
+    if (existing == null) {
+      return turnTimers;
+    }
+
+    return <String, CodexSessionTurnTimer>{
+      ...turnTimers,
+      turnId: existing.pause(
+        pausedAt: pausedAt,
+        monotonicAt: CodexMonotonicClock.now(),
+      ),
+    };
+  }
+
+  Map<String, CodexSessionTurnTimer> resumeTurnTimer(
+    Map<String, CodexSessionTurnTimer> turnTimers,
+    String? turnId,
+    DateTime resumedAt,
+  ) {
+    if (turnId == null || turnId.isEmpty) {
+      return turnTimers;
+    }
+
+    final existing = turnTimers[turnId];
+    if (existing == null) {
+      return turnTimers;
+    }
+
+    return <String, CodexSessionTurnTimer>{
+      ...turnTimers,
+      turnId: existing.resume(
+        resumedAt: resumedAt,
+        monotonicAt: CodexMonotonicClock.now(),
+      ),
+    };
+  }
+
+  bool hasBlockingRequest(CodexSessionState state) {
+    return state.pendingApprovalRequests.isNotEmpty ||
+        state.pendingUserInputRequests.isNotEmpty;
   }
 
   CodexSessionState upsertBlock(CodexSessionState state, CodexUiBlock block) {

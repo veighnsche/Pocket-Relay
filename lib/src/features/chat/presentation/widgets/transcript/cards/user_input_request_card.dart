@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
@@ -18,22 +19,25 @@ class UserInputRequestCard extends StatefulWidget {
 }
 
 class _UserInputRequestCardState extends State<UserInputRequestCard> {
-  late final Map<String, TextEditingController> _controllers =
+  final Map<String, TextEditingController> _controllers =
       <String, TextEditingController>{};
 
   @override
   void initState() {
     super.initState();
-    for (final question in widget.block.questions) {
-      _controllers[question.id] = TextEditingController(
-        text: widget.block.answers[question.id]?.join(', ') ?? '',
-      );
+    _syncControllersFromBlock(widget.block);
+  }
+
+  @override
+  void didUpdateWidget(covariant UserInputRequestCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.block.requestId == widget.block.requestId &&
+        _sameFieldIds(oldWidget.block, widget.block) &&
+        _sameAnswers(oldWidget.block.answers, widget.block.answers)) {
+      return;
     }
-    if (widget.block.questions.isEmpty) {
-      _controllers['response'] = TextEditingController(
-        text: widget.block.answers['response']?.join(', ') ?? '',
-      );
-    }
+
+    _syncControllersFromBlock(widget.block);
   }
 
   @override
@@ -42,6 +46,65 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  void _syncControllersFromBlock(CodexUserInputRequestBlock block) {
+    final fieldIds = _fieldIdsFor(block);
+
+    for (final entry in _controllers.entries.toList(growable: false)) {
+      if (!fieldIds.contains(entry.key)) {
+        entry.value.dispose();
+        _controllers.remove(entry.key);
+      }
+    }
+
+    for (final fieldId in fieldIds) {
+      final answerText = block.answers[fieldId]?.join(', ') ?? '';
+      final controller = _controllers[fieldId];
+      if (controller == null) {
+        _controllers[fieldId] = TextEditingController(text: answerText);
+        continue;
+      }
+      if (controller.text != answerText) {
+        controller.value = controller.value.copyWith(
+          text: answerText,
+          selection: TextSelection.collapsed(offset: answerText.length),
+          composing: TextRange.empty,
+        );
+      }
+    }
+  }
+
+  Set<String> _fieldIdsFor(CodexUserInputRequestBlock block) {
+    if (block.questions.isEmpty) {
+      return const <String>{'response'};
+    }
+    return block.questions.map((question) => question.id).toSet();
+  }
+
+  bool _sameFieldIds(
+    CodexUserInputRequestBlock previous,
+    CodexUserInputRequestBlock next,
+  ) {
+    final previousIds = _fieldIdsFor(previous);
+    final nextIds = _fieldIdsFor(next);
+    return setEquals(previousIds, nextIds);
+  }
+
+  bool _sameAnswers(
+    Map<String, List<String>> previous,
+    Map<String, List<String>> next,
+  ) {
+    if (previous.length != next.length) {
+      return false;
+    }
+    for (final entry in previous.entries) {
+      final nextValues = next[entry.key];
+      if (nextValues == null || !listEquals(entry.value, nextValues)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @override

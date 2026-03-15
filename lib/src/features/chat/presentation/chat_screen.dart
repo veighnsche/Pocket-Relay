@@ -29,21 +29,43 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _composerController = TextEditingController();
   final _transcriptListController = TranscriptListController();
-  late final ChatSessionController _sessionController;
+  late ChatSessionController _sessionController;
   StreamSubscription<String>? _snackBarSubscription;
 
   @override
   void initState() {
     super.initState();
-    _sessionController = ChatSessionController(
-      profileStore: widget.profileStore,
-      appServerClient: widget.appServerClient,
-      initialSavedProfile: widget.initialSavedProfile,
-    );
+    _sessionController = _buildSessionController();
     _snackBarSubscription = _sessionController.snackBarMessages.listen(
       _showSnackBar,
     );
     unawaited(_sessionController.initialize());
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profileStore == widget.profileStore &&
+        oldWidget.appServerClient == widget.appServerClient &&
+        oldWidget.initialSavedProfile == widget.initialSavedProfile) {
+      return;
+    }
+
+    _snackBarSubscription?.cancel();
+    _sessionController.dispose();
+    _sessionController = _buildSessionController();
+    _snackBarSubscription = _sessionController.snackBarMessages.listen(
+      _showSnackBar,
+    );
+    unawaited(_sessionController.initialize());
+  }
+
+  ChatSessionController _buildSessionController() {
+    return ChatSessionController(
+      profileStore: widget.profileStore,
+      appServerClient: widget.appServerClient,
+      initialSavedProfile: widget.initialSavedProfile,
+    );
   }
 
   @override

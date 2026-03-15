@@ -34,6 +34,7 @@ class CodexAppServerConnection {
   CodexAppServerProcess? _process;
   ConnectionProfile? _profile;
   bool _disconnecting = false;
+  bool _isDisposed = false;
   String? _threadId;
   String? _activeTurnId;
 
@@ -46,6 +47,7 @@ class CodexAppServerConnection {
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) async {
+    _ensureNotDisposed();
     if (isConnected) {
       await disconnect();
     }
@@ -116,10 +118,23 @@ class CodexAppServerConnection {
   }
 
   Future<void> disconnect() async {
+    if (_isDisposed) {
+      return;
+    }
     await _disconnect(emitDisconnectedEvent: true);
   }
 
+  Future<void> dispose() async {
+    if (_isDisposed) {
+      return;
+    }
+    _isDisposed = true;
+    await _disconnect(emitDisconnectedEvent: false);
+    await _eventsController.close();
+  }
+
   Future<Object?> sendRequest(String method, Object? params) {
+    _ensureNotDisposed();
     requireConnected();
 
     final trackedRequest = _requestTracker.createRequest(
@@ -146,6 +161,7 @@ class CodexAppServerConnection {
     required String requestId,
     required Object? result,
   }) async {
+    _ensureNotDisposed();
     final pending = _inboundRequestStore.take(requestId);
     if (pending == null) {
       throw CodexAppServerException(
@@ -162,6 +178,7 @@ class CodexAppServerConnection {
     int code = -32000,
     Object? data,
   }) async {
+    _ensureNotDisposed();
     final pending = _inboundRequestStore.take(requestId);
     if (pending == null) {
       throw CodexAppServerException(
@@ -178,6 +195,7 @@ class CodexAppServerConnection {
   }
 
   ConnectionProfile requireProfile() {
+    _ensureNotDisposed();
     final profile = _profile;
     if (profile == null) {
       throw const CodexAppServerException(
@@ -188,12 +206,14 @@ class CodexAppServerConnection {
   }
 
   void requireConnected() {
+    _ensureNotDisposed();
     if (_process == null) {
       throw const CodexAppServerException('App-server is not connected.');
     }
   }
 
   CodexJsonRpcRequest requirePendingServerRequest(String requestId) {
+    _ensureNotDisposed();
     final pending = _inboundRequestStore.lookup(requestId);
     if (pending == null) {
       throw CodexAppServerException(
@@ -204,11 +224,13 @@ class CodexAppServerConnection {
   }
 
   void setTrackedThread(String? threadId) {
+    _ensureNotDisposed();
     _threadId = threadId;
     _activeTurnId = null;
   }
 
   void setTrackedTurn({required String threadId, required String turnId}) {
+    _ensureNotDisposed();
     _threadId = threadId;
     _activeTurnId = turnId;
   }
@@ -354,6 +376,14 @@ class CodexAppServerConnection {
         .cast<List<int>>()
         .transform(utf8.decoder)
         .transform(const LineSplitter());
+  }
+
+  void _ensureNotDisposed() {
+    if (_isDisposed) {
+      throw const CodexAppServerException(
+        'App-server connection has been disposed.',
+      );
+    }
   }
 
   static Map<String, dynamic>? _asObject(Object? value) {

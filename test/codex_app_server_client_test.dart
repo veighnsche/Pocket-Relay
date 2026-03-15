@@ -50,6 +50,41 @@ void main() {
     },
   );
 
+  test('dispose closes the event stream and rejects reuse', () async {
+    final client = CodexAppServerClient(
+      processLauncher:
+          ({required profile, required secrets, required emitEvent}) async =>
+              _FakeCodexAppServerProcess(),
+    );
+    var didCloseEvents = false;
+    final subscription = client.events.listen(
+      (_) {},
+      onDone: () {
+        didCloseEvents = true;
+      },
+    );
+
+    await client.dispose();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(didCloseEvents, isTrue);
+    await expectLater(
+      client.connect(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      ),
+      throwsA(
+        isA<CodexAppServerException>().having(
+          (error) => error.message,
+          'message',
+          contains('disposed'),
+        ),
+      ),
+    );
+
+    await subscription.cancel();
+  });
+
   test('startSession and sendUserMessage send the expected requests', () async {
     late _FakeCodexAppServerProcess process;
     process = _FakeCodexAppServerProcess(
