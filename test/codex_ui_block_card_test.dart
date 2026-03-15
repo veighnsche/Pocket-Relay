@@ -5,6 +5,7 @@ import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/turn_boundary_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
 
@@ -520,6 +521,35 @@ void main() {
     );
 
     expect(find.text('end · 1:05'), findsOneWidget);
+  });
+
+  testWidgets('keeps the turn completion separator flush on wide layouts', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 1200,
+            child: ConversationEntryCard(
+              block: CodexTurnBoundaryBlock(
+                id: 'turn_end_flush_1',
+                createdAt: DateTime(2026, 3, 14, 12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getSize(find.byKey(TurnBoundaryCard.separatorRowKey)).width,
+      1200,
+    );
   });
 
   testWidgets('renders a live elapsed footer with the current duration', (

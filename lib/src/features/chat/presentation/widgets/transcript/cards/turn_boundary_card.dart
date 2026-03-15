@@ -6,6 +6,10 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/s
 class TurnBoundaryCard extends StatelessWidget {
   const TurnBoundaryCard({super.key, required this.block});
 
+  static const separatorRowKey = ValueKey<String>(
+    'turn_boundary_separator_row',
+  );
+
   final CodexTurnBoundaryBlock block;
 
   @override
@@ -14,38 +18,36 @@ class TurnBoundaryCard extends StatelessWidget {
     final label = block.elapsed == null
         ? block.label
         : '${block.label} · ${formatElapsedDuration(block.elapsed!)}';
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 700),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                color: cards.neutralBorder.withValues(alpha: 0.55),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        key: separatorRowKey,
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              color: cards.neutralBorder.withValues(alpha: 0.55),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: cards.textMuted,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.45,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: cards.textMuted,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.45,
-                ),
-              ),
+          ),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: cards.neutralBorder.withValues(alpha: 0.55),
             ),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: cards.neutralBorder.withValues(alpha: 0.55),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
