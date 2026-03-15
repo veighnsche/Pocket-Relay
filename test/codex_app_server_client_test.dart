@@ -599,7 +599,7 @@ void main() {
     await client.disconnect();
   });
 
-  test('auth token refresh requests can be answered or rejected', () async {
+  test('unsupported host requests can be rejected generically', () async {
     late _FakeCodexAppServerProcess process;
     process = _FakeCodexAppServerProcess(
       onClientMessage: (message) {
@@ -633,19 +633,17 @@ void main() {
     });
     await Future<void>.delayed(Duration.zero);
 
-    await client.respondAuthTokensRefresh(
+    await client.rejectServerRequest(
       requestId: 's:auth-1',
-      accessToken: 'access-token',
-      chatgptAccountId: 'org-456',
-      chatgptPlanType: 'plus',
+      message: 'Unsupported request.',
+      code: -32601,
     );
 
     expect(process.writtenMessages.last, <String, Object?>{
       'id': 'auth-1',
-      'result': <String, Object?>{
-        'accessToken': 'access-token',
-        'chatgptAccountId': 'org-456',
-        'chatgptPlanType': 'plus',
+      'error': <String, Object?>{
+        'code': -32601,
+        'message': 'Unsupported request.',
       },
     });
 

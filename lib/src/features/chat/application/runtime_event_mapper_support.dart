@@ -240,8 +240,6 @@ CodexCanonicalRequestType _requestTypeFromMethod(String method) {
   return switch (method) {
     'item/commandExecution/requestApproval' =>
       CodexCanonicalRequestType.commandExecutionApproval,
-    'item/fileRead/requestApproval' =>
-      CodexCanonicalRequestType.fileReadApproval,
     'item/fileChange/requestApproval' =>
       CodexCanonicalRequestType.fileChangeApproval,
     'applyPatchApproval' => CodexCanonicalRequestType.applyPatchApproval,
@@ -253,8 +251,6 @@ CodexCanonicalRequestType _requestTypeFromMethod(String method) {
     'mcpServer/elicitation/request' =>
       CodexCanonicalRequestType.mcpServerElicitation,
     'item/tool/call' => CodexCanonicalRequestType.dynamicToolCall,
-    'account/chatgptAuthTokens/refresh' =>
-      CodexCanonicalRequestType.authTokensRefresh,
     _ => CodexCanonicalRequestType.unknown,
   };
 }

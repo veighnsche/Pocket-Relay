@@ -291,38 +291,6 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applyTurnDiffUpdated(
-    CodexSessionState state,
-    CodexRuntimeTurnDiffUpdatedEvent event,
-  ) {
-    final activeTurn = state.activeTurn;
-    if (activeTurn != null &&
-        event.turnId != null &&
-        activeTurn.turnId != event.turnId) {
-      return state;
-    }
-
-    final ensuredActiveTurn = _support.ensureActiveTurn(
-      activeTurn,
-      turnId: event.turnId,
-      threadId: event.threadId,
-      createdAt: event.createdAt,
-    );
-    if (ensuredActiveTurn == null) {
-      return state;
-    }
-
-    return state.copyWith(
-      activeTurn: ensuredActiveTurn.copyWith(
-        turnDiffSnapshot: CodexTurnDiffSnapshot(
-          turnId: ensuredActiveTurn.turnId,
-          createdAt: event.createdAt,
-          unifiedDiff: event.unifiedDiff,
-        ),
-      ),
-    );
-  }
-
   CodexSessionState applyItemLifecycle(
     CodexSessionState state,
     CodexRuntimeItemLifecycleEvent event, {

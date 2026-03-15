@@ -1,6 +1,5 @@
 import 'package:pocket_relay/src/features/chat/application/transcript_changed_files_parser.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_item_block_factory.dart';
-import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
@@ -54,10 +53,6 @@ class TranscriptTurnArtifactBuilder {
         ...turn.itemArtifactIds,
         item.itemId: artifact.id,
       },
-      hasWork: turn.hasWork || _isWorkItem(item.itemType),
-      hasReasoning:
-          turn.hasReasoning ||
-          item.itemType == CodexCanonicalItemType.reasoning,
     );
   }
 
@@ -100,10 +95,6 @@ class TranscriptTurnArtifactBuilder {
         ...turn.itemArtifactIds,
         item.itemId: artifactId,
       },
-      hasWork: true,
-      hasReasoning:
-          turn.hasReasoning ||
-          item.itemType == CodexCanonicalItemType.reasoning,
     );
   }
 
@@ -158,10 +149,6 @@ class TranscriptTurnArtifactBuilder {
         ...turn.itemArtifactIds,
         item.itemId: artifactId,
       },
-      hasWork: turn.hasWork || _isWorkItem(item.itemType),
-      hasReasoning:
-          turn.hasReasoning ||
-          item.itemType == CodexCanonicalItemType.reasoning,
     );
   }
 
@@ -269,20 +256,6 @@ class TranscriptTurnArtifactBuilder {
   bool _isWorkBlockKind(CodexUiBlockKind blockKind) {
     return switch (blockKind) {
       CodexUiBlockKind.workLogEntry => true,
-      _ => false,
-    };
-  }
-
-  bool _isWorkItem(CodexCanonicalItemType itemType) {
-    return switch (itemType) {
-      CodexCanonicalItemType.commandExecution ||
-      CodexCanonicalItemType.fileChange ||
-      CodexCanonicalItemType.webSearch ||
-      CodexCanonicalItemType.imageView ||
-      CodexCanonicalItemType.imageGeneration ||
-      CodexCanonicalItemType.mcpToolCall ||
-      CodexCanonicalItemType.dynamicToolCall ||
-      CodexCanonicalItemType.collabAgentToolCall => true,
       _ => false,
     };
   }

@@ -28,7 +28,7 @@ Completed items:
 
 ### Group 2: Medium Cleanups
 
-Status: in progress on 2026-03-15
+Status: completed on 2026-03-15
 
 Completed items:
 
@@ -39,13 +39,18 @@ Completed items:
 - removed unused `CodexAppServerClient` facade methods
   `resolvePermissionsRequest(...)` and `sendServerResult(...)`
 - removed unused `latestUsageSummary` from `CodexActiveTurnState`
+- removed the write-only active-turn fields `turnDiffSnapshot`, `hasWork`,
+  and `hasReasoning`
+- removed the dead auth-refresh response API from the app-server client and
+  request layer
+- removed legacy file-read approval resolution support so transport behavior
+  matches the controller's rejection-only handling
 - updated `README.md` to reflect the current app-server-only architecture
+- updated `docs/pre-phase-5-infrastructure-plan.md` so its frozen public
+  surface matches the current client API
 
 Scope:
-
-- continue trimming write-only state that no longer affects runtime behavior
-- continue removing dead transport residue that is still compiled and tested
-- repair any remaining stale docs tied to those areas
+- keep medium cleanup converged as adjacent transport work changes
 
 ### Group 3: Structural Refactors
 
@@ -70,65 +75,10 @@ Scope:
 
 ## Verification
 
-- `dart analyze` reports no errors after the current structural pass.
-- The full test suite passed after the current structural pass.
+- `dart analyze` reports no errors after the current cleanup pass.
+- The full test suite passed after the current cleanup pass.
 - All other findings were confirmed by direct call-site tracing with `rg`.
 
 ## Remaining Findings
 
-### Medium
-
-#### 1. `CodexActiveTurnState` still contains write-only refactor residue
-
-Several fields are still present in state but are not read by app code.
-
-Fields:
-
-- `turnDiffSnapshot`
-- `hasWork`
-- `hasReasoning`
-
-Evidence:
-
-- [`lib/src/features/chat/models/codex_session_state.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart#L721)
-- [`lib/src/features/chat/application/transcript_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart#L322)
-- [`lib/src/features/chat/application/transcript_turn_segmenter.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_turn_segmenter.dart#L57)
-
-Why this matters:
-
-- these fields still shape the model layer
-- production behavior no longer depends on them
-- tests currently preserve some of this state shape
-
-#### 2. Auth-refresh response path is dead in the shipped app
-
-The transport layer still implements `respondAuthTokensRefresh(...)`, but the
-controller rejects auth-refresh requests as unsupported before that path can be
-used.
-
-Evidence:
-
-- [`lib/src/features/chat/infrastructure/app_server/codex_app_server_client.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_client.dart#L102)
-- [`lib/src/features/chat/infrastructure/app_server/codex_app_server_request_api.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_request_api.dart#L177)
-- [`lib/src/features/chat/application/chat_session_controller.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/chat_session_controller.dart#L225)
-
-Why this matters:
-
-- this is facade surface with no reachable production path
-- transport and controller disagree about supported behavior
-
-#### 3. `item/fileRead/requestApproval` has split ownership
-
-The request API still knows how to resolve file-read approvals, but the
-controller treats the request as legacy and rejects it before resolution can be
-used.
-
-Evidence:
-
-- [`lib/src/features/chat/infrastructure/app_server/codex_app_server_request_api.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_request_api.dart#L201)
-- [`lib/src/features/chat/application/chat_session_controller.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/chat_session_controller.dart#L249)
-
-Why this matters:
-
-- this is split behavior for the same protocol surface
-- only the rejection path is reachable in production
+No confirmed remaining findings from this audit as of 2026-03-15.

@@ -99,22 +99,6 @@ class CodexAppServerClient {
     );
   }
 
-  Future<void> respondAuthTokensRefresh({
-    required String requestId,
-    required String accessToken,
-    required String chatgptAccountId,
-    String? chatgptPlanType,
-  }) async {
-    _ensureNotDisposed();
-    await _requestApi.respondAuthTokensRefresh(
-      _connection,
-      requestId: requestId,
-      accessToken: accessToken,
-      chatgptAccountId: chatgptAccountId,
-      chatgptPlanType: chatgptPlanType,
-    );
-  }
-
   Future<void> resolveApproval({
     required String requestId,
     required bool approved,

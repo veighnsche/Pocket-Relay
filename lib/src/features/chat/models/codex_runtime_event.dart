@@ -64,7 +64,6 @@ enum CodexCanonicalItemType {
 
 enum CodexCanonicalRequestType {
   commandExecutionApproval,
-  fileReadApproval,
   fileChangeApproval,
   applyPatchApproval,
   execCommandApproval,
@@ -72,7 +71,6 @@ enum CodexCanonicalRequestType {
   toolUserInput,
   mcpServerElicitation,
   dynamicToolCall,
-  authTokensRefresh,
   unknown,
 }
 

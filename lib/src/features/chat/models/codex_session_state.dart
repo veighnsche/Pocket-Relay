@@ -412,7 +412,6 @@ CodexUserInputRequestBlock _pendingUserInputBlock(
 String codexRequestTitle(CodexCanonicalRequestType requestType) {
   return switch (requestType) {
     CodexCanonicalRequestType.commandExecutionApproval => 'Command approval',
-    CodexCanonicalRequestType.fileReadApproval => 'File read approval',
     CodexCanonicalRequestType.fileChangeApproval => 'File change approval',
     CodexCanonicalRequestType.applyPatchApproval => 'Patch approval',
     CodexCanonicalRequestType.execCommandApproval => 'Command approval',
@@ -421,7 +420,6 @@ String codexRequestTitle(CodexCanonicalRequestType requestType) {
     CodexCanonicalRequestType.toolUserInput => 'Input required',
     CodexCanonicalRequestType.mcpServerElicitation => 'MCP input required',
     CodexCanonicalRequestType.dynamicToolCall => 'Tool call',
-    CodexCanonicalRequestType.authTokensRefresh => 'Auth refresh',
     CodexCanonicalRequestType.unknown => 'Request',
   };
 }
@@ -702,26 +700,6 @@ final class CodexTurnBlockArtifact extends CodexTurnArtifact {
   final CodexUiBlock block;
 }
 
-final class CodexTurnDiffSnapshot {
-  const CodexTurnDiffSnapshot({
-    required this.turnId,
-    required this.createdAt,
-    required this.unifiedDiff,
-  });
-
-  final String turnId;
-  final DateTime createdAt;
-  final String unifiedDiff;
-
-  CodexTurnDiffSnapshot copyWith({DateTime? createdAt, String? unifiedDiff}) {
-    return CodexTurnDiffSnapshot(
-      turnId: turnId,
-      createdAt: createdAt ?? this.createdAt,
-      unifiedDiff: unifiedDiff ?? this.unifiedDiff,
-    );
-  }
-}
-
 class CodexActiveTurnState {
   const CodexActiveTurnState({
     required this.turnId,
@@ -734,10 +712,7 @@ class CodexActiveTurnState {
     this.pendingApprovalRequests = const <String, CodexSessionPendingRequest>{},
     this.pendingUserInputRequests =
         const <String, CodexSessionPendingUserInputRequest>{},
-    this.turnDiffSnapshot,
     this.pendingThreadTokenUsageBlock,
-    this.hasWork = false,
-    this.hasReasoning = false,
   });
 
   final String turnId;
@@ -750,10 +725,7 @@ class CodexActiveTurnState {
   final Map<String, CodexSessionPendingRequest> pendingApprovalRequests;
   final Map<String, CodexSessionPendingUserInputRequest>
   pendingUserInputRequests;
-  final CodexTurnDiffSnapshot? turnDiffSnapshot;
   final CodexUsageBlock? pendingThreadTokenUsageBlock;
-  final bool hasWork;
-  final bool hasReasoning;
 
   bool get hasBlockingRequests =>
       pendingApprovalRequests.isNotEmpty || pendingUserInputRequests.isNotEmpty;
@@ -768,12 +740,8 @@ class CodexActiveTurnState {
     Map<String, String>? itemArtifactIds,
     Map<String, CodexSessionPendingRequest>? pendingApprovalRequests,
     Map<String, CodexSessionPendingUserInputRequest>? pendingUserInputRequests,
-    CodexTurnDiffSnapshot? turnDiffSnapshot,
-    bool clearTurnDiffSnapshot = false,
     CodexUsageBlock? pendingThreadTokenUsageBlock,
     bool clearPendingThreadTokenUsageBlock = false,
-    bool? hasWork,
-    bool? hasReasoning,
   }) {
     return CodexActiveTurnState(
       turnId: turnId ?? this.turnId,
@@ -787,14 +755,9 @@ class CodexActiveTurnState {
           pendingApprovalRequests ?? this.pendingApprovalRequests,
       pendingUserInputRequests:
           pendingUserInputRequests ?? this.pendingUserInputRequests,
-      turnDiffSnapshot: clearTurnDiffSnapshot
-          ? null
-          : (turnDiffSnapshot ?? this.turnDiffSnapshot),
       pendingThreadTokenUsageBlock: clearPendingThreadTokenUsageBlock
           ? null
           : (pendingThreadTokenUsageBlock ?? this.pendingThreadTokenUsageBlock),
-      hasWork: hasWork ?? this.hasWork,
-      hasReasoning: hasReasoning ?? this.hasReasoning,
     );
   }
 }

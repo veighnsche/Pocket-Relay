@@ -87,7 +87,7 @@ class TranscriptReducer {
       case CodexRuntimeTurnPlanUpdatedEvent():
         return _policy.applyTurnPlanUpdated(normalizedState, event);
       case CodexRuntimeTurnDiffUpdatedEvent():
-        return _policy.applyTurnDiffUpdated(normalizedState, event);
+        return normalizedState;
       case CodexRuntimeItemStartedEvent():
         return _policy.applyItemLifecycle(
           normalizedState,

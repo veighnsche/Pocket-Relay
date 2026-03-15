@@ -174,30 +174,6 @@ class CodexAppServerRequestApi {
     );
   }
 
-  Future<void> respondAuthTokensRefresh(
-    CodexAppServerConnection connection, {
-    required String requestId,
-    required String accessToken,
-    required String chatgptAccountId,
-    String? chatgptPlanType,
-  }) async {
-    final pending = connection.requirePendingServerRequest(requestId);
-    if (pending.method != 'account/chatgptAuthTokens/refresh') {
-      throw CodexAppServerException(
-        'Request $requestId is ${pending.method}, not account/chatgptAuthTokens/refresh.',
-      );
-    }
-
-    await connection.sendServerResult(
-      requestId: requestId,
-      result: <String, Object?>{
-        'accessToken': accessToken,
-        'chatgptAccountId': chatgptAccountId,
-        'chatgptPlanType': chatgptPlanType,
-      },
-    );
-  }
-
   Future<void> resolveApproval(
     CodexAppServerConnection connection, {
     required String requestId,
@@ -216,7 +192,6 @@ class CodexAppServerRequestApi {
     final decision = switch (pending.method) {
       'item/commandExecution/requestApproval' =>
         approved ? 'accept' : 'decline',
-      'item/fileRead/requestApproval' => approved ? 'accept' : 'decline',
       'item/fileChange/requestApproval' => approved ? 'accept' : 'decline',
       'applyPatchApproval' => approved ? 'approved' : 'denied',
       'execCommandApproval' => approved ? 'approved' : 'denied',
