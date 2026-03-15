@@ -50,6 +50,56 @@ void main() {
     },
   );
 
+  test(
+    'connect preserves the final stderr line when startup exits immediately',
+    () async {
+      late _FakeCodexAppServerProcess process;
+      process = _FakeCodexAppServerProcess(
+        exitCodeValue: 127,
+        onClientMessage: (message) {
+          if (message['method'] == 'initialize') {
+            process.sendStderr(
+              'Codex CLI not found on PATH',
+              includeTrailingNewline: false,
+            );
+            unawaited(process.close());
+          }
+        },
+      );
+
+      final client = CodexAppServerClient(
+        processLauncher:
+            ({required profile, required secrets, required emitEvent}) async =>
+                process,
+      );
+      final events = <CodexAppServerEvent>[];
+      final subscription = client.events.listen(events.add);
+
+      await expectLater(
+        client.connect(
+          profile: _profile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+        throwsA(
+          isA<CodexAppServerException>().having(
+            (error) => error.message,
+            'message',
+            contains('disconnected'),
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        events.whereType<CodexAppServerDiagnosticEvent>().map((e) => e.message),
+        contains('Codex CLI not found on PATH'),
+      );
+
+      await subscription.cancel();
+      await client.disconnect();
+    },
+  );
+
   test('dispose closes the event stream and rejects reuse', () async {
     final client = CodexAppServerClient(
       processLauncher:
@@ -918,7 +968,7 @@ ConnectionProfile _profile({bool ephemeralSession = false}) {
 }
 
 class _FakeCodexAppServerProcess implements CodexAppServerProcess {
-  _FakeCodexAppServerProcess({this.onClientMessage}) {
+  _FakeCodexAppServerProcess({this.onClientMessage, this.exitCodeValue = 0}) {
     _stdinController.stream
         .cast<List<int>>()
         .transform(utf8.decoder)
@@ -931,12 +981,14 @@ class _FakeCodexAppServerProcess implements CodexAppServerProcess {
   }
 
   final void Function(Map<String, dynamic> message)? onClientMessage;
+  final int? exitCodeValue;
   final List<Map<String, dynamic>> writtenMessages = <Map<String, dynamic>>[];
 
   final _stdinController = StreamController<Uint8List>();
   final _stdoutController = StreamController<Uint8List>.broadcast();
   final _stderrController = StreamController<Uint8List>.broadcast();
   final _doneCompleter = Completer<void>();
+  bool _isClosed = false;
 
   @override
   Stream<Uint8List> get stdout => _stdoutController.stream;
@@ -951,15 +1003,24 @@ class _FakeCodexAppServerProcess implements CodexAppServerProcess {
   Future<void> get done => _doneCompleter.future;
 
   @override
-  int? get exitCode => 0;
+  int? get exitCode => exitCodeValue;
 
   void sendStdout(Map<String, Object?> payload) {
     final line = '${jsonEncode(payload)}\n';
     _stdoutController.add(Uint8List.fromList(utf8.encode(line)));
   }
 
+  void sendStderr(String text, {bool includeTrailingNewline = true}) {
+    final output = includeTrailingNewline ? '$text\n' : text;
+    _stderrController.add(Uint8List.fromList(utf8.encode(output)));
+  }
+
   @override
   Future<void> close() async {
+    if (_isClosed) {
+      return;
+    }
+    _isClosed = true;
     if (!_doneCompleter.isCompleted) {
       _doneCompleter.complete();
     }

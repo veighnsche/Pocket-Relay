@@ -31,6 +31,8 @@ class CodexAppServerConnection {
 
   StreamSubscription<String>? _stdoutSubscription;
   StreamSubscription<String>? _stderrSubscription;
+  Completer<void>? _stdoutClosedCompleter;
+  Completer<void>? _stderrClosedCompleter;
   CodexAppServerProcess? _process;
   ConnectionProfile? _profile;
   bool _disconnecting = false;
@@ -63,6 +65,8 @@ class CodexAppServerConnection {
 
       _process = process;
       _profile = profile;
+      _stdoutClosedCompleter = Completer<void>();
+      _stderrClosedCompleter = Completer<void>();
       _stdoutSubscription = _decodeLines(process.stdout).listen(
         _handleStdoutLine,
         onError: (Object error, StackTrace stackTrace) {
@@ -73,18 +77,26 @@ class CodexAppServerConnection {
             ),
           );
         },
-        onDone: _handleProcessClosed,
+        onDone: () {
+          _stdoutClosedCompleter?.complete();
+          _handleProcessClosed();
+        },
       );
-      _stderrSubscription = _decodeLines(process.stderr).listen((line) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty) {
-          return;
-        }
+      _stderrSubscription = _decodeLines(process.stderr).listen(
+        (line) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty) {
+            return;
+          }
 
-        _emitEvent(
-          CodexAppServerDiagnosticEvent(message: trimmed, isError: true),
-        );
-      });
+          _emitEvent(
+            CodexAppServerDiagnosticEvent(message: trimmed, isError: true),
+          );
+        },
+        onDone: () {
+          _stderrClosedCompleter?.complete();
+        },
+      );
 
       process.done.then((_) {
         if (!_disconnecting) {
@@ -244,23 +256,36 @@ class CodexAppServerConnection {
     _threadId = null;
     _activeTurnId = null;
 
+    if (process != null) {
+      final exitCode = process.exitCode;
+      await process.close();
+      await _drainOutputStreams();
+      await _stdoutSubscription?.cancel();
+      await _stderrSubscription?.cancel();
+      _stdoutSubscription = null;
+      _stderrSubscription = null;
+      _stdoutClosedCompleter = null;
+      _stderrClosedCompleter = null;
+      _requestTracker.failPending(
+        const CodexAppServerException('App-server session disconnected.'),
+      );
+      _inboundRequestStore.clear();
+      if (emitDisconnectedEvent) {
+        _emitEvent(CodexAppServerDisconnectedEvent(exitCode: exitCode));
+      }
+      return;
+    }
+
     await _stdoutSubscription?.cancel();
     await _stderrSubscription?.cancel();
     _stdoutSubscription = null;
     _stderrSubscription = null;
-
+    _stdoutClosedCompleter = null;
+    _stderrClosedCompleter = null;
     _requestTracker.failPending(
       const CodexAppServerException('App-server session disconnected.'),
     );
     _inboundRequestStore.clear();
-
-    if (process != null) {
-      final exitCode = process.exitCode;
-      await process.close();
-      if (emitDisconnectedEvent) {
-        _emitEvent(CodexAppServerDisconnectedEvent(exitCode: exitCode));
-      }
-    }
   }
 
   void _handleStdoutLine(String line) {
@@ -368,6 +393,27 @@ class CodexAppServerConnection {
   void _emitEvent(CodexAppServerEvent event) {
     if (!_eventsController.isClosed) {
       _eventsController.add(event);
+    }
+  }
+
+  Future<void> _drainOutputStreams() async {
+    final futures = <Future<void>>[];
+    final stdoutClosedCompleter = _stdoutClosedCompleter;
+    final stderrClosedCompleter = _stderrClosedCompleter;
+    if (stdoutClosedCompleter != null && !stdoutClosedCompleter.isCompleted) {
+      futures.add(stdoutClosedCompleter.future);
+    }
+    if (stderrClosedCompleter != null && !stderrClosedCompleter.isCompleted) {
+      futures.add(stderrClosedCompleter.future);
+    }
+    if (futures.isEmpty) {
+      return;
+    }
+
+    try {
+      await Future.wait(futures).timeout(const Duration(milliseconds: 100));
+    } on TimeoutException {
+      // Don't block teardown indefinitely if a transport stream never closes.
     }
   }
 

@@ -8,10 +8,11 @@ void main() {
       profile: _profile().copyWith(codexPath: 'codex'),
     );
 
-    expect(
-      command,
-      "bash -lc 'cd '\"'\"'/workspace'\"'\"' && codex app-server --listen stdio://'",
-    );
+    expect(command, startsWith("sh -lc '"));
+    expect(command, contains(r'exec "$SHELL" -lc '));
+    expect(command, contains('exec /bin/sh -lc '));
+    expect(command, contains('/workspace'));
+    expect(command, contains('codex app-server --listen stdio://'));
   });
 
   test('builds a remote command for a launch command with spaces', () {
@@ -19,10 +20,17 @@ void main() {
       profile: _profile().copyWith(codexPath: 'just codex-mcp'),
     );
 
-    expect(
-      command,
-      "bash -lc 'cd '\"'\"'/workspace'\"'\"' && just codex-mcp app-server --listen stdio://'",
-    );
+    expect(command, startsWith("sh -lc '"));
+    expect(command, contains('/workspace'));
+    expect(command, contains('just codex-mcp app-server --listen stdio://'));
+  });
+
+  test('prefers the remote account shell before falling back to sh', () {
+    final command = buildSshCodexAppServerCommand(profile: _profile());
+
+    expect(command, contains(r'if [ -n "${SHELL:-}" ]'));
+    expect(command, contains(r'getent passwd "$(id -un)" | cut -d: -f7'));
+    expect(command, contains(r'exec "$_pocket_relay_shell" -lc'));
   });
 }
 

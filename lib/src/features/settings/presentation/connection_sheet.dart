@@ -222,7 +222,7 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                             labelText: 'Codex launch command',
                             hintText: 'codex or just codex-mcp',
                             helperText:
-                                'Command run inside the workspace before app-server args are appended.',
+                                'Command run inside the workspace before app-server args are appended. Pocket Relay uses your remote login shell when available.',
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
