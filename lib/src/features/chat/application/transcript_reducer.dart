@@ -122,17 +122,17 @@ class TranscriptReducer {
       case CodexRuntimeWarningEvent():
         return _policy.applyWarning(normalizedState, event);
       case CodexRuntimeSshConnectFailedEvent():
-        return normalizedState;
+        return _policy.applySshConnectFailed(normalizedState, event);
       case CodexRuntimeUnpinnedHostKeyEvent():
         return _policy.applyUnpinnedHostKey(normalizedState, event);
       case CodexRuntimeSshHostKeyMismatchEvent():
-        return normalizedState;
+        return _policy.applySshHostKeyMismatch(normalizedState, event);
       case CodexRuntimeSshAuthenticationFailedEvent():
-        return normalizedState;
+        return _policy.applySshAuthenticationFailed(normalizedState, event);
       case CodexRuntimeSshAuthenticatedEvent():
         return normalizedState;
       case CodexRuntimeSshRemoteLaunchFailedEvent():
-        return normalizedState;
+        return _policy.applySshRemoteLaunchFailed(normalizedState, event);
       case CodexRuntimeSshRemoteProcessStartedEvent():
         return normalizedState;
       case CodexRuntimeStatusEvent():

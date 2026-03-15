@@ -54,6 +54,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
           List<Map<String, Object?>> contentItems,
         })
       >[];
+  final List<CodexAppServerEvent> connectEventsBeforeThrow =
+      <CodexAppServerEvent>[];
   Object? connectError;
   Object? startSessionError;
   Object? sendUserMessageError;
@@ -81,6 +83,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required ConnectionSecrets secrets,
   }) async {
     if (connectError != null) {
+      for (final event in connectEventsBeforeThrow) {
+        emit(event);
+      }
       throw connectError!;
     }
     connectCalls += 1;

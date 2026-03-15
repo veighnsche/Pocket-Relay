@@ -247,6 +247,55 @@ void main() {
       );
     },
   );
+
+  test(
+    'sendPrompt suppresses duplicate generic transcript errors when SSH bootstrap already surfaced a typed failure',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..connectEventsBeforeThrow.add(
+          const CodexAppServerSshConnectFailedEvent(
+            host: 'example.com',
+            port: 22,
+            message: 'Connection refused',
+          ),
+        )
+        ..connectError = StateError('connect failed after transport event');
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      final sent = await controller.sendPrompt('Hello controller');
+
+      expect(sent, isFalse);
+      final errors = controller.transcriptBlocks
+          .whereType<CodexErrorBlock>()
+          .toList(growable: false);
+      expect(errors, hasLength(1));
+      expect(errors.single.title, 'SSH connection failed');
+      expect(errors.single.body, contains('Connection refused'));
+      expect(
+        await snackBarMessage,
+        'Could not send the prompt to the remote Codex session.',
+      );
+    },
+  );
 }
 
 ConnectionProfile _configuredProfile() {

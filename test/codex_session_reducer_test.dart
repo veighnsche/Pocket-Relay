@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
@@ -1459,6 +1460,107 @@ void main() {
     expect(state.connectionStatus, CodexRuntimeSessionState.ready);
     expect(state.blocks, hasLength(1));
     expect(state.blocks.single, isA<CodexUnpinnedHostKeyBlock>());
+  });
+
+  test('projects typed SSH failures into transcript error blocks', () {
+    final reducer = TranscriptReducer();
+    var state = const CodexSessionState(
+      connectionStatus: CodexRuntimeSessionState.ready,
+    );
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeSshConnectFailedEvent(
+        createdAt: now,
+        host: '192.168.178.164',
+        port: 22,
+        message: 'Connection refused',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeSshHostKeyMismatchEvent(
+        createdAt: now.add(const Duration(milliseconds: 1)),
+        host: '192.168.178.164',
+        port: 22,
+        keyType: 'ssh-ed25519',
+        expectedFingerprint: 'aa:bb:cc',
+        actualFingerprint: '11:22:33',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeSshAuthenticationFailedEvent(
+        createdAt: now.add(const Duration(milliseconds: 2)),
+        host: '192.168.178.164',
+        port: 22,
+        username: 'vince',
+        authMode: AuthMode.privateKey,
+        message: 'Permission denied',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeSshRemoteLaunchFailedEvent(
+        createdAt: now.add(const Duration(milliseconds: 3)),
+        host: '192.168.178.164',
+        port: 22,
+        username: 'vince',
+        command: 'bash -lc codex app-server --listen stdio://',
+        message: 'exec request denied',
+      ),
+    );
+
+    final errors = state.blocks.whereType<CodexErrorBlock>().toList();
+    expect(errors, hasLength(4));
+    expect(errors[0].title, 'SSH connection failed');
+    expect(
+      errors[0].body,
+      contains('Could not connect to 192.168.178.164:22.'),
+    );
+    expect(errors[1].title, 'SSH host key mismatch');
+    expect(errors[1].body, contains('Expected fingerprint: aa:bb:cc'));
+    expect(errors[2].title, 'SSH authentication failed');
+    expect(errors[2].body, contains('using a private key'));
+    expect(errors[3].title, 'SSH remote launch failed');
+    expect(
+      errors[3].body,
+      contains('Command: bash -lc codex app-server --listen stdio://'),
+    );
+  });
+
+  test('keeps SSH success milestones non-visible by default', () {
+    final reducer = TranscriptReducer();
+    var state = const CodexSessionState(
+      connectionStatus: CodexRuntimeSessionState.ready,
+    );
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeSshAuthenticatedEvent(
+        createdAt: now,
+        host: '192.168.178.164',
+        port: 22,
+        username: 'vince',
+        authMode: AuthMode.password,
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeSshRemoteProcessStartedEvent(
+        createdAt: now.add(const Duration(milliseconds: 1)),
+        host: '192.168.178.164',
+        port: 22,
+        username: 'vince',
+        command: 'bash -lc codex app-server --listen stdio://',
+      ),
+    );
+
+    expect(state.blocks, isEmpty);
+    expect(state.transcriptBlocks, isEmpty);
+    expect(state.connectionStatus, CodexRuntimeSessionState.ready);
   });
 
   test('hides non-signal status events and defers thread token usage', () {

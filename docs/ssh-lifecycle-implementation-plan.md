@@ -326,6 +326,238 @@ Implement Phase 1 in this order:
 7. Add only the minimal runtime follow-through needed to keep typed SSH events
    distinct in mapping and avoid collapsing them back into generic warnings.
 
+## Phase 2 Investigation Findings
+
+Phase 1 established typed SSH transport events and matching runtime event
+classes, but it intentionally stopped short of changing ownership deeper in the
+application stack.
+
+That leaves three concrete gaps.
+
+### 1. SSH failure meaning is still split between typed events and generic runtime errors
+
+Current state:
+
+- [runtime_event_mapper.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/runtime_event_mapper.dart)
+  now emits typed SSH runtime events for connect failure, host-key mismatch,
+  auth failure, authenticated, remote launch failure, and remote process
+  started
+- but for each SSH failure it also emits a generic
+  `CodexRuntimeErrorEvent`
+
+Examples:
+
+- connect failure mapping in
+  [runtime_event_mapper.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/runtime_event_mapper.dart)
+  emits both `CodexRuntimeSshConnectFailedEvent` and `CodexRuntimeErrorEvent`
+- host-key mismatch, auth failure, and remote launch failure do the same
+
+Consequence:
+
+- SSH failure meaning is still effectively owned by the generic runtime-error
+  transcript path, because that is the only path the reducer currently renders
+
+### 2. The reducer does not own SSH failure projection yet
+
+Current state:
+
+- [transcript_reducer.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_reducer.dart)
+  handles `CodexRuntimeUnpinnedHostKeyEvent`
+- the other new SSH runtime events are explicit no-ops
+- [transcript_policy.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart)
+  still only has generic `applyWarning()` and `applyRuntimeError()` plus the
+  dedicated unpinned-host-key path
+
+Consequence:
+
+- typed SSH runtime events exist, but they do not yet own any transcript or UI
+  behavior beyond the fingerprint save flow
+
+### 3. Controller failure reporting can still create duplicate SSH failure surfaces
+
+Current state:
+
+- [chat_session_controller.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/chat_session_controller.dart)
+  subscribes to app-server events and immediately applies mapped runtime events
+- if `appServerClient.connect()` or bootstrap send flow later throws,
+  `_sendPromptWithAppServer()` still calls `_reportAppServerFailure()`
+- `_reportAppServerFailure()` synthesizes a second generic
+  `CodexRuntimeErrorEvent` with raw method `app-server/failure`
+
+Consequence:
+
+- an SSH bootstrap failure can already be visible from the transport event
+  stream and then receive a second generic error block from controller catch
+  handling
+- Phase 2 should remove that ownership overlap before adding more SSH-specific
+  UI
+
+### 4. UI ownership is still intentionally generic for SSH failures other than unpinned trust
+
+Current state:
+
+- [chat_transcript_item_projector.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/presentation/chat_transcript_item_projector.dart)
+  only has a dedicated SSH item contract for the unpinned-host-key block
+- all other transport failures still render through generic
+  `CodexErrorBlock` / `ErrorCard`
+
+Consequence:
+
+- this is acceptable for Phase 2, but it means the runtime layer must project
+  SSH failures deliberately instead of relying on the generic error event path
+
+## Best Upgrade Path For Phase 2
+
+Phase 2 should not add more SSH event types.
+
+Phase 2 should move SSH failure ownership from the generic runtime-error path
+to the typed SSH runtime path while preserving current user-visible behavior.
+
+### Recommended Phase 2 outcome
+
+After Phase 2:
+
+- the runtime mapper emits typed SSH runtime events only for known SSH failures
+- the reducer/policy owns how those typed SSH failures become transcript state
+- generic `CodexRuntimeErrorEvent` remains for non-SSH transport or provider
+  failures
+- the controller does not synthesize a second transcript error for the same
+  SSH bootstrap failure
+- the UI may still show generic error cards for mismatch/auth/launch failures,
+  but those cards come from SSH-specific reducer policy, not from generic
+  runtime errors
+
+### Recommended structural cut
+
+1. Extract SSH/local-transport mapping out of
+   [runtime_event_mapper.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/runtime_event_mapper.dart)
+   into a dedicated transport mapper seam.
+
+   Suggested target:
+
+   ```text
+   lib/src/features/chat/application/
+     runtime_event_mapper.dart
+     runtime_event_mapper_transport_mapper.dart
+   ```
+
+   This keeps ownership explicit between:
+
+   - app-server protocol notifications
+   - app-server inbound requests
+   - local transport lifecycle
+   - SSH transport lifecycle
+
+2. Keep the existing SSH runtime event classes, but stop dual-emitting generic
+   `CodexRuntimeErrorEvent` for known SSH failures.
+
+   Specifically:
+
+   - `CodexRuntimeSshConnectFailedEvent`
+   - `CodexRuntimeSshHostKeyMismatchEvent`
+   - `CodexRuntimeSshAuthenticationFailedEvent`
+   - `CodexRuntimeSshRemoteLaunchFailedEvent`
+
+   should become the sole runtime representation of those failures.
+
+3. Add dedicated reducer/policy entry points for typed SSH runtime events.
+
+   Minimum reducer/policy methods:
+
+   - `applySshConnectFailed()`
+   - `applySshHostKeyMismatch()`
+   - `applySshAuthenticationFailed()`
+   - `applySshRemoteLaunchFailed()`
+   - `applySshAuthenticated()`
+   - `applySshRemoteProcessStarted()`
+
+   Phase 2 behavior:
+
+   - failure events should temporarily project into generic transcript error
+     blocks with SSH-specific titles/bodies
+   - success/milestone events should remain internal no-ops unless a concrete
+     consumer appears
+
+4. Keep dedicated UI expansion out of Phase 2.
+
+   Do not add mismatch/auth/launch cards yet. That is Phase 3.
+
+   For Phase 2, generic error/status cards are acceptable if they are produced
+   from typed SSH reducer policy rather than the generic runtime-error stream.
+
+5. Add a narrow controller dedupe path for transport-originated SSH bootstrap
+   failures.
+
+   Requirement:
+
+   - if a connect/bootstrap attempt already surfaced a typed SSH failure event,
+     `_reportAppServerFailure()` must not add a second transcript error block
+     for the same failure
+
+   Pragmatic approach:
+
+   - track whether the current bootstrap/send attempt already received a typed
+     SSH failure event
+   - still show the user-facing snackbar when appropriate
+   - suppress only the duplicate transcript/runtime-error injection
+
+### Recommended exact Phase 2 cut order
+
+1. Extract the transport mapper seam.
+2. Move SSH failure mapping logic into that seam.
+3. Remove generic runtime-error fallback emission for known SSH failures.
+4. Add typed SSH reducer/policy handlers that project temporary generic error
+   blocks.
+5. Add controller dedupe for connect/bootstrap failure catches.
+6. Update focused tests before touching any Phase 3 card/UI work.
+
+### Rejected Phase 2 paths
+
+1. Keep the current dual-emission model indefinitely.
+
+   That leaves SSH failure ownership split between typed runtime events and the
+   generic runtime-error path.
+
+2. Jump straight to dedicated mismatch/auth/launch cards in Phase 2.
+
+   That skips the runtime ownership cleanup and turns Phase 2 into a hidden
+   Phase 3 patch.
+
+3. Add a full SSH session state machine to
+   [codex_session_state.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart)
+   before a concrete consumer exists.
+
+   That is larger than Phase 2 needs. The next cut should fix ownership first,
+   not speculate on future state shape.
+
+4. Solve duplicate SSH failures in the widget layer.
+
+   Duplication is created in mapper/controller ownership, so it must be fixed
+   there.
+
+### Tests Phase 2 should add or change
+
+Runtime mapper:
+
+- update mapper tests so SSH failures emit typed SSH runtime events without a
+  paired generic `CodexRuntimeErrorEvent`
+- keep existing tests for connect/disconnect and generic diagnostics
+
+Reducer/policy:
+
+- add reducer tests proving each typed SSH failure produces the temporary
+  transcript error block through SSH-specific policy
+- add reducer tests proving authenticated/remote-process-started remain
+  non-visible by default
+
+Controller:
+
+- add a controller test where connect/bootstrap failure both emits a typed SSH
+  event and throws, and assert that only one transcript failure surface is
+  produced
+- keep snackbar expectations explicit when duplicate transcript injection is
+  suppressed
+
 ## Refactor Goals
 
 1. Model SSH lifecycle as structured events instead of generic diagnostic text.

@@ -410,7 +410,7 @@ void main() {
     expect(event.fingerprint, '7a:9f:d7:dc:2e:f2');
   });
 
-  test('maps SSH connect failures into typed and generic runtime errors', () {
+  test('maps SSH connect failures into typed runtime events only', () {
     final mapper = CodexRuntimeEventMapper();
 
     final events = mapper.mapEvent(
@@ -421,19 +421,14 @@ void main() {
       ),
     );
 
-    expect(events, hasLength(2));
-    expect(events.first, isA<CodexRuntimeSshConnectFailedEvent>());
-    expect(events.last, isA<CodexRuntimeErrorEvent>());
-    final specific = events.first as CodexRuntimeSshConnectFailedEvent;
-    final generic = events.last as CodexRuntimeErrorEvent;
+    expect(events.single, isA<CodexRuntimeSshConnectFailedEvent>());
+    final specific = events.single as CodexRuntimeSshConnectFailedEvent;
     expect(specific.host, '192.168.1.10');
     expect(specific.message, 'Connection refused');
-    expect(generic.message, contains('Could not connect to 192.168.1.10:22.'));
-    expect(generic.message, contains('Connection refused'));
   });
 
   test(
-    'maps SSH host-key mismatches and auth failures into typed runtime events',
+    'maps SSH host-key mismatches and auth failures into typed runtime events only',
     () {
       final mapper = CodexRuntimeEventMapper();
 
@@ -456,22 +451,18 @@ void main() {
         ),
       );
 
-      expect(mismatchEvents, hasLength(2));
-      expect(mismatchEvents.first, isA<CodexRuntimeSshHostKeyMismatchEvent>());
-      expect(mismatchEvents.last, isA<CodexRuntimeErrorEvent>());
+      expect(mismatchEvents.single, isA<CodexRuntimeSshHostKeyMismatchEvent>());
       final mismatch =
-          mismatchEvents.first as CodexRuntimeSshHostKeyMismatchEvent;
+          mismatchEvents.single as CodexRuntimeSshHostKeyMismatchEvent;
       expect(mismatch.expectedFingerprint, 'aa:bb:cc');
       expect(mismatch.actualFingerprint, '11:22:33');
 
-      expect(authFailedEvents, hasLength(2));
       expect(
-        authFailedEvents.first,
+        authFailedEvents.single,
         isA<CodexRuntimeSshAuthenticationFailedEvent>(),
       );
-      expect(authFailedEvents.last, isA<CodexRuntimeErrorEvent>());
       final authFailed =
-          authFailedEvents.first as CodexRuntimeSshAuthenticationFailedEvent;
+          authFailedEvents.single as CodexRuntimeSshAuthenticationFailedEvent;
       expect(authFailed.username, 'vince');
       expect(authFailed.authMode, AuthMode.privateKey);
     },
@@ -509,9 +500,10 @@ void main() {
       );
 
       expect(authenticated.single, isA<CodexRuntimeSshAuthenticatedEvent>());
-      expect(launchFailed, hasLength(2));
-      expect(launchFailed.first, isA<CodexRuntimeSshRemoteLaunchFailedEvent>());
-      expect(launchFailed.last, isA<CodexRuntimeErrorEvent>());
+      expect(
+        launchFailed.single,
+        isA<CodexRuntimeSshRemoteLaunchFailedEvent>(),
+      );
       expect(
         processStarted.single,
         isA<CodexRuntimeSshRemoteProcessStartedEvent>(),

@@ -45,6 +45,8 @@ class ChatSessionController extends ChangeNotifier {
   bool _isLoading = true;
   bool _didInitialize = false;
   bool _isDisposed = false;
+  bool _isTrackingSshBootstrapFailures = false;
+  bool _sawTrackedSshBootstrapFailure = false;
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
 
   Stream<String> get snackBarMessages => _snackBarMessagesController.stream;
@@ -265,7 +267,13 @@ class ChatSessionController extends ChangeNotifier {
       return;
     }
 
-    for (final runtimeEvent in _runtimeEventMapper.mapEvent(event)) {
+    final runtimeEvents = _runtimeEventMapper.mapEvent(event);
+    if (_isTrackingSshBootstrapFailures &&
+        runtimeEvents.any(_isSshBootstrapFailureRuntimeEvent)) {
+      _sawTrackedSshBootstrapFailure = true;
+    }
+
+    for (final runtimeEvent in runtimeEvents) {
       _applyRuntimeEvent(runtimeEvent);
     }
   }
@@ -350,6 +358,8 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   Future<bool> _sendPromptWithAppServer(String prompt) async {
+    _isTrackingSshBootstrapFailures = true;
+    _sawTrackedSshBootstrapFailure = false;
     try {
       final threadId = await _ensureAppServerThread();
       _applySessionState(
@@ -377,12 +387,17 @@ class ChatSessionController extends ChangeNotifier {
           _sessionReducer.clearLocalUserMessageCorrelationState(_sessionState),
         );
       }
+      await Future<void>.microtask(() {});
       _reportAppServerFailure(
         title: 'Send failed',
         message: 'Could not send the prompt to the remote Codex session.',
         error: error,
+        suppressRuntimeError: _sawTrackedSshBootstrapFailure,
       );
       return false;
+    } finally {
+      _isTrackingSshBootstrapFailures = false;
+      _sawTrackedSshBootstrapFailure = false;
     }
   }
 
@@ -482,6 +497,7 @@ class ChatSessionController extends ChangeNotifier {
     required String title,
     required String message,
     required Object error,
+    bool suppressRuntimeError = false,
   }) {
     final now = DateTime.now();
     _applyRuntimeEvent(
@@ -492,15 +508,27 @@ class ChatSessionController extends ChangeNotifier {
         rawMethod: 'app-server/failure',
       ),
     );
-    _applyRuntimeEvent(
-      CodexRuntimeErrorEvent(
-        createdAt: now,
-        message: '$title: $error',
-        errorClass: CodexRuntimeErrorClass.transportError,
-        rawMethod: 'app-server/failure',
-      ),
-    );
+    if (!suppressRuntimeError) {
+      _applyRuntimeEvent(
+        CodexRuntimeErrorEvent(
+          createdAt: now,
+          message: '$title: $error',
+          errorClass: CodexRuntimeErrorClass.transportError,
+          rawMethod: 'app-server/failure',
+        ),
+      );
+    }
     _emitSnackBar(message);
+  }
+
+  bool _isSshBootstrapFailureRuntimeEvent(CodexRuntimeEvent event) {
+    return switch (event) {
+      CodexRuntimeSshConnectFailedEvent() ||
+      CodexRuntimeSshHostKeyMismatchEvent() ||
+      CodexRuntimeSshAuthenticationFailedEvent() ||
+      CodexRuntimeSshRemoteLaunchFailedEvent() => true,
+      _ => false,
+    };
   }
 
   void _emitSnackBar(String message) {
