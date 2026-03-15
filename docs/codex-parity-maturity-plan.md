@@ -55,36 +55,42 @@ It should mean:
 
 Current Pocket Relay behavior:
 
-- elapsed time is derived from wall-clock `DateTime`
-- the timer keeps advancing while the turn is blocked on approvals or user input
-- completion UI always shows explicit elapsed text
+- elapsed time uses a local monotonic timer
+- blocked approvals and user input pause visible turn time until resolution
+- completion and abort freeze the final elapsed duration
 
 Target behavior:
 
-- use a local monotonic clock
-- pause visible elapsed work time while the turn is waiting on the user
-- keep final elapsed duration frozen after completion or abort
+- keep those local monotonic pause/resume semantics intact
+- do not regress blocked-turn timing back to wall-clock accumulation
+- keep explicit elapsed text only where the transcript semantics still want it
 
-### 2. Transcript segmentation
+### 2. Transcript chronology
 
 Current Pocket Relay behavior:
 
 - the explicit live-artifact model is already in place
 - committed transcript history is append-only
 - only the active tail may mutate
-- plans, changed files, and resolved requests now follow chronology rules much
-  more closely
+- plans, changed files, and resolved requests now follow append-only
+  chronology rules
+- the automated reducer/widget parity matrix for transcript chronology has
+  already landed
+- live emulator verification already confirmed append-only plan/file-change
+  chronology in real runs
+- the current worktree also fixes a live transport bug where session start was
+  sending approval policy `onRequest` instead of `on-request`
 
 Target behavior:
 
-- flush assistant streaming before work cells begin
-- flush work groups before assistant streaming resumes
-- freeze the live tail before approval or user-input overlays take over
-- finish the final emulator/manual parity sweep and stale-doc cleanup
+- rerun the remaining live approval and user-input request flows once a fresh
+  build can be launched again
+- confirm older cards never mutate or reorder during those live runs
+- then treat transcript chronology as finished rather than as an active phase
 
 This is no longer the main architectural rewrite gap. The rewrite largely
-landed under the transcript immutability migration, and the remaining work is
-the Commit D parity close-out.
+landed under the transcript chronology status doc, and the remaining work is a
+blocked live rerun rather than another model change.
 
 ### 3. Reasoning presentation
 
@@ -103,12 +109,12 @@ Target behavior:
 Current Pocket Relay behavior:
 
 - approvals and user input render below the transcript
-- timer semantics do not treat waiting as paused work
+- timer semantics already treat waiting as paused work
 
 Target behavior:
 
-- waiting states should be treated as blocked work
-- timer pause and resume should follow request lifecycle exactly
+- keep waiting states treated as blocked work
+- preserve exact timer pause/resume alignment with request lifecycle
 - the UI can keep the current Flutter layout as long as the semantics match
 
 ### 5. Markdown and file-link rendering
@@ -161,18 +167,16 @@ Why next:
 
 Scope:
 
-- run the final emulator/manual chronology sweep against the local Codex
-  reference
+- rerun the remaining live approval and user-input request flows after the
+  fixed build can be launched again
 - verify assistant/work/request/plan/file-change ordering under real runtime
   flows
-- clean stale docs/tests that still describe transcript segmentation as future
-  work
-- only patch code if the sweep finds a remaining mismatch
+- only patch code if that live rerun finds a remaining mismatch
 
 Why next:
 
-- the structural rewrite already landed; the remaining job is proving parity
-  and removing stale migration wording
+- the structural rewrite already landed; the remaining job is clearing the
+  blocked live rerun and then closing the transcript area out
 
 ### Phase 4: Markdown/file-link normalization
 
@@ -182,7 +186,7 @@ Scope:
 - normalize file labels relative to cwd
 - reuse the same link rules for reasoning, plans, and assistant output
 
-Why after segmentation:
+Why after transcript close-out:
 
 - link rendering belongs in the final display pipeline, and that pipeline should
   settle first
@@ -209,7 +213,7 @@ These rules should guide future parity work.
 2. Prefer small, typed policy helpers over adding logic to widgets.
 3. Preserve reducer-style domain transitions; do not jump to Redux-style churn
    just for branding.
-4. Use focused tests for timer, request lifecycle, and transcript segmentation.
+4. Use focused tests for timer, request lifecycle, and transcript chronology.
 5. Do not mix large visual redesigns with event-model refactors.
 
 ## Test Expectations
@@ -229,7 +233,9 @@ For timer parity specifically, tests should prove:
 
 ## Immediate Next Steps After This Task
 
-1. Ship the timer parity subset.
+1. Clear the local build/runtime blocker and rerun the remaining live
+   transcript chronology flows.
 2. Refactor live reasoning into status-first UI.
-3. Introduce an explicit in-flight segment model before larger transcript
-   parity work.
+3. Normalize markdown and file-link rendering once the transcript close-out is
+   fully settled.
+4. Revisit runtime metrics and work-only separator semantics.

@@ -153,7 +153,7 @@ void main() {
                 'cwd': '/workspace',
                 'model': 'gpt-5.3-codex',
                 'modelProvider': 'openai',
-                'approvalPolicy': 'onRequest',
+                'approvalPolicy': 'on-request',
                 'sandbox': <String, Object?>{'type': 'workspace-write'},
               },
             });
@@ -200,7 +200,7 @@ void main() {
 
     expect(threadStartRequest['params'], <String, Object?>{
       'cwd': '/workspace',
-      'approvalPolicy': 'onRequest',
+      'approvalPolicy': 'on-request',
       'sandbox': 'workspace-write',
       'ephemeral': false,
     });
@@ -240,7 +240,7 @@ void main() {
                   'cwd': '/workspace',
                   'model': 'gpt-5.3-codex',
                   'modelProvider': 'openai',
-                  'approvalPolicy': 'onRequest',
+                  'approvalPolicy': 'on-request',
                   'sandbox': <String, Object?>{'type': 'workspace-write'},
                 },
               });
@@ -266,7 +266,7 @@ void main() {
       );
       expect(resumeRequest['params'], <String, Object?>{
         'cwd': '/workspace',
-        'approvalPolicy': 'onRequest',
+        'approvalPolicy': 'on-request',
         'sandbox': 'workspace-write',
         'threadId': 'thread_old',
       });
@@ -305,7 +305,7 @@ void main() {
                   'cwd': '/workspace',
                   'model': 'gpt-5.3-codex',
                   'modelProvider': 'openai',
-                  'approvalPolicy': 'onRequest',
+                  'approvalPolicy': 'on-request',
                   'sandbox': <String, Object?>{'type': 'workspace-write'},
                 },
               });
@@ -362,7 +362,7 @@ void main() {
                 'cwd': '/workspace',
                 'model': 'gpt-5.3-codex',
                 'modelProvider': 'openai',
-                'approvalPolicy': 'onRequest',
+                'approvalPolicy': 'on-request',
                 'sandbox': <String, Object?>{'type': 'workspace-write'},
               },
             });
@@ -388,7 +388,7 @@ void main() {
     );
     expect(startRequest['params'], <String, Object?>{
       'cwd': '/workspace',
-      'approvalPolicy': 'onRequest',
+      'approvalPolicy': 'on-request',
       'sandbox': 'workspace-write',
       'ephemeral': true,
     });
@@ -695,7 +695,7 @@ void main() {
                   'cwd': '/workspace',
                   'model': 'gpt-5.3-codex',
                   'modelProvider': 'openai',
-                  'approvalPolicy': 'onRequest',
+                  'approvalPolicy': 'on-request',
                   'sandbox': <String, Object?>{'type': 'workspace-write'},
                 },
               });
@@ -761,7 +761,7 @@ void main() {
                 'cwd': '/workspace',
                 'model': 'gpt-5.3-codex',
                 'modelProvider': 'openai',
-                'approvalPolicy': 'onRequest',
+                'approvalPolicy': 'on-request',
                 'sandbox': <String, Object?>{'type': 'workspace-write'},
               },
             });
@@ -773,7 +773,7 @@ void main() {
                 'cwd': '/workspace',
                 'model': 'gpt-5.3-codex',
                 'modelProvider': 'openai',
-                'approvalPolicy': 'onRequest',
+                'approvalPolicy': 'on-request',
                 'sandbox': <String, Object?>{'type': 'workspace-write'},
               },
             });
