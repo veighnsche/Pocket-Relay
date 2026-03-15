@@ -531,6 +531,10 @@ void main() {
     expect(find.text('Thread usage'), findsOneWidget);
     expect(find.text('ctx 200k'), findsOneWidget);
     expect(find.textContaining('end'), findsOneWidget);
+
+    final endRect = tester.getRect(find.textContaining('end'));
+    final usageRect = tester.getRect(find.text('Thread usage'));
+    expect(usageRect.top, lessThan(endRect.top));
   });
 }
 

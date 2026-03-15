@@ -76,8 +76,8 @@ void main() {
       final segment = state.activeTurn!.segments.single as CodexTurnTextSegment;
       expect(segment.kind, CodexUiBlockKind.assistantMessage);
       expect(segment.body, 'Hello, world');
-      expect(state.blocks, hasLength(1));
-      final block = state.blocks.single as CodexTextBlock;
+      expect(state.blocks, isEmpty);
+      final block = state.transcriptBlocks.single as CodexTextBlock;
       expect(block.kind, CodexUiBlockKind.assistantMessage);
       expect(block.body, 'Hello, world');
       expect(block.isRunning, isFalse);
@@ -102,8 +102,9 @@ void main() {
       ),
     );
 
-    expect(state.blocks.single, isA<CodexUserMessageBlock>());
-    final block = state.blocks.single as CodexUserMessageBlock;
+    expect(state.blocks, isEmpty);
+    expect(state.transcriptBlocks.single, isA<CodexUserMessageBlock>());
+    final block = state.transcriptBlocks.single as CodexUserMessageBlock;
     expect(block.text, 'Ship the fix');
   });
 
@@ -184,7 +185,7 @@ void main() {
       ),
     );
 
-    final block = state.blocks.single as CodexTextBlock;
+    final block = state.transcriptBlocks.single as CodexTextBlock;
     expect(block.body, 'The shell session');
     expect(block.isRunning, isTrue);
   });
@@ -218,15 +219,16 @@ void main() {
       ),
     );
 
-    expect(state.blocks, hasLength(2));
-    expect(state.blocks.first, isA<CodexStatusBlock>());
-    expect(state.blocks.last, isA<CodexStatusBlock>());
+    expect(state.blocks, isEmpty);
+    expect(state.transcriptBlocks, hasLength(2));
+    expect(state.transcriptBlocks.first, isA<CodexStatusBlock>());
+    expect(state.transcriptBlocks.last, isA<CodexStatusBlock>());
     expect(
-      (state.blocks.first as CodexStatusBlock).body,
+      (state.transcriptBlocks.first as CodexStatusBlock).body,
       'Checking the patch set',
     );
     expect(
-      (state.blocks.last as CodexStatusBlock).body,
+      (state.transcriptBlocks.last as CodexStatusBlock).body,
       'Codex compacted the current thread context.',
     );
   });
@@ -248,7 +250,7 @@ void main() {
       ),
     );
 
-    expect(state.blocks, isEmpty);
+    expect(state.transcriptBlocks, isEmpty);
 
     state = reducer.reduceRuntimeEvent(
       state,
@@ -262,8 +264,9 @@ void main() {
       ),
     );
 
-    expect(state.blocks.single, isA<CodexTextBlock>());
-    final block = state.blocks.single as CodexTextBlock;
+    expect(state.blocks, isEmpty);
+    expect(state.transcriptBlocks.single, isA<CodexTextBlock>());
+    final block = state.transcriptBlocks.single as CodexTextBlock;
     expect(block.kind, CodexUiBlockKind.reasoning);
     expect(block.body, 'Inspecting the environment.');
   });
@@ -298,7 +301,7 @@ void main() {
     expect(state.pendingApprovalRequests.keys, contains('i:99'));
     expect(state.activeTurn?.pendingApprovalRequests.keys, contains('i:99'));
     expect(state.activeTurn?.status, CodexActiveTurnStatus.blocked);
-    final requestBlock = state.blocks.single as CodexApprovalRequestBlock;
+    final requestBlock = state.primaryPendingApprovalBlock!;
     expect(requestBlock.title, 'File change approval');
 
     state = reducer.reduceRuntimeEvent(
@@ -316,7 +319,9 @@ void main() {
     expect(state.pendingApprovalRequests, isEmpty);
     expect(state.activeTurn?.pendingApprovalRequests, isEmpty);
     expect(state.activeTurn?.status, CodexActiveTurnStatus.running);
-    final resolvedBlock = state.blocks.single as CodexApprovalRequestBlock;
+    expect(state.primaryPendingApprovalBlock, isNull);
+    final resolvedBlock =
+        state.transcriptBlocks.single as CodexApprovalRequestBlock;
     expect(resolvedBlock.title, 'File change approval resolved');
     expect(resolvedBlock.isResolved, isTrue);
   });
@@ -345,7 +350,7 @@ void main() {
     );
 
     expect(state.pendingUserInputRequests.keys, contains('s:user-input-1'));
-    final inputBlock = state.blocks.single as CodexUserInputRequestBlock;
+    final inputBlock = state.primaryPendingUserInputBlock!;
     expect(inputBlock.title, 'Input required');
 
     state = reducer.reduceRuntimeEvent(
@@ -363,7 +368,9 @@ void main() {
     );
 
     expect(state.pendingUserInputRequests, isEmpty);
-    final submittedBlock = state.blocks.single as CodexUserInputRequestBlock;
+    expect(state.primaryPendingUserInputBlock, isNull);
+    final submittedBlock =
+        state.transcriptBlocks.single as CodexUserInputRequestBlock;
     expect(submittedBlock.title, 'Input submitted');
     expect(submittedBlock.body, contains('Vince'));
     expect(submittedBlock.isResolved, isTrue);
@@ -658,10 +665,14 @@ void main() {
     );
 
     expect(state.activeTurn, isNull);
+    expect(state.blocks, hasLength(2));
+    expect(state.blocks.first, isA<CodexUsageBlock>());
+    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
     expect(state.blocks.whereType<CodexUsageBlock>(), hasLength(1));
     expect((state.blocks.first as CodexUsageBlock).title, 'Thread token usage');
     expect((state.blocks.first as CodexUsageBlock).body, contains('input 24'));
-    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
+    expect(state.transcriptBlocks.first, isA<CodexUsageBlock>());
+    expect(state.transcriptBlocks.last, isA<CodexTurnBoundaryBlock>());
   });
 
   test(
@@ -760,7 +771,7 @@ void main() {
       ),
     );
 
-    expect(state.blocks.whereType<CodexWorkLogEntryBlock>(), hasLength(2));
+    expect(state.blocks, isEmpty);
     expect(state.transcriptBlocks, hasLength(1));
     final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
     expect(group.entries, hasLength(2));
@@ -800,8 +811,9 @@ void main() {
       ),
     );
 
-    expect(state.blocks.first, isA<CodexProposedPlanBlock>());
-    final changedFiles = state.blocks.last as CodexChangedFilesBlock;
+    expect(state.blocks, isEmpty);
+    expect(state.transcriptBlocks.first, isA<CodexProposedPlanBlock>());
+    final changedFiles = state.transcriptBlocks.last as CodexChangedFilesBlock;
     expect(changedFiles.files.single.path, 'lib/main.dart');
     expect(changedFiles.unifiedDiff, contains('diff --git'));
   });

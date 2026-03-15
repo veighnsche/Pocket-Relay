@@ -50,17 +50,7 @@ class TranscriptRequestPolicy {
               : _support.pauseTurnTimer(activeTurn?.timer, event.createdAt),
         ),
       );
-      return _support.upsertBlock(
-        nextState,
-        CodexUserInputRequestBlock(
-          id: 'request_$requestId',
-          createdAt: event.createdAt,
-          requestId: requestId,
-          requestType: event.requestType,
-          title: requestTitle(event.requestType),
-          body: event.detail ?? 'Codex requested additional user input.',
-        ),
-      );
+      return nextState;
     }
 
     final pendingRequest = CodexSessionPendingRequest(
@@ -84,17 +74,7 @@ class TranscriptRequestPolicy {
             : _support.pauseTurnTimer(activeTurn?.timer, event.createdAt),
       ),
     );
-    return _support.upsertBlock(
-      nextState,
-      CodexApprovalRequestBlock(
-        id: 'request_$requestId',
-        createdAt: event.createdAt,
-        requestId: requestId,
-        requestType: event.requestType,
-        title: requestTitle(event.requestType),
-        body: event.detail ?? 'Codex needs a decision before it can continue.',
-      ),
-    );
+    return nextState;
   }
 
   CodexSessionState applyRequestResolved(
@@ -115,6 +95,14 @@ class TranscriptRequestPolicy {
     final hasBlockingRequestsRemaining =
         nextApprovalRequests.isNotEmpty || nextInputRequests.isNotEmpty;
 
+    final resolvedBlock = _resolvedRequestBlock(
+      id: 'request_$requestId',
+      createdAt: event.createdAt,
+      requestId: requestId,
+      requestType: event.requestType,
+      title: '${requestTitle(event.requestType)} resolved',
+      body: 'Codex received a response for this request.',
+    );
     final nextState = state.copyWith(
       activeTurn: _activeTurnAfterRequestResolved(
         state.activeTurn,
@@ -127,16 +115,11 @@ class TranscriptRequestPolicy {
               ),
       ),
     );
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       nextState,
-      _resolvedRequestBlock(
-        id: 'request_$requestId',
-        createdAt: event.createdAt,
-        requestId: requestId,
-        requestType: event.requestType,
-        title: '${requestTitle(event.requestType)} resolved',
-        body: 'Codex received a response for this request.',
-      ),
+      resolvedBlock,
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -179,18 +162,7 @@ class TranscriptRequestPolicy {
             : _support.pauseTurnTimer(activeTurn?.timer, event.createdAt),
       ),
     );
-    return _support.upsertBlock(
-      nextState,
-      CodexUserInputRequestBlock(
-        id: 'request_$requestId',
-        createdAt: event.createdAt,
-        requestId: requestId,
-        requestType: CodexCanonicalRequestType.toolUserInput,
-        title: 'Input required',
-        body: questionsSummary(event.questions),
-        questions: event.questions,
-      ),
-    );
+    return nextState;
   }
 
   CodexSessionState applyUserInputResolved(
@@ -208,6 +180,16 @@ class TranscriptRequestPolicy {
     final hasBlockingRequestsRemaining =
         state.activeTurn?.pendingApprovalRequests.isNotEmpty == true ||
         nextInputRequests.isNotEmpty;
+    final resolvedBlock = CodexUserInputRequestBlock(
+      id: 'request_$requestId',
+      createdAt: event.createdAt,
+      requestId: requestId,
+      requestType: CodexCanonicalRequestType.toolUserInput,
+      title: 'Input submitted',
+      body: answersSummary(event.answers),
+      isResolved: true,
+      answers: event.answers,
+    );
     final nextState = state.copyWith(
       activeTurn: _activeTurnAfterUserInputResolved(
         state.activeTurn,
@@ -220,18 +202,11 @@ class TranscriptRequestPolicy {
               ),
       ),
     );
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       nextState,
-      CodexUserInputRequestBlock(
-        id: 'request_$requestId',
-        createdAt: event.createdAt,
-        requestId: requestId,
-        requestType: CodexCanonicalRequestType.toolUserInput,
-        title: 'Input submitted',
-        body: answersSummary(event.answers),
-        isResolved: true,
-        answers: event.answers,
-      ),
+      resolvedBlock,
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -411,5 +386,42 @@ class TranscriptRequestPolicy {
         activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
       ),
     );
+  }
+
+  CodexSessionState _stateWithTranscriptBlock(
+    CodexSessionState state,
+    CodexUiBlock block, {
+    required String? turnId,
+    required String? threadId,
+  }) {
+    final activeTurn = _ensureActiveTurn(
+      state.activeTurn,
+      turnId: turnId,
+      threadId: threadId,
+      createdAt: block.createdAt,
+    );
+    if (activeTurn == null) {
+      return _support.upsertBlock(state, block);
+    }
+
+    return state.copyWith(activeTurn: _upsertTurnBlock(activeTurn, block));
+  }
+
+  CodexActiveTurnState _upsertTurnBlock(
+    CodexActiveTurnState activeTurn,
+    CodexUiBlock block,
+  ) {
+    final segment = CodexTurnBlockSegment(block: block);
+    final nextSegments = List<CodexTurnSegment>.from(activeTurn.segments);
+    final index = nextSegments.indexWhere(
+      (existing) => existing.id == block.id,
+    );
+    if (index == -1) {
+      nextSegments.add(segment);
+    } else {
+      nextSegments[index] = segment;
+    }
+
+    return activeTurn.copyWith(segments: nextSegments);
   }
 }

@@ -41,28 +41,29 @@ class TranscriptReducer {
     CodexSessionState state,
     CodexRuntimeEvent event,
   ) {
+    final normalizedState = _normalizeTurnState(state, event);
     switch (event) {
       case CodexRuntimeSessionStartedEvent():
-        return state;
+        return normalizedState;
       case CodexRuntimeSessionStateChangedEvent():
-        return state.copyWith(connectionStatus: event.state);
+        return normalizedState.copyWith(connectionStatus: event.state);
       case CodexRuntimeSessionExitedEvent():
-        return _policy.applySessionExited(state, event);
+        return _policy.applySessionExited(normalizedState, event);
       case CodexRuntimeThreadStartedEvent():
-        return state.copyWith(threadId: event.providerThreadId);
+        return normalizedState.copyWith(threadId: event.providerThreadId);
       case CodexRuntimeThreadStateChangedEvent():
         final isClosed = event.state == CodexRuntimeThreadState.closed;
-        final activeTurn = isClosed && state.activeTurn != null
-            ? state.activeTurn!.copyWith(
-                timer: state.activeTurn!.timer.complete(
+        final activeTurn = isClosed && normalizedState.activeTurn != null
+            ? normalizedState.activeTurn!.copyWith(
+                timer: normalizedState.activeTurn!.timer.complete(
                   completedAt: event.createdAt,
                   monotonicAt: CodexMonotonicClock.now(),
                 ),
               )
-            : state.activeTurn;
-        return state.copyWith(
+            : normalizedState.activeTurn;
+        return normalizedState.copyWith(
           clearThreadId: isClosed,
-          activeTurn: isClosed ? activeTurn : state.activeTurn,
+          activeTurn: isClosed ? activeTurn : normalizedState.activeTurn,
           clearActiveTurn: isClosed,
         );
       case CodexRuntimeTurnStartedEvent():
@@ -73,59 +74,80 @@ class TranscriptReducer {
                 startedAt: event.createdAt,
                 activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
               );
-        return state.copyWith(
+        return normalizedState.copyWith(
           connectionStatus: CodexRuntimeSessionState.running,
-          threadId: event.threadId ?? state.threadId,
+          threadId: event.threadId ?? normalizedState.threadId,
           activeTurn: event.turnId == null
-              ? state.activeTurn
+              ? normalizedState.activeTurn
               : CodexActiveTurnState(
                   turnId: event.turnId!,
-                  threadId: event.threadId ?? state.threadId,
+                  threadId: event.threadId ?? normalizedState.threadId,
                   timer: nextTimer!,
                 ),
         );
       case CodexRuntimeTurnCompletedEvent():
-        return _policy.applyTurnCompleted(state, event);
+        return _policy.applyTurnCompleted(normalizedState, event);
       case CodexRuntimeTurnAbortedEvent():
-        return _policy.applyTurnAborted(state, event);
+        return _policy.applyTurnAborted(normalizedState, event);
       case CodexRuntimeTurnPlanUpdatedEvent():
-        return _policy.applyTurnPlanUpdated(state, event);
+        return _policy.applyTurnPlanUpdated(normalizedState, event);
       case CodexRuntimeTurnDiffUpdatedEvent():
-        return _policy.applyTurnDiffUpdated(state, event);
+        return _policy.applyTurnDiffUpdated(normalizedState, event);
       case CodexRuntimeItemStartedEvent():
         return _policy.applyItemLifecycle(
-          state,
+          normalizedState,
           event,
           removeAfterUpsert: false,
         );
       case CodexRuntimeItemUpdatedEvent():
         return _policy.applyItemLifecycle(
-          state,
+          normalizedState,
           event,
           removeAfterUpsert: false,
         );
       case CodexRuntimeItemCompletedEvent():
         return _policy.applyItemLifecycle(
-          state,
+          normalizedState,
           event,
           removeAfterUpsert: true,
         );
       case CodexRuntimeContentDeltaEvent():
-        return _policy.applyContentDelta(state, event);
+        return _policy.applyContentDelta(normalizedState, event);
       case CodexRuntimeRequestOpenedEvent():
-        return _policy.applyRequestOpened(state, event);
+        return _policy.applyRequestOpened(normalizedState, event);
       case CodexRuntimeRequestResolvedEvent():
-        return _policy.applyRequestResolved(state, event);
+        return _policy.applyRequestResolved(normalizedState, event);
       case CodexRuntimeUserInputRequestedEvent():
-        return _policy.applyUserInputRequested(state, event);
+        return _policy.applyUserInputRequested(normalizedState, event);
       case CodexRuntimeUserInputResolvedEvent():
-        return _policy.applyUserInputResolved(state, event);
+        return _policy.applyUserInputResolved(normalizedState, event);
       case CodexRuntimeWarningEvent():
-        return _policy.applyWarning(state, event);
+        return _policy.applyWarning(normalizedState, event);
       case CodexRuntimeStatusEvent():
-        return _policy.applyStatus(state, event);
+        return _policy.applyStatus(normalizedState, event);
       case CodexRuntimeErrorEvent():
-        return _policy.applyRuntimeError(state, event);
+        return _policy.applyRuntimeError(normalizedState, event);
     }
+  }
+
+  CodexSessionState _normalizeTurnState(
+    CodexSessionState state,
+    CodexRuntimeEvent event,
+  ) {
+    return switch (event) {
+      CodexRuntimeSessionStartedEvent() ||
+      CodexRuntimeSessionStateChangedEvent() ||
+      CodexRuntimeSessionExitedEvent() ||
+      CodexRuntimeThreadStartedEvent() ||
+      CodexRuntimeThreadStateChangedEvent() ||
+      CodexRuntimeTurnCompletedEvent() ||
+      CodexRuntimeTurnAbortedEvent() => state,
+      _ => _policy.rolloverTurnIfNeeded(
+        state,
+        turnId: event.turnId,
+        threadId: event.threadId,
+        createdAt: event.createdAt,
+      ),
+    };
   }
 }

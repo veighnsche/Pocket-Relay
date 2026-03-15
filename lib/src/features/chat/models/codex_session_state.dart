@@ -191,24 +191,20 @@ class CodexSessionState {
   bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
 
   List<CodexUiBlock> get transcriptBlocks =>
-      _buildTranscriptBlocks(blocks.where(_shouldAppearInTranscript));
+      _buildTranscriptBlocks(<CodexUiBlock>[
+        ...blocks.where(_shouldAppearInTranscript),
+        if (activeTurn != null)
+          ...projectCodexTurnSegments(activeTurn!.segments),
+      ]);
 
   CodexApprovalRequestBlock? get primaryPendingApprovalBlock =>
       _firstPendingBlock<CodexApprovalRequestBlock>(
-        blocks.whereType<CodexApprovalRequestBlock>().where(
-          (block) =>
-              !block.isResolved &&
-              pendingApprovalRequests.containsKey(block.requestId),
-        ),
+        pendingApprovalRequests.values.map(_pendingApprovalBlock),
       );
 
   CodexUserInputRequestBlock? get primaryPendingUserInputBlock =>
       _firstPendingBlock<CodexUserInputRequestBlock>(
-        blocks.whereType<CodexUserInputRequestBlock>().where(
-          (block) =>
-              !block.isResolved &&
-              pendingUserInputRequests.containsKey(block.requestId),
-        ),
+        pendingUserInputRequests.values.map(_pendingUserInputBlock),
       );
 
   CodexSessionState copyWith({
@@ -231,6 +227,68 @@ class CodexSessionState {
           : (latestUsageSummary ?? this.latestUsageSummary),
     );
   }
+}
+
+List<CodexUiBlock> projectCodexTurnSegments(
+  Iterable<CodexTurnSegment> segments,
+) {
+  final projected = <CodexUiBlock>[];
+
+  for (final segment in segments) {
+    switch (segment) {
+      case CodexTurnTextSegment():
+        projected.add(
+          CodexTextBlock(
+            id: segment.id,
+            kind: segment.kind,
+            createdAt: segment.createdAt,
+            title: segment.title,
+            body: segment.body,
+            isRunning: segment.isStreaming,
+          ),
+        );
+      case CodexTurnWorkSegment():
+        projected.addAll(
+          segment.entries.map(
+            (entry) => CodexWorkLogEntryBlock(
+              id: entry.id,
+              createdAt: entry.createdAt,
+              entryKind: entry.entryKind,
+              title: entry.title,
+              turnId: entry.turnId,
+              preview: entry.preview,
+              isRunning: entry.isRunning,
+              exitCode: entry.exitCode,
+            ),
+          ),
+        );
+      case CodexTurnPlanSegment():
+        projected.add(
+          CodexProposedPlanBlock(
+            id: segment.id,
+            createdAt: segment.createdAt,
+            title: segment.title,
+            markdown: segment.markdown,
+            isStreaming: segment.isStreaming,
+          ),
+        );
+      case CodexTurnChangedFilesSegment():
+        projected.add(
+          CodexChangedFilesBlock(
+            id: segment.id,
+            createdAt: segment.createdAt,
+            title: segment.title,
+            files: segment.files,
+            unifiedDiff: segment.unifiedDiff,
+            isRunning: segment.isStreaming,
+          ),
+        );
+      case CodexTurnBlockSegment():
+        projected.add(segment.block);
+    }
+  }
+
+  return projected;
 }
 
 bool _shouldAppearInTranscript(CodexUiBlock block) {
@@ -294,6 +352,56 @@ T? _firstPendingBlock<T extends CodexUiBlock>(Iterable<T> blocks) {
   final sorted = blocks.toList(growable: false)
     ..sort((left, right) => left.createdAt.compareTo(right.createdAt));
   return sorted.isEmpty ? null : sorted.first;
+}
+
+CodexApprovalRequestBlock _pendingApprovalBlock(
+  CodexSessionPendingRequest request,
+) {
+  return CodexApprovalRequestBlock(
+    id: 'request_${request.requestId}',
+    createdAt: request.createdAt,
+    requestId: request.requestId,
+    requestType: request.requestType,
+    title: _requestTitle(request.requestType),
+    body: request.detail ?? 'Codex needs a decision before it can continue.',
+  );
+}
+
+CodexUserInputRequestBlock _pendingUserInputBlock(
+  CodexSessionPendingUserInputRequest request,
+) {
+  return CodexUserInputRequestBlock(
+    id: 'request_${request.requestId}',
+    createdAt: request.createdAt,
+    requestId: request.requestId,
+    requestType: request.requestType,
+    title: _requestTitle(request.requestType),
+    body: request.detail ?? _questionsSummary(request.questions),
+    questions: request.questions,
+  );
+}
+
+String _requestTitle(CodexCanonicalRequestType requestType) {
+  return switch (requestType) {
+    CodexCanonicalRequestType.commandExecutionApproval => 'Command approval',
+    CodexCanonicalRequestType.fileReadApproval => 'File read approval',
+    CodexCanonicalRequestType.fileChangeApproval => 'File change approval',
+    CodexCanonicalRequestType.applyPatchApproval => 'Patch approval',
+    CodexCanonicalRequestType.execCommandApproval => 'Command approval',
+    CodexCanonicalRequestType.permissionsRequestApproval =>
+      'Permissions request',
+    CodexCanonicalRequestType.toolUserInput => 'Input required',
+    CodexCanonicalRequestType.mcpServerElicitation => 'MCP input required',
+    CodexCanonicalRequestType.dynamicToolCall => 'Tool call',
+    CodexCanonicalRequestType.authTokensRefresh => 'Auth refresh',
+    CodexCanonicalRequestType.unknown => 'Request',
+  };
+}
+
+String _questionsSummary(List<CodexRuntimeUserInputQuestion> questions) {
+  return questions
+      .map((question) => '${question.header}: ${question.question}')
+      .join('\n\n');
 }
 
 class CodexSessionPendingRequest {
@@ -466,6 +574,13 @@ final class CodexTurnChangedFilesSegment extends CodexTurnSegment {
   final List<CodexChangedFile> files;
   final String? unifiedDiff;
   final bool isStreaming;
+}
+
+final class CodexTurnBlockSegment extends CodexTurnSegment {
+  CodexTurnBlockSegment({required this.block})
+    : super(id: block.id, createdAt: block.createdAt);
+
+  final CodexUiBlock block;
 }
 
 class CodexActiveTurnState {

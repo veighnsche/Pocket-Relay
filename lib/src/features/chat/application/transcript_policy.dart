@@ -78,6 +78,38 @@ class TranscriptPolicy {
     return state.copyWith(clearThreadId: true, clearActiveTurn: true);
   }
 
+  CodexSessionState rolloverTurnIfNeeded(
+    CodexSessionState state, {
+    required String? turnId,
+    required String? threadId,
+    required DateTime createdAt,
+  }) {
+    if (turnId == null) {
+      return state;
+    }
+
+    final currentTurn = state.activeTurn;
+    if (currentTurn == null || currentTurn.turnId == turnId) {
+      return state;
+    }
+
+    return _commitActiveTurn(
+      state.copyWith(
+        activeTurn: CodexActiveTurnState(
+          turnId: turnId,
+          threadId: threadId ?? state.threadId,
+          timer: CodexSessionTurnTimer(
+            turnId: turnId,
+            startedAt: createdAt,
+            activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
+          ),
+        ),
+      ),
+      activeTurn: currentTurn,
+      includePendingUsage: true,
+    );
+  }
+
   CodexSessionState applySessionExited(
     CodexSessionState state,
     CodexRuntimeSessionExitedEvent event,
@@ -89,12 +121,16 @@ class TranscriptPolicy {
     final elapsed = state.activeTurn == null
         ? null
         : completedTimer.elapsedAt(event.createdAt);
-    final nextState = state.copyWith(
-      connectionStatus: event.exitKind == CodexRuntimeSessionExitKind.error
-          ? CodexRuntimeSessionState.error
-          : CodexRuntimeSessionState.stopped,
-      clearThreadId: true,
-      clearActiveTurn: true,
+    final nextState = _commitActiveTurn(
+      state.copyWith(
+        connectionStatus: event.exitKind == CodexRuntimeSessionExitKind.error
+            ? CodexRuntimeSessionState.error
+            : CodexRuntimeSessionState.stopped,
+        clearThreadId: true,
+        clearActiveTurn: true,
+      ),
+      activeTurn: state.activeTurn,
+      includePendingUsage: true,
     );
     if (event.exitKind != CodexRuntimeSessionExitKind.error) {
       return nextState;
@@ -123,16 +159,15 @@ class TranscriptPolicy {
     final elapsed = state.activeTurn == null
         ? null
         : completedTimer.elapsedAt(event.createdAt);
-    var nextState = state.copyWith(
-      connectionStatus: CodexRuntimeSessionState.ready,
-      clearActiveTurn: true,
-      latestUsageSummary: _support.buildRuntimeUsageSummary(event),
+    final nextState = _commitActiveTurn(
+      state.copyWith(
+        connectionStatus: CodexRuntimeSessionState.ready,
+        clearActiveTurn: true,
+        latestUsageSummary: _support.buildRuntimeUsageSummary(event),
+      ),
+      activeTurn: state.activeTurn,
+      includePendingUsage: true,
     );
-    final pendingThreadTokenUsageBlock =
-        state.activeTurn?.pendingThreadTokenUsageBlock;
-    if (pendingThreadTokenUsageBlock != null) {
-      nextState = _support.upsertBlock(nextState, pendingThreadTokenUsageBlock);
-    }
     return _support.upsertBlock(
       nextState,
       CodexTurnBoundaryBlock(
@@ -155,9 +190,13 @@ class TranscriptPolicy {
         ? null
         : completedTimer.elapsedAt(event.createdAt);
     return _support.upsertBlock(
-      state.copyWith(
-        connectionStatus: CodexRuntimeSessionState.ready,
-        clearActiveTurn: true,
+      _commitActiveTurn(
+        state.copyWith(
+          connectionStatus: CodexRuntimeSessionState.ready,
+          clearActiveTurn: true,
+        ),
+        activeTurn: state.activeTurn,
+        includePendingUsage: true,
       ),
       CodexStatusBlock(
         id: _support.eventEntryId('status', event.createdAt),
@@ -175,7 +214,7 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeTurnPlanUpdatedEvent event,
   ) {
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       state,
       CodexPlanUpdateBlock(
         id: 'turn_plan_${event.turnId ?? event.createdAt.toIso8601String()}',
@@ -183,6 +222,8 @@ class TranscriptPolicy {
         explanation: event.explanation,
         steps: event.steps,
       ),
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -190,7 +231,7 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeTurnDiffUpdatedEvent event,
   ) {
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       state,
       CodexChangedFilesBlock(
         id: 'turn_diff_${event.turnId ?? event.createdAt.toIso8601String()}',
@@ -204,6 +245,8 @@ class TranscriptPolicy {
         unifiedDiff: event.unifiedDiff,
         turnId: event.turnId,
       ),
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -258,7 +301,7 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeWarningEvent event,
   ) {
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       state,
       _support.statusEntry(
         prefix: 'warning',
@@ -269,6 +312,8 @@ class TranscriptPolicy {
         createdAt: event.createdAt,
         isTranscriptSignal: true,
       ),
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -298,7 +343,7 @@ class TranscriptPolicy {
     if (!_support.isTranscriptStatusSignal(event)) {
       return state;
     }
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       state,
       CodexStatusBlock(
         id: _support.eventEntryId('status', event.createdAt),
@@ -307,6 +352,8 @@ class TranscriptPolicy {
         body: event.message,
         isTranscriptSignal: true,
       ),
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -314,7 +361,7 @@ class TranscriptPolicy {
     CodexSessionState state,
     CodexRuntimeErrorEvent event,
   ) {
-    return _support.upsertBlock(
+    return _stateWithTranscriptBlock(
       state,
       CodexErrorBlock(
         id: _support.eventEntryId('error', event.createdAt),
@@ -322,6 +369,8 @@ class TranscriptPolicy {
         title: 'Runtime error',
         body: event.message,
       ),
+      turnId: event.turnId,
+      threadId: event.threadId,
     );
   }
 
@@ -344,5 +393,65 @@ class TranscriptPolicy {
         activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
       ),
     );
+  }
+
+  CodexSessionState _commitActiveTurn(
+    CodexSessionState state, {
+    required CodexActiveTurnState? activeTurn,
+    bool includePendingUsage = false,
+  }) {
+    if (activeTurn == null) {
+      return state;
+    }
+
+    var nextState = state;
+    for (final block in projectCodexTurnSegments(activeTurn.segments)) {
+      nextState = _support.upsertBlock(nextState, block);
+    }
+    if (includePendingUsage &&
+        activeTurn.pendingThreadTokenUsageBlock != null) {
+      nextState = _support.upsertBlock(
+        nextState,
+        activeTurn.pendingThreadTokenUsageBlock!,
+      );
+    }
+    return nextState;
+  }
+
+  CodexSessionState _stateWithTranscriptBlock(
+    CodexSessionState state,
+    CodexUiBlock block, {
+    required String? turnId,
+    required String? threadId,
+  }) {
+    final activeTurn = _ensureActiveTurn(
+      state.activeTurn,
+      turnId: turnId,
+      threadId: threadId,
+      createdAt: block.createdAt,
+    );
+    if (activeTurn == null) {
+      return _support.upsertBlock(state, block);
+    }
+
+    return state.copyWith(activeTurn: _upsertTurnBlock(activeTurn, block));
+  }
+
+  CodexActiveTurnState _upsertTurnBlock(
+    CodexActiveTurnState activeTurn,
+    CodexUiBlock block,
+  ) {
+    final segment = CodexTurnBlockSegment(block: block);
+    final nextSegments = List<CodexTurnSegment>.from(activeTurn.segments);
+    final index = nextSegments.indexWhere(
+      (existing) => existing.id == block.id,
+    );
+    if (index == -1) {
+      nextSegments.add(segment);
+    } else {
+      nextSegments[index] = segment;
+    }
+
+    return activeTurn.copyWith(segments: nextSegments);
   }
 }

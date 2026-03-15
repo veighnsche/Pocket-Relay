@@ -39,21 +39,20 @@ class TranscriptItemPolicy {
         activeTurn?.itemsById[event.itemId!] ??
         state.activeItems[event.itemId!];
     final nextItem = _activeItemFromLifecycle(event, existing: existing);
-    final nextBlock = _blockFactory.blockFromActiveItem(nextItem);
-
-    final nextState = state.copyWith(
-      activeTurn: _nextActiveTurnForLifecycle(
-        activeTurn,
-        nextItem,
-        removeAfterUpsert: removeAfterUpsert,
-      ),
+    final shouldSuppress = _shouldSuppressItemSegment(state, nextItem);
+    return state.copyWith(
+      activeTurn: shouldSuppress
+          ? _nextActiveTurnForSuppressedLifecycle(
+              activeTurn,
+              nextItem,
+              removeAfterUpsert: removeAfterUpsert,
+            )
+          : _nextActiveTurnForLifecycle(
+              activeTurn,
+              nextItem,
+              removeAfterUpsert: removeAfterUpsert,
+            ),
     );
-
-    if (_shouldSuppressItemBlock(state, nextItem)) {
-      return nextState;
-    }
-
-    return _support.upsertBlock(nextState, nextBlock);
   }
 
   CodexSessionState applyContentDelta(
@@ -80,11 +79,8 @@ class TranscriptItemPolicy {
       isRunning: true,
     );
 
-    return _support.upsertBlock(
-      state.copyWith(
-        activeTurn: _nextActiveTurnForContentDelta(activeTurn, updatedItem),
-      ),
-      _blockFactory.blockFromActiveItem(updatedItem),
+    return state.copyWith(
+      activeTurn: _nextActiveTurnForContentDelta(activeTurn, updatedItem),
     );
   }
 
@@ -172,15 +168,15 @@ class TranscriptItemPolicy {
     return _itemSupport.defaultLifecycleBody(event.itemType) ?? currentBody;
   }
 
-  bool _shouldSuppressItemBlock(
+  int? _extractExitCode(Map<String, dynamic>? snapshot) {
+    final value = snapshot?['exitCode'] ?? snapshot?['exit_code'];
+    return value is num ? value.toInt() : null;
+  }
+
+  bool _shouldSuppressItemSegment(
     CodexSessionState state,
     CodexSessionActiveItem item,
   ) {
-    if (item.itemType == CodexCanonicalItemType.reasoning &&
-        item.body.trim().isEmpty) {
-      return true;
-    }
-
     if (item.itemType != CodexCanonicalItemType.userMessage) {
       return false;
     }
@@ -194,9 +190,24 @@ class TranscriptItemPolicy {
     return latestBlock is CodexUserMessageBlock && latestBlock.text == text;
   }
 
-  int? _extractExitCode(Map<String, dynamic>? snapshot) {
-    final value = snapshot?['exitCode'] ?? snapshot?['exit_code'];
-    return value is num ? value.toInt() : null;
+  CodexActiveTurnState? _nextActiveTurnForSuppressedLifecycle(
+    CodexActiveTurnState? activeTurn,
+    CodexSessionActiveItem item, {
+    required bool removeAfterUpsert,
+  }) {
+    if (activeTurn == null || activeTurn.turnId != item.turnId) {
+      return activeTurn;
+    }
+
+    final nextItems = <String, CodexSessionActiveItem>{
+      ...activeTurn.itemsById,
+      item.itemId: item,
+    };
+    if (removeAfterUpsert) {
+      nextItems.remove(item.itemId);
+    }
+
+    return activeTurn.copyWith(itemsById: nextItems);
   }
 
   CodexActiveTurnState? _nextActiveTurnForLifecycle(

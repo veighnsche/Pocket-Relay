@@ -118,9 +118,14 @@ void main() {
       ),
     );
 
-    expect(find.text('Codex'), findsOneWidget);
     expect(find.text('Plain assistant transcript.'), findsOneWidget);
-    expect(_findDecoratedContainerColorForText(tester, 'Codex'), isNull);
+    expect(
+      _findDecoratedContainerColorForText(
+        tester,
+        'Plain assistant transcript.',
+      ),
+      isNull,
+    );
   });
 
   testWidgets('renders a live elapsed footer as a standalone widget', (
