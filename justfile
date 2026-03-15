@@ -118,7 +118,7 @@ codex-mcp *args:
     export PATH="$HOME/.local/bin:$HOME/bin:$HOME/.bun/bin:$PATH"
 
     fnm_bin="${FNM_DIR:-$HOME/.local/share/fnm}/fnm"
-    if ! command -v codex >/dev/null 2>&1; then
+    if ! command -v codex >/dev/null 2>&1 || ! command -v npx >/dev/null 2>&1; then
       if command -v fnm >/dev/null 2>&1; then
         eval "$(fnm env --shell bash)"
       elif [ -x "$fnm_bin" ]; then
@@ -137,11 +137,18 @@ codex-mcp *args:
       exit 127
     fi
 
+    if ! command -v npx >/dev/null 2>&1; then
+      echo "npx not found on PATH" >&2
+      exit 127
+    fi
+
     exec codex \
       --dangerously-bypass-approvals-and-sandbox \
       -C "$project_root" \
       -c "mcp_servers.dart.command=\"$dart_bin\"" \
       -c "mcp_servers.dart.args=[\"mcp-server\",\"--flutter-sdk\",\"$flutter_root\",\"--force-roots-fallback\",\"--tools\",\"all\"]" \
+      -c "mcp_servers.mobile-mcp.command=\"npx\"" \
+      -c "mcp_servers.mobile-mcp.args=[\"@mobilenext/mobile-mcp@latest\"]" \
       {{args}}
 
 [no-exit-message]
