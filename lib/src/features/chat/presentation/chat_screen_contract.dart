@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 
 enum ChatScreenActionId { openSettings, newThread, clearTranscript }
 
@@ -25,10 +25,7 @@ class ChatScreenActionContract {
 }
 
 class ChatHeaderContract {
-  const ChatHeaderContract({
-    required this.title,
-    required this.subtitle,
-  });
+  const ChatHeaderContract({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -38,12 +35,6 @@ class ChatEmptyStateContract {
   const ChatEmptyStateContract({required this.isConfigured});
 
   final bool isConfigured;
-}
-
-class ChatTranscriptItemContract {
-  const ChatTranscriptItemContract({required this.block});
-
-  final CodexUiBlock block;
 }
 
 class ChatTranscriptSurfaceContract {
@@ -116,9 +107,7 @@ class ChatScreenContract {
   final ChatTurnIndicatorContract? turnIndicator;
 
   List<ChatScreenActionContract> get toolbarActions => actions
-      .where(
-        (action) => action.placement == ChatScreenActionPlacement.toolbar,
-      )
+      .where((action) => action.placement == ChatScreenActionPlacement.toolbar)
       .toList(growable: false);
 
   List<ChatScreenActionContract> get menuActions => actions

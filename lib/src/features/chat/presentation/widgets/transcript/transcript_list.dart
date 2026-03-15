@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
@@ -98,10 +98,9 @@ class _TranscriptListState extends State<TranscriptList> {
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
               itemBuilder: (context, index) {
                 final item = widget.surface.mainItems[index];
-                final block = item.block;
                 return ConversationEntryCard(
-                  key: ValueKey<String>('transcript_${block.id}'),
-                  block: block,
+                  key: ValueKey<String>('transcript_${item.id}'),
+                  item: item,
                   onApproveRequest: widget.onApproveRequest,
                   onDenyRequest: widget.onDenyRequest,
                   onSubmitUserInput: widget.onSubmitUserInput,
@@ -122,7 +121,7 @@ class _TranscriptListState extends State<TranscriptList> {
                   children: widget.surface.pinnedItems.indexed
                       .map((entry) {
                         final index = entry.$1;
-                        final block = entry.$2.block;
+                        final item = entry.$2;
                         return Padding(
                           padding: EdgeInsets.only(
                             bottom:
@@ -131,8 +130,8 @@ class _TranscriptListState extends State<TranscriptList> {
                                 : 8,
                           ),
                           child: ConversationEntryCard(
-                            key: ValueKey<String>('pinned_${block.id}'),
-                            block: block,
+                            key: ValueKey<String>('pinned_${item.id}'),
+                            item: item,
                             onApproveRequest: widget.onApproveRequest,
                             onDenyRequest: widget.onDenyRequest,
                             onSubmitUserInput: widget.onSubmitUserInput,
@@ -203,18 +202,16 @@ class _TranscriptListState extends State<TranscriptList> {
     final activeRequestIds = <String>{};
 
     for (final item in widget.surface.mainItems) {
-      final block = item.block;
-      if (block case final CodexUserInputRequestBlock userInputBlock
-          when !userInputBlock.isResolved) {
-        activeRequestIds.add(userInputBlock.requestId);
+      if (item case final ChatUserInputRequestItemContract userInputItem
+          when !userInputItem.block.isResolved) {
+        activeRequestIds.add(userInputItem.block.requestId);
       }
     }
 
     for (final item in widget.surface.pinnedItems) {
-      final block = item.block;
-      if (block case final CodexUserInputRequestBlock userInputBlock
-          when !userInputBlock.isResolved) {
-        activeRequestIds.add(userInputBlock.requestId);
+      if (item case final ChatUserInputRequestItemContract userInputItem
+          when !userInputItem.block.isResolved) {
+        activeRequestIds.add(userInputItem.block.requestId);
       }
     }
 

@@ -28,6 +28,8 @@ renderer can consume the same ownership model.
   branch
 - Phase 3, pending user-input form contract extraction: completed on this
   branch
+- Phase 4, transcript card and overlay seam tightening: slice 1 completed on
+  this branch, slice 2 not started
 - Root architectural adapter work: not started
 - Apple-native glass components: not started
 
@@ -488,6 +490,274 @@ Flutter renderers, especially:
 - changed-file diff ownership
 - transcript item contract shape below the screen level
 - transcript follow behavior if it needs renderer parity
+
+## Phase 4 Deep Investigation
+
+Phase 4 is the next migration phase:
+
+- transcript card and overlay seam tightening
+
+This section records the current Phase 4 investigation and the recommended
+upgrade path.
+
+### Findings
+
+#### 1. Transcript items still have no real presentation contract below the screen level
+
+Current files:
+
+- `lib/src/features/chat/presentation/chat_screen_contract.dart`
+- `lib/src/features/chat/presentation/chat_transcript_surface_projector.dart`
+
+`ChatTranscriptItemContract` still just wraps a raw `CodexUiBlock`, and the
+surface projector still maps blocks directly into `mainItems` and `pinnedItems`.
+
+That means the transcript surface contract is still too thin to carry
+renderer-neutral item behavior. Flutter still has to inspect block types later
+and decide how each row should behave.
+
+#### 2. `ConversationEntryCard` is still a Flutter-owned block-to-widget dispatcher
+
+Current file:
+
+- `lib/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart`
+
+The transcript renderer still switches directly on raw block types. It also
+still performs presentation shaping inside the renderer, most notably turning a
+single `CodexWorkLogEntryBlock` into a synthetic `CodexWorkLogGroupBlock`
+before rendering.
+
+That is exactly the kind of view shaping that should move out of Flutter before
+a second renderer is added.
+
+#### 3. `ChangedFilesCard` still owns both view shaping and overlay lifecycle
+
+Current file:
+
+- `lib/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart`
+
+The changed-files surface still owns:
+
+- unified diff parsing into patch objects
+- file-row display shaping and stat fallback logic
+- diff-line classification for display
+- diff preview truncation state
+- `showModalBottomSheet(...)` ownership for the per-file diff sheet
+
+This is the largest remaining card-level ownership gap after Phase 3.
+
+#### 4. Diff semantics are duplicated between application code and widget code
+
+Current files:
+
+- `lib/src/features/chat/application/transcript_changed_files_parser.dart`
+- `lib/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart`
+
+The application layer already parses and synthesizes changed-file data for
+`CodexChangedFilesBlock`, while `ChangedFilesCard` performs another widget-local
+diff parse for file patch matching, per-file stats fallback, rename handling,
+and display lines.
+
+That duplication is manageable today, but it is the wrong ownership model for
+future renderer parity. If left in place, native diff presentation would need
+to reimplement widget-local logic that should instead be shared once.
+
+#### 5. Transcript follow policy is still widget-local
+
+Current files:
+
+- `lib/src/features/chat/presentation/widgets/transcript/transcript_list.dart`
+- `lib/src/features/chat/presentation/chat_screen.dart`
+
+`TranscriptList` still owns:
+
+- the follow flag
+- the near-bottom heuristic
+- scroll animation policy
+- the translation from user scrolling into follow enablement
+
+`ChatScreen` can only request follow imperatively through
+`TranscriptListController.requestFollow()`.
+
+That is acceptable while Flutter owns the feed, but it is still hidden behavior
+at the widget layer rather than an explicit transcript behavior contract.
+
+#### 6. Existing tests prove behavior, but not shared ownership, for the remaining Phase 4 seams
+
+Current files:
+
+- `test/codex_ui_block_card_test.dart`
+- `test/chat_screen_app_server_test.dart`
+
+The current tests are good at proving that:
+
+- changed-files rows render correctly
+- diff sheets open and preview correctly
+- scrolling does not yank the transcript while scrolled up
+
+What they do not yet prove is that:
+
+- changed-files rows and diff sheets are derived from a shared presentation contract
+- diff-sheet opening is a modeled effect boundary instead of a widget-local modal call
+- transcript follow behavior is driven by explicit presentation policy
+
+So Phase 4 needs to add ownership-oriented tests, not just preserve rendering
+tests.
+
+## Best Upgrade Path For Phase 4
+
+The best Phase 4 path is not to start by patching `ChangedFilesCard` in place.
+
+The correct order is:
+
+1. introduce a real transcript item contract layer below the screen contract
+2. move changed-files presentation and diff-sheet launch onto that layer
+3. only then extract transcript follow behavior if it still blocks renderer parity
+
+That order matters because changed-files ownership should not become another
+one-off exception hanging off a transcript surface that still only carries raw
+blocks.
+
+## Phase 4 Slice Breakdown
+
+Phase 4 should be split into 3 slices.
+
+### Slice 1: Transcript item contract foundation
+
+This slice is complete on this branch.
+
+Slice 1 covers:
+
+- replacing `ChatTranscriptItemContract(block: ...)` with a real transcript item
+  contract hierarchy
+- moving transcript item shaping out of `ConversationEntryCard`
+- moving renderer-facing item classification out of the raw block switch
+- preserving current visible transcript behavior without broadening product scope
+- moving work-log entry normalization into the transcript item projector
+- projector coverage proving work-log shaping no longer originates in the
+  renderer
+
+This slice is the foundation. Without it, changed-files extraction risks
+becoming another special-case seam instead of the start of a coherent
+transcript item layer.
+
+### Slice 2: Changed-files contract and diff overlay boundary
+
+This is the next active slice.
+
+Slice 2 should cover:
+
+- one renderer-neutral changed-files item contract
+- file-row contracts with display labels, availability state, and summary stats
+- one diff-sheet contract for the selected file patch
+- a modeled event/effect boundary for opening a diff sheet from a transcript row
+- removing widget-local diff parsing and sheet launching from `ChangedFilesCard`
+
+This is the highest-value Phase 4 slice because it removes the largest
+remaining card-local ownership gap.
+
+### Slice 3: Transcript follow behavior contract
+
+This slice should cover:
+
+- one explicit transcript follow behavior contract or host
+- modeled follow requests from screen actions such as send, clear, and new thread
+- explicit auto-follow eligibility derived from transcript behavior policy
+- keeping `TranscriptList` as scroll/render plumbing rather than the source of
+  follow rules
+
+This slice is structurally important, but it comes after the transcript item
+contract and changed-files ownership work because the transcript feed is still
+Flutter-owned for now.
+
+## Phase 4 Execution Spec
+
+### Scope
+
+Phase 4 must extract the following into shared presentation code:
+
+- one transcript item contract layer below the screen contract
+- one changed-files presentation contract owning:
+  - header stats
+  - file rows
+  - row availability for diff opening
+  - per-file diff sheet content
+  - preview/full-diff state inputs if that state remains in Flutter for now
+- one overlay or event boundary for opening changed-file diffs
+- one transcript follow behavior contract or host if follow remains in scope for
+  renderer parity
+
+### Explicit Non-Goals
+
+Phase 4 must not:
+
+- redesign every transcript card in one pass
+- broaden pending request visibility from the current product behavior unless
+  that behavior is explicitly requested
+- move the whole transcript feed to native ownership
+- introduce Apple-native glass components
+- treat a one-off changed-files presenter as sufficient if transcript items
+  still fundamentally depend on raw block dispatch
+
+### Required Ownership Boundary
+
+After Phase 4:
+
+- `ConversationEntryCard` may still be a Flutter renderer entry point
+- `ConversationEntryCard` must no longer be the source of transcript item
+  shaping rules
+- `ChangedFilesCard` may still own Flutter layout and local preview toggle state
+  if needed
+- `ChangedFilesCard` must not remain the owner of:
+  - diff parsing
+  - file-row contract derivation
+  - per-file diff selection semantics
+  - diff-sheet launch ownership
+- `TranscriptList` may still own the `ScrollController`
+- `TranscriptList` must not remain the only owner of follow policy if follow is
+  kept in Phase 4 scope
+
+### Recommended First Slice
+
+The recommended first Phase 4 slice is:
+
+- transcript item contract foundation
+
+Reason:
+
+- it unlocks changed-files extraction without introducing a new special-case
+  ownership path
+- it moves existing renderer-only shaping such as work-log entry normalization
+  out of Flutter
+- it gives the transcript surface a place to carry future changed-files and
+  overlay contracts cleanly
+
+## Phase 4 Exit Criteria
+
+Phase 4 is complete only when all of the following are true:
+
+- transcript items are no longer represented only as raw `CodexUiBlock`
+  wrappers
+- transcript item shaping is owned above Flutter renderer code
+- changed-files rows and diff-sheet content are derived from shared presentation
+  contracts
+- changed-file diff opening is modeled above the card widget
+- transcript follow behavior is either explicitly modeled or deliberately
+  documented as out of scope for a later phase with a reason that does not
+  create duplicate renderer work
+
+## Phase 4 Verification Plan
+
+Phase 4 verification must include:
+
+- presenter or projector tests for transcript item contract derivation
+- tests proving work-log and changed-files shaping no longer originates in the
+  renderer
+- widget tests proving changed-files rows and diff sheets render from shared
+  contracts
+- tests proving diff opening is routed through the new boundary instead of a
+  widget-local `showModalBottomSheet(...)`
+- transcript behavior tests for follow policy if slice 3 is included
 
 ### Phase 5
 

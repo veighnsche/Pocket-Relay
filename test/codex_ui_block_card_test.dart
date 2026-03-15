@@ -5,17 +5,20 @@ import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/turn_boundary_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
 
+const _itemProjector = ChatTranscriptItemProjector();
+
 void main() {
   testWidgets('renders reasoning blocks with markdown text', (tester) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexTextBlock(
             id: 'reasoning_1',
             kind: CodexUiBlockKind.reasoning,
@@ -37,7 +40,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         themeMode: ThemeMode.dark,
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexTextBlock(
             id: 'reasoning_code_1',
             kind: CodexUiBlockKind.reasoning,
@@ -65,7 +68,7 @@ void main() {
         themeMode: ThemeMode.dark,
         child: Column(
           children: [
-            ConversationEntryCard(
+            _entryCard(
               block: CodexTextBlock(
                 id: 'reasoning_dark_1',
                 kind: CodexUiBlockKind.reasoning,
@@ -75,7 +78,7 @@ void main() {
               ),
             ),
             const SizedBox(height: 16),
-            ConversationEntryCard(
+            _entryCard(
               block: CodexChangedFilesBlock(
                 id: 'files_dark_1',
                 createdAt: DateTime(2026, 3, 14, 12),
@@ -109,7 +112,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexTextBlock(
             id: 'assistant_1',
             kind: CodexUiBlockKind.assistantMessage,
@@ -138,7 +141,7 @@ void main() {
         _buildTestApp(
           child: Column(
             children: [
-              ConversationEntryCard(
+              _entryCard(
                 block: CodexUserMessageBlock(
                   id: 'user_local_1',
                   createdAt: DateTime(2026, 3, 14, 12),
@@ -147,7 +150,7 @@ void main() {
                 ),
               ),
               const SizedBox(height: 16),
-              ConversationEntryCard(
+              _entryCard(
                 block: CodexUserMessageBlock(
                   id: 'user_session_1',
                   createdAt: DateTime(2026, 3, 14, 12, 0, 1),
@@ -189,7 +192,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         themeMode: ThemeMode.dark,
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexUserMessageBlock(
             id: 'user_dark_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -246,7 +249,7 @@ void main() {
 
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexApprovalRequestBlock(
             id: 'request_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -279,7 +282,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         activeRequestIds: const <String>{'input_1'},
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexUserInputRequestBlock(
             id: 'input_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -321,7 +324,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           activeRequestIds: const <String>{'input_1'},
-          child: ConversationEntryCard(
+          child: _entryCard(
             block: CodexUserInputRequestBlock(
               id: 'input_1',
               createdAt: DateTime(2026, 3, 14, 12),
@@ -371,7 +374,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         activeRequestIds: const <String>{'input_1'},
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexUserInputRequestBlock(
             id: 'input_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -397,7 +400,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         activeRequestIds: const <String>{'input_2'},
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexUserInputRequestBlock(
             id: 'input_2',
             createdAt: DateTime(2026, 3, 14, 12, 0, 5),
@@ -491,7 +494,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           child: SingleChildScrollView(
-            child: ConversationEntryCard(
+            child: _entryCard(
               block: CodexProposedPlanBlock(
                 id: 'plan_1',
                 createdAt: DateTime(2026, 3, 14, 12),
@@ -580,7 +583,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexWorkLogGroupBlock(
             id: 'worklog_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -617,7 +620,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexUsageBlock(
             id: 'usage_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -655,7 +658,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         _buildTestApp(
-          child: ConversationEntryCard(
+          child: _entryCard(
             block: CodexUsageBlock(
               id: 'usage_2',
               createdAt: DateTime(2026, 3, 14, 12),
@@ -686,7 +689,7 @@ void main() {
   testWidgets('renders turn completion as a compact separator', (tester) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexTurnBoundaryBlock(
             id: 'turn_end_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -703,7 +706,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexTurnBoundaryBlock(
             id: 'turn_end_2',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -721,7 +724,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexTurnBoundaryBlock(
             id: 'turn_end_usage_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -753,7 +756,7 @@ void main() {
           alignment: Alignment.topLeft,
           child: SizedBox(
             width: 1200,
-            child: ConversationEntryCard(
+            child: _entryCard(
               block: CodexTurnBoundaryBlock(
                 id: 'turn_end_flush_1',
                 createdAt: DateTime(2026, 3, 14, 12),
@@ -794,7 +797,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexChangedFilesBlock(
             id: 'diff_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -864,7 +867,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexChangedFilesBlock(
             id: 'diff_unmatched_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -897,7 +900,7 @@ void main() {
   testWidgets('matches renamed files by old-path aliases', (tester) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexChangedFilesBlock(
             id: 'diff_rename_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -938,7 +941,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexChangedFilesBlock(
             id: 'diff_only_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -983,7 +986,7 @@ void main() {
 
     await tester.pumpWidget(
       _buildTestApp(
-        child: ConversationEntryCard(
+        child: _entryCard(
           block: CodexChangedFilesBlock(
             id: 'diff_large_1',
             createdAt: DateTime(2026, 3, 14, 12),
@@ -1024,13 +1027,28 @@ ChatTranscriptSurfaceContract _surfaceContract({
 }) {
   return ChatTranscriptSurfaceContract(
     isConfigured: isConfigured,
-    mainItems: mainItems
-        .map((block) => ChatTranscriptItemContract(block: block))
-        .toList(growable: false),
+    mainItems: mainItems.map(_itemProjector.project).toList(growable: false),
     pinnedItems: pinnedItems
-        .map((block) => ChatTranscriptItemContract(block: block))
+        .map(_itemProjector.project)
         .toList(growable: false),
     emptyState: emptyState,
+  );
+}
+
+Widget _entryCard({
+  Key? key,
+  required CodexUiBlock block,
+  Future<void> Function(String requestId)? onApproveRequest,
+  Future<void> Function(String requestId)? onDenyRequest,
+  Future<void> Function(String requestId, Map<String, List<String>> answers)?
+  onSubmitUserInput,
+}) {
+  return ConversationEntryCard(
+    key: key,
+    item: _itemProjector.project(block),
+    onApproveRequest: onApproveRequest,
+    onDenyRequest: onDenyRequest,
+    onSubmitUserInput: onSubmitUserInput,
   );
 }
 

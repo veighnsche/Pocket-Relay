@@ -7,41 +7,46 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_mapper.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_surface_projector.dart';
 
 void main() {
   group('ChatScreenPresenter', () {
     const presenter = ChatScreenPresenter();
 
-    test('derives header, actions, composer, and settings payload from raw top-level state', () {
-      final profile = _configuredProfile();
-      final secrets = const ConnectionSecrets(password: 'secret');
+    test(
+      'derives header, actions, composer, and settings payload from raw top-level state',
+      () {
+        final profile = _configuredProfile();
+        final secrets = const ConnectionSecrets(password: 'secret');
 
-      final contract = presenter.present(
-        isLoading: false,
-        profile: profile,
-        secrets: secrets,
-        sessionState: CodexSessionState.initial(),
-      );
+        final contract = presenter.present(
+          isLoading: false,
+          profile: profile,
+          secrets: secrets,
+          sessionState: CodexSessionState.initial(),
+        );
 
-      expect(contract.header.title, 'Pocket Relay');
-      expect(contract.header.subtitle, 'Dev Box · devbox.local');
-      expect(
-        contract.toolbarActions.map((action) => action.id),
-        <ChatScreenActionId>[ChatScreenActionId.openSettings],
-      );
-      expect(
-        contract.menuActions.map((action) => action.id),
-        <ChatScreenActionId>[
-          ChatScreenActionId.newThread,
-          ChatScreenActionId.clearTranscript,
-        ],
-      );
-      expect(contract.composer.isTextInputEnabled, isTrue);
-      expect(contract.composer.primaryAction, ChatComposerPrimaryAction.send);
-      expect(contract.connectionSettings.initialProfile, same(profile));
-      expect(contract.connectionSettings.initialSecrets, same(secrets));
-    });
+        expect(contract.header.title, 'Pocket Relay');
+        expect(contract.header.subtitle, 'Dev Box · devbox.local');
+        expect(
+          contract.toolbarActions.map((action) => action.id),
+          <ChatScreenActionId>[ChatScreenActionId.openSettings],
+        );
+        expect(
+          contract.menuActions.map((action) => action.id),
+          <ChatScreenActionId>[
+            ChatScreenActionId.newThread,
+            ChatScreenActionId.clearTranscript,
+          ],
+        );
+        expect(contract.composer.isTextInputEnabled, isTrue);
+        expect(contract.composer.primaryAction, ChatComposerPrimaryAction.send);
+        expect(contract.connectionSettings.initialProfile, same(profile));
+        expect(contract.connectionSettings.initialSecrets, same(secrets));
+      },
+    );
 
     test('derives stop action and turn indicator when the session is busy', () {
       final activeTurn = CodexActiveTurnState(
@@ -74,71 +79,117 @@ void main() {
   group('ChatTranscriptSurfaceProjector', () {
     const projector = ChatTranscriptSurfaceProjector();
 
-    test('projects transcript blocks into the main region and pending requests into the pinned region', () {
-      final transcriptBlock = CodexTextBlock(
-        id: 'assistant_1',
-        kind: CodexUiBlockKind.assistantMessage,
-        createdAt: DateTime(2026, 3, 15, 12),
-        title: 'Codex',
-        body: 'Hello',
-      );
-      final activeTurn = CodexActiveTurnState(
-        turnId: 'turn_1',
-        timer: CodexSessionTurnTimer(
+    test(
+      'projects transcript blocks into the main region and pending requests into the pinned region',
+      () {
+        final transcriptBlock = CodexTextBlock(
+          id: 'assistant_1',
+          kind: CodexUiBlockKind.assistantMessage,
+          createdAt: DateTime(2026, 3, 15, 12),
+          title: 'Codex',
+          body: 'Hello',
+        );
+        final activeTurn = CodexActiveTurnState(
           turnId: 'turn_1',
-          startedAt: DateTime(2026, 3, 15, 12),
-        ),
-        pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-          'request_1': CodexSessionPendingRequest(
-            requestId: 'request_1',
-            requestType: CodexCanonicalRequestType.fileChangeApproval,
-            createdAt: DateTime(2026, 3, 15, 12, 0, 1),
-            detail: 'Approve file change',
+          timer: CodexSessionTurnTimer(
+            turnId: 'turn_1',
+            startedAt: DateTime(2026, 3, 15, 12),
           ),
-        },
-        pendingUserInputRequests:
-            <String, CodexSessionPendingUserInputRequest>{
-              'request_2': CodexSessionPendingUserInputRequest(
-                requestId: 'request_2',
-                requestType: CodexCanonicalRequestType.toolUserInput,
-                createdAt: DateTime(2026, 3, 15, 12, 0, 2),
-                detail: 'Need extra info',
-              ),
-            },
-      );
-      final sessionState = CodexSessionState.initial().copyWith(
-        activeTurn: activeTurn,
-        blocks: <CodexUiBlock>[transcriptBlock],
-      );
+          pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+            'request_1': CodexSessionPendingRequest(
+              requestId: 'request_1',
+              requestType: CodexCanonicalRequestType.fileChangeApproval,
+              createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+              detail: 'Approve file change',
+            ),
+          },
+          pendingUserInputRequests:
+              <String, CodexSessionPendingUserInputRequest>{
+                'request_2': CodexSessionPendingUserInputRequest(
+                  requestId: 'request_2',
+                  requestType: CodexCanonicalRequestType.toolUserInput,
+                  createdAt: DateTime(2026, 3, 15, 12, 0, 2),
+                  detail: 'Need extra info',
+                ),
+              },
+        );
+        final sessionState = CodexSessionState.initial().copyWith(
+          activeTurn: activeTurn,
+          blocks: <CodexUiBlock>[transcriptBlock],
+        );
 
-      final surface = projector.project(
-        profile: _configuredProfile(),
-        sessionState: sessionState,
-      );
+        final surface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: sessionState,
+        );
 
-      expect(surface.emptyState, isNull);
-      expect(surface.mainItems.single.block, same(transcriptBlock));
-      expect(surface.pinnedItems.length, 2);
-      expect(
-        surface.pinnedItems.map((item) => item.block.kind),
-        <CodexUiBlockKind>[
-          CodexUiBlockKind.approvalRequest,
-          CodexUiBlockKind.userInputRequest,
-        ],
-      );
-    });
+        expect(surface.emptyState, isNull);
+        expect(
+          surface.mainItems.single,
+          isA<ChatAssistantMessageItemContract>(),
+        );
+        expect(
+          (surface.mainItems.single as ChatAssistantMessageItemContract).block,
+          same(transcriptBlock),
+        );
+        expect(surface.pinnedItems.length, 2);
+        expect(
+          surface.pinnedItems.first,
+          isA<ChatApprovalRequestItemContract>(),
+        );
+        expect(
+          surface.pinnedItems.last,
+          isA<ChatUserInputRequestItemContract>(),
+        );
+      },
+    );
 
-    test('projects an empty state when no transcript or pending items are visible', () {
-      final surface = projector.project(
-        profile: ConnectionProfile.defaults(),
-        sessionState: CodexSessionState.initial(),
-      );
+    test(
+      'projects an empty state when no transcript or pending items are visible',
+      () {
+        final surface = projector.project(
+          profile: ConnectionProfile.defaults(),
+          sessionState: CodexSessionState.initial(),
+        );
 
-      expect(surface.showsEmptyState, isTrue);
-      expect(surface.emptyState?.isConfigured, isFalse);
-      expect(surface.mainItems, isEmpty);
-      expect(surface.pinnedItems, isEmpty);
-    });
+        expect(surface.showsEmptyState, isTrue);
+        expect(surface.emptyState?.isConfigured, isFalse);
+        expect(surface.mainItems, isEmpty);
+        expect(surface.pinnedItems, isEmpty);
+      },
+    );
+  });
+
+  group('ChatTranscriptItemProjector', () {
+    const projector = ChatTranscriptItemProjector();
+
+    test(
+      'projects work-log entry blocks into work-log group item contracts',
+      () {
+        final entryBlock = CodexWorkLogEntryBlock(
+          id: 'worklog_1',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entryKind: CodexWorkLogEntryKind.commandExecution,
+          title: 'Read docs',
+          turnId: 'turn_1',
+          preview: 'Found the CLI docs',
+          isRunning: true,
+          exitCode: 0,
+        );
+
+        final item = projector.project(entryBlock);
+
+        expect(item, isA<ChatWorkLogGroupItemContract>());
+        final groupItem = item as ChatWorkLogGroupItemContract;
+        expect(groupItem.block.id, entryBlock.id);
+        expect(groupItem.block.entries, hasLength(1));
+        expect(groupItem.block.entries.single.title, entryBlock.title);
+        expect(groupItem.block.entries.single.turnId, entryBlock.turnId);
+        expect(groupItem.block.entries.single.preview, entryBlock.preview);
+        expect(groupItem.block.entries.single.isRunning, isTrue);
+        expect(groupItem.block.entries.single.exitCode, 0);
+      },
+    );
   });
 
   test('maps snackbar messages into screen effects', () {
