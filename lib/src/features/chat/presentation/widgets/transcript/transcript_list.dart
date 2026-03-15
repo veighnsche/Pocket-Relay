@@ -20,6 +20,7 @@ class TranscriptList extends StatefulWidget {
     this.onApproveRequest,
     this.onDenyRequest,
     this.onSubmitUserInput,
+    this.onSaveHostFingerprint,
   });
 
   final ChatTranscriptSurfaceContract surface;
@@ -36,6 +37,7 @@ class TranscriptList extends StatefulWidget {
     Map<String, List<String>> answers,
   )?
   onSubmitUserInput;
+  final Future<void> Function(String blockId)? onSaveHostFingerprint;
 
   @override
   State<TranscriptList> createState() => _TranscriptListState();
@@ -109,10 +111,12 @@ class _TranscriptListState extends State<TranscriptList> {
                 return ConversationEntryCard(
                   key: ValueKey<String>('transcript_${item.id}'),
                   item: item,
+                  onConfigure: widget.onConfigure,
                   onApproveRequest: widget.onApproveRequest,
                   onDenyRequest: widget.onDenyRequest,
                   onOpenChangedFileDiff: widget.onOpenChangedFileDiff,
                   onSubmitUserInput: widget.onSubmitUserInput,
+                  onSaveHostFingerprint: widget.onSaveHostFingerprint,
                 );
               },
               separatorBuilder: (context, index) => const SizedBox(height: 8),
@@ -141,10 +145,12 @@ class _TranscriptListState extends State<TranscriptList> {
                           child: ConversationEntryCard(
                             key: ValueKey<String>('pinned_${item.id}'),
                             item: item,
+                            onConfigure: widget.onConfigure,
                             onApproveRequest: widget.onApproveRequest,
                             onDenyRequest: widget.onDenyRequest,
                             onOpenChangedFileDiff: widget.onOpenChangedFileDiff,
                             onSubmitUserInput: widget.onSubmitUserInput,
+                            onSaveHostFingerprint: widget.onSaveHostFingerprint,
                           ),
                         );
                       })

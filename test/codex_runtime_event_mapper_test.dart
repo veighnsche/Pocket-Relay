@@ -389,6 +389,26 @@ void main() {
     expect(unknown, isEmpty);
   });
 
+  test('maps unpinned host key transport events into runtime events', () {
+    final mapper = CodexRuntimeEventMapper();
+
+    final events = mapper.mapEvent(
+      const CodexAppServerUnpinnedHostKeyEvent(
+        host: '192.168.1.10',
+        port: 22,
+        keyType: 'ssh-ed25519',
+        fingerprint: '7a:9f:d7:dc:2e:f2',
+      ),
+    );
+
+    expect(events.single, isA<CodexRuntimeUnpinnedHostKeyEvent>());
+    final event = events.single as CodexRuntimeUnpinnedHostKeyEvent;
+    expect(event.host, '192.168.1.10');
+    expect(event.port, 22);
+    expect(event.keyType, 'ssh-ed25519');
+    expect(event.fingerprint, '7a:9f:d7:dc:2e:f2');
+  });
+
   test('maps turn plan notifications into runtime events', () {
     final mapper = CodexRuntimeEventMapper();
 

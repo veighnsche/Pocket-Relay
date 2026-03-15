@@ -462,6 +462,27 @@ final class CodexRuntimeWarningEvent extends CodexRuntimeEvent {
   final String? details;
 }
 
+final class CodexRuntimeUnpinnedHostKeyEvent extends CodexRuntimeEvent {
+  const CodexRuntimeUnpinnedHostKeyEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.keyType,
+    required this.fingerprint,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+  });
+
+  final String host;
+  final int port;
+  final String keyType;
+  final String fingerprint;
+}
+
 final class CodexRuntimeStatusEvent extends CodexRuntimeEvent {
   const CodexRuntimeStatusEvent({
     required super.createdAt,

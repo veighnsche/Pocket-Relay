@@ -356,6 +356,57 @@ class TranscriptPolicy {
     );
   }
 
+  CodexSessionState applyUnpinnedHostKey(
+    CodexSessionState state,
+    CodexRuntimeUnpinnedHostKeyEvent event,
+  ) {
+    final alreadyVisible = state.blocks.any(
+      (block) =>
+          block is CodexUnpinnedHostKeyBlock &&
+          !block.isSaved &&
+          block.host == event.host &&
+          block.port == event.port &&
+          block.keyType == event.keyType &&
+          block.fingerprint == event.fingerprint,
+    );
+    if (alreadyVisible) {
+      return state;
+    }
+
+    return _support.appendBlock(
+      state,
+      CodexUnpinnedHostKeyBlock(
+        id: _support.eventEntryId('host-key', event.createdAt),
+        createdAt: event.createdAt,
+        host: event.host,
+        port: event.port,
+        keyType: event.keyType,
+        fingerprint: event.fingerprint,
+      ),
+    );
+  }
+
+  CodexSessionState markUnpinnedHostKeySaved(
+    CodexSessionState state, {
+    required String blockId,
+  }) {
+    final blockIndex = state.blocks.indexWhere(
+      (block) => block is CodexUnpinnedHostKeyBlock && block.id == blockId,
+    );
+    if (blockIndex == -1) {
+      return state;
+    }
+
+    final block = state.blocks[blockIndex] as CodexUnpinnedHostKeyBlock;
+    if (block.isSaved) {
+      return state;
+    }
+
+    final nextBlocks = List<CodexUiBlock>.from(state.blocks);
+    nextBlocks[blockIndex] = block.copyWith(isSaved: true);
+    return state.copyWith(blocks: nextBlocks);
+  }
+
   CodexSessionState applyStatus(
     CodexSessionState state,
     CodexRuntimeStatusEvent event,

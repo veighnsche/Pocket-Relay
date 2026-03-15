@@ -47,6 +47,13 @@ class TranscriptReducer {
     return _policy.clearLocalUserMessageCorrelationState(state);
   }
 
+  CodexSessionState markUnpinnedHostKeySaved(
+    CodexSessionState state, {
+    required String blockId,
+  }) {
+    return _policy.markUnpinnedHostKeySaved(state, blockId: blockId);
+  }
+
   CodexSessionState reduceRuntimeEvent(
     CodexSessionState state,
     CodexRuntimeEvent event,
@@ -114,6 +121,8 @@ class TranscriptReducer {
         return _policy.applyUserInputResolved(normalizedState, event);
       case CodexRuntimeWarningEvent():
         return _policy.applyWarning(normalizedState, event);
+      case CodexRuntimeUnpinnedHostKeyEvent():
+        return _policy.applyUnpinnedHostKey(normalizedState, event);
       case CodexRuntimeStatusEvent():
         return _policy.applyStatus(normalizedState, event);
       case CodexRuntimeErrorEvent():

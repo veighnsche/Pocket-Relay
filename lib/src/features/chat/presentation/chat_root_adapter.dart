@@ -138,6 +138,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       onDenyRequest: _sessionController.denyRequest,
       onOpenChangedFileDiff: _requestChangedFileDiff,
       onSubmitUserInput: _sessionController.submitUserInput,
+      onSaveHostFingerprint: _sessionController.saveObservedHostFingerprint,
     );
   }
 

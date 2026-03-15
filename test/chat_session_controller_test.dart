@@ -191,6 +191,62 @@ void main() {
       expect(appServerClient.startSessionCalls, 2);
     },
   );
+
+  test(
+    'saveObservedHostFingerprint persists the prompt without disconnecting the active session',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+      final profileStore = MemoryCodexProfileStore(
+        initialValue: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+
+      final controller = ChatSessionController(
+        profileStore: profileStore,
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('Hello controller'), isTrue);
+
+      appServerClient.emit(
+        const CodexAppServerUnpinnedHostKeyEvent(
+          host: 'example.com',
+          port: 22,
+          keyType: 'ssh-ed25519',
+          fingerprint: '7a:9f:d7:dc:2e:f2',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final block = controller.transcriptBlocks
+          .whereType<CodexUnpinnedHostKeyBlock>()
+          .single;
+
+      await controller.saveObservedHostFingerprint(block.id);
+
+      expect(appServerClient.isConnected, isTrue);
+      expect(controller.profile.hostFingerprint, '7a:9f:d7:dc:2e:f2');
+      expect(
+        (await profileStore.load()).profile.hostFingerprint,
+        '7a:9f:d7:dc:2e:f2',
+      );
+      expect(
+        controller.transcriptBlocks
+            .whereType<CodexUnpinnedHostKeyBlock>()
+            .single
+            .isSaved,
+        isTrue,
+      );
+    },
+  );
 }
 
 ConnectionProfile _configuredProfile() {

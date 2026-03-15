@@ -135,6 +135,72 @@ void main() {
     expect(find.textContaining('Could not send the prompt'), findsOneWidget);
   });
 
+  testWidgets(
+    'renders an actionable host fingerprint card and saves it into connection settings',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+      final profileStore = MemoryCodexProfileStore(
+        initialValue: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: profileStore,
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerUnpinnedHostKeyEvent(
+          host: 'example.com',
+          port: 22,
+          keyType: 'ssh-ed25519',
+          fingerprint: '7a:9f:d7:dc:2e:f2:7d:c0:18:29:33:4d:22:2f:ae:4c',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Host key not pinned'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('save_host_fingerprint')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('host_fingerprint_value')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('save_host_fingerprint')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('saved'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
+      expect(
+        (await profileStore.load()).profile.hostFingerprint,
+        '7a:9f:d7:dc:2e:f2:7d:c0:18:29:33:4d:22:2f:ae:4c',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open_connection_settings')));
+      await tester.pumpAndSettle();
+
+      final fingerprintField = tester.widget<TextField>(
+        find.byKey(
+          const ValueKey<String>('connection_settings_hostFingerprint'),
+        ),
+      );
+      expect(
+        fingerprintField.controller?.text,
+        '7a:9f:d7:dc:2e:f2:7d:c0:18:29:33:4d:22:2f:ae:4c',
+      );
+    },
+  );
+
   testWidgets('appends plan update cards instead of replacing them', (
     tester,
   ) async {

@@ -51,6 +51,20 @@ class CodexAppServerDiagnosticEvent extends CodexAppServerEvent {
   final bool isError;
 }
 
+class CodexAppServerUnpinnedHostKeyEvent extends CodexAppServerEvent {
+  const CodexAppServerUnpinnedHostKeyEvent({
+    required this.host,
+    required this.port,
+    required this.keyType,
+    required this.fingerprint,
+  });
+
+  final String host;
+  final int port;
+  final String keyType;
+  final String fingerprint;
+}
+
 class CodexAppServerSession {
   const CodexAppServerSession({
     required this.threadId,

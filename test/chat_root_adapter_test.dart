@@ -112,9 +112,7 @@ void main() {
     );
     expect(
       overlayDelegate.transientFeedbackRenderers,
-      <ChatTransientFeedbackRenderer>[
-        ChatTransientFeedbackRenderer.material,
-      ],
+      <ChatTransientFeedbackRenderer>[ChatTransientFeedbackRenderer.material],
     );
   });
 
@@ -239,7 +237,10 @@ void main() {
         find.widgetWithText(CupertinoButton, 'Configure remote'),
         findsOneWidget,
       );
-      expect(find.widgetWithText(FilledButton, 'Configure remote'), findsNothing);
+      expect(
+        find.widgetWithText(FilledButton, 'Configure remote'),
+        findsNothing,
+      );
     },
   );
 
@@ -804,6 +805,7 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
     Future<void> Function(String requestId)? onDenyRequest,
     Future<void> Function(String requestId, Map<String, List<String>> answers)?
     onSubmitUserInput,
+    Future<void> Function(String blockId)? onSaveHostFingerprint,
   }) {
     renderersByRegion[ChatRootRegion.transcript] = renderer;
     return Center(

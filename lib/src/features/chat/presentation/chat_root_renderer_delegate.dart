@@ -35,6 +35,7 @@ abstract interface class ChatRootRendererDelegate {
     Future<void> Function(String requestId)? onDenyRequest,
     Future<void> Function(String requestId, Map<String, List<String>> answers)?
     onSubmitUserInput,
+    Future<void> Function(String blockId)? onSaveHostFingerprint,
   });
 
   Widget buildComposerRegion({
@@ -104,6 +105,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     Future<void> Function(String requestId)? onDenyRequest,
     Future<void> Function(String requestId, Map<String, List<String>> answers)?
     onSubmitUserInput,
+    Future<void> Function(String blockId)? onSaveHostFingerprint,
   }) {
     return switch (renderer) {
       ChatRootRegionRenderer.cupertino ||
@@ -117,6 +119,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
         onDenyRequest: onDenyRequest,
         onOpenChangedFileDiff: onOpenChangedFileDiff,
         onSubmitUserInput: onSubmitUserInput,
+        onSaveHostFingerprint: onSaveHostFingerprint,
       ),
     };
   }

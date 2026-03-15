@@ -43,6 +43,8 @@ class ChatTranscriptItemProjector {
         ChatUserInputRequestItemContract(
           request: _requestProjector.projectUserInputBlock(userInputBlock),
         ),
+      final CodexUnpinnedHostKeyBlock hostKeyBlock =>
+        ChatUnpinnedHostKeyItemContract(block: hostKeyBlock),
       final CodexStatusBlock statusBlock => ChatStatusItemContract(
         block: statusBlock,
       ),

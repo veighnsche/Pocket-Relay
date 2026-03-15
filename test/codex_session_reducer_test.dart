@@ -1439,6 +1439,28 @@ void main() {
     expect(state.blocks.last, isA<CodexErrorBlock>());
   });
 
+  test('deduplicates repeated unpinned host key prompts', () {
+    final reducer = TranscriptReducer();
+    var state = const CodexSessionState(
+      connectionStatus: CodexRuntimeSessionState.ready,
+    );
+    final now = DateTime(2026, 3, 14, 12);
+    final event = CodexRuntimeUnpinnedHostKeyEvent(
+      createdAt: now,
+      host: '192.168.178.164',
+      port: 22,
+      keyType: 'ssh-ed25519',
+      fingerprint: '7a:9f:d7:dc:2e:f2',
+    );
+
+    state = reducer.reduceRuntimeEvent(state, event);
+    state = reducer.reduceRuntimeEvent(state, event);
+
+    expect(state.connectionStatus, CodexRuntimeSessionState.ready);
+    expect(state.blocks, hasLength(1));
+    expect(state.blocks.single, isA<CodexUnpinnedHostKeyBlock>());
+  });
+
   test('hides non-signal status events and defers thread token usage', () {
     final reducer = TranscriptReducer();
     var state = CodexSessionState.initial();

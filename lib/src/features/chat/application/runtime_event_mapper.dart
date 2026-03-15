@@ -55,6 +55,22 @@ class CodexRuntimeEventMapper {
                   rawMethod: 'transport/diagnostic',
                 ),
         ];
+      case CodexAppServerUnpinnedHostKeyEvent(
+        :final host,
+        :final port,
+        :final keyType,
+        :final fingerprint,
+      ):
+        return <CodexRuntimeEvent>[
+          CodexRuntimeUnpinnedHostKeyEvent(
+            createdAt: now,
+            host: host,
+            port: port,
+            keyType: keyType,
+            fingerprint: fingerprint,
+            rawMethod: 'transport/hostKey/unpinned',
+          ),
+        ];
       case CodexAppServerRequestEvent():
         return _mapRuntimeRequestEvent(
           event,

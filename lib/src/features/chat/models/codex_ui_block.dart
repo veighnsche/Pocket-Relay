@@ -372,6 +372,36 @@ final class CodexUserInputRequestBlock extends CodexUiBlock {
   }
 }
 
+final class CodexUnpinnedHostKeyBlock extends CodexUiBlock {
+  const CodexUnpinnedHostKeyBlock({
+    required super.id,
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.keyType,
+    required this.fingerprint,
+    this.isSaved = false,
+  }) : super(kind: CodexUiBlockKind.status);
+
+  final String host;
+  final int port;
+  final String keyType;
+  final String fingerprint;
+  final bool isSaved;
+
+  CodexUnpinnedHostKeyBlock copyWith({bool? isSaved}) {
+    return CodexUnpinnedHostKeyBlock(
+      id: id,
+      createdAt: createdAt,
+      host: host,
+      port: port,
+      keyType: keyType,
+      fingerprint: fingerprint,
+      isSaved: isSaved ?? this.isSaved,
+    );
+  }
+}
+
 final class CodexStatusBlock extends CodexUiBlock {
   const CodexStatusBlock({
     required super.id,

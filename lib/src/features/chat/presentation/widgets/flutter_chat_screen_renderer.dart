@@ -94,6 +94,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
     this.onApproveRequest,
     this.onDenyRequest,
     this.onSubmitUserInput,
+    this.onSaveHostFingerprint,
   });
 
   final ChatScreenContract screen;
@@ -109,6 +110,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
     Map<String, List<String>> answers,
   )?
   onSubmitUserInput;
+  final Future<void> Function(String blockId)? onSaveHostFingerprint;
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +127,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
       onDenyRequest: onDenyRequest,
       onOpenChangedFileDiff: onOpenChangedFileDiff,
       onSubmitUserInput: onSubmitUserInput,
+      onSaveHostFingerprint: onSaveHostFingerprint,
     );
   }
 }

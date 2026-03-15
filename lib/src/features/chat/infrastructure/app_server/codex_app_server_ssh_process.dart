@@ -27,10 +27,11 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
 
       if (expected.isEmpty) {
         emitEvent(
-          CodexAppServerDiagnosticEvent(
-            message:
-                'Accepted $type host key fingerprint $actual. Pin it later if you want stricter verification.',
-            isError: false,
+          CodexAppServerUnpinnedHostKeyEvent(
+            host: profile.host.trim(),
+            port: profile.port,
+            keyType: type,
+            fingerprint: actual,
           ),
         );
         return true;

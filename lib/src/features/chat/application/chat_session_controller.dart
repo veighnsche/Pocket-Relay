@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
+import 'package:pocket_relay/src/core/utils/shell_utils.dart';
 import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
@@ -92,6 +93,53 @@ class ChatSessionController extends ChangeNotifier {
     _profile = profile;
     _secrets = secrets;
     _applySessionState(_sessionReducer.detachThread(_sessionState));
+  }
+
+  Future<void> saveObservedHostFingerprint(String blockId) async {
+    final block = _findUnpinnedHostKeyBlock(blockId);
+    if (block == null) {
+      _emitSnackBar('This host fingerprint prompt is no longer available.');
+      return;
+    }
+    if (block.isSaved) {
+      return;
+    }
+
+    final currentFingerprint = _profile.hostFingerprint.trim();
+    if (currentFingerprint.isNotEmpty) {
+      if (normalizeFingerprint(currentFingerprint) ==
+          normalizeFingerprint(block.fingerprint)) {
+        _applySessionState(
+          _sessionReducer.markUnpinnedHostKeySaved(
+            _sessionState,
+            blockId: blockId,
+          ),
+        );
+        return;
+      }
+
+      _emitSnackBar(
+        'This profile already has a different pinned host fingerprint. Review the connection settings before replacing it.',
+      );
+      return;
+    }
+
+    final nextProfile = _profile.copyWith(hostFingerprint: block.fingerprint);
+
+    try {
+      await profileStore.save(nextProfile, _secrets);
+    } catch (_) {
+      _emitSnackBar('Could not save the host fingerprint to this profile.');
+      return;
+    }
+    if (_isDisposed) {
+      return;
+    }
+
+    _profile = nextProfile;
+    _applySessionState(
+      _sessionReducer.markUnpinnedHostKeySaved(_sessionState, blockId: blockId),
+    );
   }
 
   Future<bool> sendPrompt(String prompt) async {
@@ -199,6 +247,15 @@ class ChatSessionController extends ChangeNotifier {
 
     _sessionState = nextState;
     notifyListeners();
+  }
+
+  CodexUnpinnedHostKeyBlock? _findUnpinnedHostKeyBlock(String blockId) {
+    for (final block in _sessionState.blocks) {
+      if (block is CodexUnpinnedHostKeyBlock && block.id == blockId) {
+        return block;
+      }
+    }
+    return null;
   }
 
   void _handleAppServerEvent(CodexAppServerEvent event) {
