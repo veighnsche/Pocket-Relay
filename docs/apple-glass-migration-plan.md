@@ -22,6 +22,92 @@ confusion that will be expensive to unwind.
 The app is structurally healthy in the application layer, but the top-level UI
 layer is still owned directly by Flutter.
 
+## Execution Tracking
+
+This section is the current execution ledger for the migration. It exists so
+future work is visible in the repo before code changes land.
+
+### Documentation Rule
+
+Before starting any new migration slice, update this document first with:
+
+- the exact slice name
+- the scope of the slice
+- explicit non-goals
+- exit criteria
+- verification plan
+- what older unfinished work, if any, is still intentionally left open
+
+Do not start coding a new slice until that slice is recorded here.
+
+When a slice is completed, update this section again with:
+
+- completed status
+- what was actually shipped
+- what remains open after the slice
+
+Do not rely on chat history as the source of truth for migration status.
+
+### Current Status
+
+- Phase 1, top-level chat screen ownership move: completed on this branch
+- Phase 2, connection settings form contract extraction: not started
+- Phase 3, pending user-input form contract extraction: not started
+- Root architectural adapter work: not started
+- Apple-native glass components: not started
+
+### Phase 1 Completed Scope
+
+The following work is considered complete:
+
+- one top-level chat screen contract derived from raw top-level application
+  state
+- one transcript surface contract derived from `CodexSessionState`
+- top-level screen action definitions owned by the presentation layer
+- composer state owned by the presentation layer
+- turn indicator visibility owned by the presentation layer
+- connection settings launch payload and launch effect owned by the
+  presentation layer
+- top-level snackbar effects mapped through a screen effect boundary
+- `ChatScreen` reduced to controller host, effect executor, and Flutter
+  renderer for the screen contract
+
+### Phase 1 Explicit Non-Completion
+
+The following work is not part of Phase 1 and remains open:
+
+- connection settings form field contract and validation contract
+- user-input request form field contract and submission contract
+- transcript card renderer internals
+- changed-file diff sheet ownership below the screen level
+- root architectural adapter
+- Apple-native glass surfaces
+
+### Next Planned Slice
+
+The next planned slice is:
+
+- Phase 2, connection settings surface contract extraction
+
+That slice should cover:
+
+- settings sections
+- field descriptors
+- validation state
+- field visibility rules
+- dirty-state and submit-state derivation
+- submit payload contract
+
+That slice should not cover:
+
+- Apple-native rendering
+- transcript card refactors
+- user-input request form extraction
+- root adapter work
+
+If the next implementation attempt changes that plan, this section must be
+updated before coding starts.
+
 ### What is already in good shape
 
 - `ChatSessionController` is application logic plus side effects, not widget

@@ -153,7 +153,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: TranscriptList(
                           controller: _transcriptListController,
                           surface: screen.transcriptSurface,
-                          onConfigure: () => _openSettingsSheet(screen),
+                          onConfigure: () => _requestConnectionSettings(screen),
                           onApproveRequest: _sessionController.approveRequest,
                           onDenyRequest: _sessionController.denyRequest,
                           onSubmitUserInput: _sessionController.submitUserInput,
@@ -199,7 +199,9 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _openSettingsSheet(ChatScreenContract screen) async {
+  Future<void> _openSettingsSheet(
+    ChatConnectionSettingsLaunchContract connectionSettings,
+  ) async {
     final result = await showModalBottomSheet<ConnectionSheetResult>(
       context: context,
       isScrollControlled: true,
@@ -207,8 +209,8 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return ConnectionSheet(
-          initialProfile: screen.connectionSettings.initialProfile,
-          initialSecrets: screen.connectionSettings.initialSecrets,
+          initialProfile: connectionSettings.initialProfile,
+          initialSecrets: connectionSettings.initialSecrets,
         );
       },
     );
@@ -231,17 +233,34 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _requestConnectionSettings(ChatScreenContract screen) {
+    final effect = _effectMapper.mapAction(
+      action: ChatScreenActionId.openSettings,
+      screen: screen,
+    );
+    if (effect == null) {
+      return;
+    }
+    _handleScreenEffect(effect);
+  }
+
   void _handleScreenAction(
     ChatScreenActionId action,
     ChatScreenContract screen,
   ) {
+    final effect = _effectMapper.mapAction(action: action, screen: screen);
+    if (effect != null) {
+      _handleScreenEffect(effect);
+      return;
+    }
+
     switch (action) {
-      case ChatScreenActionId.openSettings:
-        unawaited(_openSettingsSheet(screen));
       case ChatScreenActionId.newThread:
         _startFreshConversation();
       case ChatScreenActionId.clearTranscript:
         _clearTranscript();
+      case ChatScreenActionId.openSettings:
+        return;
     }
   }
 
@@ -271,6 +290,8 @@ class _ChatScreenState extends State<ChatScreen> {
     switch (effect) {
       case ChatShowSnackBarEffect(:final message):
         _showSnackBar(message);
+      case ChatOpenConnectionSettingsEffect(:final payload):
+        unawaited(_openSettingsSheet(payload));
     }
   }
 
