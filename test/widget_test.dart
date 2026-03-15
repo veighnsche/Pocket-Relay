@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -21,6 +22,7 @@ void main() {
 
     expect(find.text('Pocket Relay'), findsOneWidget);
     expect(find.text('Configure remote'), findsWidgets);
+    expect(find.byType(FlutterChatScreenRenderer), findsOneWidget);
   });
 
   testWidgets('uses system theme mode', (tester) async {

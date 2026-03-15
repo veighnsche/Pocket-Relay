@@ -1,8 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
-import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_composer_draft_host.dart';
@@ -12,14 +12,11 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_m
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_host.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
-import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -96,108 +93,22 @@ class _ChatScreenState extends State<ChatScreen> {
       ]),
       builder: (context, _) {
         final screen = _buildScreenContract();
-        final theme = Theme.of(context);
-        final palette = context.pocketPalette;
-
-        return Scaffold(
-          appBar: AppBar(
-            titleSpacing: 18,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  screen.header.title,
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  screen.header.subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              ...screen.toolbarActions.map(
-                (action) => IconButton(
-                  tooltip: action.tooltip,
-                  onPressed: () => _handleScreenAction(action.id, screen),
-                  icon: Icon(_iconForAction(action)),
-                ),
-              ),
-              PopupMenuButton<ChatScreenActionId>(
-                onSelected: (action) {
-                  _handleScreenAction(action, screen);
-                },
-                itemBuilder: (context) {
-                  return screen.menuActions
-                      .map(
-                        (action) => PopupMenuItem<ChatScreenActionId>(
-                          value: action.id,
-                          child: Text(action.label),
-                        ),
-                      )
-                      .toList(growable: false);
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[
-                  palette.backgroundTop,
-                  palette.backgroundBottom,
-                ],
-              ),
-            ),
-            child: screen.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    children: [
-                      Expanded(
-                        child: TranscriptList(
-                          surface: screen.transcriptSurface,
-                          followBehavior: screen.transcriptFollow,
-                          surfaceChangeToken: _sessionController.sessionState,
-                          onConfigure: () => _requestConnectionSettings(screen),
-                          onAutoFollowEligibilityChanged: (isNearBottom) {
-                            _transcriptFollowHost.updateAutoFollowEligibility(
-                              isNearBottom: isNearBottom,
-                            );
-                          },
-                          onApproveRequest: _sessionController.approveRequest,
-                          onDenyRequest: _sessionController.denyRequest,
-                          onOpenChangedFileDiff: _requestChangedFileDiff,
-                          onSubmitUserInput: _sessionController.submitUserInput,
-                        ),
-                      ),
-                      if (screen.turnIndicator case final turnIndicator?)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-                          child: TurnElapsedFooter(
-                            turnTimer: turnIndicator.timer,
-                          ),
-                        ),
-                      SafeArea(
-                        top: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                          child: ChatComposer(
-                            contract: screen.composer,
-                            onChanged: _composerDraftHost.updateText,
-                            onSend: _sendPrompt,
-                            onStop: _stopActiveTurn,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
+        return FlutterChatScreenRenderer(
+          screen: screen,
+          surfaceChangeToken: _sessionController.sessionState,
+          onScreenAction: (action) => _handleScreenAction(action, screen),
+          onAutoFollowEligibilityChanged: (isNearBottom) {
+            _transcriptFollowHost.updateAutoFollowEligibility(
+              isNearBottom: isNearBottom,
+            );
+          },
+          onComposerDraftChanged: _composerDraftHost.updateText,
+          onSendPrompt: _sendPrompt,
+          onStopActiveTurn: _stopActiveTurn,
+          onApproveRequest: _sessionController.approveRequest,
+          onDenyRequest: _sessionController.denyRequest,
+          onOpenChangedFileDiff: _requestChangedFileDiff,
+          onSubmitUserInput: _sessionController.submitUserInput,
         );
       },
     );
@@ -266,17 +177,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return ChangedFileDiffSheet(diff: diff);
       },
     );
-  }
-
-  void _requestConnectionSettings(ChatScreenContract screen) {
-    final effect = _effectMapper.mapAction(
-      action: ChatScreenActionId.openSettings,
-      screen: screen,
-    );
-    if (effect == null) {
-      return;
-    }
-    _handleScreenEffect(effect);
   }
 
   void _requestChangedFileDiff(ChatChangedFileDiffContract diff) {
@@ -352,11 +252,4 @@ class _ChatScreenState extends State<ChatScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
-}
-
-IconData _iconForAction(ChatScreenActionContract action) {
-  return switch (action.icon) {
-    ChatScreenActionIcon.settings => Icons.tune,
-    null => Icons.more_horiz,
-  };
 }

@@ -63,14 +63,15 @@ renderer can consume the same ownership model.
 - Live composer draft ownership now sits above the Flutter renderer through a
   shared presentation draft host and screen-contract field instead of a
   screen-owned `TextEditingController`.
+- The current Flutter chat UI now renders through an extracted
+  `FlutterChatScreenRenderer` widget that consumes the shared screen contract
+  and forwards callbacks back to the screen host.
 
 These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
 - The first root architectural adapter does not exist yet.
-- The current chat screen still does not have a pure Flutter renderer extracted
-  away from controller and effect hosting.
 - Top-level overlay execution is still hardwired to Flutter scaffold APIs in
   `ChatScreen`.
 
@@ -78,20 +79,21 @@ These are the parts we should build on, not reopen.
 
 Phase 5 is complete.
 
-The next thing to do is Slice 2 of Phase 6:
+The next thing to do is Slice 3 of Phase 6:
 
-- extract a pure Flutter screen renderer from `ChatScreen`
+- introduce the first root architectural adapter
 
 Reason:
 
 - the transcript surface boundary is now explicit and test-covered enough to
   support adapter work
+- Slice 2 extracted a pure Flutter renderer widget from `ChatScreen`, so the
+  remaining missing seam is no longer renderer shape but root ownership
 - `PocketRelayApp` still constructs `ChatScreen` directly, and `ChatScreen`
-  still mixes controller hosting, effect execution, and Flutter rendering
-- Slice 1 already removed the Flutter-owned composer controller from the screen
-  host seam
-- the next blocker is isolating a renderer widget the adapter can host without
-  inheriting controller or overlay ownership
+  still owns controller lifecycle, action dispatch, and top-level effect
+  execution
+- the next blocker is inserting the adapter host that will own those concerns
+  before any native region work begins
 
 ## Target Architecture
 
@@ -1253,7 +1255,7 @@ Current file:
 There is no intermediate adapter or region-selection seam between app bootstrap
 and the active Flutter chat screen.
 
-#### 2. `ChatScreen` still combines application host, effect executor, and Flutter renderer
+#### 2. `ChatScreen` still combines application host and effect executor
 
 Current file:
 
@@ -1267,8 +1269,7 @@ Current file:
 - action dispatch between contract actions and controller methods
 - top-level overlay execution through `showModalBottomSheet(...)`
 - snackbar execution through `ScaffoldMessenger`
-- Flutter scaffold, app bar, transcript layout, turn footer, and composer
-  layout
+- host wiring into the extracted Flutter renderer
 
 That means the app still has no explicit object that owns renderer selection
 separately from controller and effect hosting.
@@ -1295,8 +1296,9 @@ Slice 1 moved the live draft text into a shared presentation draft host and
 screen-contract field, while leaving only local controller syncing inside the
 Flutter composer renderer.
 
-That blocker is now removed. The next remaining Phase 6 blocker is extracting a
-pure Flutter screen renderer away from controller and overlay hosting.
+That blocker is now removed. Slice 2 then extracted the pure Flutter screen
+renderer away from controller and overlay hosting. The next remaining Phase 6
+blocker is the missing root adapter itself.
 
 #### 4. Overlay payloads are ready, but overlay execution is still Flutter-hardwired
 
@@ -1404,15 +1406,21 @@ should not own a Flutter `TextEditingController`.
 
 ### Slice 2: Pure Flutter screen renderer extraction
 
-Slice 2 should cover:
+This slice is complete on this branch.
 
-- extracting a Flutter renderer widget from `ChatScreen`
+Slice 2 delivered:
+
+- extracting `FlutterChatScreenRenderer` from `ChatScreen`
 - reducing that renderer to:
-  - contract rendering
-  - local Flutter focus/controller plumbing only where still justified
-  - callback forwarding
+  - shared screen-contract rendering
+  - local Flutter composer controller syncing only
+  - callback forwarding for screen actions, transcript actions, and composer
+    actions
 - removing controller lifecycle, snackbar subscription, and overlay execution
-  ownership from the renderer widget
+  ownership from the renderer widget itself
+- widget coverage proving the extracted renderer forwards host callbacks
+- app coverage proving the current shell renders through the extracted Flutter
+  renderer path
 
 This slice creates the renderer object that the first adapter can host.
 
@@ -1515,15 +1523,15 @@ Unless broader behavior is explicitly requested, Phase 6 should preserve:
 
 The next active Phase 6 slice is:
 
-- pure Flutter screen renderer extraction
+- root adapter introduction
 
 Reason:
 
 - Slice 1 removed the main remaining Flutter-only input primitive from the
   adapter boundary
-- the next structural cut is isolating a renderer widget from controller and
-  effect ownership
-- later adapter work now has a cleaner screen-host seam to target
+- Slice 2 extracted the pure Flutter renderer object the adapter can host
+- the next structural cut is moving controller lifecycle and effect ownership
+  into the adapter seam itself
 
 ### Phase 7
 
