@@ -50,9 +50,8 @@ renderer can consume the same ownership model.
 - Pending pinned approval and user-input request shaping is now owned by shared
   presentation request contracts and projectors rather than runtime-shaped
   transcript blocks.
-- Pending-request selection rules and pinned ordering now exist in a dedicated
-  presentation placement projector, even though the transcript surface has not
-  consumed it yet.
+- Pending-request selection rules and pinned ordering are now routed through a
+  shared presentation placement projector and surface contract seam.
 - Changed-files rows and per-file diff sheets now render from shared contracts,
   with diff-sheet launch owned above the card widget.
 - Transcript follow behavior is now modeled above `TranscriptList` and routed
@@ -62,30 +61,29 @@ These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
-- The transcript surface still depends on
-  `CodexSessionState.primaryPendingApprovalRequest` and
-  `primaryPendingUserInputRequest` instead of consuming the presentation
-  placement projector.
-- The screen-level transcript contract still inherits pending-request
-  visibility from runtime convenience getters instead of routing through the
-  explicit presentation placement seam.
+- `TranscriptList` still derives active pending-user-input request IDs by
+  scanning rendered items instead of consuming explicit activation data from
+  the transcript surface contract.
+- Runtime and controller convenience getters for primary pending requests still
+  exist and should be cleaned up once the remaining presentation ownership work
+  is complete.
 - The first root architectural adapter does not exist yet.
 
 ## Next Active Work
 
 The next thing to do is not the root architectural adapter.
 
-The next thing to do is Slice 3 of Phase 5:
+The next thing to do is Slice 4 of Phase 5:
 
-- integrate the new presentation-owned pending-request placement projector into
-  the transcript surface contract path
+- decide and extract pending-input activation ownership at the transcript
+  surface boundary
 
 Reason:
 
-- Slice 2 already made selection and ordering rules explicit in presentation
-  code
-- `ChatTranscriptSurfaceProjector` still bypasses that placement seam and reads
-  runtime convenience getters directly
+- Slice 3 already integrated pending placement into the transcript surface
+  contract path
+- `TranscriptList` still rediscovers active pending-user-input IDs from
+  rendered items
 - adding the root adapter before fixing that would freeze an incomplete
   transcript boundary into the adapter seam
 
@@ -1013,8 +1011,6 @@ surface in a coherent intermediate state.
 
 ### Slice 1: Pending-request presentation primitives
 
-This is the next active slice.
-
 Slice 1 is completed on this branch.
 
 Slice 1 covered:
@@ -1051,23 +1047,24 @@ This slice made the current placement semantics explicit:
 
 ### Slice 3: Transcript surface integration
 
-This is the next active slice.
+Slice 3 is completed on this branch.
 
-Slice 3 should cover:
+Slice 3 covered:
 
 - threading the new placement projector through
   `ChatTranscriptSurfaceProjector`
-- replacing direct presentation use of
-  `CodexSessionState.primaryPendingApprovalRequest` and
-  `primaryPendingUserInputRequest`
+- replacing transcript-surface dependence on runtime convenience getters with
+  the presentation placement projector
 - preserving current empty-state behavior and pinned-region rendering inputs
 - presenter or projector tests proving the transcript surface now consumes the
   placement projector instead of runtime convenience getters
 
-This slice is where the transcript surface stops inheriting hidden pending
+This slice is where the transcript surface stopped inheriting hidden pending
 placement behavior from runtime state.
 
 ### Slice 4: Pending-input activation ownership
+
+This is the next active slice.
 
 Slice 4 should cover:
 
@@ -1203,15 +1200,15 @@ Phase 5 verification must include:
 
 The next active Phase 5 slice is:
 
-- transcript surface integration
+- pending-input activation ownership
 
 Reason:
 
 - it closes the last major transcript-surface ownership gap before adapter work
-- Slice 2 already made pending-request selection and pinned ordering explicit
-  in presentation code
-- it removes the transcript surface's remaining dependence on runtime
-  convenience getters
+- Slice 3 already removed the transcript surface's dependence on runtime
+  convenience getters for pending placement
+- it removes `TranscriptList`'s remaining renderer-side rediscovery of pending
+  user-input activation
 - it gives later adapter work a transcript surface boundary that is explicit
   rather than partially inherited from runtime state
 

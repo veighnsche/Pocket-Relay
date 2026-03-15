@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_request_projector.dart';
@@ -169,6 +170,14 @@ void main() {
               .body,
           'Need extra info',
         );
+        expect(
+          surface.pendingRequestPlacement.visibleApprovalRequest?.requestId,
+          'request_1',
+        );
+        expect(
+          surface.pendingRequestPlacement.visibleUserInputRequest?.requestId,
+          'request_2',
+        );
       },
     );
 
@@ -184,6 +193,92 @@ void main() {
         expect(surface.emptyState?.isConfigured, isFalse);
         expect(surface.mainItems, isEmpty);
         expect(surface.pinnedItems, isEmpty);
+        expect(surface.pendingRequestPlacement.hasVisibleRequests, isFalse);
+      },
+    );
+
+    test(
+      'uses the injected placement projector instead of runtime convenience getters',
+      () {
+        final projector = ChatTranscriptSurfaceProjector(
+          pendingRequestPlacementProjector:
+              _FakePendingRequestPlacementProjector(
+                placement: ChatPendingRequestPlacementContract(
+                  visibleApprovalRequest: ChatApprovalRequestContract(
+                    id: 'request_override_approval',
+                    createdAt: DateTime(2026, 3, 15, 12, 0, 9),
+                    requestId: 'request_override_approval',
+                    requestType:
+                        CodexCanonicalRequestType.commandExecutionApproval,
+                    title: 'Injected approval',
+                    body: 'Injected approval body',
+                    isResolved: false,
+                  ),
+                  visibleUserInputRequest: ChatUserInputRequestContract(
+                    id: 'request_override_input',
+                    createdAt: DateTime(2026, 3, 15, 12, 0, 10),
+                    requestId: 'request_override_input',
+                    requestType: CodexCanonicalRequestType.toolUserInput,
+                    title: 'Injected input',
+                    body: 'Injected input body',
+                    isResolved: false,
+                  ),
+                ),
+              ),
+        );
+        final sessionState = CodexSessionState.initial().copyWith(
+          activeTurn: CodexActiveTurnState(
+            turnId: 'turn_1',
+            timer: CodexSessionTurnTimer(
+              turnId: 'turn_1',
+              startedAt: DateTime(2026, 3, 15, 12),
+            ),
+            pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+              'runtime_approval': CodexSessionPendingRequest(
+                requestId: 'runtime_approval',
+                requestType: CodexCanonicalRequestType.fileChangeApproval,
+                createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+                detail: 'Runtime approval body',
+              ),
+            },
+            pendingUserInputRequests:
+                <String, CodexSessionPendingUserInputRequest>{
+                  'runtime_input': CodexSessionPendingUserInputRequest(
+                    requestId: 'runtime_input',
+                    requestType: CodexCanonicalRequestType.toolUserInput,
+                    createdAt: DateTime(2026, 3, 15, 12, 0, 2),
+                    detail: 'Runtime input body',
+                  ),
+                },
+          ),
+        );
+
+        final surface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: sessionState,
+        );
+
+        expect(surface.pinnedItems, hasLength(2));
+        expect(
+          (surface.pinnedItems.first as ChatApprovalRequestItemContract)
+              .request
+              .title,
+          'Injected approval',
+        );
+        expect(
+          (surface.pinnedItems.last as ChatUserInputRequestItemContract)
+              .request
+              .title,
+          'Injected input',
+        );
+        expect(
+          surface.pendingRequestPlacement.visibleApprovalRequest?.requestId,
+          'request_override_approval',
+        );
+        expect(
+          surface.pendingRequestPlacement.visibleUserInputRequest?.requestId,
+          'request_override_input',
+        );
       },
     );
   });
@@ -521,4 +616,20 @@ ConnectionProfile _configuredProfile() {
     workspaceDir: '/workspace',
     codexPath: 'codex',
   );
+}
+
+class _FakePendingRequestPlacementProjector
+    extends ChatPendingRequestPlacementProjector {
+  const _FakePendingRequestPlacementProjector({required this.placement});
+
+  final ChatPendingRequestPlacementContract placement;
+
+  @override
+  ChatPendingRequestPlacementContract project({
+    required Map<String, CodexSessionPendingRequest> pendingApprovalRequests,
+    required Map<String, CodexSessionPendingUserInputRequest>
+    pendingUserInputRequests,
+  }) {
+    return placement;
+  }
 }

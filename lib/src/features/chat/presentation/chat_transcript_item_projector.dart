@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_item_projector.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_request_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 
@@ -59,6 +60,15 @@ class ChatTranscriptItemProjector {
       ),
       final CodexTurnBoundaryBlock boundaryBlock =>
         ChatTurnBoundaryItemContract(block: boundaryBlock),
+    };
+  }
+
+  ChatTranscriptItemContract projectRequest(ChatRequestContract request) {
+    return switch (request) {
+      final ChatApprovalRequestContract approvalRequest =>
+        ChatApprovalRequestItemContract(request: approvalRequest),
+      final ChatUserInputRequestContract userInputRequest =>
+        ChatUserInputRequestItemContract(request: userInputRequest),
     };
   }
 

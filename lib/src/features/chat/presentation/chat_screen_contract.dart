@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 
@@ -43,12 +44,14 @@ class ChatTranscriptSurfaceContract {
     required this.isConfigured,
     required this.mainItems,
     required this.pinnedItems,
+    required this.pendingRequestPlacement,
     this.emptyState,
   });
 
   final bool isConfigured;
   final List<ChatTranscriptItemContract> mainItems;
   final List<ChatTranscriptItemContract> pinnedItems;
+  final ChatPendingRequestPlacementContract pendingRequestPlacement;
   final ChatEmptyStateContract? emptyState;
 
   bool get showsEmptyState => emptyState != null;

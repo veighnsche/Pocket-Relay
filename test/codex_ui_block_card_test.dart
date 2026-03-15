@@ -5,6 +5,7 @@ import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
@@ -1159,6 +1160,10 @@ ChatTranscriptSurfaceContract _surfaceContract({
     pinnedItems: pinnedItems
         .map(_itemProjector.project)
         .toList(growable: false),
+    pendingRequestPlacement: ChatPendingRequestPlacementContract(
+      visibleApprovalRequest: null,
+      visibleUserInputRequest: null,
+    ),
     emptyState: emptyState,
   );
 }
