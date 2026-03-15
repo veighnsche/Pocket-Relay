@@ -16,7 +16,6 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_m
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_host.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 
 class ChatRootAdapter extends StatefulWidget {
   const ChatRootAdapter({
@@ -24,7 +23,8 @@ class ChatRootAdapter extends StatefulWidget {
     required this.profileStore,
     required this.appServerClient,
     this.initialSavedProfile,
-    this.regionPolicy = const ChatRootRegionPolicy.allFlutter(),
+    this.platformPolicy = const ChatRootPlatformPolicy.allFlutter(),
+    this.regionPolicy,
     this.overlayDelegate = const FlutterChatRootOverlayDelegate(),
     this.rendererDelegate = const FlutterChatRootRendererDelegate(),
   });
@@ -32,7 +32,8 @@ class ChatRootAdapter extends StatefulWidget {
   final CodexProfileStore profileStore;
   final CodexAppServerClient appServerClient;
   final SavedProfile? initialSavedProfile;
-  final ChatRootRegionPolicy regionPolicy;
+  final ChatRootPlatformPolicy platformPolicy;
+  final ChatRootRegionPolicy? regionPolicy;
   final ChatRootOverlayDelegate overlayDelegate;
   final ChatRootRendererDelegate rendererDelegate;
 
@@ -93,27 +94,35 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       ]),
       builder: (context, _) {
         final screen = _buildScreenContract();
-        return FlutterChatScreenRenderer(
+        final regionPolicy = _resolvedRegionPolicy(context);
+        return widget.rendererDelegate.buildScreenShell(
+          renderer: regionPolicy.screenShell,
           screen: screen,
-          appChrome: _buildAppChrome(screen),
-          transcriptRegion: _buildTranscriptRegion(screen),
-          composerRegion: _buildComposerRegion(screen),
+          appChrome: _buildAppChrome(screen, regionPolicy),
+          transcriptRegion: _buildTranscriptRegion(screen, regionPolicy),
+          composerRegion: _buildComposerRegion(screen, regionPolicy),
         );
       },
     );
   }
 
-  PreferredSizeWidget _buildAppChrome(ChatScreenContract screen) {
+  PreferredSizeWidget _buildAppChrome(
+    ChatScreenContract screen,
+    ChatRootRegionPolicy regionPolicy,
+  ) {
     return widget.rendererDelegate.buildAppChrome(
-      renderer: widget.regionPolicy.rendererFor(ChatRootRegion.appChrome),
+      renderer: regionPolicy.rendererFor(ChatRootRegion.appChrome),
       screen: screen,
       onScreenAction: (action) => _handleScreenAction(action, screen),
     );
   }
 
-  Widget _buildTranscriptRegion(ChatScreenContract screen) {
+  Widget _buildTranscriptRegion(
+    ChatScreenContract screen,
+    ChatRootRegionPolicy regionPolicy,
+  ) {
     return widget.rendererDelegate.buildTranscriptRegion(
-      renderer: widget.regionPolicy.rendererFor(ChatRootRegion.transcript),
+      renderer: regionPolicy.rendererFor(ChatRootRegion.transcript),
       screen: screen,
       surfaceChangeToken: _sessionController.sessionState,
       onScreenAction: (action) => _handleScreenAction(action, screen),
@@ -129,9 +138,12 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     );
   }
 
-  Widget _buildComposerRegion(ChatScreenContract screen) {
+  Widget _buildComposerRegion(
+    ChatScreenContract screen,
+    ChatRootRegionPolicy regionPolicy,
+  ) {
     return widget.rendererDelegate.buildComposerRegion(
-      renderer: widget.regionPolicy.rendererFor(ChatRootRegion.composer),
+      renderer: regionPolicy.rendererFor(ChatRootRegion.composer),
       composer: screen.composer,
       onComposerDraftChanged: _composerDraftHost.updateText,
       onSendPrompt: _sendPrompt,
@@ -164,6 +176,11 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     );
   }
 
+  ChatRootRegionPolicy _resolvedRegionPolicy(BuildContext context) {
+    return widget.regionPolicy ??
+        widget.platformPolicy.policyFor(Theme.of(context).platform);
+  }
+
   Future<void> _openConnectionSettings(
     ChatConnectionSettingsLaunchContract connectionSettings,
   ) async {
@@ -173,12 +190,12 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
 
     final controller = _sessionController;
     final overlayDelegate = widget.overlayDelegate;
-    final settingsRenderer = widget.regionPolicy.rendererFor(
-      ChatRootRegion.settingsOverlay,
-    );
+    final settingsRenderer = _resolvedRegionPolicy(
+      context,
+    ).rendererFor(ChatRootRegion.settingsOverlay);
 
     final result = switch (settingsRenderer) {
-      ChatRootRegionRenderer.flutter =>
+      ChatRootRegionRenderer.cupertino || ChatRootRegionRenderer.flutter =>
         await overlayDelegate.openConnectionSettings(
           context: context,
           connectionSettings: connectionSettings,
@@ -189,7 +206,9 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
         controller != _sessionController ||
         overlayDelegate != widget.overlayDelegate ||
         settingsRenderer !=
-            widget.regionPolicy.rendererFor(ChatRootRegion.settingsOverlay) ||
+            _resolvedRegionPolicy(
+              context,
+            ).rendererFor(ChatRootRegion.settingsOverlay) ||
         result == null) {
       return;
     }

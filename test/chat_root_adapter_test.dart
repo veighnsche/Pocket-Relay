@@ -12,6 +12,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_root_overlay_de
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_renderer_delegate.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 
@@ -177,6 +178,7 @@ void main() {
       expect(find.text('Injected app chrome'), findsOneWidget);
       expect(find.text('Injected transcript region'), findsOneWidget);
       expect(find.text('Injected composer region'), findsOneWidget);
+      expect(find.text('Injected flutter screen shell'), findsOneWidget);
       expect(find.byType(FlutterChatAppChrome), findsNothing);
       expect(find.byType(FlutterChatTranscriptRegion), findsNothing);
       expect(find.byType(FlutterChatComposerRegion), findsNothing);
@@ -200,6 +202,10 @@ void main() {
 
       expect(appServerClient.sentMessages, <String>['Injected prompt']);
       expect(
+        rendererDelegate.screenShellRenderer,
+        ChatRootScreenShellRenderer.flutter,
+      );
+      expect(
         rendererDelegate.renderersByRegion,
         <ChatRootRegion, ChatRootRegionRenderer>{
           ChatRootRegion.appChrome: ChatRootRegionRenderer.flutter,
@@ -207,6 +213,66 @@ void main() {
           ChatRootRegion.composer: ChatRootRegionRenderer.flutter,
         },
       );
+    },
+  );
+
+  testWidgets(
+    'renders through the cupertino shell foundation while transcript stays on the flutter region path',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          regionPolicy: const ChatRootRegionPolicy.cupertinoFoundation(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CupertinoChatScreenRenderer), findsOneWidget);
+      expect(find.byType(FlutterChatScreenRenderer), findsNothing);
+      expect(find.byType(FlutterChatTranscriptRegion), findsOneWidget);
+      expect(find.byType(FlutterChatComposerRegion), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'applies the platform policy foundation for iOS without an explicit override',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final rendererDelegate = _FakeChatRootRendererDelegate();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          rendererDelegate: rendererDelegate,
+          platformPolicy: const ChatRootPlatformPolicy.cupertinoFoundation(),
+          theme: buildPocketTheme(
+            Brightness.light,
+          ).copyWith(platform: TargetPlatform.iOS),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        rendererDelegate.screenShellRenderer,
+        ChatRootScreenShellRenderer.cupertino,
+      );
+      expect(
+        rendererDelegate.renderersByRegion,
+        <ChatRootRegion, ChatRootRegionRenderer>{
+          ChatRootRegion.appChrome: ChatRootRegionRenderer.cupertino,
+          ChatRootRegion.transcript: ChatRootRegionRenderer.flutter,
+          ChatRootRegion.composer: ChatRootRegionRenderer.cupertino,
+        },
+      );
+      expect(find.text('Injected cupertino screen shell'), findsOneWidget);
     },
   );
 
@@ -414,18 +480,24 @@ Widget _buildAdapterApp({
   required _FakeChatRootOverlayDelegate overlayDelegate,
   ChatRootRendererDelegate rendererDelegate =
       const FlutterChatRootRendererDelegate(),
+  ChatRootPlatformPolicy platformPolicy =
+      const ChatRootPlatformPolicy.allFlutter(),
+  ChatRootRegionPolicy? regionPolicy,
   CodexProfileStore? profileStore,
   SavedProfile? savedProfile,
+  ThemeData? theme,
 }) {
   final resolvedSavedProfile = savedProfile ?? _savedProfile();
   return MaterialApp(
-    theme: buildPocketTheme(Brightness.light),
+    theme: theme ?? buildPocketTheme(Brightness.light),
     home: ChatRootAdapter(
       profileStore:
           profileStore ??
           MemoryCodexProfileStore(initialValue: resolvedSavedProfile),
       appServerClient: appServerClient,
       initialSavedProfile: resolvedSavedProfile,
+      platformPolicy: platformPolicy,
+      regionPolicy: regionPolicy,
       overlayDelegate: overlayDelegate,
       rendererDelegate: rendererDelegate,
     ),
@@ -489,7 +561,33 @@ class _FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
 }
 
 class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
+  ChatRootScreenShellRenderer? screenShellRenderer;
   final renderersByRegion = <ChatRootRegion, ChatRootRegionRenderer>{};
+
+  @override
+  Widget buildScreenShell({
+    required ChatRootScreenShellRenderer renderer,
+    required ChatScreenContract screen,
+    required PreferredSizeWidget appChrome,
+    required Widget transcriptRegion,
+    required Widget composerRegion,
+  }) {
+    screenShellRenderer = renderer;
+    return Scaffold(
+      body: Column(
+        children: [
+          Text('Injected ${renderer.name} screen shell'),
+          SizedBox(
+            height: appChrome.preferredSize.height,
+            width: double.infinity,
+            child: appChrome,
+          ),
+          Expanded(child: transcriptRegion),
+          composerRegion,
+        ],
+      ),
+    );
+  }
 
   @override
   PreferredSizeWidget buildAppChrome({

@@ -82,6 +82,12 @@ These are the parts we should build on, not reopen.
 ## What Is Still Not Ready For Native Ownership
 
 - Apple-native renderer implementations are still not started.
+- The root adapter still hardwires the active screen through the Material
+  `FlutterChatScreenRenderer` shell.
+- The settings form host still lives inside the Material `ConnectionSheet`
+  widget, so a second renderer would currently duplicate form-state plumbing.
+- Top-level settings presentation and feedback still route through Material
+  bottom sheets and `SnackBar`.
 - The transcript feed is still intentionally Flutter-owned while the first
   native surfaces are cut.
 
@@ -89,20 +95,67 @@ These are the parts we should build on, not reopen.
 
 Phase 6 is complete.
 
-The next thing to do is Phase 7:
+Phase 7 is now in progress on this branch.
 
-- begin Apple-native glass work on the first adapter-managed surfaces
+The next thing to do is Phase 7 Slice 2:
+
+- settings host extraction and Cupertino settings renderer
 
 Reason:
 
-- the transcript surface boundary is now explicit and test-covered enough to
-  support adapter work
-- the root adapter, overlay delegate, region policy, and renderer delegate are
-  now in place and test-covered
-- the codebase now has a real app-level seam where native regions can be added
-  without redoing transcript or composer ownership
-- the first native candidates remain app chrome, composer, and connection
-  settings, while transcript stays Flutter-owned for now
+- Slice 1 already moved shell selection above the fixed
+  `FlutterChatScreenRenderer` host and added explicit platform policy for a
+  mixed iOS renderer profile
+- settings still remain blocked behind `ConnectionSheet` as both renderer and
+  state host, so a Cupertino settings path would still duplicate form
+  lifecycle and submit plumbing
+- the next honest Cupertino surface is therefore settings, not app chrome or
+  composer
+
+## Phase 7 Start Checklist
+
+Phase 7 is now started in a meaningful way. Slice 1 closed the shell-selection
+and platform-policy foundation items below. The remaining unchecked items are
+the structural gates for later Phase 7 slices.
+
+### Structural checklist
+
+- the root adapter can select the outer screen shell, not only inject regions
+  into `FlutterChatScreenRenderer`
+- renderer policy can express a mixed iOS profile where:
+  - app chrome is Cupertino
+  - settings presentation is Cupertino
+  - composer is Cupertino
+  - transcript remains Flutter
+- the current all-Flutter path remains explicit and testable
+- settings state and submit plumbing live above `ConnectionSheet`
+- Cupertino settings rendering can consume the same settings host and contract
+  as the Material settings renderer
+- top-level feedback for the iOS path is not hardwired to `SnackBar`
+
+### Ownership checklist
+
+- iOS shell selection is owned by `ChatRootAdapter`, not by widget-local
+  `Theme.of(context).platform` branching deep in renderers
+- settings validation, draft sync, auth-mode changes, toggle updates, and save
+  payload construction are not duplicated across Material and Cupertino sheets
+- composer draft ownership stays above both renderer paths
+- transcript remains consumed through the shared transcript contract and is not
+  reopened as part of the shell work
+
+### Verification checklist
+
+- tests prove the all-Flutter path still behaves the same after shell-selection
+  refactoring
+- tests prove the iOS path still routes settings, send, and top-level actions
+  through adapter-owned callbacks
+- tests prove the shared settings host drives both Material and Cupertino
+  settings renderers with the same submit semantics
+- tests prove transcript remains Flutter-owned under the mixed iOS renderer
+  profile
+
+Any remaining false item above is a blocker for the next Cupertino surface
+slice, not a reason to treat Phase 7 itself as not started.
 
 ## Target Architecture
 
@@ -1580,6 +1633,368 @@ The best first native candidates are still:
 
 The transcript feed should remain Flutter-owned until the lower-level transcript
 contracts are more stable and interaction tradeoffs are better understood.
+
+## Phase 7 Deep Investigation
+
+Phase 7 is the next migration phase:
+
+- Cupertino-first iPhone rendering over the shared presentation contracts
+
+This section records the current Phase 7 investigation and the recommended
+upgrade path after the completed Phase 1 through 6 prep work.
+
+### Findings
+
+#### 1. The current adapter can swap regions, but not the real screen shell
+
+Current files:
+
+- `lib/src/features/chat/presentation/chat_root_adapter.dart`
+- `lib/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart`
+- `lib/src/features/chat/presentation/chat_root_renderer_delegate.dart`
+
+`ChatRootAdapter` already owns:
+
+- session lifecycle
+- draft and follow hosts
+- effect execution
+- region selection
+- renderer delegate routing
+
+But it still always builds the screen through `FlutterChatScreenRenderer`.
+
+That renderer still owns the outer shell:
+
+- `Scaffold`
+- loading state container
+- gradient page background
+- top-level layout structure
+
+So the current seam is not yet enough to render a genuinely iOS-first shell.
+At the moment it can only inject alternate app-chrome, transcript, and composer
+widgets into a Material screen host.
+
+That is the first Phase 7 blocker.
+
+#### 2. The current region policy cannot express an iOS renderer path yet
+
+Current file:
+
+- `lib/src/features/chat/presentation/chat_root_region_policy.dart`
+
+`ChatRootRegionRenderer` currently has only one value:
+
+- `flutter`
+
+That means there is no explicit way to represent:
+
+- Cupertino app chrome
+- Cupertino composer
+- Cupertino settings presentation
+- a mixed profile where transcript stays Flutter while other surfaces become
+  Cupertino
+
+Phase 7 needs an explicit renderer-policy vocabulary for those cases rather
+than burying iOS choices in ad hoc branching.
+
+#### 3. The settings contract is ready, but the settings host is still Material-owned
+
+Current files:
+
+- `lib/src/features/settings/presentation/connection_sheet.dart`
+- `lib/src/features/settings/presentation/connection_settings_contract.dart`
+- `lib/src/features/settings/presentation/connection_settings_presenter.dart`
+
+The good news:
+
+- validation, field descriptors, toggle descriptors, and submit payloads are
+  already renderer-neutral
+
+The remaining issue:
+
+- `ConnectionSheet` still owns local form state
+- `ConnectionSheet` still owns `TextEditingController` creation and sync
+- `ConnectionSheet` still owns auth-mode, toggle, and save event plumbing
+
+That was good enough for one renderer, but it is not a clean base for a second
+renderer. If Phase 7 builds a Cupertino settings sheet directly from here, it
+will duplicate host logic and reintroduce split ownership.
+
+So Phase 7 needs a renderer-neutral settings host above the Material or
+Cupertino sheet widgets.
+
+#### 4. The composer is much closer to Cupertino readiness than settings
+
+Current files:
+
+- `lib/src/features/chat/presentation/chat_composer_draft_host.dart`
+- `lib/src/features/chat/presentation/widgets/chat_composer.dart`
+
+The composer already has the right ownership move:
+
+- live draft state is above the renderer
+- send/stop behavior is contract-driven
+- the widget only owns local `TextEditingController` sync and button rendering
+
+That means the Cupertino composer path can be added as a true renderer widget
+without reopening draft ownership. This makes composer a better early native
+surface than transcript and a structurally simpler one than settings.
+
+#### 5. Overlay execution still leaks Material in the most visible iPhone surfaces
+
+Current file:
+
+- `lib/src/features/chat/presentation/chat_root_overlay_delegate.dart`
+
+The current default overlay delegate still uses:
+
+- `showModalBottomSheet(...)` for settings
+- `showModalBottomSheet(...)` for changed-file diffs
+- `ScaffoldMessenger` and `SnackBar` for transient feedback
+
+So even after the adapter work, the visible iPhone interaction lane still
+depends on Material presentation at the top level.
+
+Phase 7 does not need to redesign every overlay at once, but it does need:
+
+- Cupertino settings presentation
+- a non-Material top-level feedback surface for the iOS path
+
+Changed-file diff presentation can remain on the Flutter path for now because it
+belongs to the transcript lane that remains Flutter-owned.
+
+#### 6. High-visibility Material leakage still exists outside the transcript feed
+
+Current files:
+
+- `lib/src/app.dart`
+- `lib/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart`
+- `lib/src/features/chat/presentation/widgets/empty_state.dart`
+- `lib/src/features/chat/presentation/widgets/chat_composer.dart`
+- `lib/src/features/settings/presentation/connection_sheet.dart`
+
+The most visible Material-first widgets today are:
+
+- `MaterialApp`
+- `Scaffold`
+- `AppBar`
+- `PopupMenuButton`
+- `CircularProgressIndicator`
+- `FilledButton`, `OutlinedButton`, and `IconButton.filled`
+- `SegmentedButton`
+- `SwitchListTile.adaptive`
+- `SnackBar`
+
+Not all of these need to be removed in the first Phase 7 slice, but the app
+will not feel convincingly iPhone-native while the first-launch, settings, and
+composer flows still visibly use them.
+
+#### 7. Transcript ownership can stay Flutter-owned, but not every visible control can stay Material
+
+Current files:
+
+- `lib/src/features/chat/presentation/widgets/transcript/transcript_list.dart`
+- `lib/src/features/chat/presentation/widgets/empty_state.dart`
+
+The transcript feed should still remain Flutter-owned in Phase 7.
+
+That does not mean every high-visibility control inside the transcript lane can
+stay Material forever. In particular:
+
+- the empty-state configure CTA is part of the first-launch experience
+- menu and loading affordances around the transcript remain shell-level
+  concerns
+
+So Phase 7 should keep transcript ownership where it is, while still cleaning up
+the most visible iOS-breaking controls around it.
+
+## Best Upgrade Path For Phase 7
+
+The best Phase 7 path is not to start by reskinning transcript cards or by
+trying to replace `MaterialApp` wholesale.
+
+The correct path is:
+
+1. move screen-shell selection above the fixed Material renderer host
+2. extract the settings host so settings can support two renderers honestly
+3. add a Cupertino shell path for app chrome and top-level actions
+4. add a Cupertino settings presentation path
+5. add a Cupertino composer path
+6. clean up the remaining high-visibility Material feedback and first-launch
+   affordances on iPhone
+
+Why this is the best path:
+
+- it uses the adapter seam we already built instead of bypassing it
+- it keeps transcript ownership stable
+- it avoids duplicating settings and composer logic per renderer
+- it attacks the surfaces that make the app feel Material first
+- it preserves the existing shared presentation contracts as the source of
+  truth
+
+## Phase 7 Slice Breakdown
+
+Phase 7 should be split into 6 slices.
+
+### Slice 1: Screen shell and platform-policy foundation
+
+This slice is complete on this branch.
+
+Slice 1 delivered:
+
+- moving screen-shell selection above the fixed
+  `FlutterChatScreenRenderer`
+- introducing explicit `ChatRootScreenShellRenderer`,
+  `ChatRootRegionRenderer`, and `ChatRootPlatformPolicy` vocabulary alongside
+  the existing Flutter path
+- supporting a mixed iOS foundation profile where shell selection is
+  Cupertino-aware while transcript remains on the Flutter region path
+- preserving the current all-Flutter path as a first-class baseline
+- tests proving:
+  - the injected renderer path still routes behavior through adapter-owned
+    callbacks
+  - a Cupertino shell can host the existing Flutter transcript/composer region
+    path
+  - platform policy selects the mixed iOS profile without an explicit override
+
+This slice should cover:
+
+- moving screen-shell selection above the fixed `FlutterChatScreenRenderer`
+- introducing an explicit iOS/Cupertino renderer-policy vocabulary alongside
+  the existing Flutter path
+- supporting a mixed renderer profile where:
+  - app chrome is Cupertino
+  - composer is Cupertino
+  - settings presentation is Cupertino
+  - transcript remains Flutter
+- keeping the current all-Flutter path as a first-class baseline
+
+This slice should not yet redesign the screen visually. Its job is to make the
+next slices structurally honest.
+
+### Slice 2: Settings host extraction and Cupertino settings renderer
+
+This slice should cover:
+
+- extracting a renderer-neutral settings host above `ConnectionSheet`
+- keeping the current Material settings renderer as one renderer path
+- adding a Cupertino settings renderer from the same contract and host
+- routing settings launch through an iOS-capable overlay delegate path
+
+This is the first place where Phase 7 should add a new real Cupertino surface.
+
+### Slice 3: Cupertino app chrome and shell actions
+
+This slice should cover:
+
+- a Cupertino top app chrome implementation
+- iOS-appropriate presentation of screen menu actions
+- iOS-path loading and shell layout behavior outside transcript rendering
+- preserving the same `ChatScreenContract` action semantics
+
+This slice should remove the most obvious Material shell cues on iPhone.
+
+### Slice 4: Cupertino composer surface
+
+This slice should cover:
+
+- a Cupertino composer renderer built from the existing composer contract
+- iOS send and stop affordances
+- parity for disabled, busy, clear-on-success, and retain-on-failure behavior
+
+Because draft ownership already moved above the renderer, this slice should be
+mostly renderer work, not state work.
+
+### Slice 5: iOS feedback and first-launch cleanup
+
+This slice should cover:
+
+- a non-Material feedback surface for the iOS path instead of `SnackBar`
+- first-launch empty-state CTA cleanup on iPhone
+- removal of the remaining highest-visibility Material shell leakage that is
+  outside transcript-card ownership
+
+This slice should not attempt a full transcript redesign.
+
+### Slice 6: Default iOS enablement and parity hardening
+
+This slice should cover:
+
+- default platform selection for the iOS renderer path
+- ownership-oriented tests proving the iOS path still routes behavior through
+  the adapter and shared contracts
+- parity tests for settings save flow, composer send flow, and top-level
+  actions under the iOS renderer path
+- confirmation that transcript remains Flutter-owned while the surrounding shell
+  is Cupertino-first
+
+This slice completes Phase 7.
+
+## Phase 7 Execution Spec
+
+### Scope
+
+Phase 7 must introduce:
+
+- one screen-shell renderer selection seam above the current fixed Material host
+- one explicit iOS/Cupertino renderer path for:
+  - app chrome
+  - settings presentation
+  - composer
+- one renderer-neutral settings state host that both Material and Cupertino
+  settings renderers can consume
+- one iOS feedback path for top-level transient messaging
+- one platform-policy path that can select the mixed iOS profile while leaving
+  transcript on the Flutter renderer
+
+### Explicit Non-Goals
+
+Phase 7 must not:
+
+- move the transcript feed out of Flutter
+- redesign transcript placement or request ownership
+- replace Flutter with UIKit or SwiftUI
+- duplicate settings or composer state logic per renderer
+- rewrite `ChatSessionController` behavior as part of the iOS shell work
+- force a global `CupertinoApp` rewrite if the adapter can host the iOS path
+  honestly inside the current app bootstrap
+
+### Required Ownership Boundary
+
+After Phase 7:
+
+- `ChatRootAdapter` must own selection of the active shell and surface renderer
+  path
+- the iOS shell must not just be Cupertino-looking children inside a fixed
+  Material screen host
+- settings state, validation, and submit semantics must not live only inside a
+  Material sheet widget
+- transcript may remain Flutter-owned
+- transcript must remain consumed through the shared transcript contract path
+
+### Required Semantics To Preserve
+
+Unless broader behavior is explicitly requested, Phase 7 should preserve:
+
+- current chat behavior and session lifecycle
+- current screen action semantics
+- current settings validation and save semantics
+- current composer send and stop behavior
+- current failed-send draft retention behavior
+- current changed-file diff opening behavior
+- current transcript follow and pending-request behavior
+
+The next active Phase 7 slice is:
+
+- settings host extraction and Cupertino settings renderer
+
+Reason:
+
+- Slice 1 already made shell selection and platform policy explicit at the
+  adapter boundary
+- settings still need a shared host before a second renderer can be added
+- the mixed iOS profile has to be modeled explicitly before app chrome,
+  settings, and composer work can land cleanly
 
 ## Minimum Outcome Required Before Any Glass Work
 

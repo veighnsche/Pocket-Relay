@@ -814,7 +814,10 @@ void main() {
       ),
     );
 
-    expect(state.primaryPendingApprovalBlock?.requestId, 'approval_1');
+    expect(
+      state.pendingApprovalRequests['approval_1']?.requestId,
+      'approval_1',
+    );
     final frozenBlock = state.transcriptBlocks.single as CodexTextBlock;
     expect(frozenBlock.body, 'Before request');
     expect(frozenBlock.isRunning, isFalse);
@@ -908,7 +911,10 @@ void main() {
       final frozenBeforeInput = state.transcriptBlocks.single as CodexTextBlock;
       expect(frozenBeforeInput.body, 'Before request');
       expect(frozenBeforeInput.isRunning, isFalse);
-      expect(state.primaryPendingUserInputBlock?.requestId, 's:user-input-1');
+      expect(
+        state.pendingUserInputRequests['s:user-input-1']?.requestId,
+        's:user-input-1',
+      );
 
       state = reducer.reduceRuntimeEvent(
         state,
@@ -1963,8 +1969,11 @@ void main() {
       );
 
       expect(state.transcriptBlocks, hasLength(1));
-      expect(state.primaryPendingApprovalBlock, isNotNull);
-      expect(state.primaryPendingApprovalBlock?.requestId, 'approval_1');
+      expect(state.pendingApprovalRequests, isNotEmpty);
+      expect(
+        state.pendingApprovalRequests['approval_1']?.requestId,
+        'approval_1',
+      );
 
       state = reducer.reduceRuntimeEvent(
         state,
@@ -1991,7 +2000,7 @@ void main() {
         ),
       );
 
-      expect(state.primaryPendingApprovalBlock, isNull);
+      expect(state.pendingApprovalRequests, isEmpty);
       expect(state.transcriptBlocks, hasLength(3));
       expect(
         (state.transcriptBlocks.first as CodexTextBlock).body,
@@ -2348,7 +2357,10 @@ void main() {
           state.transcriptBlocks.single as CodexChangedFilesBlock;
       expect(frozenBeforeApproval.files.single.path, 'README.md');
       expect(frozenBeforeApproval.isRunning, isFalse);
-      expect(state.primaryPendingApprovalBlock?.requestId, 'approval_1');
+      expect(
+        state.pendingApprovalRequests['approval_1']?.requestId,
+        'approval_1',
+      );
 
       state = reducer.reduceRuntimeEvent(
         state,

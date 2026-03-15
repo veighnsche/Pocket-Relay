@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 
 abstract interface class ChatRootRendererDelegate {
+  Widget buildScreenShell({
+    required ChatRootScreenShellRenderer renderer,
+    required ChatScreenContract screen,
+    required PreferredSizeWidget appChrome,
+    required Widget transcriptRegion,
+    required Widget composerRegion,
+  });
+
   PreferredSizeWidget buildAppChrome({
     required ChatRootRegionRenderer renderer,
     required ChatScreenContract screen,
@@ -37,16 +46,40 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   const FlutterChatRootRendererDelegate();
 
   @override
+  Widget buildScreenShell({
+    required ChatRootScreenShellRenderer renderer,
+    required ChatScreenContract screen,
+    required PreferredSizeWidget appChrome,
+    required Widget transcriptRegion,
+    required Widget composerRegion,
+  }) {
+    return switch (renderer) {
+      ChatRootScreenShellRenderer.flutter => FlutterChatScreenRenderer(
+        screen: screen,
+        appChrome: appChrome,
+        transcriptRegion: transcriptRegion,
+        composerRegion: composerRegion,
+      ),
+      ChatRootScreenShellRenderer.cupertino => CupertinoChatScreenRenderer(
+        screen: screen,
+        appChrome: appChrome,
+        transcriptRegion: transcriptRegion,
+        composerRegion: composerRegion,
+      ),
+    };
+  }
+
+  @override
   PreferredSizeWidget buildAppChrome({
     required ChatRootRegionRenderer renderer,
     required ChatScreenContract screen,
     required ValueChanged<ChatScreenActionId> onScreenAction,
   }) {
     return switch (renderer) {
-      ChatRootRegionRenderer.flutter => FlutterChatAppChrome(
-        screen: screen,
-        onScreenAction: onScreenAction,
-      ),
+      // Slice 1 adds explicit Cupertino policy vocabulary before distinct
+      // Cupertino region widgets land in later Phase 7 slices.
+      ChatRootRegionRenderer.cupertino || ChatRootRegionRenderer.flutter =>
+        FlutterChatAppChrome(screen: screen, onScreenAction: onScreenAction),
     };
   }
 
@@ -64,6 +97,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     onSubmitUserInput,
   }) {
     return switch (renderer) {
+      ChatRootRegionRenderer.cupertino ||
       ChatRootRegionRenderer.flutter => FlutterChatTranscriptRegion(
         screen: screen,
         surfaceChangeToken: surfaceChangeToken,
@@ -86,6 +120,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     required Future<void> Function() onStopActiveTurn,
   }) {
     return switch (renderer) {
+      ChatRootRegionRenderer.cupertino ||
       ChatRootRegionRenderer.flutter => FlutterChatComposerRegion(
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,
