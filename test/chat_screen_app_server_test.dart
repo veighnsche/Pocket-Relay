@@ -181,7 +181,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
       appServerClient.emit(
         const CodexAppServerNotificationEvent(
@@ -268,7 +268,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Changed files'), findsOneWidget);
       expect(find.text('2 files'), findsOneWidget);
@@ -278,10 +278,80 @@ void main() {
       expect(find.text('View diff'), findsNWidgets(2));
 
       await tester.tap(find.text('README.md'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('+first line'), findsOneWidget);
       expect(find.text('+second line'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'keeps interrupted assistant history as separate cards when the same item resumes',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'item_1',
+              'type': 'agentMessage',
+              'status': 'inProgress',
+            },
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/agentMessage/delta',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'item_1',
+            'delta': 'First',
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'configWarning',
+          params: <String, Object?>{'summary': 'Intervening warning'},
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/agentMessage/delta',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'item_1',
+            'delta': 'Second',
+          },
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('First'), findsOneWidget);
+      expect(find.text('Second'), findsOneWidget);
     },
   );
 

@@ -141,7 +141,7 @@ void main() {
   });
 
   test(
-    'promotes the local echo to sent when the app-server confirms the user message',
+    'does not rewrite a local echo after later transcript history exists',
     () {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
@@ -178,7 +178,7 @@ void main() {
       expect(committedUserMessages, hasLength(1));
       expect(
         committedUserMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        CodexUserMessageDeliveryState.localEcho,
       );
 
       final userMessages = state.transcriptBlocks
@@ -188,15 +188,48 @@ void main() {
       expect(userMessages.single.text, 'Ship the fix');
       expect(
         userMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        CodexUserMessageDeliveryState.localEcho,
       );
-      expect(userMessages.single.providerItemId, 'item_user');
+      expect(userMessages.single.providerItemId, isNull);
       expect(
         state.transcriptBlocks.whereType<CodexStatusBlock>(),
         hasLength(1),
       );
     },
   );
+
+  test('promotes the local echo while it is still the transcript tail', () {
+    final reducer = TranscriptReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    var state = reducer.addUserMessage(
+      CodexSessionState.initial(),
+      text: 'Ship the fix',
+      createdAt: now,
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now.add(const Duration(milliseconds: 10)),
+        itemType: CodexCanonicalItemType.userMessage,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_user_tail',
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{'text': 'Ship the fix'},
+      ),
+    );
+
+    final userMessages = state.transcriptBlocks
+        .whereType<CodexUserMessageBlock>()
+        .toList(growable: false);
+    expect(userMessages, hasLength(1));
+    expect(
+      userMessages.single.deliveryState,
+      CodexUserMessageDeliveryState.sent,
+    );
+    expect(userMessages.single.providerItemId, 'item_user_tail');
+  });
 
   test(
     'keeps a single sent user block when the same app-server item is updated and then completed',
@@ -211,16 +244,8 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeWarningEvent(
-          createdAt: now.add(const Duration(milliseconds: 5)),
-          summary: 'Connected to the remote session.',
-        ),
-      );
-
-      state = reducer.reduceRuntimeEvent(
-        state,
         CodexRuntimeItemUpdatedEvent(
-          createdAt: now.add(const Duration(milliseconds: 10)),
+          createdAt: now.add(const Duration(milliseconds: 5)),
           itemType: CodexCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -233,7 +258,7 @@ void main() {
       state = reducer.reduceRuntimeEvent(
         state,
         CodexRuntimeItemCompletedEvent(
-          createdAt: now.add(const Duration(milliseconds: 20)),
+          createdAt: now.add(const Duration(milliseconds: 10)),
           itemType: CodexCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -310,6 +335,75 @@ void main() {
     expect(block.body, 'The shell session');
     expect(block.isRunning, isTrue);
   });
+
+  test(
+    'starts a new assistant card when the same item resumes after an intervening warning',
+    () {
+      final reducer = TranscriptReducer();
+      var state = CodexSessionState.initial();
+      final now = DateTime(2026, 3, 14, 12);
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemStartedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.assistantMessage,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_streaming',
+          status: CodexRuntimeItemStatus.inProgress,
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeContentDeltaEvent(
+          createdAt: now,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_streaming',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'First',
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeWarningEvent(
+          createdAt: now.add(const Duration(milliseconds: 1)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          summary: 'Intervening warning',
+        ),
+      );
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeContentDeltaEvent(
+          createdAt: now.add(const Duration(milliseconds: 2)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_streaming',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'Second',
+        ),
+      );
+
+      expect(state.activeTurn?.segments, hasLength(3));
+      final frozenSegment =
+          state.activeTurn!.segments.first as CodexTurnTextSegment;
+      expect(frozenSegment.id, 'item_item_streaming');
+      expect(frozenSegment.body, 'First');
+      expect(frozenSegment.isStreaming, isFalse);
+
+      expect(state.transcriptBlocks, hasLength(3));
+      final firstBlock = state.transcriptBlocks.first as CodexTextBlock;
+      expect(firstBlock.body, 'First');
+      expect(firstBlock.isRunning, isFalse);
+      expect(state.transcriptBlocks[1], isA<CodexStatusBlock>());
+      final resumedBlock = state.transcriptBlocks.last as CodexTextBlock;
+      expect(resumedBlock.id, isNot(firstBlock.id));
+      expect(resumedBlock.body, 'Second');
+      expect(resumedBlock.isRunning, isTrue);
+    },
+  );
 
   test('renders review and compaction items as status blocks', () {
     final reducer = TranscriptReducer();
@@ -1000,17 +1094,27 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnDiffUpdatedEvent(
+      CodexRuntimeItemCompletedEvent(
         createdAt: now.add(const Duration(seconds: 2)),
         threadId: 'thread_123',
         turnId: 'turn_123',
-        unifiedDiff:
-            'diff --git a/lib/main.dart b/lib/main.dart\n'
-            '--- a/lib/main.dart\n'
-            '+++ b/lib/main.dart\n'
-            '@@ -1 +1 @@\n'
-            '-old\n'
-            '+new\n',
+        itemId: 'file_change_1',
+        itemType: CodexCanonicalItemType.fileChange,
+        status: CodexRuntimeItemStatus.completed,
+        snapshot: const <String, Object?>{
+          'changes': <Object?>[
+            <String, Object?>{
+              'path': 'lib/main.dart',
+              'kind': <String, Object?>{'type': 'update'},
+              'diff':
+                  '--- a/lib/main.dart\n'
+                  '+++ b/lib/main.dart\n'
+                  '@@ -1 +1 @@\n'
+                  '-old\n'
+                  '+new\n',
+            },
+          ],
+        },
       ),
     );
 
@@ -1140,7 +1244,7 @@ void main() {
     expect(group.entries.last.entryKind, CodexWorkLogEntryKind.webSearch);
   });
 
-  test('renders proposed plan and changed files as dedicated blocks', () {
+  test('keeps turn diff snapshots out of visible transcript history', () {
     final reducer = TranscriptReducer();
     var state = CodexSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
@@ -1173,10 +1277,8 @@ void main() {
     );
 
     expect(state.blocks, isEmpty);
-    expect(state.transcriptBlocks.first, isA<CodexProposedPlanBlock>());
-    final changedFiles = state.transcriptBlocks.last as CodexChangedFilesBlock;
-    expect(changedFiles.files.single.path, 'lib/main.dart');
-    expect(changedFiles.unifiedDiff, contains('diff --git'));
+    expect(state.transcriptBlocks, hasLength(1));
+    expect(state.transcriptBlocks.single, isA<CodexProposedPlanBlock>());
   });
 
   test('renders a multi-file file-change item as one changed-files block', () {
@@ -1233,6 +1335,86 @@ void main() {
       contains('diff --git a/lib/app.dart b/lib/app.dart'),
     );
   });
+
+  test(
+    'starts a new changed-files card when the same file-change item resumes after an intervening warning',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeItemStartedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.fileChange,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'file_change_1',
+          status: CodexRuntimeItemStatus.inProgress,
+          snapshot: const <String, Object?>{
+            'changes': <Object?>[
+              <String, Object?>{
+                'path': 'README.md',
+                'kind': <String, Object?>{'type': 'add'},
+                'diff': 'first line\n',
+              },
+            ],
+          },
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeWarningEvent(
+          createdAt: now.add(const Duration(milliseconds: 1)),
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          summary: 'Intervening warning',
+        ),
+      );
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemUpdatedEvent(
+          createdAt: now.add(const Duration(milliseconds: 2)),
+          itemType: CodexCanonicalItemType.fileChange,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'file_change_1',
+          status: CodexRuntimeItemStatus.inProgress,
+          snapshot: const <String, Object?>{
+            'changes': <Object?>[
+              <String, Object?>{
+                'path': 'README.md',
+                'kind': <String, Object?>{'type': 'add'},
+                'diff': 'first line\n',
+              },
+              <String, Object?>{
+                'path': 'lib/app.dart',
+                'kind': <String, Object?>{'type': 'update'},
+                'diff':
+                    '--- a/lib/app.dart\n'
+                    '+++ b/lib/app.dart\n'
+                    '@@ -1 +1 @@\n'
+                    '-old\n'
+                    '+new\n',
+              },
+            ],
+          },
+        ),
+      );
+
+      final changedFilesBlocks = state.transcriptBlocks
+          .whereType<CodexChangedFilesBlock>()
+          .toList(growable: false);
+      expect(changedFilesBlocks, hasLength(2));
+      expect(changedFilesBlocks.first.files.single.path, 'README.md');
+      expect(changedFilesBlocks.first.isRunning, isFalse);
+      expect(changedFilesBlocks.last.files, hasLength(2));
+      expect(changedFilesBlocks.last.files.first.path, 'README.md');
+      expect(changedFilesBlocks.last.files.last.path, 'lib/app.dart');
+      expect(changedFilesBlocks.last.isRunning, isTrue);
+    },
+  );
 
   test(
     'keeps the structured diff when file-change output deltas contain plain text',
@@ -1298,7 +1480,7 @@ void main() {
   );
 
   test(
-    'prefers the turn diff snapshot over completed file-change item cards',
+    'keeps file-change history immutable when turn diff snapshots arrive',
     () {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
@@ -1345,13 +1527,17 @@ void main() {
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(1));
       expect(changedFilesBlocks.single.files.single.path, 'README.md');
-      expect(changedFilesBlocks.single.files.single.additions, 2);
-      expect(changedFilesBlocks.single.unifiedDiff, contains('+second line'));
+      expect(changedFilesBlocks.single.files.single.additions, 1);
+      expect(changedFilesBlocks.single.unifiedDiff, contains('+first line'));
+      expect(
+        changedFilesBlocks.single.unifiedDiff,
+        isNot(contains('+second line')),
+      );
     },
   );
 
   test(
-    'keeps a running file-change item visible until the turn diff finalizes it',
+    'keeps a running file-change item visible when turn diff snapshots update',
     () {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
@@ -1396,9 +1582,8 @@ void main() {
       final changedFilesBlocks = state.transcriptBlocks
           .whereType<CodexChangedFilesBlock>()
           .toList(growable: false);
-      expect(changedFilesBlocks, hasLength(2));
-      expect(changedFilesBlocks.first.isRunning, isTrue);
-      expect(changedFilesBlocks.last.isRunning, isFalse);
+      expect(changedFilesBlocks, hasLength(1));
+      expect(changedFilesBlocks.single.isRunning, isTrue);
     },
   );
 
@@ -1457,37 +1642,40 @@ void main() {
     expect(plans.last.steps.last.step, 'Append visible plan updates');
   });
 
-  test('sorts committed and live transcript rows by creation time', () {
-    final reducer = TranscriptReducer();
-    final startedAt = DateTime(2026, 3, 14, 12);
-    var state = reducer.reduceRuntimeEvent(
-      CodexSessionState.initial(),
-      CodexRuntimeContentDeltaEvent(
-        createdAt: startedAt,
-        threadId: 'thread_123',
-        turnId: 'turn_123',
-        itemId: 'item_123',
-        streamKind: CodexRuntimeContentStreamKind.assistantText,
-        delta: 'Earlier live row',
-      ),
-    );
+  test(
+    'keeps committed history ahead of the live tail instead of resorting by time',
+    () {
+      final reducer = TranscriptReducer();
+      final startedAt = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeContentDeltaEvent(
+          createdAt: startedAt,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_123',
+          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          delta: 'Earlier live row',
+        ),
+      );
 
-    state = reducer.addUserMessage(
-      state,
-      text: 'Later committed row',
-      createdAt: startedAt.add(const Duration(seconds: 1)),
-    );
+      state = reducer.addUserMessage(
+        state,
+        text: 'Later committed row',
+        createdAt: startedAt.add(const Duration(seconds: 1)),
+      );
 
-    expect(state.transcriptBlocks, hasLength(2));
-    expect(state.transcriptBlocks.first, isA<CodexTextBlock>());
-    expect(
-      (state.transcriptBlocks.first as CodexTextBlock).body,
-      'Earlier live row',
-    );
-    expect(state.transcriptBlocks.last, isA<CodexUserMessageBlock>());
-    expect(
-      (state.transcriptBlocks.last as CodexUserMessageBlock).text,
-      'Later committed row',
-    );
-  });
+      expect(state.transcriptBlocks, hasLength(2));
+      expect(state.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+      expect(
+        (state.transcriptBlocks.first as CodexUserMessageBlock).text,
+        'Later committed row',
+      );
+      expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
+      expect(
+        (state.transcriptBlocks.last as CodexTextBlock).body,
+        'Earlier live row',
+      );
+    },
+  );
 }

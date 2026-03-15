@@ -36,12 +36,29 @@ class TranscriptItemPolicy {
       createdAt: event.createdAt,
     );
     final existing = activeTurn?.itemsById[event.itemId!];
-    final nextItem = _activeItemFromLifecycle(event, existing: existing);
-    final reconciledBlocks = _reconcileCommittedUserMessageBlocks(
+    final nextItem = _activeItemFromLifecycle(
+      state,
+      activeTurn,
+      event,
+      existing: existing,
+    );
+    final committedUserMessageIndex = _committedUserMessageMatchIndex(
       state.blocks,
       nextItem,
     );
-    if (reconciledBlocks != null) {
+    if (committedUserMessageIndex != null) {
+      final reconciledBlocks =
+          _canMutateCommittedUserMessageTail(
+            state.blocks,
+            activeTurn,
+            matchIndex: committedUserMessageIndex,
+          )
+          ? _promoteCommittedUserMessageBlock(
+              state.blocks,
+              matchIndex: committedUserMessageIndex,
+              item: nextItem,
+            )
+          : state.blocks;
       return state.copyWith(
         blocks: reconciledBlocks,
         activeTurn: _nextActiveTurnForSuppressedLifecycle(
@@ -78,11 +95,12 @@ class TranscriptItemPolicy {
       threadId: threadId,
       createdAt: event.createdAt,
     );
-    final existing =
-        activeTurn?.itemsById[itemId] ?? _activeItemFromContentDelta(event);
-    final updatedItem = existing.copyWith(
-      body: '${existing.body}${event.delta}',
-      isRunning: true,
+    final existing = activeTurn?.itemsById[itemId];
+    final updatedItem = _activeItemFromContentDelta(
+      state,
+      activeTurn,
+      event,
+      existing: existing,
     );
 
     return state.copyWith(
@@ -91,23 +109,42 @@ class TranscriptItemPolicy {
   }
 
   CodexSessionActiveItem _activeItemFromLifecycle(
+    CodexSessionState state,
+    CodexActiveTurnState? activeTurn,
     CodexRuntimeItemLifecycleEvent event, {
     CodexSessionActiveItem? existing,
   }) {
     final blockKind = _blockFactory.blockKindForItemType(event.itemType);
     final title = _itemTitle(event, existing?.title);
-    final body = _itemBody(event, existing?.body ?? '');
+    final aggregatedBody = _itemBody(event, existing?.aggregatedBody ?? '');
     final exitCode = _extractExitCode(event.snapshot) ?? existing?.exitCode;
+    final forkArtifact = _shouldForkVisibleArtifact(activeTurn, existing);
+    final entryId = existing == null || forkArtifact
+        ? _nextItemEntryId(state, activeTurn, itemId: event.itemId!)
+        : existing.entryId;
+    final artifactBaseBody = existing == null
+        ? ''
+        : (forkArtifact ? existing.aggregatedBody : existing.artifactBaseBody);
+    final body = _visibleBodyForArtifact(
+      aggregatedBody,
+      artifactBaseBody: artifactBaseBody,
+      fallbackToFullBody:
+          forkArtifact && event.status != CodexRuntimeItemStatus.inProgress,
+    );
     return CodexSessionActiveItem(
       itemId: event.itemId!,
       threadId: event.threadId!,
       turnId: event.turnId!,
       itemType: event.itemType,
-      entryId: existing?.entryId ?? 'item_${event.itemId}',
+      entryId: entryId,
       blockKind: blockKind,
-      createdAt: existing?.createdAt ?? event.createdAt,
+      createdAt: existing == null || forkArtifact
+          ? event.createdAt
+          : existing.createdAt,
       title: title,
       body: body,
+      aggregatedBody: aggregatedBody,
+      artifactBaseBody: artifactBaseBody,
       isRunning: event.status == CodexRuntimeItemStatus.inProgress,
       exitCode: exitCode,
       snapshot: event.snapshot ?? existing?.snapshot,
@@ -115,21 +152,43 @@ class TranscriptItemPolicy {
   }
 
   CodexSessionActiveItem _activeItemFromContentDelta(
-    CodexRuntimeContentDeltaEvent event,
-  ) {
-    final itemType = _itemSupport.itemTypeFromStreamKind(event.streamKind);
+    CodexSessionState state,
+    CodexActiveTurnState? activeTurn,
+    CodexRuntimeContentDeltaEvent event, {
+    CodexSessionActiveItem? existing,
+  }) {
+    final itemType =
+        existing?.itemType ??
+        _itemSupport.itemTypeFromStreamKind(event.streamKind);
+    final forkArtifact = _shouldForkVisibleArtifact(activeTurn, existing);
+    final previousAggregatedBody = existing?.aggregatedBody ?? '';
+    final aggregatedBody = '$previousAggregatedBody${event.delta}';
+    final artifactBaseBody = existing == null
+        ? ''
+        : (forkArtifact ? previousAggregatedBody : existing.artifactBaseBody);
     return CodexSessionActiveItem(
       itemId: event.itemId!,
       threadId: event.threadId!,
       turnId: event.turnId!,
       itemType: itemType,
-      entryId: 'item_${event.itemId}',
-      blockKind: _blockFactory.blockKindForItemType(itemType),
-      createdAt: event.createdAt,
-      title: _blockFactory.defaultItemTitle(itemType),
-      body: '',
+      entryId: existing == null || forkArtifact
+          ? _nextItemEntryId(state, activeTurn, itemId: event.itemId!)
+          : existing.entryId,
+      blockKind:
+          existing?.blockKind ?? _blockFactory.blockKindForItemType(itemType),
+      createdAt: existing == null || forkArtifact
+          ? event.createdAt
+          : existing.createdAt,
+      title: existing?.title ?? _blockFactory.defaultItemTitle(itemType),
+      body: _visibleBodyForArtifact(
+        aggregatedBody,
+        artifactBaseBody: artifactBaseBody,
+      ),
+      aggregatedBody: aggregatedBody,
+      artifactBaseBody: artifactBaseBody,
       isRunning: true,
-      snapshot: null,
+      exitCode: existing?.exitCode,
+      snapshot: existing?.snapshot,
     );
   }
 
@@ -179,7 +238,64 @@ class TranscriptItemPolicy {
     return value is num ? value.toInt() : null;
   }
 
-  List<CodexUiBlock>? _reconcileCommittedUserMessageBlocks(
+  bool _shouldForkVisibleArtifact(
+    CodexActiveTurnState? activeTurn,
+    CodexSessionActiveItem? existing,
+  ) {
+    if (activeTurn == null || existing == null || activeTurn.segments.isEmpty) {
+      return false;
+    }
+
+    final currentSegmentId = activeTurn.itemSegmentIds[existing.itemId];
+    if (currentSegmentId == null) {
+      return false;
+    }
+
+    return activeTurn.segments.last.id != currentSegmentId;
+  }
+
+  String _nextItemEntryId(
+    CodexSessionState state,
+    CodexActiveTurnState? activeTurn, {
+    required String itemId,
+  }) {
+    final usedIds = <String>{
+      ...state.blocks.map((block) => block.id),
+      ...?activeTurn?.segments.map((segment) => segment.id),
+    };
+    final baseId = 'item_$itemId';
+    if (!usedIds.contains(baseId)) {
+      return baseId;
+    }
+
+    var ordinal = 2;
+    var candidate = '$baseId-$ordinal';
+    while (usedIds.contains(candidate)) {
+      ordinal += 1;
+      candidate = '$baseId-$ordinal';
+    }
+    return candidate;
+  }
+
+  String _visibleBodyForArtifact(
+    String aggregatedBody, {
+    required String artifactBaseBody,
+    bool fallbackToFullBody = false,
+  }) {
+    if (artifactBaseBody.isEmpty) {
+      return aggregatedBody;
+    }
+
+    final visibleBody = aggregatedBody.startsWith(artifactBaseBody)
+        ? aggregatedBody.substring(artifactBaseBody.length)
+        : aggregatedBody;
+    if (visibleBody.isEmpty && fallbackToFullBody) {
+      return aggregatedBody;
+    }
+    return visibleBody;
+  }
+
+  int? _committedUserMessageMatchIndex(
     List<CodexUiBlock> blocks,
     CodexSessionActiveItem item,
   ) {
@@ -204,10 +320,24 @@ class TranscriptItemPolicy {
                       block.text.trim() == text,
                 ));
 
-    if (matchIndex == -1) {
-      return null;
-    }
+    return matchIndex == -1 ? null : matchIndex;
+  }
 
+  bool _canMutateCommittedUserMessageTail(
+    List<CodexUiBlock> blocks,
+    CodexActiveTurnState? activeTurn, {
+    required int matchIndex,
+  }) {
+    return matchIndex == blocks.length - 1 &&
+        (activeTurn == null || activeTurn.segments.isEmpty);
+  }
+
+  List<CodexUiBlock> _promoteCommittedUserMessageBlock(
+    List<CodexUiBlock> blocks, {
+    required int matchIndex,
+    required CodexSessionActiveItem item,
+  }) {
+    final text = item.body.trim();
     final nextBlocks = List<CodexUiBlock>.from(blocks);
     final block = nextBlocks[matchIndex] as CodexUserMessageBlock;
     nextBlocks[matchIndex] = block.copyWith(

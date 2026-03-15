@@ -401,7 +401,7 @@ class TranscriptRequestPolicy {
       createdAt: block.createdAt,
     );
     if (activeTurn == null) {
-      return _support.upsertBlock(state, block);
+      return _support.appendBlock(state, block);
     }
 
     return state.copyWith(activeTurn: _upsertTurnBlock(activeTurn, block));
@@ -412,12 +412,12 @@ class TranscriptRequestPolicy {
     CodexUiBlock block,
   ) {
     final segment = CodexTurnBlockSegment(block: block);
-    final nextSegments = List<CodexTurnSegment>.from(activeTurn.segments);
+    var nextSegments = List<CodexTurnSegment>.from(activeTurn.segments);
     final index = nextSegments.indexWhere(
       (existing) => existing.id == block.id,
     );
     if (index == -1) {
-      nextSegments.add(segment);
+      nextSegments = appendCodexTurnSegment(nextSegments, segment);
     } else {
       nextSegments[index] = segment;
     }

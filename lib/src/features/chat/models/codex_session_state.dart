@@ -187,12 +187,12 @@ class CodexSessionState {
 
   bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
 
-  List<CodexUiBlock> get transcriptBlocks => _buildTranscriptBlocks(
-    _sortTranscriptBlocks(<CodexUiBlock>[
-      ...blocks.where(_shouldAppearInTranscript),
-      if (activeTurn != null) ...projectCodexTurnSegments(activeTurn!.segments),
-    ]),
-  );
+  List<CodexUiBlock> get transcriptBlocks =>
+      _buildTranscriptBlocks(<CodexUiBlock>[
+        ...blocks.where(_shouldAppearInTranscript),
+        if (activeTurn != null)
+          ...projectCodexTurnSegments(activeTurn!.segments),
+      ]);
 
   CodexApprovalRequestBlock? get primaryPendingApprovalBlock =>
       _firstPendingBlock<CodexApprovalRequestBlock>(
@@ -288,16 +288,94 @@ List<CodexUiBlock> projectCodexTurnSegments(
   return projected;
 }
 
-List<CodexUiBlock> _sortTranscriptBlocks(List<CodexUiBlock> blocks) {
-  final indexed = blocks.indexed.toList(growable: false);
-  indexed.sort((left, right) {
-    final createdAtComparison = left.$2.createdAt.compareTo(right.$2.createdAt);
-    if (createdAtComparison != 0) {
-      return createdAtComparison;
-    }
-    return left.$1.compareTo(right.$1);
-  });
-  return indexed.map((entry) => entry.$2).toList(growable: false);
+List<CodexTurnSegment> appendCodexTurnSegment(
+  List<CodexTurnSegment> segments,
+  CodexTurnSegment nextSegment,
+) {
+  final nextSegments = List<CodexTurnSegment>.from(segments);
+  if (nextSegments.isNotEmpty) {
+    nextSegments[nextSegments.length - 1] = freezeCodexTurnSegment(
+      nextSegments.last,
+    );
+  }
+  nextSegments.add(nextSegment);
+  return nextSegments;
+}
+
+CodexTurnSegment freezeCodexTurnSegment(CodexTurnSegment segment) {
+  return switch (segment) {
+    CodexTurnTextSegment(:final isStreaming) when isStreaming =>
+      CodexTurnTextSegment(
+        id: segment.id,
+        createdAt: segment.createdAt,
+        kind: segment.kind,
+        title: segment.title,
+        body: segment.body,
+        itemId: segment.itemId,
+        isStreaming: false,
+      ),
+    CodexTurnWorkSegment() => CodexTurnWorkSegment(
+      id: segment.id,
+      createdAt: segment.createdAt,
+      itemId: segment.itemId,
+      entries: segment.entries
+          .map(
+            (entry) => CodexWorkLogEntry(
+              id: entry.id,
+              createdAt: entry.createdAt,
+              entryKind: entry.entryKind,
+              title: entry.title,
+              turnId: entry.turnId,
+              preview: entry.preview,
+              isRunning: false,
+              exitCode: entry.exitCode,
+            ),
+          )
+          .toList(growable: false),
+    ),
+    CodexTurnPlanSegment(:final isStreaming) when isStreaming =>
+      CodexTurnPlanSegment(
+        id: segment.id,
+        createdAt: segment.createdAt,
+        title: segment.title,
+        markdown: segment.markdown,
+        itemId: segment.itemId,
+        isStreaming: false,
+      ),
+    CodexTurnChangedFilesSegment(:final isStreaming) when isStreaming =>
+      CodexTurnChangedFilesSegment(
+        id: segment.id,
+        createdAt: segment.createdAt,
+        title: segment.title,
+        itemId: segment.itemId,
+        files: segment.files,
+        unifiedDiff: segment.unifiedDiff,
+        isStreaming: false,
+      ),
+    CodexTurnBlockSegment(:final block) => CodexTurnBlockSegment(
+      block: _freezeCodexUiBlock(block),
+    ),
+    _ => segment,
+  };
+}
+
+CodexUiBlock _freezeCodexUiBlock(CodexUiBlock block) {
+  return switch (block) {
+    CodexTextBlock(:final isRunning) when isRunning => block.copyWith(
+      isRunning: false,
+    ),
+    CodexProposedPlanBlock(:final isStreaming) when isStreaming =>
+      block.copyWith(isStreaming: false),
+    CodexChangedFilesBlock(:final isRunning) when isRunning => block.copyWith(
+      isRunning: false,
+    ),
+    CodexCommandExecutionBlock(:final isRunning) when isRunning =>
+      block.copyWith(isRunning: false),
+    CodexWorkLogEntryBlock(:final isRunning) when isRunning => block.copyWith(
+      isRunning: false,
+    ),
+    _ => block,
+  };
 }
 
 bool _shouldAppearInTranscript(CodexUiBlock block) {
@@ -470,6 +548,8 @@ class CodexSessionActiveItem {
     required this.createdAt,
     this.title,
     this.body = '',
+    this.aggregatedBody = '',
+    this.artifactBaseBody = '',
     this.isRunning = false,
     this.exitCode,
     this.snapshot,
@@ -484,13 +564,19 @@ class CodexSessionActiveItem {
   final DateTime createdAt;
   final String? title;
   final String body;
+  final String aggregatedBody;
+  final String artifactBaseBody;
   final bool isRunning;
   final int? exitCode;
   final Map<String, dynamic>? snapshot;
 
   CodexSessionActiveItem copyWith({
+    String? entryId,
+    DateTime? createdAt,
     String? title,
     String? body,
+    String? aggregatedBody,
+    String? artifactBaseBody,
     bool? isRunning,
     int? exitCode,
     Map<String, dynamic>? snapshot,
@@ -500,11 +586,13 @@ class CodexSessionActiveItem {
       threadId: threadId,
       turnId: turnId,
       itemType: itemType,
-      entryId: entryId,
+      entryId: entryId ?? this.entryId,
       blockKind: blockKind,
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
       title: title ?? this.title,
       body: body ?? this.body,
+      aggregatedBody: aggregatedBody ?? this.aggregatedBody,
+      artifactBaseBody: artifactBaseBody ?? this.artifactBaseBody,
       isRunning: isRunning ?? this.isRunning,
       exitCode: exitCode ?? this.exitCode,
       snapshot: snapshot ?? this.snapshot,

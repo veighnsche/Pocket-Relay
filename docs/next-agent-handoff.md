@@ -22,6 +22,14 @@ The most relevant planning documents already in the repo are:
 - `docs/transcript-immutability-migration-plan.md`
 - `docs/component-lifecycle-audit-plan.md`
 
+Important note:
+
+- `docs/transcript-immutability-migration-plan.md` now contains a deviation log
+  because the worktree did not follow the originally planned "tests-only first
+  commit" sequence
+- the same document now also contains the rebased migration path that should be
+  treated as authoritative going forward
+
 This document is the short operational handoff for the next agent.
 
 ## What Is Still Left To Do
@@ -54,7 +62,9 @@ Reference Codex areas:
 
 Current state:
 
-- the app mostly commits directly into immutable transcript blocks
+- the worktree is in a partial transcript-immutability migration state
+- some append-only and tail-freezing behavior is already implemented
+- the migration did not follow the originally documented clean commit sequence
 
 Target state:
 

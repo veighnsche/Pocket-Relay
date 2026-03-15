@@ -25,12 +25,12 @@ class TranscriptTurnSegmenter {
       return turn;
     }
 
-    final nextSegments = List<CodexTurnSegment>.from(turn.segments);
+    var nextSegments = List<CodexTurnSegment>.from(turn.segments);
     final index = nextSegments.indexWhere(
       (existing) => existing.id == segment.id,
     );
     if (index == -1) {
-      nextSegments.add(segment);
+      nextSegments = appendCodexTurnSegment(nextSegments, segment);
     } else {
       nextSegments[index] = segment;
     }

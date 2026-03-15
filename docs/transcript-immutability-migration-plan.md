@@ -15,6 +15,199 @@ The core product requirement is now explicit:
 This plan exists because previous fixes were too local and treated individual
 symptoms instead of the ownership model.
 
+## Deviation Log
+
+The implementation path in the current worktree did **not** follow the ideal
+five-commit sequence below.
+
+Specifically:
+
+- the planned "Commit 1: tests only, intentionally failing" step was **not**
+  kept as a pure tests-first slice
+- reducer and state changes were made before preserving a clean failing-test
+  checkpoint
+- the document originally implied a future clean sequence, but the worktree is
+  already ahead of that idealized path
+
+This must be treated as a documented deviation, not as if the original plan was
+executed correctly.
+
+### Actual Rogue Path Taken So Far
+
+#### Slice A: Mixed behavior + tests
+
+This happened instead of a tests-only first commit.
+
+Changes that were implemented together:
+
+- `transcriptBlocks` stopped resorting committed and live rows together
+- touched committed-history paths switched from upsert toward append
+- `turn/diff/updated` stopped owning a visible changed-files card
+- local-echo user message reconciliation was reduced to tail-only mutation
+- tests were updated in the same slice instead of first being committed as
+  failing expectations
+
+Primary files touched in that slice:
+
+- [`lib/src/features/chat/models/codex_session_state.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart)
+- [`lib/src/features/chat/application/transcript_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart)
+- [`lib/src/features/chat/application/transcript_request_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_request_policy.dart)
+- [`lib/src/features/chat/application/transcript_item_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_item_policy.dart)
+- [`test/codex_session_reducer_test.dart`](/home/vince/Projects/codex_pocket/test/codex_session_reducer_test.dart)
+- [`test/chat_screen_app_server_test.dart`](/home/vince/Projects/codex_pocket/test/chat_screen_app_server_test.dart)
+
+#### Slice B: Live artifact forking + tail freezing
+
+This corresponds roughly to planned commit 4, but it was also done before the
+planned clean commit sequence existed.
+
+Changes implemented:
+
+- active items now track aggregate provider body separately from the currently
+  visible artifact body
+- resumed same-item output after an intervening visible artifact now forks a
+  new visible card instead of rewriting the previous one
+- appending a new visible turn segment freezes the previous tail first
+- touched active-turn commit paths now append instead of upserting
+- the dead committed-history `upsertBlock()` helper was removed
+- reducer and widget regressions were added for interrupted assistant and
+  changed-files resumption
+
+Primary files touched in that slice:
+
+- [`lib/src/features/chat/models/codex_session_state.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart)
+- [`lib/src/features/chat/application/transcript_turn_segmenter.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_turn_segmenter.dart)
+- [`lib/src/features/chat/application/transcript_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart)
+- [`lib/src/features/chat/application/transcript_request_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_request_policy.dart)
+- [`lib/src/features/chat/application/transcript_item_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_item_policy.dart)
+- [`lib/src/features/chat/application/transcript_policy_support.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy_support.dart)
+- [`test/codex_session_reducer_test.dart`](/home/vince/Projects/codex_pocket/test/codex_session_reducer_test.dart)
+- [`test/chat_screen_app_server_test.dart`](/home/vince/Projects/codex_pocket/test/chat_screen_app_server_test.dart)
+
+### Practical Consequence
+
+The "Five Commit Migration Plan" below is now a **target structure**, not an
+accurate log of what already happened.
+
+Future work must assume:
+
+- there is no clean historical "tests only" checkpoint in the current worktree
+- some later-plan behavior is already partially implemented
+- remaining work should start from the current code reality, not from the
+  original ideal sequence
+
+If a clean history is still desired, the remaining commits should explicitly say
+that the original sequence was violated and that the history is being resumed
+from an already-mutated baseline.
+
+## Rebased Migration Path From Current Worktree
+
+This section supersedes the original idealized sequence as the practical path
+forward from the current code reality.
+
+### Baseline Commit: Partial Immutability Rebase
+
+Status:
+
+- should capture the current worktree as one explicit re-baseline commit
+
+What this baseline already includes:
+
+- committed transcript rows are no longer globally resorted with live rows
+- touched commit paths append rather than upsert
+- `turn/diff/updated` no longer owns a visible changed-files card
+- repeated plan updates append as separate timeline artifacts
+- interrupted same-item assistant and changed-files output now fork a new
+  visible card
+- appending a new visible tail freezes the previous tail first
+- regression coverage exists for interrupted item resumption
+
+This baseline is not the end state. It is the starting line for the remaining
+cleanup.
+
+### Commit A: Explicit Turn Snapshot State
+
+Goal:
+
+- stop treating `turn/diff/updated` as either a transcript owner or a silent
+  no-op
+
+Changes:
+
+- add explicit turn snapshot fields under active turn state
+- store `turn/diff/updated` there
+- keep token-usage and similar turn-level snapshot data in the same ownership
+  domain where appropriate
+- use snapshot state only for supporting/detail surfaces, never timeline
+  ownership
+
+Exit criterion:
+
+- turn-level aggregate data exists in state explicitly, with zero visible
+  transcript mutation
+
+### Commit B: Replace Ad Hoc Segment Mutation With First-Class Live Artifacts
+
+Goal:
+
+- finish the ownership split that is currently only partially enforced
+
+Changes:
+
+- replace generic segment mutation rules with explicit live artifact instances
+- define artifact boundary rules by visible interruption, not by helper
+  convention
+- make assistant, reasoning, work, plan, request, and changed-files artifacts
+  all obey the same contiguous-tail rule
+- stop relying on shared projection/grouping logic to infer transcript
+  semantics after the fact
+
+Exit criterion:
+
+- one active contiguous artifact may mutate, and every older artifact is frozen
+  by construction
+
+### Commit C: Remove Remaining Timeline Mutation Exceptions
+
+Goal:
+
+- eliminate the remaining special cases that still blur committed history with
+  live workflow state
+
+Changes:
+
+- move optimistic user-message provider reconciliation out of committed block
+  mutation
+- ensure pending approvals and pending user-input requests stay off-timeline
+  until resolution
+- make resolution artifacts append-only events
+- remove any remaining helper APIs that imply transcript replacement semantics
+
+Exit criterion:
+
+- committed history is append-only across user, request, and item flows
+
+### Commit D: Chronology And Parity Sweep
+
+Goal:
+
+- verify the architecture against the actual UX contract and the local Codex
+  reference
+
+Changes:
+
+- add focused runtime scenarios for interrupted/resumed items, interleaved
+  work/assistant output, repeated plans, sequential file changes, and request
+  resolution
+- run emulator checks on those scenarios
+- remove stale tests and docs that still encode the old mutable-timeline model
+- update handoff docs from the final state rather than from migration intent
+
+Exit criterion:
+
+- the remaining transcript behavior is described by current docs, not by
+  historical cleanup notes
+
 ## Reference Interpretation
 
 The local reference Codex clone is:
@@ -99,39 +292,74 @@ contract.
 
 ### Committed history mutation
 
-- [`lib/src/features/chat/application/transcript_policy_support.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy_support.dart)
-  `upsertBlock()` replaces already committed blocks by id.
+Current status:
+
+- the shared committed-history `upsertBlock()` helper has already been removed
+  from [`lib/src/features/chat/application/transcript_policy_support.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy_support.dart)
+- the original seam is therefore no longer the primary risk
+- the remaining risk is any still-mutable live path that later commits into
+  history incorrectly
 
 ### Transcript built from mixed committed + live state
 
 - [`lib/src/features/chat/models/codex_session_state.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_session_state.dart)
   `transcriptBlocks` combines committed `blocks` with projected `activeTurn`
   segments.
-- That same file sorts the final transcript by `createdAt`, which means order is
-  reconstructed instead of preserved.
+
+Current status:
+
+- the old sort-by-`createdAt` reconstruction was already removed
+- the remaining architectural issue is that committed history and projected live
+  state still share one rendering pipeline instead of being modeled as more
+  explicit ownership domains
 
 ### Active-turn mutation by stable item identity
 
 - [`lib/src/features/chat/application/transcript_turn_segmenter.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_turn_segmenter.dart)
-  `upsertItem()` mutates one segment per item id.
+  `upsertItem()` still exists, but the worktree now partially compensates by
+  forking a new visible artifact when the old segment is no longer the tail.
+
+Current status:
+
+- interrupted same-item assistant and changed-files output now fork new visible
+  cards
+- this area is improved but still not the clean final model described below
 
 ### Committing active-turn content by upsert
 
 - [`lib/src/features/chat/application/transcript_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart)
-  `_commitActiveTurn()` projects live segments and upserts them into committed
-  history.
+  `_commitActiveTurn()` used to project live segments and upsert them into
+  committed history.
+
+Current status:
+
+- the touched commit path now appends projected blocks instead of upserting
+- this seam is partially closed
 
 ### Mutable turn-level changed-files ownership
 
 - [`lib/src/features/chat/application/transcript_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_policy.dart)
-  `applyTurnDiffUpdated()` creates one stable changed-files block per turn id,
-  causing visible accumulation into a single mutable card.
+  `applyTurnDiffUpdated()` used to create one stable changed-files block per
+  turn id, causing visible accumulation into a single mutable card.
+
+Current status:
+
+- the worktree currently keeps `turn/diff/updated` out of visible transcript
+  history
+- explicit turn snapshot ownership is still missing; the event is effectively a
+  visible no-op right now rather than a modeled turn snapshot
 
 ### Committed local-echo user message reconciliation
 
 - [`lib/src/features/chat/application/transcript_item_policy.dart`](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/transcript_item_policy.dart)
-  `_reconcileCommittedUserMessageBlocks()` mutates already committed user
-  message blocks.
+  the old committed local-echo rewrite path used to mutate already committed
+  user message blocks.
+
+Current status:
+
+- local-echo promotion is now constrained to the transcript tail
+- provider linkage still lives in the user-message block model, so this is
+  improved but not yet the cleanest ownership split
 
 ## Design Direction
 
