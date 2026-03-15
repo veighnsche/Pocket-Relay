@@ -1,4 +1,4 @@
-package com.example.pocket_relay
+package me.vinch.pocketrelay
 
 import io.flutter.embedding.android.FlutterActivity
 
