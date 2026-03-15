@@ -54,6 +54,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
           List<Map<String, Object?>> contentItems,
         })
       >[];
+  Object? connectError;
+  Object? startSessionError;
+  Object? sendUserMessageError;
 
   bool _isConnected = false;
   String? _threadId;
@@ -76,6 +79,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) async {
+    if (connectError != null) {
+      throw connectError!;
+    }
     connectCalls += 1;
     _isConnected = true;
     emit(const CodexAppServerConnectedEvent(userAgent: 'codex-cli/test'));
@@ -87,6 +93,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     String? model,
     String? resumeThreadId,
   }) async {
+    if (startSessionError != null) {
+      throw startSessionError!;
+    }
     startSessionCalls += 1;
     _threadId = resumeThreadId ?? 'thread_123';
     return CodexAppServerSession(
@@ -103,6 +112,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required String text,
     String? model,
   }) async {
+    if (sendUserMessageError != null) {
+      throw sendUserMessageError!;
+    }
     sentMessages.add(text);
     _threadId = threadId;
     _activeTurnId = 'turn_${sentMessages.length}';

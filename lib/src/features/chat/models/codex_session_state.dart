@@ -163,6 +163,8 @@ class CodexSessionState {
     this.threadId,
     this.activeTurn,
     this.blocks = const <CodexUiBlock>[],
+    this.pendingLocalUserMessageBlockIds = const <String>[],
+    this.localUserMessageProviderBindings = const <String, String>{},
     this.latestUsageSummary,
   });
 
@@ -174,6 +176,8 @@ class CodexSessionState {
   final String? threadId;
   final CodexActiveTurnState? activeTurn;
   final List<CodexUiBlock> blocks;
+  final List<String> pendingLocalUserMessageBlockIds;
+  final Map<String, String> localUserMessageProviderBindings;
   final String? latestUsageSummary;
 
   Map<String, CodexSessionPendingRequest> get pendingApprovalRequests =>
@@ -211,6 +215,10 @@ class CodexSessionState {
     CodexActiveTurnState? activeTurn,
     bool clearActiveTurn = false,
     List<CodexUiBlock>? blocks,
+    List<String>? pendingLocalUserMessageBlockIds,
+    bool clearPendingLocalUserMessageBlockIds = false,
+    Map<String, String>? localUserMessageProviderBindings,
+    bool clearLocalUserMessageProviderBindings = false,
     String? latestUsageSummary,
     bool clearLatestUsageSummary = false,
   }) {
@@ -219,6 +227,14 @@ class CodexSessionState {
       threadId: clearThreadId ? null : (threadId ?? this.threadId),
       activeTurn: clearActiveTurn ? null : (activeTurn ?? this.activeTurn),
       blocks: blocks ?? this.blocks,
+      pendingLocalUserMessageBlockIds: clearPendingLocalUserMessageBlockIds
+          ? const <String>[]
+          : (pendingLocalUserMessageBlockIds ??
+                this.pendingLocalUserMessageBlockIds),
+      localUserMessageProviderBindings: clearLocalUserMessageProviderBindings
+          ? const <String, String>{}
+          : (localUserMessageProviderBindings ??
+                this.localUserMessageProviderBindings),
       latestUsageSummary: clearLatestUsageSummary
           ? null
           : (latestUsageSummary ?? this.latestUsageSummary),

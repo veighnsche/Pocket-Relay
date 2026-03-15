@@ -37,6 +37,12 @@ class TranscriptReducer {
     return _policy.detachThread(state);
   }
 
+  CodexSessionState clearLocalUserMessageCorrelationState(
+    CodexSessionState state,
+  ) {
+    return _policy.clearLocalUserMessageCorrelationState(state);
+  }
+
   CodexSessionState reduceRuntimeEvent(
     CodexSessionState state,
     CodexRuntimeEvent event,

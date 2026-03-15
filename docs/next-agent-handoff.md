@@ -72,6 +72,8 @@ Current state:
   and resolved-request transcript runs
 - render-time work-log grouping has been removed in favor of live work
   artifacts
+- local user prompts no longer mutate when provider user-message echoes arrive
+- duplicate request-resolution notifications are now idempotent
 
 Target state:
 
@@ -79,8 +81,9 @@ Target state:
 - flush work groups before assistant output resumes
 - keep committed transcript history separate from active streaming state
 
-The remaining task here is smaller now: finish the last mutation exceptions
-without regressing the explicit live-artifact model.
+The transcript ownership model is now substantially in place. The remaining
+work here is parity verification and behavior sweep, not another ownership
+rewrite.
 
 Primary code areas:
 
@@ -144,8 +147,7 @@ Reference Codex areas:
 
 1. Reasoning parity
 2. In-flight transcript segmentation
-3. User-message/request immutability cleanup
-4. Markdown and file-link normalization
+3. Markdown and file-link normalization
 4. Work-only completion semantics
 
 This order matters. Reasoning and segmentation affect the shape of the

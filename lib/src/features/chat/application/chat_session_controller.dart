@@ -109,8 +109,7 @@ class ChatSessionController extends ChangeNotifier {
     _applySessionState(
       _sessionReducer.addUserMessage(_sessionState, text: normalizedPrompt),
     );
-    await _sendPromptWithAppServer(normalizedPrompt);
-    return true;
+    return _sendPromptWithAppServer(normalizedPrompt);
   }
 
   Future<void> stopActiveTurn() async {
@@ -293,7 +292,7 @@ class ChatSessionController extends ChangeNotifier {
     );
   }
 
-  Future<void> _sendPromptWithAppServer(String prompt) async {
+  Future<bool> _sendPromptWithAppServer(String prompt) async {
     try {
       final threadId = await _ensureAppServerThread();
       _applySessionState(
@@ -313,12 +312,20 @@ class ChatSessionController extends ChangeNotifier {
           rawMethod: 'turn/start(response)',
         ),
       );
+      return true;
     } catch (error) {
+      if (_sessionState.activeTurn == null &&
+          _sessionState.pendingLocalUserMessageBlockIds.isNotEmpty) {
+        _applySessionState(
+          _sessionReducer.clearLocalUserMessageCorrelationState(_sessionState),
+        );
+      }
       _reportAppServerFailure(
         title: 'Send failed',
         message: 'Could not send the prompt to the remote Codex session.',
         error: error,
       );
+      return false;
     }
   }
 

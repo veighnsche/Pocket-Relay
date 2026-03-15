@@ -97,6 +97,42 @@ void main() {
     expect(find.textContaining('end'), findsOneWidget);
   });
 
+  testWidgets('keeps the composer text when sending the prompt fails', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient()
+      ..sendUserMessageError = StateError('transport broke');
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      PocketRelayApp(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final composerField = find.byType(TextField).first;
+    await tester.enterText(composerField, 'Hello Codex');
+    await tester.tap(find.byKey(const ValueKey('send')));
+    await tester.pumpAndSettle();
+
+    expect(appServerClient.connectCalls, 1);
+    expect(appServerClient.startSessionCalls, 1);
+    expect(appServerClient.sentMessages, isEmpty);
+    expect(
+      tester.widget<TextField>(composerField).controller?.text,
+      'Hello Codex',
+    );
+    expect(find.textContaining('Could not send the prompt'), findsOneWidget);
+  });
+
   testWidgets('appends plan update cards instead of replacing them', (
     tester,
   ) async {
@@ -415,7 +451,7 @@ void main() {
   });
 
   testWidgets(
-    'promotes the local user echo to sent when the app-server reports the prompt',
+    'keeps a single local user prompt when the app-server echoes it back',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
@@ -500,6 +536,7 @@ void main() {
       expect(find.text('You'), findsNothing);
       expect(find.text('local echo'), findsNothing);
       expect(find.text('sent'), findsNothing);
+      expect(find.byType(SelectableText), findsWidgets);
       expect(
         find.textContaining('Connected to the remote session.'),
         findsOneWidget,

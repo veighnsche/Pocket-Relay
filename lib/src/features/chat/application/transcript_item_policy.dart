@@ -43,31 +43,13 @@ class TranscriptItemPolicy {
       event,
       existing: existing,
     );
-    final committedUserMessageIndex = _committedUserMessageMatchIndex(
-      state.blocks,
+    final suppressedState = _suppressedLocalUserMessageState(
+      state,
+      activeTurn,
       nextItem,
     );
-    if (committedUserMessageIndex != null) {
-      final reconciledBlocks =
-          _canMutateCommittedUserMessageTail(
-            state.blocks,
-            activeTurn,
-            matchIndex: committedUserMessageIndex,
-          )
-          ? _promoteCommittedUserMessageBlock(
-              state.blocks,
-              matchIndex: committedUserMessageIndex,
-              item: nextItem,
-            )
-          : state.blocks;
-      return state.copyWith(
-        blocks: reconciledBlocks,
-        activeTurn: _nextActiveTurnForSuppressedLifecycle(
-          activeTurn,
-          nextItem,
-          removeAfterUpsert: removeAfterUpsert,
-        ),
-      );
+    if (suppressedState != null) {
+      return suppressedState;
     }
 
     return state.copyWith(
@@ -298,88 +280,131 @@ class TranscriptItemPolicy {
     return visibleBody;
   }
 
-  int? _committedUserMessageMatchIndex(
-    List<CodexUiBlock> blocks,
+  CodexSessionState? _suppressedLocalUserMessageState(
+    CodexSessionState state,
+    CodexActiveTurnState? activeTurn,
     CodexSessionActiveItem item,
   ) {
     if (item.itemType != CodexCanonicalItemType.userMessage) {
       return null;
     }
 
-    final text = item.body.trim();
-    final matchedProviderIndex = blocks.lastIndexWhere(
-      (block) =>
-          block is CodexUserMessageBlock && block.providerItemId == item.itemId,
-    );
-    final matchIndex = matchedProviderIndex != -1
-        ? matchedProviderIndex
-        : (text.isEmpty
-              ? -1
-              : blocks.lastIndexWhere(
-                  (block) =>
-                      block is CodexUserMessageBlock &&
-                      block.deliveryState ==
-                          CodexUserMessageDeliveryState.localEcho &&
-                      block.text.trim() == text,
-                ));
+    if (state.localUserMessageProviderBindings.containsKey(item.itemId)) {
+      return _stateAfterSuppressedLocalUserMessage(
+        state,
+        activeTurn: state.activeTurn,
+        itemId: item.itemId,
+      );
+    }
 
-    return matchIndex == -1 ? null : matchIndex;
+    if (state.pendingLocalUserMessageBlockIds.isEmpty) {
+      return null;
+    }
+
+    final text = item.body.trim();
+    if (text.isEmpty) {
+      return null;
+    }
+
+    final pendingMatch = _matchingPendingLocalUserMessage(
+      state.blocks,
+      state.pendingLocalUserMessageBlockIds,
+      text: text,
+    );
+    if (pendingMatch == null) {
+      return null;
+    }
+
+    return _stateAfterSuppressedLocalUserMessage(
+      state,
+      activeTurn: activeTurn,
+      itemId: item.itemId,
+      pendingLocalUserMessageBlockIds: pendingMatch.$2,
+      localUserMessageProviderBindings: <String, String>{
+        ...state.localUserMessageProviderBindings,
+        item.itemId: pendingMatch.$1.id,
+      },
+    );
   }
 
-  bool _canMutateCommittedUserMessageTail(
+  CodexSessionState _stateAfterSuppressedLocalUserMessage(
+    CodexSessionState state, {
+    required CodexActiveTurnState? activeTurn,
+    required String itemId,
+    List<String>? pendingLocalUserMessageBlockIds,
+    Map<String, String>? localUserMessageProviderBindings,
+  }) {
+    return state.copyWith(
+      activeTurn: _activeTurnAfterSuppressedLocalUserMessage(
+        activeTurn,
+        itemId: itemId,
+      ),
+      pendingLocalUserMessageBlockIds:
+          pendingLocalUserMessageBlockIds ??
+          state.pendingLocalUserMessageBlockIds,
+      localUserMessageProviderBindings:
+          localUserMessageProviderBindings ??
+          state.localUserMessageProviderBindings,
+    );
+  }
+
+  CodexUserMessageBlock? _userMessageBlockById(
     List<CodexUiBlock> blocks,
+    String blockId,
+  ) {
+    for (final block in blocks.reversed) {
+      if (block is CodexUserMessageBlock && block.id == blockId) {
+        return block;
+      }
+    }
+    return null;
+  }
+
+  (CodexUserMessageBlock, List<String>)? _matchingPendingLocalUserMessage(
+    List<CodexUiBlock> blocks,
+    List<String> pendingBlockIds, {
+    required String text,
+  }) {
+    final nextPendingBlockIds = <String>[];
+
+    for (var index = 0; index < pendingBlockIds.length; index += 1) {
+      final blockId = pendingBlockIds[index];
+      final block = _userMessageBlockById(blocks, blockId);
+      if (block == null) {
+        continue;
+      }
+      if (block.text.trim() == text) {
+        nextPendingBlockIds.addAll(pendingBlockIds.skip(index + 1));
+        return (block, nextPendingBlockIds);
+      }
+      nextPendingBlockIds.add(blockId);
+    }
+
+    return null;
+  }
+
+  CodexActiveTurnState? _activeTurnAfterSuppressedLocalUserMessage(
     CodexActiveTurnState? activeTurn, {
-    required int matchIndex,
+    required String itemId,
   }) {
-    return matchIndex == blocks.length - 1 &&
-        (activeTurn == null || activeTurn.artifacts.isEmpty);
-  }
+    if (activeTurn == null) {
+      return null;
+    }
 
-  List<CodexUiBlock> _promoteCommittedUserMessageBlock(
-    List<CodexUiBlock> blocks, {
-    required int matchIndex,
-    required CodexSessionActiveItem item,
-  }) {
-    final text = item.body.trim();
-    final nextBlocks = List<CodexUiBlock>.from(blocks);
-    final block = nextBlocks[matchIndex] as CodexUserMessageBlock;
-    nextBlocks[matchIndex] = block.copyWith(
-      text: text.isEmpty ? block.text : item.body,
-      deliveryState: CodexUserMessageDeliveryState.sent,
-      providerItemId: item.itemId,
-    );
-    return nextBlocks;
-  }
-
-  CodexActiveTurnState? _nextActiveTurnForSuppressedLifecycle(
-    CodexActiveTurnState? activeTurn,
-    CodexSessionActiveItem item, {
-    required bool removeAfterUpsert,
-  }) {
-    if (activeTurn == null || activeTurn.turnId != item.turnId) {
+    final hasItem = activeTurn.itemsById.containsKey(itemId);
+    final hasArtifactBinding = activeTurn.itemArtifactIds.containsKey(itemId);
+    if (!hasItem && !hasArtifactBinding) {
       return activeTurn;
     }
 
-    final nextItems = <String, CodexSessionActiveItem>{
-      ...activeTurn.itemsById,
-      item.itemId: item,
-    };
-    if (removeAfterUpsert) {
-      nextItems.remove(item.itemId);
-    }
-
-    final nextItemArtifactIds = <String, String>{...activeTurn.itemArtifactIds};
-    final artifactId = nextItemArtifactIds.remove(item.itemId);
-    final nextArtifacts = artifactId == null
-        ? activeTurn.artifacts
-        : activeTurn.artifacts
-              .where((artifact) => artifact.id != artifactId)
-              .toList(growable: false);
+    final nextItems = <String, CodexSessionActiveItem>{...activeTurn.itemsById}
+      ..remove(itemId);
+    final nextArtifactIds = <String, String>{...activeTurn.itemArtifactIds}
+      ..remove(itemId);
 
     return activeTurn.copyWith(
       itemsById: nextItems,
-      itemArtifactIds: nextItemArtifactIds,
-      artifacts: nextArtifacts,
+      itemArtifactIds: nextArtifactIds,
     );
   }
 

@@ -229,6 +229,11 @@ What the current worktree now covers:
 
 ### Commit C: Remove Remaining Timeline Mutation Exceptions
 
+Status:
+
+- implemented in the current worktree for optimistic local user-message
+  suppression and request-resolution idempotence
+
 Goal:
 
 - eliminate the remaining special cases that still blur committed history with
@@ -252,6 +257,17 @@ Dependency on previous commit:
 Exit criterion:
 
 - committed history is append-only across user, request, and item flows
+
+What the current worktree now covers:
+
+- locally appended user prompts are now permanent transcript artifacts instead
+  of mutable local-echo cards
+- provider user-message echoes bind to those prompts in non-visual state rather
+  than rewriting the visible block
+- multiple unresolved local prompts are tracked as a queue so late provider
+  echoes still suppress the correct prompt without mutating history
+- duplicate request-resolution notifications remain idempotent instead of
+  appending duplicate `request_$id` artifacts
 
 ### Commit D: Chronology And Parity Sweep
 
@@ -423,9 +439,10 @@ Current status:
 
 Current status:
 
-- local-echo promotion is now constrained to the transcript tail
-- provider linkage still lives in the user-message block model, so this is
-  improved but not yet the cleanest ownership split
+- locally appended user prompts no longer mutate when provider user-message
+  events arrive
+- provider linkage now lives in non-visual session state instead of rewriting
+  the visible user-message block
 
 ## Design Direction
 

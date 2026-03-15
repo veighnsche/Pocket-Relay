@@ -25,15 +25,22 @@ class TranscriptPolicy {
     required String text,
     DateTime? createdAt,
   }) {
+    final eventTime = createdAt ?? DateTime.now();
     final block = CodexUserMessageBlock(
-      id: _support.eventEntryId('user', createdAt ?? DateTime.now()),
-      createdAt: createdAt ?? DateTime.now(),
+      id: _support.eventEntryId('user', eventTime),
+      createdAt: eventTime,
       text: text,
-      deliveryState: CodexUserMessageDeliveryState.localEcho,
+      deliveryState: CodexUserMessageDeliveryState.sent,
     );
 
     return _support.appendBlock(
-      state.copyWith(connectionStatus: CodexRuntimeSessionState.running),
+      state.copyWith(
+        connectionStatus: CodexRuntimeSessionState.running,
+        pendingLocalUserMessageBlockIds: <String>[
+          ...state.pendingLocalUserMessageBlockIds,
+          block.id,
+        ],
+      ),
       block,
     );
   }
@@ -43,7 +50,12 @@ class TranscriptPolicy {
     String? message,
     DateTime? createdAt,
   }) {
-    final cleared = state.copyWith(clearThreadId: true, clearActiveTurn: true);
+    final cleared = state.copyWith(
+      clearThreadId: true,
+      clearActiveTurn: true,
+      clearPendingLocalUserMessageBlockIds: true,
+      clearLocalUserMessageProviderBindings: true,
+    );
     if (message == null || message.trim().isEmpty) {
       return cleared;
     }
@@ -66,12 +78,25 @@ class TranscriptPolicy {
       clearThreadId: true,
       clearActiveTurn: true,
       blocks: const <CodexUiBlock>[],
+      clearPendingLocalUserMessageBlockIds: true,
+      clearLocalUserMessageProviderBindings: true,
       clearLatestUsageSummary: true,
     );
   }
 
   CodexSessionState detachThread(CodexSessionState state) {
-    return state.copyWith(clearThreadId: true, clearActiveTurn: true);
+    return state.copyWith(
+      clearThreadId: true,
+      clearActiveTurn: true,
+      clearPendingLocalUserMessageBlockIds: true,
+      clearLocalUserMessageProviderBindings: true,
+    );
+  }
+
+  CodexSessionState clearLocalUserMessageCorrelationState(
+    CodexSessionState state,
+  ) {
+    return _clearLocalUserMessageCorrelationState(state);
   }
 
   CodexSessionState rolloverTurnIfNeeded(
@@ -92,7 +117,9 @@ class TranscriptPolicy {
     final finalizedTurn = _finalizeCommittedTurn(currentTurn, createdAt);
     final finalizedState = _support.appendBlock(
       _commitActiveTurn(
-        state.copyWith(clearActiveTurn: true),
+        _clearLocalUserMessageCorrelationState(
+          state.copyWith(clearActiveTurn: true),
+        ),
         activeTurn: finalizedTurn.$1,
       ),
       _turnBoundaryBlock(
@@ -123,7 +150,9 @@ class TranscriptPolicy {
       event.createdAt,
     );
     final nextState = _commitActiveTurn(
-      state.copyWith(clearThreadId: true, clearActiveTurn: true),
+      _clearLocalUserMessageCorrelationState(
+        state.copyWith(clearThreadId: true, clearActiveTurn: true),
+      ),
       activeTurn: finalizedTurn.$1,
     );
     if (finalizedTurn.$1 == null) {
@@ -151,12 +180,14 @@ class TranscriptPolicy {
         ? null
         : completedTimer.elapsedAt(event.createdAt);
     final nextState = _commitActiveTurn(
-      state.copyWith(
-        connectionStatus: event.exitKind == CodexRuntimeSessionExitKind.error
-            ? CodexRuntimeSessionState.error
-            : CodexRuntimeSessionState.stopped,
-        clearThreadId: true,
-        clearActiveTurn: true,
+      _clearLocalUserMessageCorrelationState(
+        state.copyWith(
+          connectionStatus: event.exitKind == CodexRuntimeSessionExitKind.error
+              ? CodexRuntimeSessionState.error
+              : CodexRuntimeSessionState.stopped,
+          clearThreadId: true,
+          clearActiveTurn: true,
+        ),
       ),
       activeTurn: state.activeTurn,
       includePendingUsage: true,
@@ -190,10 +221,12 @@ class TranscriptPolicy {
       event.createdAt,
     );
     final nextState = _commitActiveTurn(
-      state.copyWith(
-        connectionStatus: CodexRuntimeSessionState.ready,
-        clearActiveTurn: true,
-        latestUsageSummary: _support.buildRuntimeUsageSummary(event),
+      _clearLocalUserMessageCorrelationState(
+        state.copyWith(
+          connectionStatus: CodexRuntimeSessionState.ready,
+          clearActiveTurn: true,
+          latestUsageSummary: _support.buildRuntimeUsageSummary(event),
+        ),
       ),
       activeTurn: finalizedTurn.$1,
     );
@@ -221,9 +254,11 @@ class TranscriptPolicy {
     );
     return _support.appendBlock(
       _commitActiveTurn(
-        state.copyWith(
-          connectionStatus: CodexRuntimeSessionState.ready,
-          clearActiveTurn: true,
+        _clearLocalUserMessageCorrelationState(
+          state.copyWith(
+            connectionStatus: CodexRuntimeSessionState.ready,
+            clearActiveTurn: true,
+          ),
         ),
         activeTurn: finalizedTurn.$1,
         includePendingUsage: true,
@@ -590,5 +625,14 @@ class TranscriptPolicy {
       candidate = '$baseId-$ordinal';
     }
     return candidate;
+  }
+
+  CodexSessionState _clearLocalUserMessageCorrelationState(
+    CodexSessionState state,
+  ) {
+    return state.copyWith(
+      clearPendingLocalUserMessageBlockIds: true,
+      clearLocalUserMessageProviderBindings: true,
+    );
   }
 }

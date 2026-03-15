@@ -37,7 +37,7 @@ void main() {
     final messageBlock =
         controller.transcriptBlocks.first as CodexUserMessageBlock;
     expect(messageBlock.text, 'Hello controller');
-    expect(messageBlock.deliveryState, CodexUserMessageDeliveryState.localEcho);
+    expect(messageBlock.deliveryState, CodexUserMessageDeliveryState.sent);
   });
 
   test('invalid prompt submission emits snackbar feedback', () async {
@@ -69,6 +69,45 @@ void main() {
     expect(await snackBarMessage, 'This profile needs an SSH password.');
     expect(appServerClient.sentMessages, isEmpty);
   });
+
+  test(
+    'sendPrompt clears local prompt correlation state when sending fails before a turn starts',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..sendUserMessageError = StateError('transport broke');
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      final sent = await controller.sendPrompt('Hello controller');
+
+      expect(sent, isFalse);
+      expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+      expect(controller.sessionState.pendingLocalUserMessageBlockIds, isEmpty);
+      expect(controller.sessionState.localUserMessageProviderBindings, isEmpty);
+      expect(
+        await snackBarMessage,
+        'Could not send the prompt to the remote Codex session.',
+      );
+    },
+  );
 }
 
 ConnectionProfile _configuredProfile() {
