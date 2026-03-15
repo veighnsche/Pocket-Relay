@@ -1,5 +1,3 @@
-import 'package:pocket_relay/src/core/models/app_preferences.dart';
-
 enum AuthMode { password, privateKey }
 
 class ConnectionProfile {
@@ -190,25 +188,18 @@ class ConnectionSecrets {
 }
 
 class SavedProfile {
-  const SavedProfile({
-    required this.profile,
-    required this.secrets,
-    this.preferences = const AppPreferences(),
-  });
+  const SavedProfile({required this.profile, required this.secrets});
 
   final ConnectionProfile profile;
   final ConnectionSecrets secrets;
-  final AppPreferences preferences;
 
   SavedProfile copyWith({
     ConnectionProfile? profile,
     ConnectionSecrets? secrets,
-    AppPreferences? preferences,
   }) {
     return SavedProfile(
       profile: profile ?? this.profile,
       secrets: secrets ?? this.secrets,
-      preferences: preferences ?? this.preferences,
     );
   }
 }

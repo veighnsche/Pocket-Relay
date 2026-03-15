@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:pocket_relay/src/core/models/app_preferences.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -17,15 +16,11 @@ class ChatScreen extends StatefulWidget {
     required this.profileStore,
     required this.appServerClient,
     this.initialSavedProfile,
-    required this.preferences,
-    required this.onPreferencesChanged,
   });
 
   final CodexProfileStore profileStore;
   final CodexAppServerClient appServerClient;
   final SavedProfile? initialSavedProfile;
-  final AppPreferences preferences;
-  final ValueChanged<AppPreferences> onPreferencesChanged;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -185,7 +180,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return ConnectionSheet(
           initialProfile: _sessionController.profile,
           initialSecrets: _sessionController.secrets,
-          initialPreferences: widget.preferences,
         );
       },
     );
@@ -197,12 +191,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final connectionChanged =
         result.profile != _sessionController.profile ||
         result.secrets != _sessionController.secrets;
-    final preferencesChanged = result.preferences != widget.preferences;
-
-    if (preferencesChanged) {
-      await widget.profileStore.savePreferences(result.preferences);
-      widget.onPreferencesChanged(result.preferences);
-    }
 
     if (!connectionChanged) {
       return;

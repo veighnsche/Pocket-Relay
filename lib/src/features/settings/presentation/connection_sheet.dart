@@ -1,18 +1,12 @@
-import 'package:pocket_relay/src/core/models/app_preferences.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:flutter/material.dart';
 
 class ConnectionSheetResult {
-  const ConnectionSheetResult({
-    required this.profile,
-    required this.secrets,
-    required this.preferences,
-  });
+  const ConnectionSheetResult({required this.profile, required this.secrets});
 
   final ConnectionProfile profile;
   final ConnectionSecrets secrets;
-  final AppPreferences preferences;
 }
 
 class ConnectionSheet extends StatefulWidget {
@@ -20,12 +14,10 @@ class ConnectionSheet extends StatefulWidget {
     super.key,
     required this.initialProfile,
     required this.initialSecrets,
-    required this.initialPreferences,
   });
 
   final ConnectionProfile initialProfile;
   final ConnectionSecrets initialSecrets;
-  final AppPreferences initialPreferences;
 
   @override
   State<ConnectionSheet> createState() => _ConnectionSheetState();
@@ -49,7 +41,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
   late bool _skipGitRepoCheck;
   late bool _dangerouslyBypassSandbox;
   late bool _ephemeralSession;
-  late bool _darkModeEnabled;
 
   @override
   void initState() {
@@ -76,7 +67,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
     _skipGitRepoCheck = profile.skipGitRepoCheck;
     _dangerouslyBypassSandbox = profile.dangerouslyBypassSandbox;
     _ephemeralSession = profile.ephemeralSession;
-    _darkModeEnabled = widget.initialPreferences.isDarkMode;
   }
 
   @override
@@ -141,23 +131,6 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  _Section(
-                    title: 'Appearance',
-                    child: SwitchListTile.adaptive(
-                      value: _darkModeEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _darkModeEnabled = value;
-                        });
-                      },
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Dark mode'),
-                      subtitle: const Text(
-                        'Use darker surfaces throughout the app shell.',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   _Section(
                     title: 'Identity',
                     child: Column(
@@ -441,17 +414,10 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
       privateKeyPem: _privateKeyController.text,
       privateKeyPassphrase: _privateKeyPassphraseController.text,
     );
-    final preferences = widget.initialPreferences.copyWith(
-      isDarkMode: _darkModeEnabled,
-    );
 
-    Navigator.of(context).pop(
-      ConnectionSheetResult(
-        profile: profile,
-        secrets: secrets,
-        preferences: preferences,
-      ),
-    );
+    Navigator.of(
+      context,
+    ).pop(ConnectionSheetResult(profile: profile, secrets: secrets));
   }
 
   bool _hasConnectionChanges() {

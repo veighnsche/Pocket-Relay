@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:pocket_relay/src/core/models/app_preferences.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,14 +8,12 @@ abstract class CodexProfileStore {
   Future<SavedProfile> load();
 
   Future<void> save(ConnectionProfile profile, ConnectionSecrets secrets);
-
-  Future<void> savePreferences(AppPreferences preferences);
 }
 
 class SecureCodexProfileStore implements CodexProfileStore {
   static const _profileKey = 'pocket_relay.profile';
-  static const _preferencesKey = 'pocket_relay.preferences';
   static const _legacyProfileKey = 'codex_pocket.profile';
+  static const _obsoletePreferencesKey = 'pocket_relay.preferences';
   static const _passwordKey = 'pocket_relay.secret.password';
   static const _legacyPasswordKey = 'codex_pocket.secret.password';
   static const _privateKeyKey = 'pocket_relay.secret.private_key';
@@ -36,16 +33,11 @@ class SecureCodexProfileStore implements CodexProfileStore {
     final prefs = await SharedPreferences.getInstance();
     final rawProfile =
         prefs.getString(_profileKey) ?? prefs.getString(_legacyProfileKey);
-    final rawPreferences = prefs.getString(_preferencesKey);
+    await prefs.remove(_obsoletePreferencesKey);
     final profile = rawProfile == null
         ? ConnectionProfile.defaults()
         : ConnectionProfile.fromJson(
             jsonDecode(rawProfile) as Map<String, dynamic>,
-          );
-    final preferences = rawPreferences == null
-        ? const AppPreferences()
-        : AppPreferences.fromJson(
-            jsonDecode(rawPreferences) as Map<String, dynamic>,
           );
 
     final password = await _readSecret(_passwordKey, _legacyPasswordKey);
@@ -65,7 +57,6 @@ class SecureCodexProfileStore implements CodexProfileStore {
         privateKeyPem: privateKeyPem,
         privateKeyPassphrase: privateKeyPassphrase,
       ),
-      preferences: preferences,
     );
   }
 
@@ -80,12 +71,6 @@ class SecureCodexProfileStore implements CodexProfileStore {
     await _writeSecret(_passwordKey, secrets.password);
     await _writeSecret(_privateKeyKey, secrets.privateKeyPem);
     await _writeSecret(_privateKeyPassphraseKey, secrets.privateKeyPassphrase);
-  }
-
-  @override
-  Future<void> savePreferences(AppPreferences preferences) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_preferencesKey, jsonEncode(preferences.toJson()));
   }
 
   Future<void> _writeSecret(String key, String value) async {
@@ -111,7 +96,6 @@ class MemoryCodexProfileStore implements CodexProfileStore {
           SavedProfile(
             profile: ConnectionProfile.defaults(),
             secrets: const ConnectionSecrets(),
-            preferences: const AppPreferences(),
           );
 
   SavedProfile _savedProfile;
@@ -125,10 +109,5 @@ class MemoryCodexProfileStore implements CodexProfileStore {
     ConnectionSecrets secrets,
   ) async {
     _savedProfile = _savedProfile.copyWith(profile: profile, secrets: secrets);
-  }
-
-  @override
-  Future<void> savePreferences(AppPreferences preferences) async {
-    _savedProfile = _savedProfile.copyWith(preferences: preferences);
   }
 }

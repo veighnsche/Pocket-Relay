@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:pocket_relay/src/core/models/app_preferences.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -39,39 +38,22 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     });
   }
 
-  void _updatePreferences(AppPreferences preferences) {
-    setState(() {
-      _savedProfile =
-          (_savedProfile ??
-                  SavedProfile(
-                    profile: ConnectionProfile.defaults(),
-                    secrets: const ConnectionSecrets(),
-                  ))
-              .copyWith(preferences: preferences);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final savedProfile = _savedProfile;
-    final themeMode = savedProfile?.preferences.isDarkMode ?? false
-        ? ThemeMode.dark
-        : ThemeMode.light;
 
     return MaterialApp(
       title: 'Pocket Relay',
       debugShowCheckedModeBanner: false,
       theme: buildPocketTheme(Brightness.light),
       darkTheme: buildPocketTheme(Brightness.dark),
-      themeMode: themeMode,
+      themeMode: ThemeMode.system,
       home: savedProfile == null
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : ChatScreen(
               profileStore: _profileStore,
               appServerClient: widget.appServerClient ?? CodexAppServerClient(),
               initialSavedProfile: savedProfile,
-              preferences: savedProfile.preferences,
-              onPreferencesChanged: _updatePreferences,
             ),
     );
   }
