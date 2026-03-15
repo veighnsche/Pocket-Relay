@@ -50,6 +50,9 @@ renderer can consume the same ownership model.
 - Pending pinned approval and user-input request shaping is now owned by shared
   presentation request contracts and projectors rather than runtime-shaped
   transcript blocks.
+- Pending-request selection rules and pinned ordering now exist in a dedicated
+  presentation placement projector, even though the transcript surface has not
+  consumed it yet.
 - Changed-files rows and per-file diff sheets now render from shared contracts,
   with diff-sheet launch owned above the card widget.
 - Transcript follow behavior is now modeled above `TranscriptList` and routed
@@ -59,29 +62,30 @@ These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
-- Pending-request selection and pinned placement still depend on
+- The transcript surface still depends on
   `CodexSessionState.primaryPendingApprovalRequest` and
-  `primaryPendingUserInputRequest`.
-- The screen-level transcript contract still inherits that hidden placement
-  policy instead of owning it explicitly.
+  `primaryPendingUserInputRequest` instead of consuming the presentation
+  placement projector.
+- The screen-level transcript contract still inherits pending-request
+  visibility from runtime convenience getters instead of routing through the
+  explicit presentation placement seam.
 - The first root architectural adapter does not exist yet.
 
 ## Next Active Work
 
 The next thing to do is not the root architectural adapter.
 
-The next thing to do is Slice 2 of Phase 5:
+The next thing to do is Slice 3 of Phase 5:
 
-- define an explicit presentation-owned pending-request placement projector over
-  raw pending maps
+- integrate the new presentation-owned pending-request placement projector into
+  the transcript surface contract path
 
 Reason:
 
-- Slice 1 already moved pending pinned-request shaping above runtime state
-- the runtime model still decides which pending approval and pending user-input
-  items are visible through convenience getters
-- `ChatTranscriptSurfaceProjector` still inherits that hidden selection policy
-  instead of owning it
+- Slice 2 already made selection and ordering rules explicit in presentation
+  code
+- `ChatTranscriptSurfaceProjector` still bypasses that placement seam and reads
+  runtime convenience getters directly
 - adding the root adapter before fixing that would freeze an incomplete
   transcript boundary into the adapter seam
 
@@ -1027,9 +1031,9 @@ pinned-request representation above runtime state.
 
 ### Slice 2: Placement rule projector
 
-This is the next active slice.
+Slice 2 is completed on this branch.
 
-Slice 2 should cover:
+Slice 2 covered:
 
 - one presentation-owned pending-request placement projector
 - explicit current-behavior selection rules for pending approvals and pending
@@ -1038,7 +1042,7 @@ Slice 2 should cover:
 - tests for multiple pending requests of the same type
 - tests for mixed approval-plus-input ordering
 
-This slice should make the current placement semantics explicit:
+This slice made the current placement semantics explicit:
 
 - oldest approval wins
 - oldest user-input request wins
@@ -1046,6 +1050,8 @@ This slice should make the current placement semantics explicit:
 - at most one item of each type is visible unless broader behavior is requested
 
 ### Slice 3: Transcript surface integration
+
+This is the next active slice.
 
 Slice 3 should cover:
 
@@ -1197,14 +1203,15 @@ Phase 5 verification must include:
 
 The next active Phase 5 slice is:
 
-- placement rule projector
+- transcript surface integration
 
 Reason:
 
 - it closes the last major transcript-surface ownership gap before adapter work
-- Slice 1 already removed pinned pending-request shaping from runtime state
-- it makes pending-request selection and pinned ordering explicit instead of
-  inherited from runtime convenience getters
+- Slice 2 already made pending-request selection and pinned ordering explicit
+  in presentation code
+- it removes the transcript surface's remaining dependence on runtime
+  convenience getters
 - it gives later adapter work a transcript surface boundary that is explicit
   rather than partially inherited from runtime state
 

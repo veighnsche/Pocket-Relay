@@ -3,6 +3,8 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_projector.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_request_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect.dart';
@@ -231,6 +233,106 @@ void main() {
         expect(contract.isResolved, isFalse);
       },
     );
+  });
+
+  group('ChatPendingRequestPlacementProjector', () {
+    const projector = ChatPendingRequestPlacementProjector();
+
+    test('selects the oldest pending approval request as visible', () {
+      final placement = projector.project(
+        pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+          'request_newer': CodexSessionPendingRequest(
+            requestId: 'request_newer',
+            requestType: CodexCanonicalRequestType.fileChangeApproval,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 2),
+            detail: 'Newer approval',
+          ),
+          'request_older': CodexSessionPendingRequest(
+            requestId: 'request_older',
+            requestType: CodexCanonicalRequestType.fileReadApproval,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+            detail: 'Older approval',
+          ),
+        },
+        pendingUserInputRequests:
+            const <String, CodexSessionPendingUserInputRequest>{},
+      );
+
+      expect(placement.visibleApprovalRequest?.requestId, 'request_older');
+      expect(placement.visibleApprovalRequest?.title, 'File read approval');
+      expect(placement.visibleUserInputRequest, isNull);
+      expect(placement.orderedVisibleRequests, hasLength(1));
+    });
+
+    test('selects the oldest pending user-input request as visible', () {
+      final placement = projector.project(
+        pendingApprovalRequests: const <String, CodexSessionPendingRequest>{},
+        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
+          'request_newer': CodexSessionPendingUserInputRequest(
+            requestId: 'request_newer',
+            requestType: CodexCanonicalRequestType.toolUserInput,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 2),
+            detail: 'Newer input',
+          ),
+          'request_older': CodexSessionPendingUserInputRequest(
+            requestId: 'request_older',
+            requestType: CodexCanonicalRequestType.mcpServerElicitation,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+            detail: 'Older input',
+          ),
+        },
+      );
+
+      expect(placement.visibleApprovalRequest, isNull);
+      expect(placement.visibleUserInputRequest?.requestId, 'request_older');
+      expect(placement.visibleUserInputRequest?.title, 'MCP input required');
+      expect(placement.orderedVisibleRequests, hasLength(1));
+    });
+
+    test('orders visible requests as approval first then user-input', () {
+      final placement = projector.project(
+        pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+          'approval_request': CodexSessionPendingRequest(
+            requestId: 'approval_request',
+            requestType: CodexCanonicalRequestType.execCommandApproval,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 5),
+            detail: 'Approval request',
+          ),
+        },
+        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
+          'input_request_newer': CodexSessionPendingUserInputRequest(
+            requestId: 'input_request_newer',
+            requestType: CodexCanonicalRequestType.toolUserInput,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 6),
+            detail: 'Newer input request',
+          ),
+          'input_request_older': CodexSessionPendingUserInputRequest(
+            requestId: 'input_request_older',
+            requestType: CodexCanonicalRequestType.toolUserInput,
+            createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+            detail: 'Older input request',
+          ),
+        },
+      );
+
+      expect(placement.orderedVisibleRequests, hasLength(2));
+      expect(
+        placement.orderedVisibleRequests.first.requestId,
+        'approval_request',
+      );
+      expect(
+        placement.orderedVisibleRequests.first,
+        isA<ChatApprovalRequestContract>(),
+      );
+      expect(
+        placement.orderedVisibleRequests.last.requestId,
+        'input_request_older',
+      );
+      expect(
+        placement.orderedVisibleRequests.last,
+        isA<ChatUserInputRequestContract>(),
+      );
+    });
   });
 
   group('ChatTranscriptItemProjector', () {
