@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
@@ -330,6 +331,38 @@ void main() {
     },
   );
 
+  testWidgets('renders the connect failure SSH card with settings only', (
+    tester,
+  ) async {
+    var openedSettings = 0;
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexSshConnectFailedBlock(
+            id: 'ssh_connect_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            host: 'example.com',
+            port: 22,
+            message: 'Connection refused',
+          ),
+          onConfigure: () {
+            openedSettings += 1;
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('SSH connection failed'), findsOneWidget);
+    expect(find.text('Connection refused'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('open_connection_settings')));
+    await tester.pump();
+
+    expect(openedSettings, 1);
+  });
+
   testWidgets(
     'renders the host key mismatch SSH card without save affordances',
     (tester) async {
@@ -366,6 +399,36 @@ void main() {
       );
     },
   );
+
+  testWidgets('renders the auth failure SSH card with settings only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexSshAuthenticationFailedBlock(
+            id: 'ssh_auth_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            host: 'example.com',
+            port: 22,
+            username: 'vince',
+            authMode: AuthMode.privateKey,
+            message: 'Permission denied',
+          ),
+          onConfigure: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('SSH authentication failed'), findsOneWidget);
+    expect(find.textContaining('private key'), findsWidgets);
+    expect(find.text('Permission denied'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('open_connection_settings')),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('renders the remote launch SSH card with the command details', (
     tester,

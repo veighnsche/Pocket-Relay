@@ -250,6 +250,89 @@ void main() {
   );
 
   testWidgets(
+    'renders SSH authentication failure as a dedicated settings-oriented card',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerSshAuthenticationFailedEvent(
+          host: 'example.com',
+          port: 22,
+          username: 'vince',
+          authMode: AuthMode.privateKey,
+          message: 'Permission denied',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('SSH authentication failed'), findsOneWidget);
+      expect(find.textContaining('private key'), findsWidgets);
+      expect(find.text('Permission denied'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('open_connection_settings')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'renders SSH remote launch failure as a dedicated settings-oriented card',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerSshRemoteLaunchFailedEvent(
+          host: 'example.com',
+          port: 22,
+          username: 'vince',
+          command: 'bash -lc codex app-server --listen stdio://',
+          message: 'exec request denied',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('SSH remote launch failed'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('ssh_remote_command_value')),
+        findsOneWidget,
+      );
+      expect(find.text('exec request denied'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
+    },
+  );
+
+  testWidgets(
     'reuses the current SSH failure card when the same connect failure repeats',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
