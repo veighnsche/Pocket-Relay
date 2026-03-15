@@ -11,64 +11,150 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
   required ConnectionProfile profile,
   required ConnectionSecrets secrets,
   required void Function(CodexAppServerEvent event) emitEvent,
+  @visibleForTesting
+  CodexSshProcessBootstrap sshBootstrap = _connectSshBootstrap,
 }) async {
-  final socket = await SSHSocket.connect(
-    profile.host.trim(),
-    profile.port,
-    timeout: const Duration(seconds: 10),
-  );
+  final host = profile.host.trim();
+  final username = profile.username.trim();
+  final command = buildSshCodexAppServerCommand(profile: profile);
+  var emittedHostKeyMismatch = false;
 
-  final client = SSHClient(
-    socket,
-    username: profile.username.trim(),
-    onVerifyHostKey: (type, fingerprint) {
-      final actual = formatFingerprint(fingerprint);
-      final expected = profile.hostFingerprint.trim();
+  bool verifyHostKey(String keyType, String actualFingerprint) {
+    final expectedFingerprint = profile.hostFingerprint.trim();
 
-      if (expected.isEmpty) {
-        emitEvent(
-          CodexAppServerUnpinnedHostKeyEvent(
-            host: profile.host.trim(),
-            port: profile.port,
-            keyType: type,
-            fingerprint: actual,
-          ),
-        );
-        return true;
-      }
-
-      if (normalizeFingerprint(expected) == normalizeFingerprint(actual)) {
-        return true;
-      }
-
+    if (expectedFingerprint.isEmpty) {
       emitEvent(
-        CodexAppServerDiagnosticEvent(
-          message:
-              'Host key mismatch. Expected ${profile.hostFingerprint}, got $actual.',
-          isError: true,
+        CodexAppServerUnpinnedHostKeyEvent(
+          host: host,
+          port: profile.port,
+          keyType: keyType,
+          fingerprint: actualFingerprint,
         ),
       );
-      return false;
-    },
-    identities: _buildIdentities(profile, secrets),
-    onPasswordRequest: profile.authMode == AuthMode.password
-        ? () => secrets.password.trim().isEmpty ? null : secrets.password
-        : null,
-  );
+      return true;
+    }
 
-  await client.authenticated;
+    if (normalizeFingerprint(expectedFingerprint) ==
+        normalizeFingerprint(actualFingerprint)) {
+      return true;
+    }
+
+    emittedHostKeyMismatch = true;
+    emitEvent(
+      CodexAppServerSshHostKeyMismatchEvent(
+        host: host,
+        port: profile.port,
+        keyType: keyType,
+        expectedFingerprint: expectedFingerprint,
+        actualFingerprint: actualFingerprint,
+      ),
+    );
+    return false;
+  }
+
+  CodexSshBootstrapClient client;
+  try {
+    client = await sshBootstrap(
+      profile: profile,
+      secrets: secrets,
+      verifyHostKey: verifyHostKey,
+    );
+  } catch (error) {
+    if (!_shouldSuppressHostKeyFailure(error, emittedHostKeyMismatch)) {
+      emitEvent(
+        CodexAppServerSshConnectFailedEvent(
+          host: host,
+          port: profile.port,
+          message: _sshErrorMessage(error),
+          detail: error,
+        ),
+      );
+    }
+    rethrow;
+  }
+
+  try {
+    await client.authenticate();
+  } catch (error) {
+    client.close();
+    if (_shouldSuppressHostKeyFailure(error, emittedHostKeyMismatch)) {
+      rethrow;
+    }
+    if (error is SSHAuthFailError || error is SSHAuthAbortError) {
+      emitEvent(
+        CodexAppServerSshAuthenticationFailedEvent(
+          host: host,
+          port: profile.port,
+          username: username,
+          authMode: profile.authMode,
+          message: _sshErrorMessage(error),
+          detail: error,
+        ),
+      );
+    } else if (error is SSHHandshakeError || error is SSHSocketError) {
+      emitEvent(
+        CodexAppServerSshConnectFailedEvent(
+          host: host,
+          port: profile.port,
+          message: _sshErrorMessage(error),
+          detail: error,
+        ),
+      );
+    }
+    rethrow;
+  }
+
   emitEvent(
-    CodexAppServerDiagnosticEvent(
-      message:
-          'Connected to ${profile.host}:${profile.port} as ${profile.username}.',
-      isError: false,
+    CodexAppServerSshAuthenticatedEvent(
+      host: host,
+      port: profile.port,
+      username: username,
+      authMode: profile.authMode,
     ),
   );
 
-  final session = await client.execute(
-    buildSshCodexAppServerCommand(profile: profile),
-  );
-  return _SshCodexAppServerProcess(client: client, session: session);
+  try {
+    final process = await client.launchProcess(command);
+    emitEvent(
+      CodexAppServerSshRemoteProcessStartedEvent(
+        host: host,
+        port: profile.port,
+        username: username,
+        command: command,
+      ),
+    );
+    return process;
+  } catch (error) {
+    client.close();
+    emitEvent(
+      CodexAppServerSshRemoteLaunchFailedEvent(
+        host: host,
+        port: profile.port,
+        username: username,
+        command: command,
+        message: _sshErrorMessage(error),
+        detail: error,
+      ),
+    );
+    rethrow;
+  }
+}
+
+bool _shouldSuppressHostKeyFailure(Object error, bool emittedHostKeyMismatch) {
+  return emittedHostKeyMismatch && error is SSHHostkeyError;
+}
+
+String _sshErrorMessage(Object error) {
+  return switch (error) {
+    SSHAuthFailError(:final message) ||
+    SSHAuthAbortError(:final message) ||
+    SSHHandshakeError(:final message) ||
+    SSHChannelRequestError(:final message) ||
+    SSHHostkeyError(:final message) => message,
+    SSHChannelOpenError(:final description) => description,
+    SSHSocketError(:final error) => '$error',
+    _ => '$error',
+  };
 }
 
 List<SSHKeyPair>? _buildIdentities(
@@ -95,6 +181,51 @@ String buildSshCodexAppServerCommand({required ConnectionProfile profile}) {
       'cd ${shellEscape(profile.workspaceDir.trim())} && '
       '$launcher app-server --listen stdio://';
   return 'bash -lc ${shellEscape(command)}';
+}
+
+Future<CodexSshBootstrapClient> _connectSshBootstrap({
+  required ConnectionProfile profile,
+  required ConnectionSecrets secrets,
+  required bool Function(String keyType, String actualFingerprint)
+  verifyHostKey,
+}) async {
+  final socket = await SSHSocket.connect(
+    profile.host.trim(),
+    profile.port,
+    timeout: const Duration(seconds: 10),
+  );
+  final client = SSHClient(
+    socket,
+    username: profile.username.trim(),
+    onVerifyHostKey: (type, fingerprint) {
+      return verifyHostKey(type, formatFingerprint(fingerprint));
+    },
+    identities: _buildIdentities(profile, secrets),
+    onPasswordRequest: profile.authMode == AuthMode.password
+        ? () => secrets.password.trim().isEmpty ? null : secrets.password
+        : null,
+  );
+  return _DartSshBootstrapClient(client);
+}
+
+final class _DartSshBootstrapClient implements CodexSshBootstrapClient {
+  _DartSshBootstrapClient(this._client);
+
+  final SSHClient _client;
+
+  @override
+  Future<void> authenticate() => _client.authenticated;
+
+  @override
+  Future<CodexAppServerProcess> launchProcess(String command) async {
+    final session = await _client.execute(command);
+    return _SshCodexAppServerProcess(client: _client, session: session);
+  }
+
+  @override
+  void close() {
+    _client.close();
+  }
 }
 
 class _SshCodexAppServerProcess implements CodexAppServerProcess {

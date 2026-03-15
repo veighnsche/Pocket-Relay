@@ -1,3 +1,5 @@
+import 'package:pocket_relay/src/core/models/connection_models.dart';
+
 enum CodexRuntimeSessionState {
   starting,
   ready,
@@ -462,6 +464,27 @@ final class CodexRuntimeWarningEvent extends CodexRuntimeEvent {
   final String? details;
 }
 
+final class CodexRuntimeSshConnectFailedEvent extends CodexRuntimeEvent {
+  const CodexRuntimeSshConnectFailedEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.message,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String message;
+  final Object? detail;
+}
+
 final class CodexRuntimeUnpinnedHostKeyEvent extends CodexRuntimeEvent {
   const CodexRuntimeUnpinnedHostKeyEvent({
     required super.createdAt,
@@ -481,6 +504,121 @@ final class CodexRuntimeUnpinnedHostKeyEvent extends CodexRuntimeEvent {
   final int port;
   final String keyType;
   final String fingerprint;
+}
+
+final class CodexRuntimeSshHostKeyMismatchEvent extends CodexRuntimeEvent {
+  const CodexRuntimeSshHostKeyMismatchEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.keyType,
+    required this.expectedFingerprint,
+    required this.actualFingerprint,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+  });
+
+  final String host;
+  final int port;
+  final String keyType;
+  final String expectedFingerprint;
+  final String actualFingerprint;
+}
+
+final class CodexRuntimeSshAuthenticationFailedEvent extends CodexRuntimeEvent {
+  const CodexRuntimeSshAuthenticationFailedEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.authMode,
+    required this.message,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final AuthMode authMode;
+  final String message;
+  final Object? detail;
+}
+
+final class CodexRuntimeSshAuthenticatedEvent extends CodexRuntimeEvent {
+  const CodexRuntimeSshAuthenticatedEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.authMode,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final AuthMode authMode;
+}
+
+final class CodexRuntimeSshRemoteLaunchFailedEvent extends CodexRuntimeEvent {
+  const CodexRuntimeSshRemoteLaunchFailedEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.command,
+    required this.message,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final String command;
+  final String message;
+  final Object? detail;
+}
+
+final class CodexRuntimeSshRemoteProcessStartedEvent extends CodexRuntimeEvent {
+  const CodexRuntimeSshRemoteProcessStartedEvent({
+    required super.createdAt,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.command,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final String command;
 }
 
 final class CodexRuntimeStatusEvent extends CodexRuntimeEvent {

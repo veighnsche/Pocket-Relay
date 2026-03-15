@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
@@ -408,6 +409,115 @@ void main() {
     expect(event.keyType, 'ssh-ed25519');
     expect(event.fingerprint, '7a:9f:d7:dc:2e:f2');
   });
+
+  test('maps SSH connect failures into typed and generic runtime errors', () {
+    final mapper = CodexRuntimeEventMapper();
+
+    final events = mapper.mapEvent(
+      const CodexAppServerSshConnectFailedEvent(
+        host: '192.168.1.10',
+        port: 22,
+        message: 'Connection refused',
+      ),
+    );
+
+    expect(events, hasLength(2));
+    expect(events.first, isA<CodexRuntimeSshConnectFailedEvent>());
+    expect(events.last, isA<CodexRuntimeErrorEvent>());
+    final specific = events.first as CodexRuntimeSshConnectFailedEvent;
+    final generic = events.last as CodexRuntimeErrorEvent;
+    expect(specific.host, '192.168.1.10');
+    expect(specific.message, 'Connection refused');
+    expect(generic.message, contains('Could not connect to 192.168.1.10:22.'));
+    expect(generic.message, contains('Connection refused'));
+  });
+
+  test(
+    'maps SSH host-key mismatches and auth failures into typed runtime events',
+    () {
+      final mapper = CodexRuntimeEventMapper();
+
+      final mismatchEvents = mapper.mapEvent(
+        const CodexAppServerSshHostKeyMismatchEvent(
+          host: '192.168.1.10',
+          port: 22,
+          keyType: 'ssh-ed25519',
+          expectedFingerprint: 'aa:bb:cc',
+          actualFingerprint: '11:22:33',
+        ),
+      );
+      final authFailedEvents = mapper.mapEvent(
+        const CodexAppServerSshAuthenticationFailedEvent(
+          host: '192.168.1.10',
+          port: 22,
+          username: 'vince',
+          authMode: AuthMode.privateKey,
+          message: 'Permission denied',
+        ),
+      );
+
+      expect(mismatchEvents, hasLength(2));
+      expect(mismatchEvents.first, isA<CodexRuntimeSshHostKeyMismatchEvent>());
+      expect(mismatchEvents.last, isA<CodexRuntimeErrorEvent>());
+      final mismatch =
+          mismatchEvents.first as CodexRuntimeSshHostKeyMismatchEvent;
+      expect(mismatch.expectedFingerprint, 'aa:bb:cc');
+      expect(mismatch.actualFingerprint, '11:22:33');
+
+      expect(authFailedEvents, hasLength(2));
+      expect(
+        authFailedEvents.first,
+        isA<CodexRuntimeSshAuthenticationFailedEvent>(),
+      );
+      expect(authFailedEvents.last, isA<CodexRuntimeErrorEvent>());
+      final authFailed =
+          authFailedEvents.first as CodexRuntimeSshAuthenticationFailedEvent;
+      expect(authFailed.username, 'vince');
+      expect(authFailed.authMode, AuthMode.privateKey);
+    },
+  );
+
+  test(
+    'maps SSH authenticated, remote launch failed, and remote process started events',
+    () {
+      final mapper = CodexRuntimeEventMapper();
+
+      final authenticated = mapper.mapEvent(
+        const CodexAppServerSshAuthenticatedEvent(
+          host: '192.168.1.10',
+          port: 22,
+          username: 'vince',
+          authMode: AuthMode.password,
+        ),
+      );
+      final launchFailed = mapper.mapEvent(
+        const CodexAppServerSshRemoteLaunchFailedEvent(
+          host: '192.168.1.10',
+          port: 22,
+          username: 'vince',
+          command: 'bash -lc codex app-server --listen stdio://',
+          message: 'exec request denied',
+        ),
+      );
+      final processStarted = mapper.mapEvent(
+        const CodexAppServerSshRemoteProcessStartedEvent(
+          host: '192.168.1.10',
+          port: 22,
+          username: 'vince',
+          command: 'bash -lc codex app-server --listen stdio://',
+        ),
+      );
+
+      expect(authenticated.single, isA<CodexRuntimeSshAuthenticatedEvent>());
+      expect(launchFailed, hasLength(2));
+      expect(launchFailed.first, isA<CodexRuntimeSshRemoteLaunchFailedEvent>());
+      expect(launchFailed.last, isA<CodexRuntimeErrorEvent>());
+      expect(
+        processStarted.single,
+        isA<CodexRuntimeSshRemoteProcessStartedEvent>(),
+      );
+    },
+  );
 
   test('maps turn plan notifications into runtime events', () {
     final mapper = CodexRuntimeEventMapper();

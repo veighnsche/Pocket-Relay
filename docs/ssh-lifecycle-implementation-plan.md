@@ -74,6 +74,258 @@ complete SSH lifecycle model.
 - there is almost no direct infrastructure-level SSH lifecycle test coverage
   beyond command construction
 
+## Phase 1 Investigation Findings
+
+This section is based on the current app code plus the local `dartssh2` package
+source in the pub cache.
+
+### What the public dependency surface gives us reliably
+
+The current app uses the public `SSHSocket` and `SSHClient` APIs from
+`dartssh2`.
+
+Concrete hooks:
+
+- [ssh_socket.dart](/home/vince/.pub-cache/hosted/pub.dev/dartssh2-2.13.0/lib/src/socket/ssh_socket.dart)
+  exposes `SSHSocket.connect(host, port, timeout:)`
+- [ssh_socket_io.dart](/home/vince/.pub-cache/hosted/pub.dev/dartssh2-2.13.0/lib/src/socket/ssh_socket_io.dart)
+  delegates directly to `Socket.connect(...)`, so initial connect failures are
+  raw socket/connect failures before an `SSHClient` exists
+- [ssh_client.dart](/home/vince/.pub-cache/hosted/pub.dev/dartssh2-2.13.0/lib/src/ssh_client.dart)
+  exposes these useful callbacks/futures:
+  - `onVerifyHostKey`
+  - `onPasswordRequest`
+  - `onUserauthBanner`
+  - `onAuthenticated`
+  - `Future<void> get authenticated`
+  - `Future<SSHSession> execute(...)`
+- [ssh_errors.dart](/home/vince/.pub-cache/hosted/pub.dev/dartssh2-2.13.0/lib/src/ssh_errors.dart)
+  exposes typed error classes we can pattern-match without parsing strings:
+  - `SSHHandshakeError`
+  - `SSHAuthFailError`
+  - `SSHAuthAbortError`
+  - `SSHHostkeyError`
+  - `SSHChannelOpenError`
+  - `SSHChannelRequestError`
+  - `SSHSocketError`
+
+### What those hooks mean for Phase 1
+
+Reliable typed lifecycle points we can emit without heuristics:
+
+- socket connect failed
+  - from `SSHSocket.connect(...)` throwing before `SSHClient` is created
+- host key observed as unpinned
+  - from `onVerifyHostKey`
+- host key mismatch against a pinned fingerprint
+  - from our own `onVerifyHostKey` closure because we already know expected and
+    actual fingerprints there
+- authentication failed
+  - from `await client.authenticated` throwing `SSHAuthFailError` or
+    `SSHAuthAbortError`
+- authentication succeeded
+  - from `await client.authenticated` completing or `onAuthenticated`
+- remote launch failed
+  - from `await client.execute(...)` throwing `SSHChannelOpenError` or
+    `SSHChannelRequestError`
+- remote process started
+  - from `await client.execute(...)` returning an `SSHSession`
+
+### What is available but should not drive Phase 1
+
+- [ssh_transport.dart](/home/vince/.pub-cache/hosted/pub.dev/dartssh2-2.13.0/lib/src/ssh_transport.dart)
+  has lower-level transport internals like `onReady`, `remoteVersion`, and
+  explicit host-key verification closure handling, but our app does not own
+  `SSHTransport` directly
+- Phase 1 should not reach into `SSHTransport` internals or fork around
+  package-private implementation details just to get more milestones
+- `onUserauthBanner` exists, but banner messages are informational and are not a
+  necessary first-wave lifecycle boundary
+
+### Important caveats from the dependency behavior
+
+1. Host-key rejection will produce two signals unless we suppress the duplicate.
+
+   Our `onVerifyHostKey` closure can emit a precise mismatch event immediately.
+   After returning `false`, `dartssh2` will later close with
+   `SSHHostkeyError('Hostkey verification failed')`.
+
+   Phase 1 must avoid surfacing both the typed mismatch event and a second
+   generic host-key failure for the same cause.
+
+2. Authentication failure detail is coarse.
+
+   `dartssh2` distinguishes auth failure vs abort, but it does not tell us
+   which credential specifically failed beyond the auth method path we already
+   chose.
+
+   That is still good enough for Phase 1 because our profile already knows the
+   chosen auth mode.
+
+3. Remote launch failure is distinguishable, but remote stderr is not part of
+   SSH lifecycle.
+
+   `SSHChannelOpenError` and `SSHChannelRequestError` tell us the remote command
+   failed to start at the SSH layer.
+
+   Once `execute(...)` succeeds, later stderr or process failure belongs to
+   app-server startup/runtime, not SSH bootstrap.
+
+4. The fingerprint format is MD5-based today.
+
+   `dartssh2` computes the fingerprint passed to `onVerifyHostKey` as an MD5
+   digest of the host key bytes in
+   [ssh_transport.dart](/home/vince/.pub-cache/hosted/pub.dev/dartssh2-2.13.0/lib/src/ssh_transport.dart).
+
+   Phase 1 should preserve the existing format to avoid changing stored profile
+   data and UI behavior mid-cut.
+
+## Best Upgrade Path For Phase 1
+
+The best Phase 1 path is narrower than the full desired lifecycle contract.
+
+Do not start by emitting every imagined SSH stage.
+
+Start with the smallest typed event set that:
+
+- is supported by the current public dependency hooks
+- removes meaning from generic diagnostic strings
+- enables user-relevant UI/action surfaces
+- is testable without a real SSH server
+
+### Recommended first-wave event set
+
+Infrastructure events:
+
+- `CodexAppServerSshConnectFailedEvent`
+- `CodexAppServerUnpinnedHostKeyEvent`
+- `CodexAppServerSshHostKeyMismatchEvent`
+- `CodexAppServerSshAuthenticationFailedEvent`
+- `CodexAppServerSshAuthenticatedEvent`
+- `CodexAppServerSshRemoteLaunchFailedEvent`
+- `CodexAppServerSshRemoteProcessStartedEvent`
+
+Do not add these in Phase 1 unless a real consumer appears:
+
+- `connectingSocket`
+- `socketConnected`
+- `verifyingHostKey`
+- `authenticating`
+- `launchingRemoteProcess`
+
+Those stages are real, but they currently add event volume without improving
+behavior. They can be added later once the typed failure/success boundaries are
+in place.
+
+### Recommended structural cut
+
+Before expanding the taxonomy, extract one small test seam inside
+[codex_app_server_ssh_process.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_ssh_process.dart).
+
+Current problem:
+
+- the function directly calls `SSHSocket.connect(...)`
+- directly constructs `SSHClient`
+- directly awaits `authenticated`
+- directly calls `execute(...)`
+
+That makes command-building easy to test, but not lifecycle emission.
+
+Best Phase 1 seam:
+
+- keep the public `openSshCodexAppServerProcess(...)` function stable
+- add an internal bootstrap helper with injectable collaborators for:
+  - socket connect
+  - client creation
+  - auth wait
+  - execute
+
+This does not need a large new abstraction tree.
+
+It only needs enough structure to make typed event emission unit-testable.
+
+### Recommended ownership split
+
+Keep Phase 1 contained to:
+
+- [codex_app_server_ssh_process.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_ssh_process.dart)
+- [codex_app_server_models.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_models.dart)
+- [runtime_event_mapper.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/application/runtime_event_mapper.dart)
+- [codex_runtime_event.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/models/codex_runtime_event.dart)
+- focused tests
+
+Do not move the logic into `CodexAppServerConnection` yet.
+
+`CodexAppServerConnection` should remain the generic process/JSON-RPC owner.
+Phase 1 is about improving what the SSH launcher emits, not changing who owns
+the app-server transport.
+
+### Rejected upgrade paths
+
+These paths look plausible but are the wrong first cut.
+
+1. Put SSH meaning onto generic diagnostics with error codes.
+
+   This preserves the wrong ownership model. SSH trust, auth, and launch
+   failures would still be diagnostics first and lifecycle data second.
+
+2. Move SSH lifecycle ownership into
+   [codex_app_server_connection.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_connection.dart)
+   before the SSH launcher emits typed events.
+
+   This would mix SSH bootstrap semantics into the generic app-server
+   process/JSON-RPC owner and make later cleanup harder.
+
+3. Build Phase 1 around `SSHTransport` internals.
+
+   The local dependency source exposes lower-level milestones, but the app does
+   not own that layer directly. Reaching into it now would buy event volume at
+   the cost of tighter package coupling and weaker tests.
+
+4. Start with UI surfaces before infrastructure typing.
+
+   That would recreate the same text-driven branching problem in a new place.
+
+### Exact Phase 1 cut order
+
+Implement Phase 1 in this order:
+
+1. Add the first-wave SSH event classes in
+   [codex_app_server_models.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_models.dart).
+
+2. Extract a small internal bootstrap seam in
+   [codex_app_server_ssh_process.dart](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_ssh_process.dart)
+   for:
+   - socket connect
+   - client creation
+   - auth wait
+   - remote execute
+
+3. Emit typed events from the actual SSH boundaries:
+   - `SSHSocket.connect(...)`
+   - `onVerifyHostKey`
+   - `await client.authenticated`
+   - `await client.execute(...)`
+
+4. Suppress duplicate host-key failure signaling so a typed mismatch event does
+   not also become a second generic host-key failure.
+
+5. Keep generic `CodexAppServerDiagnosticEvent` only for truly unclassified
+   startup text and stderr, not for known SSH lifecycle meaning.
+
+6. Add focused infrastructure tests in
+   [codex_app_server_ssh_process_test.dart](/home/vince/Projects/codex_pocket/test/codex_app_server_ssh_process_test.dart)
+   for:
+   - connect failure
+   - host-key mismatch
+   - auth failure
+   - auth success
+   - remote launch failure
+   - remote process started
+
+7. Add only the minimal runtime follow-through needed to keep typed SSH events
+   distinct in mapping and avoid collapsing them back into generic warnings.
+
 ## Refactor Goals
 
 1. Model SSH lifecycle as structured events instead of generic diagnostic text.

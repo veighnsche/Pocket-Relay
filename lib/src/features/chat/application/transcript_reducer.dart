@@ -121,8 +121,20 @@ class TranscriptReducer {
         return _policy.applyUserInputResolved(normalizedState, event);
       case CodexRuntimeWarningEvent():
         return _policy.applyWarning(normalizedState, event);
+      case CodexRuntimeSshConnectFailedEvent():
+        return normalizedState;
       case CodexRuntimeUnpinnedHostKeyEvent():
         return _policy.applyUnpinnedHostKey(normalizedState, event);
+      case CodexRuntimeSshHostKeyMismatchEvent():
+        return normalizedState;
+      case CodexRuntimeSshAuthenticationFailedEvent():
+        return normalizedState;
+      case CodexRuntimeSshAuthenticatedEvent():
+        return normalizedState;
+      case CodexRuntimeSshRemoteLaunchFailedEvent():
+        return normalizedState;
+      case CodexRuntimeSshRemoteProcessStartedEvent():
+        return normalizedState;
       case CodexRuntimeStatusEvent():
         return _policy.applyStatus(normalizedState, event);
       case CodexRuntimeErrorEvent():
@@ -141,6 +153,12 @@ class TranscriptReducer {
       CodexRuntimeThreadStateChangedEvent() ||
       CodexRuntimeTurnCompletedEvent() ||
       CodexRuntimeTurnAbortedEvent() => state,
+      CodexRuntimeSshConnectFailedEvent() ||
+      CodexRuntimeSshHostKeyMismatchEvent() ||
+      CodexRuntimeSshAuthenticationFailedEvent() ||
+      CodexRuntimeSshAuthenticatedEvent() ||
+      CodexRuntimeSshRemoteLaunchFailedEvent() ||
+      CodexRuntimeSshRemoteProcessStartedEvent() => state,
       _ => _policy.rolloverTurnIfNeeded(
         state,
         turnId: event.turnId,

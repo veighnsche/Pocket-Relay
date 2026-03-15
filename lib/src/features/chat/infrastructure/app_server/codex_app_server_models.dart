@@ -65,6 +65,100 @@ class CodexAppServerUnpinnedHostKeyEvent extends CodexAppServerEvent {
   final String fingerprint;
 }
 
+class CodexAppServerSshConnectFailedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshConnectFailedEvent({
+    required this.host,
+    required this.port,
+    required this.message,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String message;
+  final Object? detail;
+}
+
+class CodexAppServerSshHostKeyMismatchEvent extends CodexAppServerEvent {
+  const CodexAppServerSshHostKeyMismatchEvent({
+    required this.host,
+    required this.port,
+    required this.keyType,
+    required this.expectedFingerprint,
+    required this.actualFingerprint,
+  });
+
+  final String host;
+  final int port;
+  final String keyType;
+  final String expectedFingerprint;
+  final String actualFingerprint;
+}
+
+class CodexAppServerSshAuthenticationFailedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshAuthenticationFailedEvent({
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.authMode,
+    required this.message,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final AuthMode authMode;
+  final String message;
+  final Object? detail;
+}
+
+class CodexAppServerSshAuthenticatedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshAuthenticatedEvent({
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.authMode,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final AuthMode authMode;
+}
+
+class CodexAppServerSshRemoteLaunchFailedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshRemoteLaunchFailedEvent({
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.command,
+    required this.message,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final String command;
+  final String message;
+  final Object? detail;
+}
+
+class CodexAppServerSshRemoteProcessStartedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshRemoteProcessStartedEvent({
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.command,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final String command;
+}
+
 class CodexAppServerSession {
   const CodexAppServerSession({
     required this.threadId,
@@ -122,4 +216,18 @@ typedef CodexAppServerProcessLauncher =
       required ConnectionProfile profile,
       required ConnectionSecrets secrets,
       required void Function(CodexAppServerEvent event) emitEvent,
+    });
+
+abstract interface class CodexSshBootstrapClient {
+  Future<void> authenticate();
+  Future<CodexAppServerProcess> launchProcess(String command);
+  void close();
+}
+
+typedef CodexSshProcessBootstrap =
+    Future<CodexSshBootstrapClient> Function({
+      required ConnectionProfile profile,
+      required ConnectionSecrets secrets,
+      required bool Function(String keyType, String actualFingerprint)
+      verifyHostKey,
     });
