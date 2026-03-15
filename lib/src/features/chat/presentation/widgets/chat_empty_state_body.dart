@@ -113,16 +113,19 @@ class ChatEmptyStateBody extends StatelessWidget {
         final borderColor = CupertinoDynamicColor.resolve(
           CupertinoColors.separator,
           context,
-        ).withValues(alpha: 0.18);
+        ).withValues(alpha: 0.16);
+        const shapeRadius = BorderRadius.all(Radius.circular(28));
 
-        return CupertinoPopupSurface(
-          blurSigma: 18,
+        return ClipRSuperellipse(
+          borderRadius: shapeRadius,
           child: DecoratedBox(
             key: const ValueKey('cupertino_empty_state_card'),
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: surfaceColor,
-              borderRadius: const BorderRadius.all(Radius.circular(28)),
-              border: Border.all(color: borderColor),
+              shape: RoundedSuperellipseBorder(
+                borderRadius: shapeRadius,
+                side: BorderSide(color: borderColor),
+              ),
             ),
             child: content,
           ),

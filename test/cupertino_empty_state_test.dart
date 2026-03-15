@@ -60,7 +60,8 @@ void main() {
     final context = tester.element(
       find.byKey(const ValueKey('cupertino_empty_state_card')),
     );
-    final decoration = card.decoration as BoxDecoration;
+    final decoration = card.decoration as ShapeDecoration;
+    final shape = decoration.shape as RoundedSuperellipseBorder;
 
     expect(
       decoration.color,
@@ -69,6 +70,7 @@ void main() {
         context,
       ).withValues(alpha: 0.92),
     );
+    expect(shape.borderRadius, const BorderRadius.all(Radius.circular(28)));
     expect(
       tester
           .widget<Text>(
