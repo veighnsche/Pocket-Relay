@@ -66,34 +66,37 @@ renderer can consume the same ownership model.
 - The current Flutter chat UI now renders through an extracted
   `FlutterChatScreenRenderer` widget that consumes the shared screen contract
   and forwards callbacks back to the screen host.
+- `PocketRelayApp` now routes through a root `ChatRootAdapter` host instead of
+  jumping directly to `ChatScreen`.
 
 These are the parts we should build on, not reopen.
 
 ## What Is Still Not Ready For Native Ownership
 
-- The first root architectural adapter does not exist yet.
 - Top-level overlay execution is still hardwired to Flutter scaffold APIs in
-  `ChatScreen`.
+  `ChatRootAdapter`.
+- Region delegation is still implicit because the adapter always renders the
+  full Flutter screen renderer path.
 
 ## Next Active Work
 
 Phase 5 is complete.
 
-The next thing to do is Slice 3 of Phase 6:
+The next thing to do is Slice 4 of Phase 6:
 
-- introduce the first root architectural adapter
+- move overlay and region delegation behind the adapter seam
 
 Reason:
 
 - the transcript surface boundary is now explicit and test-covered enough to
   support adapter work
-- Slice 2 extracted a pure Flutter renderer widget from `ChatScreen`, so the
-  remaining missing seam is no longer renderer shape but root ownership
-- `PocketRelayApp` still constructs `ChatScreen` directly, and `ChatScreen`
-  still owns controller lifecycle, action dispatch, and top-level effect
-  execution
-- the next blocker is inserting the adapter host that will own those concerns
-  before any native region work begins
+- Slice 3 introduced `ChatRootAdapter`, so the missing seam is no longer app
+  entry ownership
+- top-level sheet/snackbar execution still lives directly inside the adapter
+- the adapter still selects one whole Flutter screen instead of explicit
+  renderer regions
+- the next blocker is moving overlays and region selection behind adapter-owned
+  delegates before native work starts
 
 ## Target Architecture
 
@@ -1240,7 +1243,7 @@ upgrade path.
 
 ### Findings
 
-#### 1. `PocketRelayApp` still jumps directly from bootstrap to `ChatScreen`
+#### 1. `PocketRelayApp` now has a bootstrap-to-adapter seam
 
 Current file:
 
@@ -1250,18 +1253,18 @@ Current file:
 
 - dependency binding for `CodexProfileStore` and `CodexAppServerClient`
 - saved-profile loading
-- direct `home: ChatScreen(...)` selection once bootstrap completes
+- direct `home: ChatRootAdapter(...)` selection once bootstrap completes
 
-There is no intermediate adapter or region-selection seam between app bootstrap
-and the active Flutter chat screen.
+That means the first app-level ownership seam now exists, but region selection
+still begins one level down inside the adapter.
 
-#### 2. `ChatScreen` still combines application host and effect executor
+#### 2. `ChatRootAdapter` now combines application host and effect executor
 
 Current file:
 
-- `lib/src/features/chat/presentation/chat_screen.dart`
+- `lib/src/features/chat/presentation/chat_root_adapter.dart`
 
-`ChatScreen` currently owns:
+`ChatRootAdapter` currently owns:
 
 - `ChatSessionController` lifecycle
 - `ChatTranscriptFollowHost` lifecycle
@@ -1271,10 +1274,10 @@ Current file:
 - snackbar execution through `ScaffoldMessenger`
 - host wiring into the extracted Flutter renderer
 
-That means the app still has no explicit object that owns renderer selection
-separately from controller and effect hosting.
+That means the adapter seam now exists, but renderer-region selection is still
+not explicit and overlay execution still lives inside the adapter itself.
 
-#### 3. Composer state is only partially presentation-owned
+#### 3. Composer state is now ready for adapter ownership
 
 Current files:
 
@@ -1282,7 +1285,7 @@ Current files:
 - `lib/src/features/chat/presentation/chat_composer_draft.dart`
 - `lib/src/features/chat/presentation/chat_composer_draft_host.dart`
 - `lib/src/features/chat/presentation/chat_screen_presenter.dart`
-- `lib/src/features/chat/presentation/chat_screen.dart`
+- `lib/src/features/chat/presentation/chat_root_adapter.dart`
 - `lib/src/features/chat/presentation/widgets/chat_composer.dart`
 
 Before Slice 1, `ChatComposerContract` already owned:
@@ -1296,9 +1299,10 @@ Slice 1 moved the live draft text into a shared presentation draft host and
 screen-contract field, while leaving only local controller syncing inside the
 Flutter composer renderer.
 
-That blocker is now removed. Slice 2 then extracted the pure Flutter screen
-renderer away from controller and overlay hosting. The next remaining Phase 6
-blocker is the missing root adapter itself.
+That blocker is now removed. Slice 2 extracted the pure Flutter screen
+renderer away from controller and overlay hosting, and Slice 3 moved the host
+ownership into the adapter. The next remaining Phase 6 blocker is explicit
+overlay and region delegation.
 
 #### 4. Overlay payloads are ready, but overlay execution is still Flutter-hardwired
 
@@ -1306,7 +1310,7 @@ Current files:
 
 - `lib/src/features/chat/presentation/chat_screen_effect.dart`
 - `lib/src/features/chat/presentation/chat_screen_effect_mapper.dart`
-- `lib/src/features/chat/presentation/chat_screen.dart`
+- `lib/src/features/chat/presentation/chat_root_adapter.dart`
 
 The presentation layer already models:
 
@@ -1314,7 +1318,8 @@ The presentation layer already models:
 - changed-file diff launch payloads
 - snackbar effects
 
-But execution still happens directly through Flutter APIs inside `ChatScreen`.
+But execution still happens directly through Flutter APIs inside
+`ChatRootAdapter`.
 
 That is a good Phase 6 target because the product semantics are already mapped;
 only adapter ownership is missing.
@@ -1338,23 +1343,28 @@ The transcript feed should still remain Flutter-owned for now, but the adapter
 should make it possible to keep transcript rendering in Flutter while later
 swapping app chrome, composer, and settings surfaces.
 
-#### 6. Current tests prove Flutter parity, not adapter ownership
+#### 6. Current tests now cover the first adapter seam, but not delegation yet
 
 Current files:
 
 - `test/widget_test.dart`
 - `test/chat_screen_app_server_test.dart`
+- `test/chat_screen_renderer_test.dart`
 
-Current tests prove the Flutter app still behaves correctly, but they do not
-yet prove:
+Current tests now prove:
 
-- that `PocketRelayApp` no longer depends directly on `ChatScreen`
-- that top-level effects are executed by an adapter instead of a renderer
+- that `PocketRelayApp` routes through `ChatRootAdapter`
+- that the extracted Flutter renderer still forwards host callbacks correctly
+- that the all-Flutter adapter path preserves current behavior
+
+But they do not yet prove:
+
+- that top-level effects are delegated behind adapter-owned abstractions
 - that a renderer can be replaced or injected without changing controller or
   contract logic
 
-So Phase 6 needs ownership-oriented app and widget tests, not only another
-round of Flutter parity checks.
+So the next Phase 6 slices need delegation-oriented and selection-oriented
+tests, not just another round of Flutter parity checks.
 
 ## Best Upgrade Path For Phase 6
 
@@ -1426,18 +1436,23 @@ This slice creates the renderer object that the first adapter can host.
 
 ### Slice 3: Root adapter introduction
 
-Slice 3 should cover:
+This slice is complete on this branch.
 
-- replacing the direct `PocketRelayApp -> ChatScreen` handoff with an adapter
-  host
-- giving that adapter ownership of:
+Slice 3 delivered:
+
+- replacing the direct `PocketRelayApp -> ChatScreen` handoff with
+  `PocketRelayApp -> ChatRootAdapter`
+- moving ownership of:
   - `ChatSessionController`
   - `ChatTranscriptFollowHost`
   - composer draft state
   - screen contract derivation
   - action dispatch
   - top-level effect routing
-- defaulting all regions to Flutter-backed rendering for parity
+  into `ChatRootAdapter`
+- preserving all-Flutter parity by having the adapter host
+  `FlutterChatScreenRenderer`
+- keeping `ChatScreen` as a compatibility wrapper instead of the app entry seam
 
 This is the slice where the root architectural adapter becomes real.
 
@@ -1523,15 +1538,16 @@ Unless broader behavior is explicitly requested, Phase 6 should preserve:
 
 The next active Phase 6 slice is:
 
-- root adapter introduction
+- overlay and region delegation
 
 Reason:
 
 - Slice 1 removed the main remaining Flutter-only input primitive from the
   adapter boundary
 - Slice 2 extracted the pure Flutter renderer object the adapter can host
-- the next structural cut is moving controller lifecycle and effect ownership
-  into the adapter seam itself
+- Slice 3 introduced the adapter host itself
+- the next structural cut is moving overlay execution and region ownership
+  behind explicit adapter delegates
 
 ### Phase 7
 

@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_screen.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
 
 class PocketRelayApp extends StatefulWidget {
   const PocketRelayApp({super.key, this.profileStore, this.appServerClient});
@@ -106,7 +106,7 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
       themeMode: ThemeMode.system,
       home: savedProfile == null
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : ChatScreen(
+          : ChatRootAdapter(
               profileStore: _profileStore,
               appServerClient: _appServerClient,
               initialSavedProfile: savedProfile,
