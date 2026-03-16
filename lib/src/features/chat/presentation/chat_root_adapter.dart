@@ -50,6 +50,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
   final _screenPresenter = const ChatScreenPresenter();
   late ChatSessionController _sessionController;
   StreamSubscription<ChatScreenEffect>? _screenEffectSubscription;
+  ConnectionMode? _preferredEmptyStateConnectionMode;
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     _screenEffectSubscription?.cancel();
     _sessionController.dispose();
     _sessionController = _buildSessionController();
+    _preferredEmptyStateConnectionMode = null;
     _composerDraftHost.reset();
     _transcriptFollowHost.reset();
     _bindScreenEffects();
@@ -129,6 +131,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       screen: screen,
       surfaceChangeToken: _sessionController.sessionState,
       onScreenAction: (action) => _handleScreenAction(action, screen),
+      onSelectConnectionMode: _selectConnectionMode,
       onAutoFollowEligibilityChanged: (isNearBottom) {
         _transcriptFollowHost.updateAutoFollowEligibility(
           isNearBottom: isNearBottom,
@@ -177,6 +180,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       sessionState: _sessionController.sessionState,
       composerDraft: _composerDraftHost.draft,
       transcriptFollow: _transcriptFollowHost.contract,
+      preferredConnectionMode: _preferredEmptyStateConnectionMode,
     );
   }
 
@@ -236,6 +240,11 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       profile: result.profile,
       secrets: result.secrets,
     );
+    if (mounted) {
+      setState(() {
+        _preferredEmptyStateConnectionMode = null;
+      });
+    }
   }
 
   Future<void> _openChangedFileDiff(ChatChangedFileDiffContract diff) async {
@@ -304,6 +313,16 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       source: ChatTranscriptFollowRequestSource.clearTranscript,
     );
     _sessionController.clearTranscript();
+  }
+
+  void _selectConnectionMode(ConnectionMode mode) {
+    if (_preferredEmptyStateConnectionMode == mode) {
+      return;
+    }
+
+    setState(() {
+      _preferredEmptyStateConnectionMode = mode;
+    });
   }
 
   void _handleScreenEffect(ChatScreenEffect effect) {

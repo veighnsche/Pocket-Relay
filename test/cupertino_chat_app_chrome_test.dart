@@ -53,6 +53,42 @@ void main() {
       ]);
     },
   );
+
+  testWidgets(
+    'cupertino app chrome keeps a stable background while leaving colors to Cupertino defaults',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Scaffold(
+            body: Column(
+              children: [
+                CupertinoChatAppChrome(
+                  screen: _screenContract(),
+                  onScreenAction: (_) {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final navBar = tester.widget<CupertinoNavigationBar>(
+        find.byType(CupertinoNavigationBar),
+      );
+      final context = tester.element(find.byType(CupertinoNavigationBar));
+
+      expect(navBar.automaticBackgroundVisibility, isFalse);
+      expect(
+        CupertinoDynamicColor.resolve(navBar.backgroundColor!, context),
+        CupertinoDynamicColor.resolve(
+          CupertinoColors.systemGroupedBackground.withValues(alpha: 0.88),
+          context,
+        ),
+      );
+      expect(navBar.border, isNotNull);
+    },
+  );
 }
 
 ChatScreenContract _screenContract() {

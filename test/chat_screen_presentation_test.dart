@@ -97,6 +97,34 @@ void main() {
       expect(contract.composer.isPrimaryActionEnabled, isTrue);
       expect(contract.turnIndicator?.timer, same(activeTurn.timer));
     });
+
+    test(
+      'uses a preferred empty-state connection mode without treating the profile as configured',
+      () {
+        final profile = ConnectionProfile.defaults();
+
+        final contract = presenter.present(
+          isLoading: false,
+          profile: profile,
+          secrets: const ConnectionSecrets(),
+          sessionState: CodexSessionState.initial(),
+          composerDraft: const ChatComposerDraft(),
+          transcriptFollow: _defaultTranscriptFollowContract,
+          preferredConnectionMode: ConnectionMode.local,
+        );
+
+        expect(
+          contract.transcriptSurface.emptyState?.connectionMode,
+          ConnectionMode.local,
+        );
+        expect(
+          contract.connectionSettings.initialProfile.connectionMode,
+          ConnectionMode.local,
+        );
+        expect(contract.transcriptSurface.isConfigured, isFalse);
+        expect(contract.composer.isTextInputEnabled, isFalse);
+      },
+    );
   });
 
   group('ChatTranscriptSurfaceProjector', () {

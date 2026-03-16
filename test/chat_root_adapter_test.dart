@@ -245,6 +245,53 @@ void main() {
   );
 
   testWidgets(
+    'desktop empty-state route selection seeds the settings payload',
+    (tester) async {
+      tester.view.physicalSize = const Size(1440, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final appServerClient = FakeCodexAppServerClient();
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          savedProfile: SavedProfile(
+            profile: ConnectionProfile.defaults(),
+            secrets: const ConnectionSecrets(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Local'));
+      await tester.tap(find.text('Local'));
+      await tester.pumpAndSettle();
+      final configureButton = find.widgetWithText(
+        FilledButton,
+        'Configure connection',
+      );
+      await tester.ensureVisible(configureButton);
+      await tester.tap(configureButton);
+      await tester.pumpAndSettle();
+
+      expect(overlayDelegate.connectionSettingsPayloads, hasLength(1));
+      expect(
+        overlayDelegate
+            .connectionSettingsPayloads
+            .single
+            .initialProfile
+            .connectionMode,
+        ConnectionMode.local,
+      );
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
+
+  testWidgets(
     'routes changed-file diff openings through the overlay delegate',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
@@ -427,6 +474,43 @@ void main() {
           theme: buildPocketTheme(
             Brightness.light,
           ).copyWith(platform: TargetPlatform.iOS),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        rendererDelegate.screenShellRenderer,
+        ChatRootScreenShellRenderer.cupertino,
+      );
+      expect(
+        rendererDelegate.renderersByRegion,
+        <ChatRootRegion, ChatRootRegionRenderer>{
+          ChatRootRegion.appChrome: ChatRootRegionRenderer.cupertino,
+          ChatRootRegion.transcript: ChatRootRegionRenderer.flutter,
+          ChatRootRegion.composer: ChatRootRegionRenderer.cupertino,
+        },
+      );
+      expect(find.text('Injected cupertino screen shell'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'applies the platform policy foundation for macOS without an explicit override',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final rendererDelegate = _FakeChatRootRendererDelegate();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          rendererDelegate: rendererDelegate,
+          platformPolicy: const ChatRootPlatformPolicy.cupertinoFoundation(),
+          theme: buildPocketTheme(
+            Brightness.light,
+          ).copyWith(platform: TargetPlatform.macOS),
         ),
       );
       await tester.pumpAndSettle();
@@ -799,6 +883,7 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<ConnectionMode> onSelectConnectionMode,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
     Future<void> Function(String requestId)? onApproveRequest,

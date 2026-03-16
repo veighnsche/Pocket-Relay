@@ -21,6 +21,7 @@ class ChatTranscriptSurfaceProjector {
   ChatTranscriptSurfaceContract project({
     required ConnectionProfile profile,
     required CodexSessionState sessionState,
+    ConnectionMode? emptyStateConnectionMode,
   }) {
     final mainItems = sessionState.transcriptBlocks
         .map(_itemProjector.project)
@@ -47,7 +48,11 @@ class ChatTranscriptSurfaceProjector {
       activePendingUserInputRequestIds: activePendingUserInputRequestIds,
       emptyState: hasVisibleConversation
           ? null
-          : ChatEmptyStateContract(isConfigured: profile.isReady),
+          : ChatEmptyStateContract(
+              isConfigured: profile.isReady,
+              connectionMode:
+                  emptyStateConnectionMode ?? profile.connectionMode,
+            ),
     );
   }
 

@@ -58,37 +58,48 @@ void main() {
     ]);
   });
 
-  testWidgets('forwards empty-state actions through transcript region', (
-    tester,
-  ) async {
-    final actions = <ChatScreenActionId>[];
+  testWidgets(
+    'forwards empty-state actions through transcript region',
+    (tester) async {
+      final actions = <ChatScreenActionId>[];
+      final selectedModes = <ConnectionMode>[];
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildPocketTheme(Brightness.light),
-        home: Scaffold(
-          body: FlutterChatTranscriptRegion(
-            screen: _screenContract(
-              isConfigured: false,
-              emptyState: const ChatEmptyStateContract(isConfigured: false),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Scaffold(
+            body: FlutterChatTranscriptRegion(
+              screen: _screenContract(
+                isConfigured: false,
+                emptyState: const ChatEmptyStateContract(
+                  isConfigured: false,
+                  connectionMode: ConnectionMode.remote,
+                ),
+              ),
+              onScreenAction: actions.add,
+              onSelectConnectionMode: selectedModes.add,
+              onAutoFollowEligibilityChanged: (_) {},
             ),
-            onScreenAction: actions.add,
-            onAutoFollowEligibilityChanged: (_) {},
           ),
         ),
-      ),
-    );
+      );
 
-    final configureButton = find.widgetWithText(
-      FilledButton,
-      'Configure remote',
-    );
-    await tester.ensureVisible(configureButton);
-    await tester.tap(configureButton);
-    await tester.pump();
+      await tester.tap(find.text('Local'));
+      await tester.pump();
 
-    expect(actions, <ChatScreenActionId>[ChatScreenActionId.openSettings]);
-  });
+      final configureButton = find.widgetWithText(
+        FilledButton,
+        'Configure connection',
+      );
+      await tester.ensureVisible(configureButton);
+      await tester.tap(configureButton);
+      await tester.pump();
+
+      expect(selectedModes, <ConnectionMode>[ConnectionMode.local]);
+      expect(actions, <ChatScreenActionId>[ChatScreenActionId.openSettings]);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
 
   testWidgets('forwards composer interactions through composer region', (
     tester,

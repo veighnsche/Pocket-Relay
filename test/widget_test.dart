@@ -65,6 +65,29 @@ void main() {
   );
 
   testWidgets(
+    'uses the cupertino foundation path by default on macOS while transcript stays on the flutter region path',
+    (tester) async {
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChatRootAdapter), findsOneWidget);
+      expect(find.byType(CupertinoChatScreenRenderer), findsOneWidget);
+      expect(find.byType(CupertinoChatAppChrome), findsOneWidget);
+      expect(find.byType(CupertinoChatComposerRegion), findsOneWidget);
+      expect(find.byType(FlutterChatTranscriptRegion), findsOneWidget);
+      expect(find.byType(FlutterChatScreenRenderer), findsNothing);
+      expect(find.byType(FlutterChatAppChrome), findsNothing);
+      expect(find.byType(FlutterChatComposerRegion), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
+
+  testWidgets(
     'shows a cupertino bootstrap shell while the profile is loading on iOS',
     (tester) async {
       final profileStore = _DeferredProfileStore();

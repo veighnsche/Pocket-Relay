@@ -34,9 +34,13 @@ class ChatHeaderContract {
 }
 
 class ChatEmptyStateContract {
-  const ChatEmptyStateContract({required this.isConfigured});
+  const ChatEmptyStateContract({
+    required this.isConfigured,
+    this.connectionMode = ConnectionMode.remote,
+  });
 
   final bool isConfigured;
+  final ConnectionMode connectionMode;
 }
 
 class ChatTranscriptSurfaceContract {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
@@ -29,6 +30,7 @@ abstract interface class ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<ConnectionMode> onSelectConnectionMode,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
     Future<void> Function(String requestId)? onApproveRequest,
@@ -99,6 +101,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<ConnectionMode> onSelectConnectionMode,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
     Future<void> Function(String requestId)? onApproveRequest,
@@ -114,6 +117,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
         emptyStateRenderer: emptyStateRenderer,
         surfaceChangeToken: surfaceChangeToken,
         onScreenAction: onScreenAction,
+        onSelectConnectionMode: onSelectConnectionMode,
         onAutoFollowEligibilityChanged: onAutoFollowEligibilityChanged,
         onApproveRequest: onApproveRequest,
         onDenyRequest: onDenyRequest,

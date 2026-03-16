@@ -20,18 +20,28 @@ class ChatScreenPresenter {
     required CodexSessionState sessionState,
     required ChatComposerDraft composerDraft,
     required ChatTranscriptFollowContract transcriptFollow,
+    ConnectionMode? preferredConnectionMode,
   }) {
     final isConfigured = profile.isReady;
     final isBusy = sessionState.isBusy;
     final canSend = isConfigured && !isLoading && !isBusy;
+    final displayConnectionMode =
+        preferredConnectionMode ?? profile.connectionMode;
+    final connectionSettingsProfile =
+        displayConnectionMode == profile.connectionMode
+        ? profile
+        : profile.copyWith(connectionMode: displayConnectionMode);
 
     return ChatScreenContract(
       isLoading: isLoading,
       header: ChatHeaderContract(
         title: 'Pocket Relay',
         subtitle: isConfigured
-            ? '${profile.label} · ${profile.host}'
-            : 'Configure a remote box',
+            ? switch (profile.connectionMode) {
+                ConnectionMode.remote => '${profile.label} · ${profile.host}',
+                ConnectionMode.local => '${profile.label} · local Codex',
+              }
+            : 'Configure Codex',
       ),
       actions: const <ChatScreenActionContract>[
         ChatScreenActionContract(
@@ -55,6 +65,7 @@ class ChatScreenPresenter {
       transcriptSurface: _transcriptSurfaceProjector.project(
         profile: profile,
         sessionState: sessionState,
+        emptyStateConnectionMode: displayConnectionMode,
       ),
       transcriptFollow: transcriptFollow,
       composer: ChatComposerContract(
@@ -68,7 +79,7 @@ class ChatScreenPresenter {
             : ChatComposerPrimaryAction.send,
       ),
       connectionSettings: ChatConnectionSettingsLaunchContract(
-        initialProfile: profile,
+        initialProfile: connectionSettingsProfile,
         initialSecrets: secrets,
       ),
       turnIndicator: switch (sessionState.activeTurn?.timer) {
