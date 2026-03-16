@@ -23,9 +23,6 @@ class CupertinoChatAppChrome extends StatelessWidget
       transitionBetweenRoutes: false,
       automaticallyImplyLeading: false,
       automaticBackgroundVisibility: false,
-      backgroundColor: CupertinoColors.systemGroupedBackground.withValues(
-        alpha: 0.88,
-      ),
       middle: ChatAppChromeTitle(
         header: screen.header,
         style: ChatAppChromeStyle.cupertino,

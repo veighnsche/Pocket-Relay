@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
+import 'package:pocket_relay/src/core/theme/pocket_cupertino_theme.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
@@ -184,7 +185,7 @@ class _CupertinoBootstrapShell extends StatelessWidget {
     final palette = context.pocketPalette;
 
     return CupertinoTheme(
-      data: MaterialBasedCupertinoThemeData(materialTheme: Theme.of(context)),
+      data: buildPocketCupertinoTheme(Theme.of(context)),
       child: CupertinoPageScaffold(
         backgroundColor: palette.backgroundTop,
         child: const _BootstrapBackground(

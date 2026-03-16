@@ -55,7 +55,7 @@ void main() {
   );
 
   testWidgets(
-    'cupertino app chrome keeps a stable background while leaving colors to Cupertino defaults',
+    'cupertino app chrome keeps a stable native background configuration',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -76,17 +76,10 @@ void main() {
       final navBar = tester.widget<CupertinoNavigationBar>(
         find.byType(CupertinoNavigationBar),
       );
-      final context = tester.element(find.byType(CupertinoNavigationBar));
 
       expect(navBar.automaticBackgroundVisibility, isFalse);
-      expect(
-        CupertinoDynamicColor.resolve(navBar.backgroundColor!, context),
-        CupertinoDynamicColor.resolve(
-          CupertinoColors.systemGroupedBackground.withValues(alpha: 0.88),
-          context,
-        ),
-      );
-      expect(navBar.border, isNotNull);
+      expect(navBar.backgroundColor, isNull);
+      expect(navBar.brightness, isNull);
     },
   );
 }
