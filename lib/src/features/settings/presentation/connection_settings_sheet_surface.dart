@@ -22,7 +22,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final contract = viewModel.contract;
-    final identityFields = viewModel.fieldMap(contract.identitySection.fields);
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,59 +33,46 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
         const SizedBox(height: 20),
         _buildSection(
           context,
-          title: contract.identitySection.title,
-          child: Column(
-            children: [
-              _buildTextField(
-                context,
-                identityFields[ConnectionSettingsFieldId.label]!,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _buildTextField(
-                      context,
-                      identityFields[ConnectionSettingsFieldId.host]!,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(
-                      context,
-                      identityFields[ConnectionSettingsFieldId.port]!,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                context,
-                identityFields[ConnectionSettingsFieldId.username]!,
-              ),
-            ],
-          ),
+          title: contract.profileSection.title,
+          child: _buildFieldColumn(context, contract.profileSection.fields),
         ),
+        if (contract.connectionModeSection case final modeSection?) ...[
+          const SizedBox(height: 14),
+          _buildSection(
+            context,
+            title: modeSection.title,
+            child: _buildConnectionModePicker(context, modeSection),
+          ),
+        ],
+        if (contract.remoteConnectionSection case final remoteSection?) ...[
+          const SizedBox(height: 14),
+          _buildSection(
+            context,
+            title: remoteSection.title,
+            child: _buildRemoteConnectionFields(context, remoteSection.fields),
+          ),
+        ],
         const SizedBox(height: 14),
         _buildSection(
           context,
-          title: contract.remoteCodexSection.title,
-          child: _buildFieldColumn(context, contract.remoteCodexSection.fields),
+          title: contract.codexSection.title,
+          child: _buildFieldColumn(context, contract.codexSection.fields),
         ),
-        const SizedBox(height: 14),
-        _buildSection(
-          context,
-          title: contract.authenticationSection.title,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAuthModePicker(context, contract.authenticationSection),
-              const SizedBox(height: 14),
-              _buildFieldColumn(context, contract.authenticationSection.fields),
-            ],
+        if (contract.authenticationSection case final authSection?) ...[
+          const SizedBox(height: 14),
+          _buildSection(
+            context,
+            title: authSection.title,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAuthModePicker(context, authSection),
+                const SizedBox(height: 14),
+                _buildFieldColumn(context, authSection.fields),
+              ],
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 14),
         _buildSection(
           context,
@@ -226,6 +212,40 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
+  Widget _buildRemoteConnectionFields(
+    BuildContext context,
+    List<ConnectionSettingsTextFieldContract> fields,
+  ) {
+    final fieldMap = viewModel.fieldMap(fields);
+    final hostField = fieldMap[ConnectionSettingsFieldId.host];
+    final portField = fieldMap[ConnectionSettingsFieldId.port];
+    final usernameField = fieldMap[ConnectionSettingsFieldId.username];
+    final fingerprintField =
+        fieldMap[ConnectionSettingsFieldId.hostFingerprint];
+    if (hostField == null ||
+        portField == null ||
+        usernameField == null ||
+        fingerprintField == null) {
+      return _buildFieldColumn(context, fields);
+    }
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(flex: 3, child: _buildTextField(context, hostField)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildTextField(context, portField)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(context, usernameField),
+        const SizedBox(height: 12),
+        _buildTextField(context, fingerprintField),
+      ],
+    );
+  }
+
   Widget _buildSection(
     BuildContext context, {
     required String title,
@@ -337,7 +357,9 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
               color: _cupertinoFieldColor(context),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _cupertinoSeparatorColor(context).withValues(alpha: 0.14),
+                color: _cupertinoSeparatorColor(
+                  context,
+                ).withValues(alpha: 0.14),
               ),
             ),
             onChanged: (value) {
@@ -412,6 +434,52 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           onValueChanged: (value) {
             if (value != null) {
               actions.onAuthModeChanged(value);
+            }
+          },
+        ),
+    };
+  }
+
+  Widget _buildConnectionModePicker(
+    BuildContext context,
+    ConnectionSettingsConnectionModeSectionContract section,
+  ) {
+    return switch (style) {
+      ConnectionSettingsSheetStyle.material => SegmentedButton<ConnectionMode>(
+        segments: section.options
+            .map(
+              (option) => ButtonSegment<ConnectionMode>(
+                value: option.mode,
+                label: Text(option.label),
+                icon: Icon(_materialConnectionModeIcon(option.mode)),
+              ),
+            )
+            .toList(growable: false),
+        selected: <ConnectionMode>{section.selectedMode},
+        onSelectionChanged: (selection) {
+          actions.onConnectionModeChanged(selection.first);
+        },
+      ),
+      ConnectionSettingsSheetStyle.cupertino =>
+        CupertinoSlidingSegmentedControl<ConnectionMode>(
+          groupValue: section.selectedMode,
+          children: <ConnectionMode, Widget>{
+            for (final option in section.options)
+              option.mode: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_cupertinoConnectionModeIcon(option.mode), size: 16),
+                    const SizedBox(width: 6),
+                    Text(option.label),
+                  ],
+                ),
+              ),
+          },
+          onValueChanged: (value) {
+            if (value != null) {
+              actions.onConnectionModeChanged(value);
             }
           },
         ),
@@ -569,10 +637,24 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     };
   }
 
+  IconData _materialConnectionModeIcon(ConnectionMode mode) {
+    return switch (mode) {
+      ConnectionMode.remote => Icons.cloud_outlined,
+      ConnectionMode.local => Icons.laptop_mac_outlined,
+    };
+  }
+
   IconData _cupertinoAuthIcon(ConnectionSettingsAuthOptionContract option) {
     return switch (option.icon) {
       ConnectionSettingsAuthOptionIcon.password => CupertinoIcons.lock_fill,
       ConnectionSettingsAuthOptionIcon.privateKey => CupertinoIcons.lock_shield,
+    };
+  }
+
+  IconData _cupertinoConnectionModeIcon(ConnectionMode mode) {
+    return switch (mode) {
+      ConnectionMode.remote => CupertinoIcons.cloud,
+      ConnectionMode.local => CupertinoIcons.desktopcomputer,
     };
   }
 

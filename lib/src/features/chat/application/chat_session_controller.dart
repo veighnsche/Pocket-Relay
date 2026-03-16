@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
+import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
 import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
@@ -18,8 +19,11 @@ class ChatSessionController extends ChangeNotifier {
     SavedProfile? initialSavedProfile,
     TranscriptReducer reducer = const TranscriptReducer(),
     CodexRuntimeEventMapper? runtimeEventMapper,
+    bool? supportsLocalConnectionMode,
   }) : _sessionReducer = reducer,
-       _runtimeEventMapper = runtimeEventMapper ?? CodexRuntimeEventMapper() {
+       _runtimeEventMapper = runtimeEventMapper ?? CodexRuntimeEventMapper(),
+       _supportsLocalConnectionMode =
+           supportsLocalConnectionMode ?? supportsLocalCodexConnection() {
     final initial = initialSavedProfile;
     if (initial != null) {
       _profile = initial.profile;
@@ -36,6 +40,7 @@ class ChatSessionController extends ChangeNotifier {
 
   final TranscriptReducer _sessionReducer;
   final CodexRuntimeEventMapper _runtimeEventMapper;
+  final bool _supportsLocalConnectionMode;
   final _snackBarMessagesController = StreamController<String>.broadcast();
 
   ConnectionProfile _profile = ConnectionProfile.defaults();
@@ -170,7 +175,7 @@ class ChatSessionController extends ChangeNotifier {
     _applySessionState(
       _sessionReducer.startFreshThread(
         _sessionState,
-        message: 'The next prompt will start a fresh remote Codex thread.',
+        message: 'The next prompt will start a fresh Codex thread.',
       ),
     );
   }
@@ -231,7 +236,16 @@ class ChatSessionController extends ChangeNotifier {
 
   String? _validateProfileForSend() {
     if (!_profile.isReady) {
-      return 'Fill in the remote connection details first.';
+      return switch (_profile.connectionMode) {
+        ConnectionMode.remote => 'Fill in the remote connection details first.',
+        ConnectionMode.local => 'Fill in the local Codex settings first.',
+      };
+    }
+    if (_profile.connectionMode == ConnectionMode.local) {
+      if (!_supportsLocalConnectionMode) {
+        return 'Local Codex is only available on desktop.';
+      }
+      return null;
     }
     if (_profile.authMode == AuthMode.password && !_secrets.hasPassword) {
       return 'This profile needs an SSH password.';
@@ -390,7 +404,7 @@ class ChatSessionController extends ChangeNotifier {
       await Future<void>.microtask(() {});
       _reportAppServerFailure(
         title: 'Send failed',
-        message: 'Could not send the prompt to the remote Codex session.',
+        message: 'Could not send the prompt to the ${_sessionLabel()} session.',
         error: error,
         suppressRuntimeError: _sawTrackedSshBootstrapFailure,
       );
@@ -536,6 +550,13 @@ class ChatSessionController extends ChangeNotifier {
       return;
     }
     _snackBarMessagesController.add(message);
+  }
+
+  String _sessionLabel() {
+    return switch (_profile.connectionMode) {
+      ConnectionMode.remote => 'remote Codex',
+      ConnectionMode.local => 'local Codex',
+    };
   }
 
   static Map<String, dynamic>? _asObject(Object? value) {

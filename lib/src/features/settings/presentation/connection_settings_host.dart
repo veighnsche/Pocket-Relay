@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_draft.dart';
@@ -19,6 +20,7 @@ class ConnectionSettingsHost extends StatefulWidget {
     required this.onCancel,
     required this.onSubmit,
     required this.builder,
+    this.supportsLocalConnectionMode,
   });
 
   final ConnectionProfile initialProfile;
@@ -26,6 +28,7 @@ class ConnectionSettingsHost extends StatefulWidget {
   final VoidCallback onCancel;
   final ValueChanged<ConnectionSettingsSubmitPayload> onSubmit;
   final ConnectionSettingsHostBuilder builder;
+  final bool? supportsLocalConnectionMode;
 
   @override
   State<ConnectionSettingsHost> createState() => _ConnectionSettingsHostState();
@@ -69,6 +72,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       ),
       ConnectionSettingsHostActions(
         onFieldChanged: _updateField,
+        onConnectionModeChanged: _updateConnectionMode,
         onAuthModeChanged: _updateAuthMode,
         onToggleChanged: _updateToggle,
         onCancel: widget.onCancel,
@@ -84,6 +88,8 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       initialProfile: widget.initialProfile,
       initialSecrets: widget.initialSecrets,
       formState: formState ?? _formState,
+      supportsLocalConnectionMode:
+          widget.supportsLocalConnectionMode ?? supportsLocalCodexConnection(),
     );
   }
 
@@ -91,6 +97,14 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
     setState(() {
       _formState = _formState.copyWith(
         draft: _formState.draft.copyWithField(fieldId, value),
+      );
+    });
+  }
+
+  void _updateConnectionMode(ConnectionMode connectionMode) {
+    setState(() {
+      _formState = _formState.copyWith(
+        draft: _formState.draft.copyWithConnectionMode(connectionMode),
       );
     });
   }
@@ -152,6 +166,7 @@ class ConnectionSettingsHostViewModel {
 class ConnectionSettingsHostActions {
   const ConnectionSettingsHostActions({
     required this.onFieldChanged,
+    required this.onConnectionModeChanged,
     required this.onAuthModeChanged,
     required this.onToggleChanged,
     required this.onCancel,
@@ -160,6 +175,7 @@ class ConnectionSettingsHostActions {
 
   final void Function(ConnectionSettingsFieldId fieldId, String value)
   onFieldChanged;
+  final ValueChanged<ConnectionMode> onConnectionModeChanged;
   final ValueChanged<AuthMode> onAuthModeChanged;
   final void Function(ConnectionSettingsToggleId toggleId, bool value)
   onToggleChanged;

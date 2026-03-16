@@ -17,10 +17,31 @@ enum ConnectionSettingsKeyboardType { text, number }
 
 enum ConnectionSettingsAuthOptionIcon { password, privateKey }
 
-enum ConnectionSettingsToggleId {
-  dangerouslyBypassSandbox,
-  ephemeralSession,
+class ConnectionSettingsConnectionModeOptionContract {
+  const ConnectionSettingsConnectionModeOptionContract({
+    required this.mode,
+    required this.label,
+    required this.description,
+  });
+
+  final ConnectionMode mode;
+  final String label;
+  final String description;
 }
+
+class ConnectionSettingsConnectionModeSectionContract {
+  const ConnectionSettingsConnectionModeSectionContract({
+    required this.title,
+    required this.selectedMode,
+    required this.options,
+  });
+
+  final String title;
+  final ConnectionMode selectedMode;
+  final List<ConnectionSettingsConnectionModeOptionContract> options;
+}
+
+enum ConnectionSettingsToggleId { dangerouslyBypassSandbox, ephemeralSession }
 
 class ConnectionSettingsTextFieldContract {
   const ConnectionSettingsTextFieldContract({
@@ -86,6 +107,16 @@ class ConnectionSettingsAuthenticationSectionContract {
   final List<ConnectionSettingsTextFieldContract> fields;
 }
 
+class ConnectionSettingsSectionContract {
+  const ConnectionSettingsSectionContract({
+    required this.title,
+    required this.fields,
+  });
+
+  final String title;
+  final List<ConnectionSettingsTextFieldContract> fields;
+}
+
 class ConnectionSettingsToggleContract {
   const ConnectionSettingsToggleContract({
     required this.id,
@@ -140,18 +171,22 @@ class ConnectionSettingsContract {
   const ConnectionSettingsContract({
     required this.title,
     required this.description,
-    required this.identitySection,
-    required this.remoteCodexSection,
-    required this.authenticationSection,
+    required this.profileSection,
+    required this.codexSection,
     required this.runModeSection,
     required this.saveAction,
+    this.connectionModeSection,
+    this.remoteConnectionSection,
+    this.authenticationSection,
   });
 
   final String title;
   final String description;
-  final ConnectionSettingsFieldSectionContract identitySection;
-  final ConnectionSettingsFieldSectionContract remoteCodexSection;
-  final ConnectionSettingsAuthenticationSectionContract authenticationSection;
+  final ConnectionSettingsSectionContract profileSection;
+  final ConnectionSettingsSectionContract codexSection;
+  final ConnectionSettingsConnectionModeSectionContract? connectionModeSection;
+  final ConnectionSettingsSectionContract? remoteConnectionSection;
+  final ConnectionSettingsAuthenticationSectionContract? authenticationSection;
   final ConnectionSettingsRunModeSectionContract runModeSection;
   final ConnectionSettingsSaveActionContract saveAction;
 }

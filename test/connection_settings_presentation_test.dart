@@ -37,47 +37,26 @@ void main() {
 
         expect(
           _field(
-            hiddenErrors.identitySection,
-            ConnectionSettingsFieldId.host,
-          ).errorText,
-          isNull,
-        );
-        expect(
-          _field(
-            hiddenErrors.identitySection,
-            ConnectionSettingsFieldId.port,
-          ).errorText,
-          isNull,
-        );
-        expect(
-          _field(
-            hiddenErrors.authenticationSection,
-            ConnectionSettingsFieldId.password,
-          ).errorText,
-          isNull,
-        );
-        expect(hiddenErrors.saveAction.canSubmit, isFalse);
-        expect(
-          _field(
-            visibleErrors.identitySection,
+            visibleErrors.remoteConnectionSection!,
             ConnectionSettingsFieldId.host,
           ).errorText,
           'Host is required',
         );
         expect(
           _field(
-            visibleErrors.identitySection,
+            visibleErrors.remoteConnectionSection!,
             ConnectionSettingsFieldId.port,
           ).errorText,
           'Bad port',
         );
         expect(
           _field(
-            visibleErrors.authenticationSection,
+            visibleErrors.authenticationSection!,
             ConnectionSettingsFieldId.password,
           ).errorText,
           'Password is required',
         );
+        expect(hiddenErrors.saveAction.canSubmit, isFalse);
         expect(visibleErrors.saveAction.canSubmit, isFalse);
         expect(visibleErrors.saveAction.submitPayload, isNull);
       },
@@ -104,20 +83,57 @@ void main() {
         formState: formState,
       );
 
-      expect(contract.authenticationSection.selectedMode, AuthMode.privateKey);
+      final authSection = contract.authenticationSection!;
+      expect(authSection.selectedMode, AuthMode.privateKey);
       expect(
-        contract.authenticationSection.fields.map((field) => field.id),
+        authSection.fields.map((field) => field.id),
         <ConnectionSettingsFieldId>[
           ConnectionSettingsFieldId.privateKeyPem,
           ConnectionSettingsFieldId.privateKeyPassphrase,
         ],
       );
       expect(
-        _field(
-          contract.authenticationSection,
-          ConnectionSettingsFieldId.privateKeyPem,
-        ).errorText,
+        _field(authSection, ConnectionSettingsFieldId.privateKeyPem).errorText,
         'Private key is required',
+      );
+    });
+
+    test('desktop local mode hides SSH sections and saves a local profile', () {
+      final initialProfile = _configuredProfile();
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState =
+          ConnectionSettingsFormState.initial(
+            profile: initialProfile,
+            secrets: initialSecrets,
+          ).copyWith(
+            draft:
+                ConnectionSettingsDraft.fromConnection(
+                  profile: initialProfile,
+                  secrets: initialSecrets,
+                ).copyWith(
+                  connectionMode: ConnectionMode.local,
+                  workspaceDir: '/Users/vince/Projects/Pocket-Relay',
+                ),
+            showValidationErrors: true,
+          );
+
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        supportsLocalConnectionMode: true,
+      );
+      final payload = contract.saveAction.submitPayload;
+
+      expect(contract.connectionModeSection, isNotNull);
+      expect(contract.remoteConnectionSection, isNull);
+      expect(contract.authenticationSection, isNull);
+      expect(contract.codexSection.title, 'Local Codex');
+      expect(payload, isNotNull);
+      expect(payload!.profile.connectionMode, ConnectionMode.local);
+      expect(
+        payload.profile.workspaceDir,
+        '/Users/vince/Projects/Pocket-Relay',
       );
     });
 
@@ -168,7 +184,7 @@ ConnectionSettingsTextFieldContract _field(
   ConnectionSettingsFieldId fieldId,
 ) {
   final fields = switch (section) {
-    ConnectionSettingsFieldSectionContract(:final fields) => fields,
+    ConnectionSettingsSectionContract(:final fields) => fields,
     ConnectionSettingsAuthenticationSectionContract(:final fields) => fields,
     _ => throw ArgumentError.value(section, 'section'),
   };
