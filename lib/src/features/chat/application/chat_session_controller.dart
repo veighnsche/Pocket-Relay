@@ -47,6 +47,7 @@ class ChatSessionController extends ChangeNotifier {
   bool _isDisposed = false;
   bool _isTrackingSshBootstrapFailures = false;
   bool _sawTrackedSshBootstrapFailure = false;
+  final Set<String> _threadMetadataHydrationAttempts = <String>{};
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
 
   Stream<String> get snackBarMessages => _snackBarMessagesController.stream;
@@ -387,6 +388,9 @@ class ChatSessionController extends ChangeNotifier {
     _applySessionState(
       _sessionReducer.reduceRuntimeEvent(_sessionState, event),
     );
+    if (event is CodexRuntimeThreadStartedEvent) {
+      unawaited(_hydrateThreadMetadataIfNeeded(event));
+    }
   }
 
   Future<bool> _sendPromptWithAppServer(String prompt) async {
@@ -475,9 +479,13 @@ class ChatSessionController extends ChangeNotifier {
     try {
       final targetTimeline =
           _sessionState.selectedTimeline ?? _sessionState.rootTimeline;
+      final turnId = targetTimeline?.activeTurn?.turnId;
+      if (targetTimeline == null || turnId == null) {
+        return;
+      }
       await appServerClient.abortTurn(
-        threadId: targetTimeline?.threadId,
-        turnId: targetTimeline?.activeTurn?.turnId,
+        threadId: targetTimeline.threadId,
+        turnId: turnId,
       );
     } catch (error) {
       _reportAppServerFailure(
@@ -549,6 +557,91 @@ class ChatSessionController extends ChangeNotifier {
     }
 
     return null;
+  }
+
+  Future<void> _hydrateThreadMetadataIfNeeded(
+    CodexRuntimeThreadStartedEvent event,
+  ) async {
+    final threadId = event.providerThreadId.trim();
+    if (!_shouldHydrateThreadMetadata(threadId, event)) {
+      return;
+    }
+
+    _threadMetadataHydrationAttempts.add(threadId);
+    try {
+      final thread = await appServerClient.readThread(threadId: threadId);
+      if (_isDisposed || !_hasThreadMetadata(thread)) {
+        return;
+      }
+
+      _applyRuntimeEvent(
+        CodexRuntimeThreadStartedEvent(
+          createdAt: DateTime.now(),
+          threadId: thread.id,
+          providerThreadId: thread.id,
+          rawMethod: 'thread/read(response)',
+          threadName: thread.name,
+          sourceKind: thread.sourceKind,
+          agentNickname: thread.agentNickname,
+          agentRole: thread.agentRole,
+        ),
+      );
+    } catch (_) {
+      // Thread metadata hydration is best-effort only.
+    }
+  }
+
+  bool _shouldHydrateThreadMetadata(
+    String threadId,
+    CodexRuntimeThreadStartedEvent event,
+  ) {
+    if (threadId.isEmpty ||
+        event.rawMethod == 'thread/read(response)' ||
+        _threadMetadataHydrationAttempts.contains(threadId)) {
+      return false;
+    }
+
+    final existingEntry = _sessionState.threadRegistry[threadId];
+    return !_hasThreadDisplayMetadataValues(
+      threadName: existingEntry?.threadName ?? event.threadName,
+      agentNickname: existingEntry?.agentNickname ?? event.agentNickname,
+      agentRole: existingEntry?.agentRole ?? event.agentRole,
+    );
+  }
+
+  bool _hasThreadMetadata(CodexAppServerThread thread) {
+    return _hasThreadMetadataValues(
+      threadName: thread.name,
+      agentNickname: thread.agentNickname,
+      agentRole: thread.agentRole,
+      sourceKind: thread.sourceKind,
+    );
+  }
+
+  bool _hasThreadMetadataValues({
+    String? threadName,
+    String? agentNickname,
+    String? agentRole,
+    String? sourceKind,
+  }) {
+    return _hasNonEmptyValue(threadName) ||
+        _hasNonEmptyValue(agentNickname) ||
+        _hasNonEmptyValue(agentRole) ||
+        _hasNonEmptyValue(sourceKind);
+  }
+
+  bool _hasThreadDisplayMetadataValues({
+    String? threadName,
+    String? agentNickname,
+    String? agentRole,
+  }) {
+    return _hasNonEmptyValue(threadName) ||
+        _hasNonEmptyValue(agentNickname) ||
+        _hasNonEmptyValue(agentRole);
+  }
+
+  bool _hasNonEmptyValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
   }
 
   Object? _elicitationContentFromAnswers(Map<String, List<String>> answers) {

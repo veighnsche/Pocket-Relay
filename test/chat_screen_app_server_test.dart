@@ -135,6 +135,96 @@ void main() {
     expect(find.textContaining('Could not send the prompt'), findsOneWidget);
   });
 
+  testWidgets('child agent output stays on its own timeline until selected', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      PocketRelayApp(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'thread/started',
+        params: <String, Object?>{
+          'thread': <String, Object?>{'id': 'thread_root'},
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'thread/started',
+        params: <String, Object?>{
+          'thread': <String, Object?>{
+            'id': 'thread_child',
+            'agentNickname': 'Reviewer',
+          },
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/started',
+        params: <String, Object?>{
+          'threadId': 'thread_child',
+          'turn': <String, Object?>{'id': 'turn_child_1', 'status': 'running'},
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_child',
+          'turnId': 'turn_child_1',
+          'item': <String, Object?>{
+            'id': 'item_child_1',
+            'type': 'agentMessage',
+            'status': 'completed',
+            'text': 'Child analysis',
+          },
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_child',
+          'turn': <String, Object?>{
+            'id': 'turn_child_1',
+            'status': 'completed',
+          },
+        },
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('timeline_thread_child')), findsOneWidget);
+    expect(find.text('Reviewer'), findsOneWidget);
+    expect(find.text('New'), findsOneWidget);
+    expect(find.text('Child analysis'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('timeline_thread_child')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Child analysis'), findsOneWidget);
+    expect(find.text('New'), findsNothing);
+  });
+
   testWidgets(
     'renders an actionable host fingerprint card and saves it into connection settings',
     (tester) async {

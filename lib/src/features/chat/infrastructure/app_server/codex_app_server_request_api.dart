@@ -61,7 +61,10 @@ class CodexAppServerRequestApi {
     }
 
     final payload = _requireObject(response, '$method response');
-    final thread = _asThread(payload['thread'], fallbackThreadId: payload['threadId']);
+    final thread = _asThread(
+      payload['thread'],
+      fallbackThreadId: payload['threadId'],
+    );
     final threadId = thread?.id ?? '';
 
     if (threadId.isEmpty) {
@@ -94,12 +97,15 @@ class CodexAppServerRequestApi {
       throw const CodexAppServerException('Thread id cannot be empty.');
     }
 
-    final response = await connection.sendRequest('thread/read', <String, Object?>{
-      'threadId': effectiveThreadId,
-      'includeTurns': false,
-    });
+    final response = await connection.sendRequest(
+      'thread/read',
+      <String, Object?>{'threadId': effectiveThreadId, 'includeTurns': false},
+    );
     final payload = _requireObject(response, 'thread/read response');
-    final thread = _asThread(payload['thread'], fallbackThreadId: effectiveThreadId);
+    final thread = _asThread(
+      payload['thread'],
+      fallbackThreadId: effectiveThreadId,
+    );
     if (thread == null) {
       throw const CodexAppServerException(
         'thread/read response did not include a thread object.',
@@ -297,16 +303,13 @@ class CodexAppServerRequestApi {
     String? threadId,
     String? turnId,
   }) async {
-    final effectiveThreadId = threadId ?? connection.threadId;
-    final effectiveTurnId = turnId ?? connection.activeTurnId;
-
-    if (effectiveThreadId == null || effectiveTurnId == null) {
+    if (threadId == null || turnId == null) {
       return;
     }
 
     await connection.sendRequest('turn/interrupt', <String, Object?>{
-      'threadId': effectiveThreadId,
-      'turnId': effectiveTurnId,
+      'threadId': threadId,
+      'turnId': turnId,
     });
   }
 

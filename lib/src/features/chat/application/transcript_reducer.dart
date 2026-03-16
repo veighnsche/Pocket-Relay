@@ -219,7 +219,7 @@ class TranscriptReducer {
       case CodexRuntimeThreadStateChangedEvent():
         return _reduceThreadStateChanged(state, event);
       case CodexRuntimeSshAuthenticatedEvent() ||
-            CodexRuntimeSshRemoteProcessStartedEvent():
+          CodexRuntimeSshRemoteProcessStartedEvent():
         return state;
       default:
         break;
@@ -321,14 +321,18 @@ class TranscriptReducer {
     nextRegistry[threadId] = _upsertRegistryEntry(
       nextRegistry[threadId],
       threadId: threadId,
-      isPrimary: state.rootThreadId == null ? true : nextRegistry[threadId]?.isPrimary == true,
+      isPrimary: state.rootThreadId == null
+          ? true
+          : nextRegistry[threadId]?.isPrimary == true,
+      threadName: event.threadName,
       sourceKind: event.sourceKind,
       agentNickname: event.agentNickname,
       agentRole: event.agentRole,
       isClosed: false,
       parentThreadId: nextRegistry[threadId]?.parentThreadId,
       spawnItemId: nextRegistry[threadId]?.spawnItemId,
-      displayOrder: nextRegistry[threadId]?.displayOrder ??
+      displayOrder:
+          nextRegistry[threadId]?.displayOrder ??
           (state.rootThreadId == null ? 0 : _nextDisplayOrder(nextRegistry)),
       childThreadIds: nextRegistry[threadId]?.childThreadIds,
     );
@@ -422,8 +426,7 @@ class TranscriptReducer {
             reducedLegacyState.pendingLocalUserMessageBlockIds,
         localUserMessageProviderBindings:
             reducedLegacyState.localUserMessageProviderBindings,
-        hasUnreadActivity:
-            threadId == state.effectiveSelectedThreadId
+        hasUnreadActivity: threadId == state.effectiveSelectedThreadId
             ? false
             : true,
       ),
@@ -452,6 +455,7 @@ class TranscriptReducer {
       rootThreadId: CodexThreadRegistryEntry(
         threadId: rootThreadId,
         displayOrder: 0,
+        threadName: event.threadName,
         agentNickname: event.agentNickname,
         agentRole: event.agentRole,
         sourceKind: event.sourceKind,
@@ -497,14 +501,18 @@ class TranscriptReducer {
       nextRegistry[senderThreadId],
       threadId: senderThreadId,
       isPrimary: state.rootThreadId == senderThreadId,
+      threadName: nextRegistry[senderThreadId]?.threadName,
       sourceKind: nextRegistry[senderThreadId]?.sourceKind,
       agentNickname: nextRegistry[senderThreadId]?.agentNickname,
       agentRole: nextRegistry[senderThreadId]?.agentRole,
       isClosed: nextRegistry[senderThreadId]?.isClosed ?? false,
       parentThreadId: nextRegistry[senderThreadId]?.parentThreadId,
       spawnItemId: nextRegistry[senderThreadId]?.spawnItemId,
-      displayOrder: nextRegistry[senderThreadId]?.displayOrder ??
-          (state.rootThreadId == senderThreadId ? 0 : _nextDisplayOrder(nextRegistry)),
+      displayOrder:
+          nextRegistry[senderThreadId]?.displayOrder ??
+          (state.rootThreadId == senderThreadId
+              ? 0
+              : _nextDisplayOrder(nextRegistry)),
       childThreadIds: _mergedChildThreadIds(
         nextRegistry[senderThreadId]?.childThreadIds,
         collaboration.receiverThreadIds,
@@ -518,14 +526,15 @@ class TranscriptReducer {
         existingEntry,
         threadId: receiverThreadId,
         isPrimary: false,
+        threadName: existingEntry?.threadName,
         sourceKind: existingEntry?.sourceKind,
         agentNickname: existingEntry?.agentNickname,
         agentRole: existingEntry?.agentRole,
         isClosed: existingEntry?.isClosed ?? false,
         parentThreadId: senderThreadId,
         spawnItemId: event.itemId,
-        displayOrder: existingEntry?.displayOrder ??
-            _nextDisplayOrder(nextRegistry),
+        displayOrder:
+            existingEntry?.displayOrder ?? _nextDisplayOrder(nextRegistry),
         childThreadIds: existingEntry?.childThreadIds,
       );
 
@@ -552,7 +561,8 @@ class TranscriptReducer {
 
     final targetTimeline = nextTimelines[targetThreadId];
     if (collaboration.tool == CodexRuntimeCollabAgentTool.wait &&
-        collaboration.status == CodexRuntimeCollabAgentToolCallStatus.inProgress &&
+        collaboration.status ==
+            CodexRuntimeCollabAgentToolCallStatus.inProgress &&
         targetTimeline != null) {
       nextTimelines[targetThreadId] = targetTimeline.copyWith(
         lifecycleState: CodexAgentLifecycleState.waitingOnChild,
@@ -598,22 +608,21 @@ class TranscriptReducer {
         CodexRuntimeTurnState.cancelled => CodexAgentLifecycleState.aborted,
       },
       CodexRuntimeTurnAbortedEvent() => CodexAgentLifecycleState.aborted,
-      CodexRuntimeRequestOpenedEvent(:final requestType) => requestType ==
-              CodexCanonicalRequestType.toolUserInput ||
-          requestType == CodexCanonicalRequestType.mcpServerElicitation
-          ? CodexAgentLifecycleState.blockedOnInput
-          : CodexAgentLifecycleState.blockedOnApproval,
+      CodexRuntimeRequestOpenedEvent(:final requestType) =>
+        requestType == CodexCanonicalRequestType.toolUserInput ||
+                requestType == CodexCanonicalRequestType.mcpServerElicitation
+            ? CodexAgentLifecycleState.blockedOnInput
+            : CodexAgentLifecycleState.blockedOnApproval,
       CodexRuntimeUserInputRequestedEvent() =>
         CodexAgentLifecycleState.blockedOnInput,
-      CodexRuntimeThreadStateChangedEvent(:final state) => _lifecycleForThreadState(
-        state,
-        fallback: timeline?.lifecycleState ?? CodexAgentLifecycleState.unknown,
-      ),
-      CodexRuntimeItemLifecycleEvent(:final collaboration?)
-          when collaboration.tool == CodexRuntimeCollabAgentTool.wait &&
-              collaboration.status ==
-                  CodexRuntimeCollabAgentToolCallStatus.inProgress =>
-        CodexAgentLifecycleState.waitingOnChild,
+      CodexRuntimeThreadStateChangedEvent(:final state) =>
+        _lifecycleForThreadState(
+          state,
+          fallback:
+              timeline?.lifecycleState ?? CodexAgentLifecycleState.unknown,
+        ),
+      CodexRuntimeItemLifecycleEvent(:final collaboration?) =>
+        _lifecycleOverrideForCollaboration(timeline, collaboration),
       _ => null,
     };
   }
@@ -692,18 +701,53 @@ class TranscriptReducer {
     return switch (collaboration.tool) {
       CodexRuntimeCollabAgentTool.spawnAgent =>
         collaboration.status == CodexRuntimeCollabAgentToolCallStatus.failed
-        ? CodexAgentLifecycleState.failed
-        : CodexAgentLifecycleState.starting,
+            ? CodexAgentLifecycleState.failed
+            : CodexAgentLifecycleState.starting,
       CodexRuntimeCollabAgentTool.closeAgent =>
         collaboration.status == CodexRuntimeCollabAgentToolCallStatus.completed
-        ? CodexAgentLifecycleState.closed
-        : CodexAgentLifecycleState.running,
+            ? CodexAgentLifecycleState.closed
+            : CodexAgentLifecycleState.running,
       CodexRuntimeCollabAgentTool.resumeAgent ||
-      CodexRuntimeCollabAgentTool.sendInput =>
-        CodexAgentLifecycleState.running,
+      CodexRuntimeCollabAgentTool.sendInput => CodexAgentLifecycleState.running,
       CodexRuntimeCollabAgentTool.wait => CodexAgentLifecycleState.running,
       CodexRuntimeCollabAgentTool.unknown => CodexAgentLifecycleState.unknown,
     };
+  }
+
+  CodexAgentLifecycleState? _lifecycleOverrideForCollaboration(
+    CodexTimelineState? timeline,
+    CodexRuntimeCollabAgentToolCall? collaboration,
+  ) {
+    if (collaboration == null) {
+      return null;
+    }
+
+    return switch (collaboration.tool) {
+      CodexRuntimeCollabAgentTool.wait => switch (collaboration.status) {
+        CodexRuntimeCollabAgentToolCallStatus.inProgress =>
+          CodexAgentLifecycleState.waitingOnChild,
+        CodexRuntimeCollabAgentToolCallStatus.completed ||
+        CodexRuntimeCollabAgentToolCallStatus.failed ||
+        CodexRuntimeCollabAgentToolCallStatus.unknown => _activeOrIdleLifecycle(
+          timeline,
+        ),
+      },
+      CodexRuntimeCollabAgentTool.spawnAgent ||
+      CodexRuntimeCollabAgentTool.resumeAgent ||
+      CodexRuntimeCollabAgentTool.sendInput ||
+      CodexRuntimeCollabAgentTool.closeAgent => _activeOrIdleLifecycle(
+        timeline,
+      ),
+      CodexRuntimeCollabAgentTool.unknown => null,
+    };
+  }
+
+  CodexAgentLifecycleState _activeOrIdleLifecycle(
+    CodexTimelineState? timeline,
+  ) {
+    return timeline?.activeTurn != null
+        ? CodexAgentLifecycleState.running
+        : CodexAgentLifecycleState.idle;
   }
 
   CodexThreadRegistryEntry _upsertRegistryEntry(
@@ -711,6 +755,7 @@ class TranscriptReducer {
     required String threadId,
     required int displayOrder,
     required bool isPrimary,
+    required String? threadName,
     required String? sourceKind,
     required String? agentNickname,
     required String? agentRole,
@@ -727,6 +772,7 @@ class TranscriptReducer {
         .copyWith(
           displayOrder: displayOrder,
           isPrimary: isPrimary,
+          threadName: threadName,
           sourceKind: sourceKind,
           agentNickname: agentNickname,
           agentRole: agentRole,
@@ -751,10 +797,7 @@ class TranscriptReducer {
     List<String>? existingChildThreadIds,
     List<String> nextChildThreadIds,
   ) {
-    final merged = <String>{
-      ...?existingChildThreadIds,
-      ...nextChildThreadIds,
-    };
+    final merged = <String>{...?existingChildThreadIds, ...nextChildThreadIds};
     return merged.toList(growable: false);
   }
 

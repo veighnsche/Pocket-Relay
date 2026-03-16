@@ -118,6 +118,10 @@ class ChatScreenPresenter {
     if (nickname != null && nickname.isNotEmpty) {
       return nickname;
     }
+    final threadName = entry.threadName?.trim();
+    if (threadName != null && threadName.isNotEmpty) {
+      return threadName;
+    }
     final role = entry.agentRole?.trim();
     if (role != null && role.isNotEmpty) {
       return role;

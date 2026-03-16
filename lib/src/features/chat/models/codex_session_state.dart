@@ -177,6 +177,7 @@ class CodexThreadRegistryEntry {
     required this.displayOrder,
     this.parentThreadId,
     this.childThreadIds = const <String>[],
+    this.threadName,
     this.agentNickname,
     this.agentRole,
     this.sourceKind,
@@ -189,6 +190,7 @@ class CodexThreadRegistryEntry {
   final int displayOrder;
   final String? parentThreadId;
   final List<String> childThreadIds;
+  final String? threadName;
   final String? agentNickname;
   final String? agentRole;
   final String? sourceKind;
@@ -201,6 +203,8 @@ class CodexThreadRegistryEntry {
     String? parentThreadId,
     bool clearParentThreadId = false,
     List<String>? childThreadIds,
+    String? threadName,
+    bool clearThreadName = false,
     String? agentNickname,
     bool clearAgentNickname = false,
     String? agentRole,
@@ -219,6 +223,7 @@ class CodexThreadRegistryEntry {
           ? null
           : (parentThreadId ?? this.parentThreadId),
       childThreadIds: childThreadIds ?? this.childThreadIds,
+      threadName: clearThreadName ? null : (threadName ?? this.threadName),
       agentNickname: clearAgentNickname
           ? null
           : (agentNickname ?? this.agentNickname),
@@ -346,8 +351,7 @@ class CodexSessionState {
   }) : _legacyThreadId = threadId,
        _legacyActiveTurn = activeTurn,
        _legacyBlocks = blocks,
-       _legacyPendingLocalUserMessageBlockIds =
-           pendingLocalUserMessageBlockIds,
+       _legacyPendingLocalUserMessageBlockIds = pendingLocalUserMessageBlockIds,
        _legacyLocalUserMessageProviderBindings =
            localUserMessageProviderBindings;
 
@@ -393,7 +397,8 @@ class CodexSessionState {
     };
   }
 
-  CodexTimelineState? get rootTimeline => timelineForThread(effectiveRootThreadId);
+  CodexTimelineState? get rootTimeline =>
+      timelineForThread(effectiveRootThreadId);
 
   CodexTimelineState? get selectedTimeline =>
       timelineForThread(effectiveSelectedThreadId) ?? rootTimeline;
@@ -407,16 +412,15 @@ class CodexSessionState {
   CodexActiveTurnState? get activeTurn =>
       isWorkspaceMode ? selectedTimeline?.activeTurn : _legacyActiveTurn;
 
-  List<CodexUiBlock> get blocks =>
-      isWorkspaceMode ? (selectedTimeline?.blocks ?? const <CodexUiBlock>[]) : _legacyBlocks;
+  List<CodexUiBlock> get blocks => isWorkspaceMode
+      ? (selectedTimeline?.blocks ?? const <CodexUiBlock>[])
+      : _legacyBlocks;
 
-  List<String> get pendingLocalUserMessageBlockIds =>
-      isWorkspaceMode
+  List<String> get pendingLocalUserMessageBlockIds => isWorkspaceMode
       ? (selectedTimeline?.pendingLocalUserMessageBlockIds ?? const <String>[])
       : _legacyPendingLocalUserMessageBlockIds;
 
-  Map<String, String> get localUserMessageProviderBindings =>
-      isWorkspaceMode
+  Map<String, String> get localUserMessageProviderBindings => isWorkspaceMode
       ? (selectedTimeline?.localUserMessageProviderBindings ??
             const <String, String>{})
       : _legacyLocalUserMessageProviderBindings;
@@ -426,20 +430,18 @@ class CodexSessionState {
       ? (selectedTimeline?.pendingApprovalRequests ??
             const <String, CodexSessionPendingRequest>{})
       : _legacyActiveTurn?.pendingApprovalRequests ??
-      const <String, CodexSessionPendingRequest>{};
+            const <String, CodexSessionPendingRequest>{};
 
   Map<String, CodexSessionPendingUserInputRequest>
-  get pendingUserInputRequests =>
-      isWorkspaceMode
+  get pendingUserInputRequests => isWorkspaceMode
       ? (selectedTimeline?.pendingUserInputRequests ??
             const <String, CodexSessionPendingUserInputRequest>{})
       : _legacyActiveTurn?.pendingUserInputRequests ??
-      const <String, CodexSessionPendingUserInputRequest>{};
+            const <String, CodexSessionPendingUserInputRequest>{};
 
   bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
 
-  List<CodexUiBlock> get transcriptBlocks =>
-      isWorkspaceMode
+  List<CodexUiBlock> get transcriptBlocks => isWorkspaceMode
       ? (selectedTimeline?.transcriptBlocks ?? const <CodexUiBlock>[])
       : <CodexUiBlock>[
           ..._legacyBlocks.where(_shouldAppearInTranscript),
@@ -471,8 +473,7 @@ class CodexSessionState {
       activeTurn: _legacyActiveTurn,
       blocks: _legacyBlocks,
       pendingLocalUserMessageBlockIds: _legacyPendingLocalUserMessageBlockIds,
-      localUserMessageProviderBindings:
-          _legacyLocalUserMessageProviderBindings,
+      localUserMessageProviderBindings: _legacyLocalUserMessageProviderBindings,
     );
   }
 
@@ -511,7 +512,9 @@ class CodexSessionState {
           ? const <String, String>{}
           : (localUserMessageProviderBindings ??
                 _legacyLocalUserMessageProviderBindings),
-      rootThreadId: clearRootThreadId ? null : (rootThreadId ?? this.rootThreadId),
+      rootThreadId: clearRootThreadId
+          ? null
+          : (rootThreadId ?? this.rootThreadId),
       selectedThreadId: clearSelectedThreadId
           ? null
           : (selectedThreadId ?? this.selectedThreadId),

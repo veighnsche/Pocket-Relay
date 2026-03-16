@@ -18,7 +18,10 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
 
   int connectCalls = 0;
   int startSessionCalls = 0;
+  final List<String> readThreadCalls = <String>[];
   final List<String> sentMessages = <String>[];
+  final List<({String? threadId, String? turnId})> abortTurnCalls =
+      <({String? threadId, String? turnId})>[];
   final List<({String requestId, bool approved})> approvalDecisions =
       <({String requestId, bool approved})>[];
   final List<({String requestId, Map<String, List<String>> answers})>
@@ -60,6 +63,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Object? startSessionError;
   Object? sendUserMessageError;
   Completer<void>? sendUserMessageGate;
+  final Map<String, CodexAppServerThread> threadsById =
+      <String, CodexAppServerThread>{};
 
   bool _isConnected = false;
   String? _threadId;
@@ -109,19 +114,18 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       cwd: cwd ?? '/workspace',
       model: model ?? 'gpt-5.3-codex',
       modelProvider: 'openai',
-      thread: CodexAppServerThread(
-        id: _threadId!,
-        sourceKind: 'app-server',
-      ),
+      thread: CodexAppServerThread(id: _threadId!, sourceKind: 'app-server'),
     );
   }
 
   @override
   Future<CodexAppServerThread> readThread({required String threadId}) async {
-    return CodexAppServerThread(
-      id: threadId,
-      sourceKind: 'app-server',
-    );
+    readThreadCalls.add(threadId);
+    final configuredThread = threadsById[threadId];
+    if (configuredThread != null) {
+      return configuredThread;
+    }
+    return CodexAppServerThread(id: threadId, sourceKind: 'app-server');
   }
 
   @override
@@ -198,6 +202,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
 
   @override
   Future<void> abortTurn({String? threadId, String? turnId}) async {
+    abortTurnCalls.add((threadId: threadId, turnId: turnId));
     _activeTurnId = null;
   }
 

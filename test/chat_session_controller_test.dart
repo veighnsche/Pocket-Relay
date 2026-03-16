@@ -338,6 +338,111 @@ void main() {
     },
   );
 
+  test('hydrates missing child thread metadata through thread/read', () async {
+    final appServerClient = FakeCodexAppServerClient()
+      ..threadsById['thread_child'] = const CodexAppServerThread(
+        id: 'thread_child',
+        name: 'Review Branch',
+        agentNickname: 'Reviewer',
+        agentRole: 'Code review',
+        sourceKind: 'spawned',
+      );
+    addTearDown(appServerClient.close);
+
+    final controller = ChatSessionController(
+      profileStore: MemoryCodexProfileStore(
+        initialValue: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      ),
+      appServerClient: appServerClient,
+      initialSavedProfile: SavedProfile(
+        profile: _configuredProfile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    expect(await controller.sendPrompt('First prompt'), isTrue);
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'thread/started',
+        params: <String, Object?>{
+          'thread': <String, Object?>{'id': 'thread_child'},
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final entry = controller.sessionState.threadRegistry['thread_child'];
+    expect(appServerClient.readThreadCalls, contains('thread_child'));
+    expect(entry?.threadName, 'Review Branch');
+    expect(entry?.agentNickname, 'Reviewer');
+    expect(entry?.agentRole, 'Code review');
+    expect(entry?.sourceKind, 'spawned');
+  });
+
+  test(
+    'stopActiveTurn targets the selected timeline turn explicitly',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{
+              'id': 'thread_child',
+              'agentNickname': 'Reviewer',
+            },
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/started',
+          params: <String, Object?>{
+            'threadId': 'thread_child',
+            'turn': <String, Object?>{
+              'id': 'turn_child_1',
+              'status': 'running',
+            },
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      controller.selectTimeline('thread_child');
+      await controller.stopActiveTurn();
+
+      expect(
+        appServerClient.abortTurnCalls,
+        <({String? threadId, String? turnId})>[
+          (threadId: 'thread_child', turnId: 'turn_child_1'),
+        ],
+      );
+    },
+  );
+
   test(
     'saveObservedHostFingerprint persists the prompt without disconnecting the active session',
     () async {
