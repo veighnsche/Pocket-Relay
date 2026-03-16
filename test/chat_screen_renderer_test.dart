@@ -156,12 +156,14 @@ void main() {
         theme: buildPocketTheme(Brightness.light),
         home: Scaffold(
           body: FlutterChatComposerRegion(
+            conversationRecoveryNotice: null,
             composer: _screenContract().composer,
             onComposerDraftChanged: draftValues.add,
             onSendPrompt: () async {
               sendCalls += 1;
             },
             onStopActiveTurn: () async {},
+            onConversationRecoveryAction: (_) {},
           ),
         ),
       ),

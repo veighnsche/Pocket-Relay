@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
 import 'support/fake_codex_app_server_client.dart';
@@ -153,10 +154,9 @@ void main() {
   );
 
   test(
-    'sendPrompt reuses the live tracked thread when local thread ownership is missing',
+    'sendPrompt stays blocked after missing conversation recovery becomes active',
     () async {
-      final appServerClient = FakeCodexAppServerClient()
-        ..connectedThreadId = 'thread_live';
+      final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -174,20 +174,32 @@ void main() {
       );
       addTearDown(controller.dispose);
 
-      final snackBarMessage = controller.snackBarMessages.first.timeout(
-        const Duration(seconds: 1),
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
       );
-      expect(await controller.sendPrompt('Continue the current work'), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      appServerClient.sendUserMessageError = const CodexAppServerException(
+        'turn/start failed: thread not found',
+      );
 
-      expect(appServerClient.startSessionCalls, 0);
-      expect(appServerClient.sentTurns, <({String threadId, String text})>[
-        (threadId: 'thread_live', text: 'Continue the current work'),
-      ]);
-      expect(controller.sessionState.effectiveRootThreadId, 'thread_live');
+      expect(await controller.sendPrompt('Second prompt'), isFalse);
       expect(
-        await snackBarMessage,
-        'Recovered the active conversation from the live session.',
+        controller.conversationRecoveryState?.reason,
+        ChatConversationRecoveryReason.missingRemoteConversation,
       );
+
+      appServerClient.sendUserMessageError = null;
+
+      expect(await controller.sendPrompt('Third prompt'), isFalse);
+      expect(appServerClient.startSessionCalls, 1);
+      expect(appServerClient.sentMessages, <String>['First prompt']);
     },
   );
 
@@ -227,22 +239,19 @@ void main() {
         'turn/start failed: thread not found',
       );
 
-      final snackBarMessage = controller.snackBarMessages.first.timeout(
-        const Duration(seconds: 1),
-      );
       final sent = await controller.sendPrompt('Second prompt');
 
       expect(sent, isFalse);
       expect(appServerClient.startSessionCalls, 1);
       expect(
+        controller.conversationRecoveryState?.reason,
+        ChatConversationRecoveryReason.missingRemoteConversation,
+      );
+      expect(
         controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
           (block) => block.text,
         ),
         <String>['First prompt', 'Second prompt'],
-      );
-      expect(
-        await snackBarMessage,
-        'Could not continue this conversation because the remote conversation was not found. Start a fresh conversation to continue.',
       );
       expect(
         controller.transcriptBlocks.whereType<CodexErrorBlock>().last.body,

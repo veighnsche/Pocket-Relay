@@ -41,10 +41,13 @@ abstract interface class ChatRootRendererDelegate {
 
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
     required Future<void> Function() onSendPrompt,
     required Future<void> Function() onStopActiveTurn,
+    required ValueChanged<ChatConversationRecoveryActionId>
+    onConversationRecoveryAction,
   });
 }
 
@@ -130,23 +133,30 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
     required Future<void> Function() onSendPrompt,
     required Future<void> Function() onStopActiveTurn,
+    required ValueChanged<ChatConversationRecoveryActionId>
+    onConversationRecoveryAction,
   }) {
     return switch (renderer) {
       ChatRootRegionRenderer.cupertino => CupertinoChatComposerRegion(
+        conversationRecoveryNotice: conversationRecoveryNotice,
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,
         onSendPrompt: onSendPrompt,
         onStopActiveTurn: onStopActiveTurn,
+        onConversationRecoveryAction: onConversationRecoveryAction,
       ),
       ChatRootRegionRenderer.flutter => FlutterChatComposerRegion(
+        conversationRecoveryNotice: conversationRecoveryNotice,
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,
         onSendPrompt: onSendPrompt,
         onStopActiveTurn: onStopActiveTurn,
+        onConversationRecoveryAction: onConversationRecoveryAction,
       ),
     };
   }

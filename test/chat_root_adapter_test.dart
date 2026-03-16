@@ -844,10 +844,13 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
     required Future<void> Function() onSendPrompt,
     required Future<void> Function() onStopActiveTurn,
+    required ValueChanged<ChatConversationRecoveryActionId>
+    onConversationRecoveryAction,
   }) {
     renderersByRegion[ChatRootRegion.composer] = renderer;
     return SafeArea(

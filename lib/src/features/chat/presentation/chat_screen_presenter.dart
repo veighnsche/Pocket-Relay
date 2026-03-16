@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
@@ -18,13 +19,22 @@ class ChatScreenPresenter {
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     required CodexSessionState sessionState,
+    required ChatConversationRecoveryState? conversationRecoveryState,
     required ChatComposerDraft composerDraft,
     required ChatTranscriptFollowContract transcriptFollow,
   }) {
     final isConfigured = profile.isReady;
     final isBusy = sessionState.isBusy;
-    final canSend = isConfigured && !isLoading && !isBusy;
     final timelineSummaries = _timelineSummaries(sessionState);
+    final conversationRecoveryNotice = _conversationRecoveryNotice(
+      conversationRecoveryState,
+      timelineSummaries: timelineSummaries,
+    );
+    final canSend =
+        isConfigured &&
+        !isLoading &&
+        !isBusy &&
+        conversationRecoveryNotice == null;
 
     return ChatScreenContract(
       isLoading: isLoading,
@@ -73,6 +83,7 @@ class ChatScreenPresenter {
         initialProfile: profile,
         initialSecrets: secrets,
       ),
+      conversationRecoveryNotice: conversationRecoveryNotice,
       turnIndicator: switch (sessionState.activeTurn?.timer) {
         final timer? when timer.isRunning => ChatTurnIndicatorContract(
           timer: timer,
@@ -130,5 +141,51 @@ class ChatScreenPresenter {
       return 'Agent ${entry.displayOrder}';
     }
     return 'Agent';
+  }
+
+  ChatConversationRecoveryNoticeContract? _conversationRecoveryNotice(
+    ChatConversationRecoveryState? recoveryState, {
+    required List<ChatTimelineSummaryContract> timelineSummaries,
+  }) {
+    if (recoveryState == null) {
+      return null;
+    }
+
+    final actions = <ChatConversationRecoveryActionContract>[
+      const ChatConversationRecoveryActionContract(
+        id: ChatConversationRecoveryActionId.startFreshConversation,
+        label: 'Start new conversation',
+        isPrimary: true,
+      ),
+    ];
+    final alternateThreadId = recoveryState.alternateThreadId;
+    if (alternateThreadId != null &&
+        timelineSummaries.any(
+          (summary) => summary.threadId == alternateThreadId,
+        )) {
+      actions.add(
+        const ChatConversationRecoveryActionContract(
+          id: ChatConversationRecoveryActionId.openAlternateSession,
+          label: 'Open active session',
+        ),
+      );
+    }
+
+    return switch (recoveryState.reason) {
+      ChatConversationRecoveryReason.missingRemoteConversation =>
+        ChatConversationRecoveryNoticeContract(
+          title: "This conversation can't continue.",
+          message:
+              'The transcript is still here, but the remote conversation is no longer available. Your draft is preserved below.',
+          actions: actions,
+        ),
+      ChatConversationRecoveryReason.detachedTranscript =>
+        ChatConversationRecoveryNoticeContract(
+          title: 'Choose how to continue.',
+          message:
+              'This transcript is no longer linked to the active remote conversation. Sending now would switch context without the earlier history. Your draft is preserved below.',
+          actions: actions,
+        ),
+    };
   }
 }

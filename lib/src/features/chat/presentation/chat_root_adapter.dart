@@ -149,10 +149,12 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
   ) {
     return widget.rendererDelegate.buildComposerRegion(
       renderer: regionPolicy.rendererFor(ChatRootRegion.composer),
+      conversationRecoveryNotice: screen.conversationRecoveryNotice,
       composer: screen.composer,
       onComposerDraftChanged: _composerDraftHost.updateText,
       onSendPrompt: _sendPrompt,
       onStopActiveTurn: _stopActiveTurn,
+      onConversationRecoveryAction: _handleConversationRecoveryAction,
     );
   }
 
@@ -176,6 +178,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       profile: _sessionController.profile,
       secrets: _sessionController.secrets,
       sessionState: _sessionController.sessionState,
+      conversationRecoveryState: _sessionController.conversationRecoveryState,
       composerDraft: _composerDraftHost.draft,
       transcriptFollow: _transcriptFollowHost.contract,
     );
@@ -305,6 +308,17 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       source: ChatTranscriptFollowRequestSource.clearTranscript,
     );
     _sessionController.clearTranscript();
+  }
+
+  void _handleConversationRecoveryAction(
+    ChatConversationRecoveryActionId action,
+  ) {
+    switch (action) {
+      case ChatConversationRecoveryActionId.startFreshConversation:
+        _startFreshConversation();
+      case ChatConversationRecoveryActionId.openAlternateSession:
+        _sessionController.openConversationRecoveryAlternateSession();
+    }
   }
 
   void _handleScreenEffect(ChatScreenEffect effect) {

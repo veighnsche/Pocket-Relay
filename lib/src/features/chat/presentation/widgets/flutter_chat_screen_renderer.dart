@@ -358,16 +358,21 @@ Color _timelineStatusColor(CodexAgentLifecycleState state, ThemeData theme) {
 class FlutterChatComposerRegion extends StatelessWidget {
   const FlutterChatComposerRegion({
     super.key,
+    required this.conversationRecoveryNotice,
     required this.composer,
     required this.onComposerDraftChanged,
     required this.onSendPrompt,
     required this.onStopActiveTurn,
+    required this.onConversationRecoveryAction,
   });
 
+  final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
   final ChatComposerContract composer;
   final ValueChanged<String> onComposerDraftChanged;
   final Future<void> Function() onSendPrompt;
   final Future<void> Function() onStopActiveTurn;
+  final ValueChanged<ChatConversationRecoveryActionId>
+  onConversationRecoveryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -375,11 +380,112 @@ class FlutterChatComposerRegion extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-        child: ChatComposer(
-          contract: composer,
-          onChanged: onComposerDraftChanged,
-          onSend: onSendPrompt,
-          onStop: onStopActiveTurn,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (conversationRecoveryNotice case final notice?) ...[
+              _ConversationRecoveryNotice(
+                notice: notice,
+                onAction: onConversationRecoveryAction,
+              ),
+              const SizedBox(height: 10),
+            ],
+            ChatComposer(
+              contract: composer,
+              onChanged: onComposerDraftChanged,
+              onSend: onSendPrompt,
+              onStop: onStopActiveTurn,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConversationRecoveryNotice extends StatelessWidget {
+  const _ConversationRecoveryNotice({
+    required this.notice,
+    required this.onAction,
+  });
+
+  final ChatConversationRecoveryNoticeContract notice;
+  final ValueChanged<ChatConversationRecoveryActionId> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.24),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.sync_problem_rounded,
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notice.title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        notice.message,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: notice.actions
+                  .map(
+                    (action) => action.isPrimary
+                        ? FilledButton(
+                            key: ValueKey<String>(
+                              'conversation_recovery_${action.id.name}',
+                            ),
+                            onPressed: () => onAction(action.id),
+                            child: Text(action.label),
+                          )
+                        : OutlinedButton(
+                            key: ValueKey<String>(
+                              'conversation_recovery_${action.id.name}',
+                            ),
+                            onPressed: () => onAction(action.id),
+                            child: Text(action.label),
+                          ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
         ),
       ),
     );

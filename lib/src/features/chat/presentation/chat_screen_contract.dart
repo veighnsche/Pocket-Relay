@@ -10,6 +10,35 @@ enum ChatScreenActionPlacement { toolbar, menu }
 
 enum ChatScreenActionIcon { settings }
 
+enum ChatConversationRecoveryActionId {
+  startFreshConversation,
+  openAlternateSession,
+}
+
+class ChatConversationRecoveryActionContract {
+  const ChatConversationRecoveryActionContract({
+    required this.id,
+    required this.label,
+    this.isPrimary = false,
+  });
+
+  final ChatConversationRecoveryActionId id;
+  final String label;
+  final bool isPrimary;
+}
+
+class ChatConversationRecoveryNoticeContract {
+  const ChatConversationRecoveryNoticeContract({
+    required this.title,
+    required this.message,
+    required this.actions,
+  });
+
+  final String title;
+  final String message;
+  final List<ChatConversationRecoveryActionContract> actions;
+}
+
 class ChatScreenActionContract {
   const ChatScreenActionContract({
     required this.id,
@@ -127,6 +156,7 @@ class ChatScreenContract {
     required this.transcriptFollow,
     required this.composer,
     required this.connectionSettings,
+    this.conversationRecoveryNotice,
     this.turnIndicator,
   });
 
@@ -138,6 +168,7 @@ class ChatScreenContract {
   final ChatTranscriptFollowContract transcriptFollow;
   final ChatComposerContract composer;
   final ChatConnectionSettingsLaunchContract connectionSettings;
+  final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
   final ChatTurnIndicatorContract? turnIndicator;
 
   List<ChatScreenActionContract> get toolbarActions => actions

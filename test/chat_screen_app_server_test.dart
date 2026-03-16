@@ -136,7 +136,7 @@ void main() {
   });
 
   testWidgets(
-    'surfaces a missing conversation explicitly instead of silently starting fresh',
+    'blocks sending after a missing conversation until the user starts fresh',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
@@ -179,17 +179,38 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text(
-          'Could not continue this conversation because the remote conversation was not found. Start a fresh conversation to continue.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text("This conversation can't continue."), findsOneWidget);
+      expect(find.text('Start new conversation'), findsOneWidget);
       expect(find.text('First prompt'), findsOneWidget);
       expect(
         tester.widget<TextField>(composerField).controller?.text,
         'Second prompt',
       );
+
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(appServerClient.startSessionCalls, 1);
+      expect(appServerClient.sentMessages, <String>['First prompt']);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('conversation_recovery_startFreshConversation'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      appServerClient.sendUserMessageError = null;
+
+      expect(find.text("This conversation can't continue."), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(appServerClient.startSessionCalls, 2);
+      expect(appServerClient.sentMessages, <String>[
+        'First prompt',
+        'Second prompt',
+      ]);
     },
   );
 

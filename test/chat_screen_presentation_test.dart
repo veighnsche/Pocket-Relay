@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
@@ -39,6 +40,7 @@ void main() {
           profile: profile,
           secrets: secrets,
           sessionState: CodexSessionState.initial(),
+          conversationRecoveryState: null,
           composerDraft: const ChatComposerDraft(),
           transcriptFollow: _defaultTranscriptFollowContract,
         );
@@ -86,6 +88,7 @@ void main() {
         profile: _configuredProfile(),
         secrets: const ConnectionSecrets(password: 'secret'),
         sessionState: sessionState,
+        conversationRecoveryState: null,
         composerDraft: const ChatComposerDraft(text: 'Keep draft'),
         transcriptFollow: _defaultTranscriptFollowContract,
       );
@@ -97,6 +100,39 @@ void main() {
       expect(contract.composer.isPrimaryActionEnabled, isTrue);
       expect(contract.turnIndicator?.timer, same(activeTurn.timer));
     });
+
+    test(
+      'disables send and exposes recovery actions when conversation recovery is active',
+      () {
+        final contract = presenter.present(
+          isLoading: false,
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          sessionState: CodexSessionState.initial(),
+          conversationRecoveryState: const ChatConversationRecoveryState(
+            reason: ChatConversationRecoveryReason.missingRemoteConversation,
+          ),
+          composerDraft: const ChatComposerDraft(text: 'Keep draft'),
+          transcriptFollow: _defaultTranscriptFollowContract,
+        );
+
+        expect(contract.composer.draftText, 'Keep draft');
+        expect(contract.composer.isTextInputEnabled, isTrue);
+        expect(contract.composer.isPrimaryActionEnabled, isFalse);
+        expect(
+          contract.conversationRecoveryNotice?.title,
+          "This conversation can't continue.",
+        );
+        expect(
+          contract.conversationRecoveryNotice?.actions.map(
+            (action) => action.id,
+          ),
+          <ChatConversationRecoveryActionId>[
+            ChatConversationRecoveryActionId.startFreshConversation,
+          ],
+        );
+      },
+    );
 
     test('projects ordered timeline summaries for workspace mode', () {
       final sessionState = CodexSessionState.initial().copyWith(
@@ -132,6 +168,7 @@ void main() {
         profile: _configuredProfile(),
         secrets: const ConnectionSecrets(password: 'secret'),
         sessionState: sessionState,
+        conversationRecoveryState: null,
         composerDraft: const ChatComposerDraft(),
         transcriptFollow: _defaultTranscriptFollowContract,
       );
@@ -784,6 +821,7 @@ void main() {
       profile: profile,
       secrets: secrets,
       sessionState: CodexSessionState.initial(),
+      conversationRecoveryState: null,
       composerDraft: const ChatComposerDraft(),
       transcriptFollow: _defaultTranscriptFollowContract,
     );
