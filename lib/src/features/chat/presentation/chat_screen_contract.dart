@@ -39,6 +39,28 @@ class ChatEmptyStateContract {
   final bool isConfigured;
 }
 
+class ChatTimelineSummaryContract {
+  const ChatTimelineSummaryContract({
+    required this.threadId,
+    required this.label,
+    required this.status,
+    required this.isPrimary,
+    required this.isSelected,
+    required this.isClosed,
+    required this.hasUnreadActivity,
+    required this.hasPendingRequests,
+  });
+
+  final String threadId;
+  final String label;
+  final CodexAgentLifecycleState status;
+  final bool isPrimary;
+  final bool isSelected;
+  final bool isClosed;
+  final bool hasUnreadActivity;
+  final bool hasPendingRequests;
+}
+
 class ChatTranscriptSurfaceContract {
   const ChatTranscriptSurfaceContract({
     required this.isConfigured,
@@ -100,6 +122,7 @@ class ChatScreenContract {
     required this.isLoading,
     required this.header,
     required this.actions,
+    this.timelineSummaries = const <ChatTimelineSummaryContract>[],
     required this.transcriptSurface,
     required this.transcriptFollow,
     required this.composer,
@@ -110,6 +133,7 @@ class ChatScreenContract {
   final bool isLoading;
   final ChatHeaderContract header;
   final List<ChatScreenActionContract> actions;
+  final List<ChatTimelineSummaryContract> timelineSummaries;
   final ChatTranscriptSurfaceContract transcriptSurface;
   final ChatTranscriptFollowContract transcriptFollow;
   final ChatComposerContract composer;

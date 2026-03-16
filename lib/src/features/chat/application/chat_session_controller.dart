@@ -156,6 +156,12 @@ class ChatSessionController extends ChangeNotifier {
       return false;
     }
 
+    final rootThreadId = _sessionState.effectiveRootThreadId;
+    if (rootThreadId != null &&
+        _sessionState.effectiveSelectedThreadId != rootThreadId) {
+      selectTimeline(rootThreadId);
+    }
+
     _applySessionState(
       _sessionReducer.addUserMessage(_sessionState, text: normalizedPrompt),
     );
@@ -177,6 +183,32 @@ class ChatSessionController extends ChangeNotifier {
 
   void clearTranscript() {
     _applySessionState(_sessionReducer.clearTranscript(_sessionState));
+  }
+
+  void selectTimeline(String threadId) {
+    final normalizedThreadId = threadId.trim();
+    if (normalizedThreadId.isEmpty ||
+        _sessionState.effectiveSelectedThreadId == normalizedThreadId) {
+      return;
+    }
+
+    final timeline = _sessionState.timelineForThread(normalizedThreadId);
+    if (timeline == null) {
+      return;
+    }
+
+    final nextTimelines = <String, CodexTimelineState>{
+      for (final entry in _sessionState.timelinesByThreadId.entries)
+        entry.key: entry.key == normalizedThreadId
+            ? entry.value.copyWith(hasUnreadActivity: false)
+            : entry.value,
+    };
+    _applySessionState(
+      _sessionState.copyWith(
+        selectedThreadId: normalizedThreadId,
+        timelinesByThreadId: nextTimelines,
+      ),
+    );
   }
 
   Future<void> approveRequest(String requestId) {
@@ -406,10 +438,8 @@ class ChatSessionController extends ChangeNotifier {
 
     final resumeThreadId = _profile.ephemeralSession
         ? null
-        : _sessionState.threadId;
-    if (resumeThreadId != null &&
-        resumeThreadId.isNotEmpty &&
-        appServerClient.threadId == resumeThreadId) {
+        : _sessionState.effectiveRootThreadId;
+    if (resumeThreadId != null && resumeThreadId.isNotEmpty) {
       return resumeThreadId;
     }
 
@@ -424,6 +454,10 @@ class ChatSessionController extends ChangeNotifier {
         rawMethod: resumeThreadId == null
             ? 'thread/start(response)'
             : 'thread/resume(response)',
+        threadName: session.thread?.name,
+        sourceKind: session.thread?.sourceKind,
+        agentNickname: session.thread?.agentNickname,
+        agentRole: session.thread?.agentRole,
       ),
     );
     return session.threadId;
@@ -439,9 +473,11 @@ class ChatSessionController extends ChangeNotifier {
 
   Future<void> _stopAppServerTurn() async {
     try {
+      final targetTimeline =
+          _sessionState.selectedTimeline ?? _sessionState.rootTimeline;
       await appServerClient.abortTurn(
-        threadId: _sessionState.threadId,
-        turnId: _sessionState.activeTurn?.turnId,
+        threadId: targetTimeline?.threadId,
+        turnId: targetTimeline?.activeTurn?.turnId,
       );
     } catch (error) {
       _reportAppServerFailure(

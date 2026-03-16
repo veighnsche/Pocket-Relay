@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
@@ -73,6 +74,7 @@ void main() {
               emptyState: const ChatEmptyStateContract(isConfigured: false),
             ),
             onScreenAction: actions.add,
+            onSelectTimeline: (_) {},
             onAutoFollowEligibilityChanged: (_) {},
           ),
         ),
@@ -88,6 +90,59 @@ void main() {
     await tester.pump();
 
     expect(actions, <ChatScreenActionId>[ChatScreenActionId.openSettings]);
+  });
+
+  testWidgets('renders timeline chips and forwards selection', (tester) async {
+    final selectedTimelines = <String>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildPocketTheme(Brightness.light),
+        home: Scaffold(
+          body: FlutterChatTranscriptRegion(
+            screen: _screenContract(
+              timelineSummaries: const <ChatTimelineSummaryContract>[
+                ChatTimelineSummaryContract(
+                  threadId: 'thread_root',
+                  label: 'Main',
+                  status: CodexAgentLifecycleState.running,
+                  isPrimary: true,
+                  isSelected: true,
+                  isClosed: false,
+                  hasUnreadActivity: false,
+                  hasPendingRequests: false,
+                ),
+                ChatTimelineSummaryContract(
+                  threadId: 'thread_child',
+                  label: 'Reviewer',
+                  status: CodexAgentLifecycleState.blockedOnApproval,
+                  isPrimary: false,
+                  isSelected: false,
+                  isClosed: false,
+                  hasUnreadActivity: true,
+                  hasPendingRequests: true,
+                ),
+              ],
+            ),
+            onScreenAction: (_) {},
+            onSelectTimeline: selectedTimelines.add,
+            onAutoFollowEligibilityChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('timeline_thread_root')), findsOneWidget);
+    expect(find.byKey(const ValueKey('timeline_thread_child')), findsOneWidget);
+    expect(find.text('Reviewer'), findsOneWidget);
+    expect(find.text('Waiting on approval'), findsOneWidget);
+    expect(find.text('Needs action'), findsOneWidget);
+    expect(find.text('New'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('timeline_thread_child')));
+    await tester.pump();
+
+    expect(selectedTimelines, <String>['thread_child']);
   });
 
   testWidgets('forwards composer interactions through composer region', (
@@ -124,6 +179,8 @@ void main() {
 ChatScreenContract _screenContract({
   bool isConfigured = true,
   ChatEmptyStateContract? emptyState,
+  List<ChatTimelineSummaryContract> timelineSummaries =
+      const <ChatTimelineSummaryContract>[],
 }) {
   return ChatScreenContract(
     isLoading: false,
@@ -145,6 +202,7 @@ ChatScreenContract _screenContract({
         placement: ChatScreenActionPlacement.menu,
       ),
     ],
+    timelineSummaries: timelineSummaries,
     transcriptSurface: ChatTranscriptSurfaceContract(
       isConfigured: isConfigured,
       mainItems: const <ChatTranscriptItemContract>[],

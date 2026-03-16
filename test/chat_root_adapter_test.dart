@@ -799,6 +799,7 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<String> onSelectTimeline,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
     Future<void> Function(String requestId)? onApproveRequest,

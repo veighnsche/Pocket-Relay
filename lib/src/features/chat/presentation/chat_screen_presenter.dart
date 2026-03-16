@@ -24,6 +24,7 @@ class ChatScreenPresenter {
     final isConfigured = profile.isReady;
     final isBusy = sessionState.isBusy;
     final canSend = isConfigured && !isLoading && !isBusy;
+    final timelineSummaries = _timelineSummaries(sessionState);
 
     return ChatScreenContract(
       isLoading: isLoading,
@@ -52,6 +53,7 @@ class ChatScreenPresenter {
           placement: ChatScreenActionPlacement.menu,
         ),
       ],
+      timelineSummaries: timelineSummaries,
       transcriptSurface: _transcriptSurfaceProjector.project(
         profile: profile,
         sessionState: sessionState,
@@ -78,5 +80,51 @@ class ChatScreenPresenter {
         _ => null,
       },
     );
+  }
+
+  List<ChatTimelineSummaryContract> _timelineSummaries(
+    CodexSessionState sessionState,
+  ) {
+    final entries = sessionState.threadRegistry.values.toList(growable: false)
+      ..sort((left, right) => left.displayOrder.compareTo(right.displayOrder));
+    if (entries.isEmpty) {
+      return const <ChatTimelineSummaryContract>[];
+    }
+
+    return entries
+        .map((entry) {
+          final timeline = sessionState.timelineForThread(entry.threadId);
+          return ChatTimelineSummaryContract(
+            threadId: entry.threadId,
+            label: _timelineLabel(entry),
+            status:
+                timeline?.lifecycleState ?? CodexAgentLifecycleState.unknown,
+            isPrimary: entry.isPrimary,
+            isSelected:
+                sessionState.effectiveSelectedThreadId == entry.threadId,
+            isClosed: entry.isClosed,
+            hasUnreadActivity: timeline?.hasUnreadActivity ?? false,
+            hasPendingRequests: timeline?.hasPendingRequests ?? false,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  String _timelineLabel(CodexThreadRegistryEntry entry) {
+    if (entry.isPrimary) {
+      return 'Main';
+    }
+    final nickname = entry.agentNickname?.trim();
+    if (nickname != null && nickname.isNotEmpty) {
+      return nickname;
+    }
+    final role = entry.agentRole?.trim();
+    if (role != null && role.isNotEmpty) {
+      return role;
+    }
+    if (entry.displayOrder > 0) {
+      return 'Agent ${entry.displayOrder}';
+    }
+    return 'Agent';
   }
 }

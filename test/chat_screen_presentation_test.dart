@@ -97,6 +97,58 @@ void main() {
       expect(contract.composer.isPrimaryActionEnabled, isTrue);
       expect(contract.turnIndicator?.timer, same(activeTurn.timer));
     });
+
+    test('projects ordered timeline summaries for workspace mode', () {
+      final sessionState = CodexSessionState.initial().copyWith(
+        rootThreadId: 'thread_root',
+        selectedThreadId: 'thread_child',
+        timelinesByThreadId: <String, CodexTimelineState>{
+          'thread_root': const CodexTimelineState(
+            threadId: 'thread_root',
+            lifecycleState: CodexAgentLifecycleState.idle,
+          ),
+          'thread_child': const CodexTimelineState(
+            threadId: 'thread_child',
+            lifecycleState: CodexAgentLifecycleState.blockedOnApproval,
+            hasUnreadActivity: true,
+          ),
+        },
+        threadRegistry: const <String, CodexThreadRegistryEntry>{
+          'thread_root': CodexThreadRegistryEntry(
+            threadId: 'thread_root',
+            displayOrder: 0,
+            isPrimary: true,
+          ),
+          'thread_child': CodexThreadRegistryEntry(
+            threadId: 'thread_child',
+            displayOrder: 1,
+            agentNickname: 'Reviewer',
+          ),
+        },
+      );
+
+      final contract = presenter.present(
+        isLoading: false,
+        profile: _configuredProfile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        sessionState: sessionState,
+        composerDraft: const ChatComposerDraft(),
+        transcriptFollow: _defaultTranscriptFollowContract,
+      );
+
+      expect(contract.timelineSummaries, hasLength(2));
+      expect(
+        contract.timelineSummaries.map((summary) => summary.label),
+        <String>['Main', 'Reviewer'],
+      );
+      expect(contract.timelineSummaries[0].isSelected, isFalse);
+      expect(contract.timelineSummaries[1].isSelected, isTrue);
+      expect(
+        contract.timelineSummaries[1].status,
+        CodexAgentLifecycleState.blockedOnApproval,
+      );
+      expect(contract.timelineSummaries[1].hasUnreadActivity, isTrue);
+    });
   });
 
   group('ChatTranscriptSurfaceProjector', () {

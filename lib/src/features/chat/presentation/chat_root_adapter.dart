@@ -129,6 +129,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       screen: screen,
       surfaceChangeToken: _sessionController.sessionState,
       onScreenAction: (action) => _handleScreenAction(action, screen),
+      onSelectTimeline: _sessionController.selectTimeline,
       onAutoFollowEligibilityChanged: (isNearBottom) {
         _transcriptFollowHost.updateAutoFollowEligibility(
           isNearBottom: isNearBottom,

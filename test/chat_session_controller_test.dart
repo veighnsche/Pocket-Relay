@@ -193,6 +193,63 @@ void main() {
   );
 
   test(
+    'sendPrompt reselects the root timeline before sending from a child timeline',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{
+              'id': 'thread_child',
+              'agentNickname': 'Reviewer',
+            },
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      controller.selectTimeline('thread_child');
+      expect(controller.sessionState.effectiveSelectedThreadId, 'thread_child');
+
+      expect(await controller.sendPrompt('Second prompt'), isTrue);
+
+      expect(controller.sessionState.effectiveSelectedThreadId, 'thread_123');
+      expect(appServerClient.sentMessages, <String>[
+        'First prompt',
+        'Second prompt',
+      ]);
+    },
+  );
+
+  test(
     'saveObservedHostFingerprint persists the prompt without disconnecting the active session',
     () async {
       final appServerClient = FakeCodexAppServerClient();
