@@ -223,7 +223,7 @@ class ChatSessionController extends ChangeNotifier {
     String requestId,
     Map<String, List<String>> answers,
   ) async {
-    final pendingRequest = _sessionState.pendingUserInputRequests[requestId];
+    final pendingRequest = _findPendingUserInputRequest(requestId);
     if (pendingRequest == null) {
       _emitSnackBar('This input request is no longer pending.');
       return;
@@ -492,6 +492,12 @@ class ChatSessionController extends ChangeNotifier {
     String requestId, {
     required bool approved,
   }) async {
+    final pendingRequest = _findPendingApprovalRequest(requestId);
+    if (pendingRequest == null) {
+      _emitSnackBar('This approval request is no longer pending.');
+      return;
+    }
+
     try {
       await appServerClient.resolveApproval(
         requestId: requestId,
@@ -504,6 +510,45 @@ class ChatSessionController extends ChangeNotifier {
         error: error,
       );
     }
+  }
+
+  CodexSessionPendingRequest? _findPendingApprovalRequest(String requestId) {
+    final ownerTimeline = _ownerTimelineForRequest(requestId);
+    if (ownerTimeline != null) {
+      return ownerTimeline.pendingApprovalRequests[requestId];
+    }
+
+    return _sessionState.pendingApprovalRequests[requestId];
+  }
+
+  CodexSessionPendingUserInputRequest? _findPendingUserInputRequest(
+    String requestId,
+  ) {
+    final ownerTimeline = _ownerTimelineForRequest(requestId);
+    if (ownerTimeline != null) {
+      return ownerTimeline.pendingUserInputRequests[requestId];
+    }
+
+    return _sessionState.pendingUserInputRequests[requestId];
+  }
+
+  CodexTimelineState? _ownerTimelineForRequest(String requestId) {
+    final ownerThreadId = _sessionState.requestOwnerById[requestId];
+    if (ownerThreadId != null && ownerThreadId.isNotEmpty) {
+      final ownerTimeline = _sessionState.timelineForThread(ownerThreadId);
+      if (ownerTimeline != null) {
+        return ownerTimeline;
+      }
+    }
+
+    for (final timeline in _sessionState.effectiveTimelinesByThreadId.values) {
+      if (timeline.pendingApprovalRequests.containsKey(requestId) ||
+          timeline.pendingUserInputRequests.containsKey(requestId)) {
+        return timeline;
+      }
+    }
+
+    return null;
   }
 
   Object? _elicitationContentFromAnswers(Map<String, List<String>> answers) {

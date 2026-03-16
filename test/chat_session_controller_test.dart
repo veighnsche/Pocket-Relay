@@ -250,6 +250,95 @@ void main() {
   );
 
   test(
+    'submitUserInput resolves a child-owned request even when another timeline is selected',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{
+              'id': 'thread_child',
+              'agentNickname': 'Reviewer',
+            },
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerRequestEvent(
+          requestId: 'input_child_1',
+          method: 'item/tool/requestUserInput',
+          params: <String, Object?>{
+            'threadId': 'thread_child',
+            'turnId': 'turn_child_1',
+            'itemId': 'item_child_1',
+            'questions': <Object?>[
+              <String, Object?>{
+                'id': 'q1',
+                'header': 'Name',
+                'question': 'What is your name?',
+              },
+            ],
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.sessionState.effectiveSelectedThreadId, 'thread_123');
+      expect(
+        controller.sessionState.requestOwnerById['input_child_1'],
+        'thread_child',
+      );
+
+      await controller.submitUserInput(
+        'input_child_1',
+        const <String, List<String>>{
+          'q1': <String>['Vince'],
+        },
+      );
+
+      expect(
+        appServerClient.userInputResponses,
+        <({String requestId, Map<String, List<String>> answers})>[
+          (
+            requestId: 'input_child_1',
+            answers: const <String, List<String>>{
+              'q1': <String>['Vince'],
+            },
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
     'saveObservedHostFingerprint persists the prompt without disconnecting the active session',
     () async {
       final appServerClient = FakeCodexAppServerClient();
