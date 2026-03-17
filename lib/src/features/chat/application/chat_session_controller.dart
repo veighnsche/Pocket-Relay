@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
 import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
@@ -15,8 +17,12 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
+    this.conversationHandoffStore =
+        const DiscardingCodexConversationHandoffStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
+    SavedConversationHandoff initialSavedConversationHandoff =
+        const SavedConversationHandoff(),
     TranscriptReducer reducer = const TranscriptReducer(),
     CodexRuntimeEventMapper? runtimeEventMapper,
     bool? supportsLocalConnectionMode,
@@ -30,12 +36,14 @@ class ChatSessionController extends ChangeNotifier {
       _secrets = initial.secrets;
       _isLoading = false;
     }
+    _resumeThreadId = initialSavedConversationHandoff.normalizedResumeThreadId;
     _appServerEventSubscription = appServerClient.events.listen(
       _handleAppServerEvent,
     );
   }
 
   final CodexProfileStore profileStore;
+  final CodexConversationHandoffStore conversationHandoffStore;
   final CodexAppServerClient appServerClient;
 
   final TranscriptReducer _sessionReducer;
@@ -46,12 +54,16 @@ class ChatSessionController extends ChangeNotifier {
   ConnectionProfile _profile = ConnectionProfile.defaults();
   ConnectionSecrets _secrets = const ConnectionSecrets();
   CodexSessionState _sessionState = CodexSessionState.initial();
+  ChatConversationRecoveryState? _conversationRecoveryState;
 
   bool _isLoading = true;
   bool _didInitialize = false;
   bool _isDisposed = false;
   bool _isTrackingSshBootstrapFailures = false;
   bool _sawTrackedSshBootstrapFailure = false;
+  bool _suppressTrackedThreadReuse = false;
+  String? _resumeThreadId;
+  final Set<String> _threadMetadataHydrationAttempts = <String>{};
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
 
   Stream<String> get snackBarMessages => _snackBarMessagesController.stream;
@@ -59,6 +71,8 @@ class ChatSessionController extends ChangeNotifier {
   ConnectionProfile get profile => _profile;
   ConnectionSecrets get secrets => _secrets;
   CodexSessionState get sessionState => _sessionState;
+  ChatConversationRecoveryState? get conversationRecoveryState =>
+      _conversationRecoveryState;
   bool get isLoading => _isLoading;
   List<CodexUiBlock> get transcriptBlocks => _sessionState.transcriptBlocks;
 
@@ -99,6 +113,8 @@ class ChatSessionController extends ChangeNotifier {
 
     _profile = profile;
     _secrets = secrets;
+    _clearConversationRecovery();
+    _clearContinuationThread();
     _applySessionState(_sessionReducer.detachThread(_sessionState));
   }
 
@@ -151,13 +167,27 @@ class ChatSessionController extends ChangeNotifier {
 
   Future<bool> sendPrompt(String prompt) async {
     final normalizedPrompt = prompt.trim();
-    if (normalizedPrompt.isEmpty || _sessionState.isBusy) {
+    if (normalizedPrompt.isEmpty ||
+        _sessionState.isBusy ||
+        _conversationRecoveryState != null) {
       return false;
     }
 
     final validationMessage = _validateProfileForSend();
     if (validationMessage != null) {
       _emitSnackBar(validationMessage);
+      return false;
+    }
+
+    final rootThreadId = _sessionState.effectiveRootThreadId;
+    if (rootThreadId != null &&
+        _sessionState.effectiveSelectedThreadId != rootThreadId) {
+      selectTimeline(rootThreadId);
+    }
+
+    final recoveryState = _preflightConversationRecoveryState();
+    if (recoveryState != null) {
+      _setConversationRecovery(recoveryState);
       return false;
     }
 
@@ -172,6 +202,8 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   void startFreshConversation() {
+    _clearConversationRecovery();
+    _clearContinuationThread();
     _applySessionState(
       _sessionReducer.startFreshThread(
         _sessionState,
@@ -181,7 +213,66 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   void clearTranscript() {
+    _clearConversationRecovery();
+    _clearContinuationThread();
     _applySessionState(_sessionReducer.clearTranscript(_sessionState));
+  }
+
+  void openConversationRecoveryAlternateSession() {
+    final alternateThreadId = _conversationRecoveryState?.alternateThreadId
+        ?.trim();
+    if (alternateThreadId == null || alternateThreadId.isEmpty) {
+      return;
+    }
+
+    final timeline = _sessionState.timelineForThread(alternateThreadId);
+    if (timeline == null) {
+      _emitSnackBar('That active session is no longer available locally.');
+      return;
+    }
+
+    final nextRegistry = <String, CodexThreadRegistryEntry>{
+      for (final entry in _sessionState.threadRegistry.entries)
+        entry.key: entry.value.copyWith(
+          isPrimary: entry.key == alternateThreadId,
+        ),
+    };
+
+    _rememberContinuationThread(alternateThreadId);
+    _clearConversationRecovery();
+    _applySessionState(
+      _sessionState.copyWith(
+        rootThreadId: alternateThreadId,
+        selectedThreadId: alternateThreadId,
+        threadRegistry: nextRegistry,
+      ),
+    );
+  }
+
+  void selectTimeline(String threadId) {
+    final normalizedThreadId = threadId.trim();
+    if (normalizedThreadId.isEmpty ||
+        _sessionState.effectiveSelectedThreadId == normalizedThreadId) {
+      return;
+    }
+
+    final timeline = _sessionState.timelineForThread(normalizedThreadId);
+    if (timeline == null) {
+      return;
+    }
+
+    final nextTimelines = <String, CodexTimelineState>{
+      for (final entry in _sessionState.timelinesByThreadId.entries)
+        entry.key: entry.key == normalizedThreadId
+            ? entry.value.copyWith(hasUnreadActivity: false)
+            : entry.value,
+    };
+    _applySessionState(
+      _sessionState.copyWith(
+        selectedThreadId: normalizedThreadId,
+        timelinesByThreadId: nextTimelines,
+      ),
+    );
   }
 
   Future<void> approveRequest(String requestId) {
@@ -196,7 +287,7 @@ class ChatSessionController extends ChangeNotifier {
     String requestId,
     Map<String, List<String>> answers,
   ) async {
-    final pendingRequest = _sessionState.pendingUserInputRequests[requestId];
+    final pendingRequest = _findPendingUserInputRequest(requestId);
     if (pendingRequest == null) {
       _emitSnackBar('This input request is no longer pending.');
       return;
@@ -262,7 +353,34 @@ class ChatSessionController extends ChangeNotifier {
     }
 
     _sessionState = nextState;
+    _schedulePersistConversationHandoff();
     notifyListeners();
+  }
+
+  void _setConversationRecovery(ChatConversationRecoveryState nextState) {
+    final currentState = _conversationRecoveryState;
+    if (currentState?.reason == nextState.reason &&
+        currentState?.alternateThreadId == nextState.alternateThreadId &&
+        currentState?.expectedThreadId == nextState.expectedThreadId &&
+        currentState?.actualThreadId == nextState.actualThreadId) {
+      return;
+    }
+
+    _conversationRecoveryState = nextState;
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
+  void _clearConversationRecovery() {
+    if (_conversationRecoveryState == null) {
+      return;
+    }
+
+    _conversationRecoveryState = null;
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   CodexSshUnpinnedHostKeyBlock? _findUnpinnedHostKeyBlock(String blockId) {
@@ -369,6 +487,9 @@ class ChatSessionController extends ChangeNotifier {
     _applySessionState(
       _sessionReducer.reduceRuntimeEvent(_sessionState, event),
     );
+    if (event is CodexRuntimeThreadStartedEvent) {
+      unawaited(_hydrateThreadMetadataIfNeeded(event));
+    }
   }
 
   Future<bool> _sendPromptWithAppServer(String prompt) async {
@@ -376,6 +497,7 @@ class ChatSessionController extends ChangeNotifier {
     _sawTrackedSshBootstrapFailure = false;
     try {
       final threadId = await _ensureAppServerThread();
+      _clearConversationRecovery();
       _applySessionState(
         _sessionState.copyWith(
           connectionStatus: CodexRuntimeSessionState.running,
@@ -385,6 +507,7 @@ class ChatSessionController extends ChangeNotifier {
         threadId: threadId,
         text: prompt,
       );
+      _rememberContinuationThread(turn.threadId);
       _applyRuntimeEvent(
         CodexRuntimeTurnStartedEvent(
           createdAt: DateTime.now(),
@@ -395,6 +518,34 @@ class ChatSessionController extends ChangeNotifier {
       );
       return true;
     } catch (error) {
+      final unexpectedConversationThread = _unexpectedConversationThread(error);
+      final isMissingConversation = _isMissingConversationThreadError(error);
+      if (unexpectedConversationThread case (
+        expectedThreadId: final expectedThreadId,
+        actualThreadId: final actualThreadId,
+      )) {
+        _setConversationRecovery(
+          ChatConversationRecoveryState(
+            reason: ChatConversationRecoveryReason.unexpectedRemoteConversation,
+            alternateThreadId: _alternateRecoveryThreadId(
+              preferredThreadId: actualThreadId,
+            ),
+            expectedThreadId: expectedThreadId,
+            actualThreadId: actualThreadId,
+          ),
+        );
+      }
+      if (isMissingConversation) {
+        _setConversationRecovery(
+          ChatConversationRecoveryState(
+            reason: ChatConversationRecoveryReason.missingRemoteConversation,
+            alternateThreadId: _alternateRecoveryThreadId(
+              preferredThreadId: appServerClient.threadId,
+            ),
+          ),
+        );
+      }
+      final failure = _sendFailurePresentation(error);
       if (_sessionState.activeTurn == null &&
           _sessionState.pendingLocalUserMessageBlockIds.isNotEmpty) {
         _applySessionState(
@@ -403,10 +554,13 @@ class ChatSessionController extends ChangeNotifier {
       }
       await Future<void>.microtask(() {});
       _reportAppServerFailure(
-        title: 'Send failed',
-        message: 'Could not send the prompt to the ${_sessionLabel()} session.',
+        title: failure.title,
+        message: failure.message,
         error: error,
+        runtimeErrorMessage: failure.runtimeErrorMessage,
         suppressRuntimeError: _sawTrackedSshBootstrapFailure,
+        suppressSnackBar:
+            isMissingConversation || unexpectedConversationThread != null,
       );
       return false;
     } finally {
@@ -418,18 +572,17 @@ class ChatSessionController extends ChangeNotifier {
   Future<String> _ensureAppServerThread() async {
     await _ensureAppServerConnected();
 
-    final resumeThreadId = _profile.ephemeralSession
-        ? null
-        : _sessionState.threadId;
-    if (resumeThreadId != null &&
-        resumeThreadId.isNotEmpty &&
-        appServerClient.threadId == resumeThreadId) {
-      return resumeThreadId;
+    final activeThreadId = _activeConversationThreadId();
+    if (activeThreadId != null) {
+      _rememberContinuationThread(activeThreadId);
+      return activeThreadId;
     }
 
+    final resumeThreadId = _resumeConversationThreadId();
     final session = await appServerClient.startSession(
       resumeThreadId: resumeThreadId,
     );
+    _rememberContinuationThread(session.threadId);
     _applyRuntimeEvent(
       CodexRuntimeThreadStartedEvent(
         createdAt: DateTime.now(),
@@ -438,6 +591,10 @@ class ChatSessionController extends ChangeNotifier {
         rawMethod: resumeThreadId == null
             ? 'thread/start(response)'
             : 'thread/resume(response)',
+        threadName: session.thread?.name,
+        sourceKind: session.thread?.sourceKind,
+        agentNickname: session.thread?.agentNickname,
+        agentRole: session.thread?.agentRole,
       ),
     );
     return session.threadId;
@@ -453,9 +610,15 @@ class ChatSessionController extends ChangeNotifier {
 
   Future<void> _stopAppServerTurn() async {
     try {
+      final targetTimeline =
+          _sessionState.selectedTimeline ?? _sessionState.rootTimeline;
+      final turnId = targetTimeline?.activeTurn?.turnId;
+      if (targetTimeline == null || turnId == null) {
+        return;
+      }
       await appServerClient.abortTurn(
-        threadId: _sessionState.threadId,
-        turnId: _sessionState.activeTurn?.turnId,
+        threadId: targetTimeline.threadId,
+        turnId: turnId,
       );
     } catch (error) {
       _reportAppServerFailure(
@@ -470,6 +633,12 @@ class ChatSessionController extends ChangeNotifier {
     String requestId, {
     required bool approved,
   }) async {
+    final pendingRequest = _findPendingApprovalRequest(requestId);
+    if (pendingRequest == null) {
+      _emitSnackBar('This approval request is no longer pending.');
+      return;
+    }
+
     try {
       await appServerClient.resolveApproval(
         requestId: requestId,
@@ -482,6 +651,130 @@ class ChatSessionController extends ChangeNotifier {
         error: error,
       );
     }
+  }
+
+  CodexSessionPendingRequest? _findPendingApprovalRequest(String requestId) {
+    final ownerTimeline = _ownerTimelineForRequest(requestId);
+    if (ownerTimeline != null) {
+      return ownerTimeline.pendingApprovalRequests[requestId];
+    }
+
+    return _sessionState.pendingApprovalRequests[requestId];
+  }
+
+  CodexSessionPendingUserInputRequest? _findPendingUserInputRequest(
+    String requestId,
+  ) {
+    final ownerTimeline = _ownerTimelineForRequest(requestId);
+    if (ownerTimeline != null) {
+      return ownerTimeline.pendingUserInputRequests[requestId];
+    }
+
+    return _sessionState.pendingUserInputRequests[requestId];
+  }
+
+  CodexTimelineState? _ownerTimelineForRequest(String requestId) {
+    final ownerThreadId = _sessionState.requestOwnerById[requestId];
+    if (ownerThreadId != null && ownerThreadId.isNotEmpty) {
+      final ownerTimeline = _sessionState.timelineForThread(ownerThreadId);
+      if (ownerTimeline != null) {
+        return ownerTimeline;
+      }
+    }
+
+    for (final timeline in _sessionState.effectiveTimelinesByThreadId.values) {
+      if (timeline.pendingApprovalRequests.containsKey(requestId) ||
+          timeline.pendingUserInputRequests.containsKey(requestId)) {
+        return timeline;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _hydrateThreadMetadataIfNeeded(
+    CodexRuntimeThreadStartedEvent event,
+  ) async {
+    final threadId = event.providerThreadId.trim();
+    if (!_shouldHydrateThreadMetadata(threadId, event)) {
+      return;
+    }
+
+    _threadMetadataHydrationAttempts.add(threadId);
+    try {
+      final thread = await appServerClient.readThread(threadId: threadId);
+      if (_isDisposed || !_hasThreadMetadata(thread)) {
+        return;
+      }
+
+      _applyRuntimeEvent(
+        CodexRuntimeThreadStartedEvent(
+          createdAt: DateTime.now(),
+          threadId: thread.id,
+          providerThreadId: thread.id,
+          rawMethod: 'thread/read(response)',
+          threadName: thread.name,
+          sourceKind: thread.sourceKind,
+          agentNickname: thread.agentNickname,
+          agentRole: thread.agentRole,
+        ),
+      );
+    } catch (_) {
+      // Thread metadata hydration is best-effort only.
+    }
+  }
+
+  bool _shouldHydrateThreadMetadata(
+    String threadId,
+    CodexRuntimeThreadStartedEvent event,
+  ) {
+    if (threadId.isEmpty ||
+        event.rawMethod == 'thread/read(response)' ||
+        _threadMetadataHydrationAttempts.contains(threadId)) {
+      return false;
+    }
+
+    final existingEntry = _sessionState.threadRegistry[threadId];
+    return !_hasThreadDisplayMetadataValues(
+      threadName: existingEntry?.threadName ?? event.threadName,
+      agentNickname: existingEntry?.agentNickname ?? event.agentNickname,
+      agentRole: existingEntry?.agentRole ?? event.agentRole,
+    );
+  }
+
+  bool _hasThreadMetadata(CodexAppServerThread thread) {
+    return _hasThreadMetadataValues(
+      threadName: thread.name,
+      agentNickname: thread.agentNickname,
+      agentRole: thread.agentRole,
+      sourceKind: thread.sourceKind,
+    );
+  }
+
+  bool _hasThreadMetadataValues({
+    String? threadName,
+    String? agentNickname,
+    String? agentRole,
+    String? sourceKind,
+  }) {
+    return _hasNonEmptyValue(threadName) ||
+        _hasNonEmptyValue(agentNickname) ||
+        _hasNonEmptyValue(agentRole) ||
+        _hasNonEmptyValue(sourceKind);
+  }
+
+  bool _hasThreadDisplayMetadataValues({
+    String? threadName,
+    String? agentNickname,
+    String? agentRole,
+  }) {
+    return _hasNonEmptyValue(threadName) ||
+        _hasNonEmptyValue(agentNickname) ||
+        _hasNonEmptyValue(agentRole);
+  }
+
+  bool _hasNonEmptyValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
   }
 
   Object? _elicitationContentFromAnswers(Map<String, List<String>> answers) {
@@ -511,7 +804,9 @@ class ChatSessionController extends ChangeNotifier {
     required String title,
     required String message,
     required Object error,
+    String? runtimeErrorMessage,
     bool suppressRuntimeError = false,
+    bool suppressSnackBar = false,
   }) {
     final now = DateTime.now();
     _applyRuntimeEvent(
@@ -526,13 +821,49 @@ class ChatSessionController extends ChangeNotifier {
       _applyRuntimeEvent(
         CodexRuntimeErrorEvent(
           createdAt: now,
-          message: '$title: $error',
+          message: runtimeErrorMessage ?? '$title: $error',
           errorClass: CodexRuntimeErrorClass.transportError,
           rawMethod: 'app-server/failure',
         ),
       );
     }
-    _emitSnackBar(message);
+    if (!suppressSnackBar) {
+      _emitSnackBar(message);
+    }
+  }
+
+  ({String title, String message, String? runtimeErrorMessage})
+  _sendFailurePresentation(Object error) {
+    if (_unexpectedConversationThread(error) case (
+      expectedThreadId: final expectedThreadId,
+      actualThreadId: final actualThreadId,
+    )) {
+      final message =
+          'Pocket Relay expected remote conversation "$expectedThreadId", '
+          'but the remote session returned "$actualThreadId". Sending is '
+          'blocked to avoid attaching your draft to a different conversation.';
+      return (
+        title: 'Conversation changed',
+        message: message,
+        runtimeErrorMessage: message,
+      );
+    }
+
+    if (_isMissingConversationThreadError(error)) {
+      const message =
+          'Could not continue this conversation because the remote conversation was not found. Start a fresh conversation to continue.';
+      return (
+        title: 'Conversation unavailable',
+        message: message,
+        runtimeErrorMessage: message,
+      );
+    }
+
+    return (
+      title: 'Send failed',
+      message: 'Could not send the prompt to the ${_sessionLabel()} session.',
+      runtimeErrorMessage: null,
+    );
   }
 
   bool _isSshBootstrapFailureRuntimeEvent(CodexRuntimeEvent event) {
@@ -550,6 +881,166 @@ class ChatSessionController extends ChangeNotifier {
       return;
     }
     _snackBarMessagesController.add(message);
+  }
+
+  String? _activeConversationThreadId() {
+    if (_profile.ephemeralSession) {
+      return null;
+    }
+
+    return _normalizedThreadId(_sessionState.effectiveRootThreadId);
+  }
+
+  String? _resumeConversationThreadId() {
+    if (_profile.ephemeralSession) {
+      return null;
+    }
+
+    return _normalizedThreadId(_resumeThreadId);
+  }
+
+  String? _trackedThreadReuseCandidate() {
+    if (_profile.ephemeralSession ||
+        _suppressTrackedThreadReuse ||
+        _sessionState.hasMultipleTimelines) {
+      return null;
+    }
+
+    return _normalizedThreadId(appServerClient.threadId);
+  }
+
+  ChatConversationRecoveryState? _preflightConversationRecoveryState() {
+    if (_activeConversationThreadId() != null ||
+        _resumeConversationThreadId() != null) {
+      return null;
+    }
+
+    final trackedThreadId = _trackedThreadReuseCandidate();
+    if (trackedThreadId == null || !_hasConversationHistory()) {
+      return null;
+    }
+
+    return ChatConversationRecoveryState(
+      reason: ChatConversationRecoveryReason.detachedTranscript,
+      alternateThreadId: _alternateRecoveryThreadId(
+        preferredThreadId: trackedThreadId,
+      ),
+    );
+  }
+
+  String? _alternateRecoveryThreadId({String? preferredThreadId}) {
+    final normalizedPreferred = _normalizedThreadId(preferredThreadId);
+    final currentRootThreadId = _normalizedThreadId(
+      _sessionState.effectiveRootThreadId,
+    );
+    if (normalizedPreferred != null &&
+        normalizedPreferred != currentRootThreadId &&
+        _sessionState.timelineForThread(normalizedPreferred) != null) {
+      return normalizedPreferred;
+    }
+    return null;
+  }
+
+  bool _hasConversationHistory() {
+    return _sessionState.transcriptBlocks.any((block) {
+      return switch (block.kind) {
+        CodexUiBlockKind.userMessage ||
+        CodexUiBlockKind.assistantMessage ||
+        CodexUiBlockKind.reasoning ||
+        CodexUiBlockKind.plan ||
+        CodexUiBlockKind.proposedPlan ||
+        CodexUiBlockKind.workLogEntry ||
+        CodexUiBlockKind.workLogGroup ||
+        CodexUiBlockKind.changedFiles ||
+        CodexUiBlockKind.approvalRequest ||
+        CodexUiBlockKind.userInputRequest ||
+        CodexUiBlockKind.usage ||
+        CodexUiBlockKind.turnBoundary => true,
+        CodexUiBlockKind.status || CodexUiBlockKind.error => false,
+      };
+    });
+  }
+
+  void _rememberContinuationThread(String? threadId) {
+    final normalizedThreadId = _normalizedThreadId(threadId);
+    if (normalizedThreadId == null) {
+      return;
+    }
+
+    _resumeThreadId = normalizedThreadId;
+    _suppressTrackedThreadReuse = false;
+    _schedulePersistConversationHandoff();
+  }
+
+  void _clearContinuationThread() {
+    _resumeThreadId = null;
+    _suppressTrackedThreadReuse = true;
+    _schedulePersistConversationHandoff();
+  }
+
+  String? _normalizedThreadId(String? value) {
+    final normalizedValue = value?.trim();
+    if (normalizedValue == null || normalizedValue.isEmpty) {
+      return null;
+    }
+    return normalizedValue;
+  }
+
+  bool _isMissingConversationThreadError(Object error) {
+    final normalizedMessage = error.toString().toLowerCase();
+    if (!normalizedMessage.contains('thread')) {
+      return false;
+    }
+
+    return const <String>[
+      'thread not found',
+      'missing thread',
+      'no such thread',
+      'unknown thread',
+      'does not exist',
+    ].any(normalizedMessage.contains);
+  }
+
+  ({String expectedThreadId, String actualThreadId})?
+  _unexpectedConversationThread(Object error) {
+    if (error is! CodexAppServerException) {
+      return null;
+    }
+
+    final payload = _asObject(error.data);
+    final expectedThreadId = _normalizedThreadId(
+      _asString(payload?['expectedThreadId']),
+    );
+    final actualThreadId = _normalizedThreadId(
+      _asString(payload?['actualThreadId']),
+    );
+    if (expectedThreadId == null || actualThreadId == null) {
+      return null;
+    }
+
+    return (expectedThreadId: expectedThreadId, actualThreadId: actualThreadId);
+  }
+
+  void _schedulePersistConversationHandoff() {
+    if (_isDisposed) {
+      return;
+    }
+
+    final handoff = SavedConversationHandoff(
+      resumeThreadId:
+          _activeConversationThreadId() ?? _resumeConversationThreadId(),
+    );
+    unawaited(_persistConversationHandoff(handoff));
+  }
+
+  Future<void> _persistConversationHandoff(
+    SavedConversationHandoff handoff,
+  ) async {
+    try {
+      await conversationHandoffStore.save(handoff);
+    } catch (_) {
+      // Conversation handoff persistence must not break the active session.
+    }
   }
 
   String _sessionLabel() {

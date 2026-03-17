@@ -2612,4 +2612,89 @@ void main() {
       );
     },
   );
+
+  test('stores thread names in the workspace registry', () {
+    final reducer = TranscriptReducer();
+    final state = reducer.reduceRuntimeEvent(
+      CodexSessionState.initial(),
+      CodexRuntimeThreadStartedEvent(
+        createdAt: DateTime(2026, 3, 14, 12),
+        threadId: 'thread_child',
+        providerThreadId: 'thread_child',
+        threadName: 'Review Branch',
+      ),
+    );
+
+    expect(state.threadRegistry['thread_child']?.threadName, 'Review Branch');
+  });
+
+  test('wait completion releases the parent timeline from waitingOnChild', () {
+    final reducer = TranscriptReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    final waitCall = const CodexRuntimeCollabAgentToolCall(
+      tool: CodexRuntimeCollabAgentTool.wait,
+      status: CodexRuntimeCollabAgentToolCallStatus.inProgress,
+      senderThreadId: 'thread_root',
+      receiverThreadIds: <String>['thread_child'],
+    );
+    final completedWaitCall = const CodexRuntimeCollabAgentToolCall(
+      tool: CodexRuntimeCollabAgentTool.wait,
+      status: CodexRuntimeCollabAgentToolCallStatus.completed,
+      senderThreadId: 'thread_root',
+      receiverThreadIds: <String>['thread_child'],
+    );
+
+    var state = reducer.reduceRuntimeEvent(
+      CodexSessionState.initial(),
+      CodexRuntimeThreadStartedEvent(
+        createdAt: now,
+        threadId: 'thread_root',
+        providerThreadId: 'thread_root',
+      ),
+    );
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeTurnStartedEvent(
+        createdAt: now.add(const Duration(milliseconds: 1)),
+        threadId: 'thread_root',
+        turnId: 'turn_root_1',
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemStartedEvent(
+        createdAt: now.add(const Duration(milliseconds: 2)),
+        itemType: CodexCanonicalItemType.collabAgentToolCall,
+        threadId: 'thread_root',
+        turnId: 'turn_root_1',
+        itemId: 'wait_1',
+        status: CodexRuntimeItemStatus.inProgress,
+        collaboration: waitCall,
+      ),
+    );
+
+    expect(
+      state.timelineForThread('thread_root')?.lifecycleState,
+      CodexAgentLifecycleState.waitingOnChild,
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now.add(const Duration(milliseconds: 3)),
+        itemType: CodexCanonicalItemType.collabAgentToolCall,
+        threadId: 'thread_root',
+        turnId: 'turn_root_1',
+        itemId: 'wait_1',
+        status: CodexRuntimeItemStatus.completed,
+        collaboration: completedWaitCall,
+      ),
+    );
+
+    expect(
+      state.timelineForThread('thread_root')?.lifecycleState,
+      CodexAgentLifecycleState.running,
+    );
+  });
 }

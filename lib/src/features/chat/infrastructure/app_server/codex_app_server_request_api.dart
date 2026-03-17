@@ -43,31 +43,20 @@ class CodexAppServerRequestApi {
       ...?resumeThreadParam,
     };
 
-    Object? response;
-    try {
-      response = await connection.sendRequest(method, params);
-    } on CodexAppServerException catch (error) {
-      if (effectiveResumeThreadId == null ||
-          !_isRecoverableThreadResumeError(error)) {
-        rethrow;
-      }
-
-      method = 'thread/start';
-      params = <String, Object?>{
-        ...baseParams,
-        'ephemeral': profile.ephemeralSession,
-      };
-      response = await connection.sendRequest(method, params);
-    }
+    final response = await connection.sendRequest(method, params);
 
     final payload = _requireObject(response, '$method response');
-    final thread = _requireObject(payload['thread'], '$method thread');
-    final threadId =
-        _asString(thread['id']) ?? _asString(payload['threadId']) ?? '';
+    final thread = _requireThread(payload['thread'], '$method response');
+    final threadId = thread.id;
 
-    if (threadId.isEmpty) {
+    if (effectiveResumeThreadId != null &&
+        threadId != effectiveResumeThreadId) {
       throw CodexAppServerException(
-        '$method response did not include a thread id.',
+        'thread/resume returned a different thread id than requested.',
+        data: <String, Object?>{
+          'expectedThreadId': effectiveResumeThreadId,
+          'actualThreadId': threadId,
+        },
       );
     }
 
@@ -78,9 +67,38 @@ class CodexAppServerRequestApi {
       cwd: _asString(payload['cwd']) ?? effectiveCwd,
       model: _asString(payload['model']) ?? '',
       modelProvider: _asString(payload['modelProvider']) ?? '',
+      thread: thread,
       approvalPolicy: payload['approvalPolicy'],
       sandbox: payload['sandbox'],
     );
+  }
+
+  Future<CodexAppServerThread> readThread(
+    CodexAppServerConnection connection, {
+    required String threadId,
+  }) async {
+    connection.requireConnected();
+
+    final effectiveThreadId = threadId.trim();
+    if (effectiveThreadId.isEmpty) {
+      throw const CodexAppServerException('Thread id cannot be empty.');
+    }
+
+    final response = await connection.sendRequest(
+      'thread/read',
+      <String, Object?>{'threadId': effectiveThreadId, 'includeTurns': false},
+    );
+    final payload = _requireObject(response, 'thread/read response');
+    final thread = _asThread(
+      payload['thread'],
+      fallbackThreadId: effectiveThreadId,
+    );
+    if (thread == null) {
+      throw const CodexAppServerException(
+        'thread/read response did not include a thread object.',
+      );
+    }
+    return thread;
   }
 
   Future<CodexAppServerTurn> sendUserMessage(
@@ -272,16 +290,13 @@ class CodexAppServerRequestApi {
     String? threadId,
     String? turnId,
   }) async {
-    final effectiveThreadId = threadId ?? connection.threadId;
-    final effectiveTurnId = turnId ?? connection.activeTurnId;
-
-    if (effectiveThreadId == null || effectiveTurnId == null) {
+    if (threadId == null || turnId == null) {
       return;
     }
 
     await connection.sendRequest('turn/interrupt', <String, Object?>{
-      'threadId': effectiveThreadId,
-      'turnId': effectiveTurnId,
+      'threadId': threadId,
+      'turnId': turnId,
     });
   }
 
@@ -302,6 +317,43 @@ class CodexAppServerRequestApi {
 
   static String? _asString(Object? value) {
     return value is String ? value : null;
+  }
+
+  static CodexAppServerThread _requireThread(Object? value, String label) {
+    final thread = _asThread(value);
+    if (thread == null) {
+      throw CodexAppServerException('$label did not include a thread object.');
+    }
+    return thread;
+  }
+
+  static CodexAppServerThread? _asThread(
+    Object? value, {
+    Object? fallbackThreadId,
+  }) {
+    final thread = _asObject(value);
+    final threadId =
+        _asString(thread?['id']) ?? _asString(fallbackThreadId) ?? '';
+    if (threadId.isEmpty) {
+      return null;
+    }
+
+    return CodexAppServerThread(
+      id: threadId,
+      name: _asString(thread?['name']),
+      sourceKind: _sourceKind(thread?['source']),
+      agentNickname: _asString(thread?['agentNickname']),
+      agentRole: _asString(thread?['agentRole']),
+    );
+  }
+
+  static String? _sourceKind(Object? raw) {
+    if (raw is String && raw.trim().isNotEmpty) {
+      return raw.trim();
+    }
+
+    final object = _asObject(raw);
+    return _asString(object?['kind']) ?? _asString(object?['type']);
   }
 
   static String _approvalPolicyFor(ConnectionProfile profile) {
@@ -327,20 +379,5 @@ class CodexAppServerRequestApi {
         'fileSystem': requested['fileSystem'],
       if (requested['macos'] != null) 'macos': requested['macos'],
     };
-  }
-
-  static bool _isRecoverableThreadResumeError(Object error) {
-    final message = error.toString().toLowerCase();
-    if (!message.contains('thread/resume')) {
-      return false;
-    }
-
-    return const <String>[
-      'not found',
-      'missing thread',
-      'no such thread',
-      'unknown thread',
-      'does not exist',
-    ].any(message.contains);
   }
 }

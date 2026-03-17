@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_cupertino_theme.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -16,11 +17,13 @@ class PocketRelayApp extends StatefulWidget {
   const PocketRelayApp({
     super.key,
     this.profileStore,
+    this.conversationHandoffStore,
     this.appServerClient,
     this.displayWakeLockController,
   });
 
   final CodexProfileStore? profileStore;
+  final CodexConversationHandoffStore? conversationHandoffStore;
   final CodexAppServerClient? appServerClient;
   final DisplayWakeLockController? displayWakeLockController;
 
@@ -30,36 +33,42 @@ class PocketRelayApp extends StatefulWidget {
 
 class _PocketRelayAppState extends State<PocketRelayApp> {
   CodexProfileStore? _ownedProfileStore;
+  CodexConversationHandoffStore? _ownedConversationHandoffStore;
   CodexAppServerClient? _ownedAppServerClient;
   late CodexProfileStore _profileStore;
+  late CodexConversationHandoffStore _conversationHandoffStore;
   late CodexAppServerClient _appServerClient;
   SavedProfile? _savedProfile;
-  int _profileLoadGeneration = 0;
+  SavedConversationHandoff? _savedConversationHandoff;
+  int _bootstrapLoadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     _bindDependencies();
-    _loadSavedProfile();
+    _loadBootstrapState();
   }
 
   @override
   void didUpdateWidget(covariant PocketRelayApp oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profileStore == widget.profileStore &&
+        oldWidget.conversationHandoffStore == widget.conversationHandoffStore &&
         oldWidget.appServerClient == widget.appServerClient) {
       return;
     }
 
     _bindDependencies();
-    if (oldWidget.profileStore == widget.profileStore) {
+    if (oldWidget.profileStore == widget.profileStore &&
+        oldWidget.conversationHandoffStore == widget.conversationHandoffStore) {
       return;
     }
 
     setState(() {
       _savedProfile = null;
+      _savedConversationHandoff = null;
     });
-    _loadSavedProfile();
+    _loadBootstrapState();
   }
 
   @override
@@ -75,6 +84,10 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     _profileStore =
         widget.profileStore ??
         (_ownedProfileStore ??= SecureCodexProfileStore());
+    _conversationHandoffStore =
+        widget.conversationHandoffStore ??
+        (_ownedConversationHandoffStore ??=
+            SecureCodexConversationHandoffStore());
 
     if (widget.appServerClient case final injectedClient?) {
       final ownedClient = _ownedAppServerClient;
@@ -89,24 +102,31 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     _appServerClient = _ownedAppServerClient ??= CodexAppServerClient();
   }
 
-  Future<void> _loadSavedProfile() async {
-    final loadGeneration = ++_profileLoadGeneration;
+  Future<void> _loadBootstrapState() async {
+    final loadGeneration = ++_bootstrapLoadGeneration;
     final profileStore = _profileStore;
-    final savedProfile = await profileStore.load();
+    final conversationHandoffStore = _conversationHandoffStore;
+    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      profileStore.load(),
+      conversationHandoffStore.load(),
+    ]);
     if (!mounted ||
-        loadGeneration != _profileLoadGeneration ||
-        profileStore != _profileStore) {
+        loadGeneration != _bootstrapLoadGeneration ||
+        profileStore != _profileStore ||
+        conversationHandoffStore != _conversationHandoffStore) {
       return;
     }
 
     setState(() {
-      _savedProfile = savedProfile;
+      _savedProfile = results[0] as SavedProfile;
+      _savedConversationHandoff = results[1] as SavedConversationHandoff;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final savedProfile = _savedProfile;
+    final savedConversationHandoff = _savedConversationHandoff;
     const platformPolicy = ChatRootPlatformPolicy.cupertinoFoundation();
 
     return MaterialApp(
@@ -121,7 +141,9 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
             const WakelockPlusDisplayWakeLockController(),
         child: _PocketRelayHome(
           savedProfile: savedProfile,
+          savedConversationHandoff: savedConversationHandoff,
           profileStore: _profileStore,
+          conversationHandoffStore: _conversationHandoffStore,
           appServerClient: _appServerClient,
           platformPolicy: platformPolicy,
         ),
@@ -133,23 +155,31 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
 class _PocketRelayHome extends StatelessWidget {
   const _PocketRelayHome({
     required this.savedProfile,
+    required this.savedConversationHandoff,
     required this.profileStore,
+    required this.conversationHandoffStore,
     required this.appServerClient,
     required this.platformPolicy,
   });
 
   final SavedProfile? savedProfile;
+  final SavedConversationHandoff? savedConversationHandoff;
   final CodexProfileStore profileStore;
+  final CodexConversationHandoffStore conversationHandoffStore;
   final CodexAppServerClient appServerClient;
   final ChatRootPlatformPolicy platformPolicy;
 
   @override
   Widget build(BuildContext context) {
-    if (savedProfile case final resolvedProfile?) {
+    final resolvedProfile = savedProfile;
+    final resolvedConversationHandoff = savedConversationHandoff;
+    if (resolvedProfile != null && resolvedConversationHandoff != null) {
       return ChatRootAdapter(
         profileStore: profileStore,
+        conversationHandoffStore: conversationHandoffStore,
         appServerClient: appServerClient,
         initialSavedProfile: resolvedProfile,
+        initialSavedConversationHandoff: resolvedConversationHandoff,
         platformPolicy: platformPolicy,
       );
     }

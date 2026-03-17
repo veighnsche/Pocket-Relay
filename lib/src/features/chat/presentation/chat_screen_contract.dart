@@ -10,6 +10,35 @@ enum ChatScreenActionPlacement { toolbar, menu }
 
 enum ChatScreenActionIcon { settings }
 
+enum ChatConversationRecoveryActionId {
+  startFreshConversation,
+  openAlternateSession,
+}
+
+class ChatConversationRecoveryActionContract {
+  const ChatConversationRecoveryActionContract({
+    required this.id,
+    required this.label,
+    this.isPrimary = false,
+  });
+
+  final ChatConversationRecoveryActionId id;
+  final String label;
+  final bool isPrimary;
+}
+
+class ChatConversationRecoveryNoticeContract {
+  const ChatConversationRecoveryNoticeContract({
+    required this.title,
+    required this.message,
+    required this.actions,
+  });
+
+  final String title;
+  final String message;
+  final List<ChatConversationRecoveryActionContract> actions;
+}
+
 class ChatScreenActionContract {
   const ChatScreenActionContract({
     required this.id,
@@ -41,6 +70,28 @@ class ChatEmptyStateContract {
 
   final bool isConfigured;
   final ConnectionMode connectionMode;
+}
+
+class ChatTimelineSummaryContract {
+  const ChatTimelineSummaryContract({
+    required this.threadId,
+    required this.label,
+    required this.status,
+    required this.isPrimary,
+    required this.isSelected,
+    required this.isClosed,
+    required this.hasUnreadActivity,
+    required this.hasPendingRequests,
+  });
+
+  final String threadId;
+  final String label;
+  final CodexAgentLifecycleState status;
+  final bool isPrimary;
+  final bool isSelected;
+  final bool isClosed;
+  final bool hasUnreadActivity;
+  final bool hasPendingRequests;
 }
 
 class ChatTranscriptSurfaceContract {
@@ -104,20 +155,24 @@ class ChatScreenContract {
     required this.isLoading,
     required this.header,
     required this.actions,
+    this.timelineSummaries = const <ChatTimelineSummaryContract>[],
     required this.transcriptSurface,
     required this.transcriptFollow,
     required this.composer,
     required this.connectionSettings,
+    this.conversationRecoveryNotice,
     this.turnIndicator,
   });
 
   final bool isLoading;
   final ChatHeaderContract header;
   final List<ChatScreenActionContract> actions;
+  final List<ChatTimelineSummaryContract> timelineSummaries;
   final ChatTranscriptSurfaceContract transcriptSurface;
   final ChatTranscriptFollowContract transcriptFollow;
   final ChatComposerContract composer;
   final ChatConnectionSettingsLaunchContract connectionSettings;
+  final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
   final ChatTurnIndicatorContract? turnIndicator;
 
   List<ChatScreenActionContract> get toolbarActions => actions

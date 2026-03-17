@@ -44,6 +44,32 @@ enum CodexRuntimeErrorClass {
   unknown,
 }
 
+enum CodexRuntimeCollabAgentTool {
+  spawnAgent,
+  sendInput,
+  resumeAgent,
+  wait,
+  closeAgent,
+  unknown,
+}
+
+enum CodexRuntimeCollabAgentToolCallStatus {
+  inProgress,
+  completed,
+  failed,
+  unknown,
+}
+
+enum CodexRuntimeCollabAgentStatus {
+  pendingInit,
+  running,
+  completed,
+  errored,
+  shutdown,
+  notFound,
+  unknown,
+}
+
 enum CodexCanonicalItemType {
   userMessage,
   assistantMessage,
@@ -146,6 +172,38 @@ class CodexRuntimeUserInputQuestion {
   final bool isSecret;
 }
 
+class CodexRuntimeCollabAgentState {
+  const CodexRuntimeCollabAgentState({
+    required this.status,
+    this.message,
+  });
+
+  final CodexRuntimeCollabAgentStatus status;
+  final String? message;
+}
+
+class CodexRuntimeCollabAgentToolCall {
+  const CodexRuntimeCollabAgentToolCall({
+    required this.tool,
+    required this.status,
+    required this.senderThreadId,
+    required this.receiverThreadIds,
+    this.prompt,
+    this.model,
+    this.reasoningEffort,
+    this.agentsStates = const <String, CodexRuntimeCollabAgentState>{},
+  });
+
+  final CodexRuntimeCollabAgentTool tool;
+  final CodexRuntimeCollabAgentToolCallStatus status;
+  final String senderThreadId;
+  final List<String> receiverThreadIds;
+  final String? prompt;
+  final String? model;
+  final String? reasoningEffort;
+  final Map<String, CodexRuntimeCollabAgentState> agentsStates;
+}
+
 sealed class CodexRuntimeEvent {
   const CodexRuntimeEvent({
     required this.createdAt,
@@ -203,9 +261,17 @@ final class CodexRuntimeThreadStartedEvent extends CodexRuntimeEvent {
     super.threadId,
     super.rawMethod,
     super.rawPayload,
+    this.threadName,
+    this.sourceKind,
+    this.agentNickname,
+    this.agentRole,
   });
 
   final String providerThreadId;
+  final String? threadName;
+  final String? sourceKind;
+  final String? agentNickname;
+  final String? agentRole;
 }
 
 final class CodexRuntimeThreadStateChangedEvent extends CodexRuntimeEvent {
@@ -301,6 +367,7 @@ sealed class CodexRuntimeItemLifecycleEvent extends CodexRuntimeEvent {
     this.title,
     this.detail,
     this.snapshot,
+    this.collaboration,
   });
 
   final CodexCanonicalItemType itemType;
@@ -308,6 +375,7 @@ sealed class CodexRuntimeItemLifecycleEvent extends CodexRuntimeEvent {
   final String? title;
   final String? detail;
   final Map<String, dynamic>? snapshot;
+  final CodexRuntimeCollabAgentToolCall? collaboration;
 }
 
 final class CodexRuntimeItemStartedEvent
@@ -324,6 +392,7 @@ final class CodexRuntimeItemStartedEvent
     super.title,
     super.detail,
     super.snapshot,
+    super.collaboration,
   });
 }
 
@@ -341,6 +410,7 @@ final class CodexRuntimeItemUpdatedEvent
     super.title,
     super.detail,
     super.snapshot,
+    super.collaboration,
   });
 }
 
@@ -358,6 +428,7 @@ final class CodexRuntimeItemCompletedEvent
     super.title,
     super.detail,
     super.snapshot,
+    super.collaboration,
   });
 }
 

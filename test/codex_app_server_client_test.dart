@@ -236,7 +236,7 @@ void main() {
               process.sendStdout(<String, Object?>{
                 'id': message['id'],
                 'result': <String, Object?>{
-                  'thread': <String, Object?>{'id': 'thread_resumed'},
+                  'thread': <String, Object?>{'id': 'thread_old'},
                   'cwd': '/workspace',
                   'model': 'gpt-5.3-codex',
                   'modelProvider': 'openai',
@@ -276,7 +276,7 @@ void main() {
   );
 
   test(
-    'startSession falls back to thread/start when thread/resume cannot find the thread',
+    'startSession surfaces thread/resume mismatches instead of accepting a different thread id',
     () async {
       late _FakeCodexAppServerProcess process;
       process = _FakeCodexAppServerProcess(
@@ -292,16 +292,8 @@ void main() {
             case 'thread/resume':
               process.sendStdout(<String, Object?>{
                 'id': message['id'],
-                'error': <String, Object?>{
-                  'code': -32000,
-                  'message': 'thread/resume failed: thread not found',
-                },
-              });
-            case 'thread/start':
-              process.sendStdout(<String, Object?>{
-                'id': message['id'],
                 'result': <String, Object?>{
-                  'thread': <String, Object?>{'id': 'thread_fresh'},
+                  'thread': <String, Object?>{'id': 'thread_other'},
                   'cwd': '/workspace',
                   'model': 'gpt-5.3-codex',
                   'modelProvider': 'openai',
@@ -324,9 +316,74 @@ void main() {
         secrets: const ConnectionSecrets(password: 'secret'),
       );
 
-      final session = await client.startSession(resumeThreadId: 'thread_old');
+      await expectLater(
+        client.startSession(resumeThreadId: 'thread_old'),
+        throwsA(
+          isA<CodexAppServerException>()
+              .having(
+                (error) => error.message,
+                'message',
+                'thread/resume returned a different thread id than requested.',
+              )
+              .having((error) => error.data, 'data', <String, Object?>{
+                'expectedThreadId': 'thread_old',
+                'actualThreadId': 'thread_other',
+              }),
+        ),
+      );
+      expect(client.threadId, isNull);
 
-      expect(session.threadId, 'thread_fresh');
+      await client.disconnect();
+    },
+  );
+
+  test(
+    'startSession surfaces thread/resume missing-thread failures without silently starting fresh',
+    () async {
+      late _FakeCodexAppServerProcess process;
+      process = _FakeCodexAppServerProcess(
+        onClientMessage: (message) {
+          switch (message['method']) {
+            case 'initialize':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'userAgent': 'codex-app-server-test',
+                },
+              });
+            case 'thread/resume':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'error': <String, Object?>{
+                  'code': -32000,
+                  'message': 'thread/resume failed: thread not found',
+                },
+              });
+          }
+        },
+      );
+
+      final client = CodexAppServerClient(
+        processLauncher:
+            ({required profile, required secrets, required emitEvent}) async =>
+                process,
+      );
+
+      await client.connect(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      );
+
+      await expectLater(
+        client.startSession(resumeThreadId: 'thread_old'),
+        throwsA(
+          isA<CodexAppServerException>().having(
+            (error) => error.message,
+            'message',
+            contains('thread/resume failed: thread not found'),
+          ),
+        ),
+      );
       expect(
         process.writtenMessages
             .where((message) => message['method'] == 'thread/resume')
@@ -337,7 +394,7 @@ void main() {
         process.writtenMessages
             .where((message) => message['method'] == 'thread/start')
             .length,
-        1,
+        0,
       );
 
       await client.disconnect();

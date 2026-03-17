@@ -260,6 +260,96 @@ String? _requestDetail(Map<String, dynamic>? payload) {
   ]);
 }
 
+String? _threadSourceKind(Map<String, dynamic>? thread) {
+  final raw = thread?['source'];
+  if (raw is String && raw.trim().isNotEmpty) {
+    return raw.trim();
+  }
+
+  final object = _asObject(raw);
+  return _asString(object?['kind']) ?? _asString(object?['type']);
+}
+
+CodexRuntimeCollabAgentToolCall? _collaborationDetails(
+  CodexCanonicalItemType itemType,
+  Map<String, dynamic> item,
+) {
+  if (itemType != CodexCanonicalItemType.collabAgentToolCall) {
+    return null;
+  }
+
+  final senderThreadId = _asString(item['senderThreadId']);
+  if (senderThreadId == null || senderThreadId.isEmpty) {
+    return null;
+  }
+
+  final receiverThreadIds = _asList(item['receiverThreadIds'])
+      ?.map(_asString)
+      .whereType<String>()
+      .where((threadId) => threadId.trim().isNotEmpty)
+      .toList(growable: false);
+  if (receiverThreadIds == null || receiverThreadIds.isEmpty) {
+    return null;
+  }
+
+  final rawAgentStates = _asObject(item['agentsStates']);
+  final agentStates = <String, CodexRuntimeCollabAgentState>{};
+  rawAgentStates?.forEach((threadId, rawState) {
+    final state = _asObject(rawState);
+    final status = _collabAgentStatus(state?['status']);
+    if (status == CodexRuntimeCollabAgentStatus.unknown) {
+      return;
+    }
+    agentStates[threadId] = CodexRuntimeCollabAgentState(
+      status: status,
+      message: _asString(state?['message']),
+    );
+  });
+
+  return CodexRuntimeCollabAgentToolCall(
+    tool: _collabAgentTool(item['tool']),
+    status: _collabToolCallStatus(item['status']),
+    senderThreadId: senderThreadId,
+    receiverThreadIds: receiverThreadIds,
+    prompt: _asString(item['prompt']),
+    model: _asString(item['model']),
+    reasoningEffort: _asString(item['reasoningEffort']),
+    agentsStates: agentStates,
+  );
+}
+
+CodexRuntimeCollabAgentTool _collabAgentTool(Object? raw) {
+  return switch (_asString(raw)) {
+    'spawnAgent' => CodexRuntimeCollabAgentTool.spawnAgent,
+    'sendInput' => CodexRuntimeCollabAgentTool.sendInput,
+    'resumeAgent' => CodexRuntimeCollabAgentTool.resumeAgent,
+    'wait' => CodexRuntimeCollabAgentTool.wait,
+    'closeAgent' => CodexRuntimeCollabAgentTool.closeAgent,
+    _ => CodexRuntimeCollabAgentTool.unknown,
+  };
+}
+
+CodexRuntimeCollabAgentToolCallStatus _collabToolCallStatus(Object? raw) {
+  return switch (_asString(raw)) {
+    'inProgress' => CodexRuntimeCollabAgentToolCallStatus.inProgress,
+    'completed' => CodexRuntimeCollabAgentToolCallStatus.completed,
+    'failed' => CodexRuntimeCollabAgentToolCallStatus.failed,
+    _ => CodexRuntimeCollabAgentToolCallStatus.unknown,
+  };
+}
+
+CodexRuntimeCollabAgentStatus _collabAgentStatus(Object? raw) {
+  return switch (_asString(raw)) {
+    'pendingInit' => CodexRuntimeCollabAgentStatus.pendingInit,
+    'running' => CodexRuntimeCollabAgentStatus.running,
+    'completed' => CodexRuntimeCollabAgentStatus.completed,
+    'errored' => CodexRuntimeCollabAgentStatus.errored,
+    'shutdown' => CodexRuntimeCollabAgentStatus.shutdown,
+    'notFound' => CodexRuntimeCollabAgentStatus.notFound,
+    _ => CodexRuntimeCollabAgentStatus.unknown,
+  };
+}
+
 CodexRuntimeThreadState _threadStateFor(
   String method,
   Map<String, dynamic>? payload,

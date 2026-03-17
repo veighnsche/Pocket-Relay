@@ -18,13 +18,13 @@ Reference Codex source is available locally at:
 
 The most relevant planning documents already in the repo are:
 
-- `docs/codex-parity-maturity-plan.md`
-- `docs/transcript-immutability-migration-plan.md`
-- `docs/component-lifecycle-audit-plan.md`
+- `docs/004_codex-parity-maturity-plan.md`
+- `docs/011_transcript-immutability-migration-plan.md`
+- `docs/005_component-lifecycle-audit-plan.md`
 
 Important note:
 
-- `docs/transcript-immutability-migration-plan.md` is now the canonical
+- `docs/011_transcript-immutability-migration-plan.md` is now the canonical
   transcript chronology status summary
 - the transcript ownership rewrite is already in place; the remaining work is
   live verification plus the local build/runtime blocker described in that doc
@@ -215,10 +215,10 @@ These are not active blockers, but they should be watched during future work:
 
 Start by reading:
 
-1. `docs/next-agent-handoff.md`
-2. `docs/transcript-immutability-migration-plan.md`
-3. `docs/codex-parity-maturity-plan.md`
-4. `docs/component-lifecycle-audit-plan.md`
+1. `docs/006_next-agent-handoff.md`
+2. `docs/011_transcript-immutability-migration-plan.md`
+3. `docs/004_codex-parity-maturity-plan.md`
+4. `docs/005_component-lifecycle-audit-plan.md`
 
 Then inspect:
 

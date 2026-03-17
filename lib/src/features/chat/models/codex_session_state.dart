@@ -157,26 +157,123 @@ class CodexSessionTurnTimer {
   }
 }
 
-class CodexSessionState {
-  const CodexSessionState({
+enum CodexAgentLifecycleState {
+  unknown,
+  starting,
+  idle,
+  running,
+  waitingOnChild,
+  blockedOnApproval,
+  blockedOnInput,
+  completed,
+  failed,
+  aborted,
+  closed,
+}
+
+class CodexThreadRegistryEntry {
+  const CodexThreadRegistryEntry({
+    required this.threadId,
+    required this.displayOrder,
+    this.parentThreadId,
+    this.childThreadIds = const <String>[],
+    this.threadName,
+    this.agentNickname,
+    this.agentRole,
+    this.sourceKind,
+    this.spawnItemId,
+    this.isClosed = false,
+    this.isPrimary = false,
+  });
+
+  final String threadId;
+  final int displayOrder;
+  final String? parentThreadId;
+  final List<String> childThreadIds;
+  final String? threadName;
+  final String? agentNickname;
+  final String? agentRole;
+  final String? sourceKind;
+  final String? spawnItemId;
+  final bool isClosed;
+  final bool isPrimary;
+
+  CodexThreadRegistryEntry copyWith({
+    int? displayOrder,
+    String? parentThreadId,
+    bool clearParentThreadId = false,
+    List<String>? childThreadIds,
+    String? threadName,
+    bool clearThreadName = false,
+    String? agentNickname,
+    bool clearAgentNickname = false,
+    String? agentRole,
+    bool clearAgentRole = false,
+    String? sourceKind,
+    bool clearSourceKind = false,
+    String? spawnItemId,
+    bool clearSpawnItemId = false,
+    bool? isClosed,
+    bool? isPrimary,
+  }) {
+    return CodexThreadRegistryEntry(
+      threadId: threadId,
+      displayOrder: displayOrder ?? this.displayOrder,
+      parentThreadId: clearParentThreadId
+          ? null
+          : (parentThreadId ?? this.parentThreadId),
+      childThreadIds: childThreadIds ?? this.childThreadIds,
+      threadName: clearThreadName ? null : (threadName ?? this.threadName),
+      agentNickname: clearAgentNickname
+          ? null
+          : (agentNickname ?? this.agentNickname),
+      agentRole: clearAgentRole ? null : (agentRole ?? this.agentRole),
+      sourceKind: clearSourceKind ? null : (sourceKind ?? this.sourceKind),
+      spawnItemId: clearSpawnItemId ? null : (spawnItemId ?? this.spawnItemId),
+      isClosed: isClosed ?? this.isClosed,
+      isPrimary: isPrimary ?? this.isPrimary,
+    );
+  }
+}
+
+class CodexTimelineState {
+  const CodexTimelineState({
+    required this.threadId,
     this.connectionStatus = CodexRuntimeSessionState.stopped,
-    this.threadId,
+    this.lifecycleState = CodexAgentLifecycleState.unknown,
     this.activeTurn,
     this.blocks = const <CodexUiBlock>[],
     this.pendingLocalUserMessageBlockIds = const <String>[],
     this.localUserMessageProviderBindings = const <String, String>{},
+    this.hasUnreadActivity = false,
   });
 
-  factory CodexSessionState.initial() {
-    return const CodexSessionState();
+  factory CodexTimelineState.fromLegacySessionState(
+    CodexSessionState legacyState, {
+    required String threadId,
+    CodexAgentLifecycleState lifecycleState = CodexAgentLifecycleState.unknown,
+  }) {
+    return CodexTimelineState(
+      threadId: threadId,
+      connectionStatus: legacyState.connectionStatus,
+      lifecycleState: lifecycleState,
+      activeTurn: legacyState.activeTurn?.copyWith(threadId: threadId),
+      blocks: legacyState.blocks,
+      pendingLocalUserMessageBlockIds:
+          legacyState.pendingLocalUserMessageBlockIds,
+      localUserMessageProviderBindings:
+          legacyState.localUserMessageProviderBindings,
+    );
   }
 
+  final String threadId;
   final CodexRuntimeSessionState connectionStatus;
-  final String? threadId;
+  final CodexAgentLifecycleState lifecycleState;
   final CodexActiveTurnState? activeTurn;
   final List<CodexUiBlock> blocks;
   final List<String> pendingLocalUserMessageBlockIds;
   final Map<String, String> localUserMessageProviderBindings;
+  final bool hasUnreadActivity;
 
   Map<String, CodexSessionPendingRequest> get pendingApprovalRequests =>
       activeTurn?.pendingApprovalRequests ??
@@ -187,12 +284,198 @@ class CodexSessionState {
       activeTurn?.pendingUserInputRequests ??
       const <String, CodexSessionPendingUserInputRequest>{};
 
-  bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
+  bool get hasPendingRequests =>
+      pendingApprovalRequests.isNotEmpty || pendingUserInputRequests.isNotEmpty;
 
   List<CodexUiBlock> get transcriptBlocks => <CodexUiBlock>[
     ...blocks.where(_shouldAppearInTranscript),
     if (activeTurn != null) ...projectCodexTurnArtifacts(activeTurn!.artifacts),
   ];
+
+  CodexTimelineState copyWith({
+    CodexRuntimeSessionState? connectionStatus,
+    CodexAgentLifecycleState? lifecycleState,
+    CodexActiveTurnState? activeTurn,
+    bool clearActiveTurn = false,
+    List<CodexUiBlock>? blocks,
+    List<String>? pendingLocalUserMessageBlockIds,
+    bool clearPendingLocalUserMessageBlockIds = false,
+    Map<String, String>? localUserMessageProviderBindings,
+    bool clearLocalUserMessageProviderBindings = false,
+    bool? hasUnreadActivity,
+  }) {
+    return CodexTimelineState(
+      threadId: threadId,
+      connectionStatus: connectionStatus ?? this.connectionStatus,
+      lifecycleState: lifecycleState ?? this.lifecycleState,
+      activeTurn: clearActiveTurn ? null : (activeTurn ?? this.activeTurn),
+      blocks: blocks ?? this.blocks,
+      pendingLocalUserMessageBlockIds: clearPendingLocalUserMessageBlockIds
+          ? const <String>[]
+          : (pendingLocalUserMessageBlockIds ??
+                this.pendingLocalUserMessageBlockIds),
+      localUserMessageProviderBindings: clearLocalUserMessageProviderBindings
+          ? const <String, String>{}
+          : (localUserMessageProviderBindings ??
+                this.localUserMessageProviderBindings),
+      hasUnreadActivity: hasUnreadActivity ?? this.hasUnreadActivity,
+    );
+  }
+
+  CodexSessionState toLegacySessionState() {
+    return CodexSessionState(
+      connectionStatus: connectionStatus,
+      threadId: threadId,
+      activeTurn: activeTurn,
+      blocks: blocks,
+      pendingLocalUserMessageBlockIds: pendingLocalUserMessageBlockIds,
+      localUserMessageProviderBindings: localUserMessageProviderBindings,
+    );
+  }
+}
+
+class CodexSessionState {
+  const CodexSessionState({
+    this.connectionStatus = CodexRuntimeSessionState.stopped,
+    String? threadId,
+    CodexActiveTurnState? activeTurn,
+    List<CodexUiBlock> blocks = const <CodexUiBlock>[],
+    List<String> pendingLocalUserMessageBlockIds = const <String>[],
+    Map<String, String> localUserMessageProviderBindings =
+        const <String, String>{},
+    this.rootThreadId,
+    this.selectedThreadId,
+    this.timelinesByThreadId = const <String, CodexTimelineState>{},
+    this.threadRegistry = const <String, CodexThreadRegistryEntry>{},
+    this.requestOwnerById = const <String, String>{},
+  }) : _legacyThreadId = threadId,
+       _legacyActiveTurn = activeTurn,
+       _legacyBlocks = blocks,
+       _legacyPendingLocalUserMessageBlockIds = pendingLocalUserMessageBlockIds,
+       _legacyLocalUserMessageProviderBindings =
+           localUserMessageProviderBindings;
+
+  factory CodexSessionState.initial() {
+    return const CodexSessionState();
+  }
+
+  final CodexRuntimeSessionState connectionStatus;
+  final String? rootThreadId;
+  final String? selectedThreadId;
+  final Map<String, CodexTimelineState> timelinesByThreadId;
+  final Map<String, CodexThreadRegistryEntry> threadRegistry;
+  final Map<String, String> requestOwnerById;
+
+  final String? _legacyThreadId;
+  final CodexActiveTurnState? _legacyActiveTurn;
+  final List<CodexUiBlock> _legacyBlocks;
+  final List<String> _legacyPendingLocalUserMessageBlockIds;
+  final Map<String, String> _legacyLocalUserMessageProviderBindings;
+
+  bool get isWorkspaceMode =>
+      rootThreadId != null ||
+      selectedThreadId != null ||
+      timelinesByThreadId.isNotEmpty ||
+      threadRegistry.isNotEmpty ||
+      requestOwnerById.isNotEmpty;
+
+  String? get effectiveRootThreadId => rootThreadId ?? _legacyThreadId;
+
+  String? get effectiveSelectedThreadId =>
+      selectedThreadId ?? rootThreadId ?? _legacyThreadId;
+
+  Map<String, CodexTimelineState> get effectiveTimelinesByThreadId {
+    if (timelinesByThreadId.isNotEmpty) {
+      return timelinesByThreadId;
+    }
+    final legacyThreadId = _legacyThreadId;
+    if (legacyThreadId == null) {
+      return const <String, CodexTimelineState>{};
+    }
+    return <String, CodexTimelineState>{
+      legacyThreadId: _legacyTimeline(legacyThreadId),
+    };
+  }
+
+  CodexTimelineState? get rootTimeline =>
+      timelineForThread(effectiveRootThreadId);
+
+  CodexTimelineState? get selectedTimeline =>
+      timelineForThread(effectiveSelectedThreadId) ?? rootTimeline;
+
+  bool get hasMultipleTimelines => effectiveTimelinesByThreadId.length > 1;
+
+  String? get threadId => isWorkspaceMode
+      ? (selectedTimeline?.threadId ?? effectiveSelectedThreadId)
+      : _legacyThreadId;
+
+  CodexActiveTurnState? get activeTurn =>
+      isWorkspaceMode ? selectedTimeline?.activeTurn : _legacyActiveTurn;
+
+  List<CodexUiBlock> get blocks => isWorkspaceMode
+      ? (selectedTimeline?.blocks ?? const <CodexUiBlock>[])
+      : _legacyBlocks;
+
+  List<String> get pendingLocalUserMessageBlockIds => isWorkspaceMode
+      ? (selectedTimeline?.pendingLocalUserMessageBlockIds ?? const <String>[])
+      : _legacyPendingLocalUserMessageBlockIds;
+
+  Map<String, String> get localUserMessageProviderBindings => isWorkspaceMode
+      ? (selectedTimeline?.localUserMessageProviderBindings ??
+            const <String, String>{})
+      : _legacyLocalUserMessageProviderBindings;
+
+  Map<String, CodexSessionPendingRequest> get pendingApprovalRequests =>
+      isWorkspaceMode
+      ? (selectedTimeline?.pendingApprovalRequests ??
+            const <String, CodexSessionPendingRequest>{})
+      : _legacyActiveTurn?.pendingApprovalRequests ??
+            const <String, CodexSessionPendingRequest>{};
+
+  Map<String, CodexSessionPendingUserInputRequest>
+  get pendingUserInputRequests => isWorkspaceMode
+      ? (selectedTimeline?.pendingUserInputRequests ??
+            const <String, CodexSessionPendingUserInputRequest>{})
+      : _legacyActiveTurn?.pendingUserInputRequests ??
+            const <String, CodexSessionPendingUserInputRequest>{};
+
+  bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
+
+  List<CodexUiBlock> get transcriptBlocks => isWorkspaceMode
+      ? (selectedTimeline?.transcriptBlocks ?? const <CodexUiBlock>[])
+      : <CodexUiBlock>[
+          ..._legacyBlocks.where(_shouldAppearInTranscript),
+          if (_legacyActiveTurn != null)
+            ...projectCodexTurnArtifacts(_legacyActiveTurn.artifacts),
+        ];
+
+  CodexTimelineState? timelineForThread(String? threadId) {
+    if (threadId == null) {
+      return null;
+    }
+
+    final timeline = timelinesByThreadId[threadId];
+    if (timeline != null) {
+      return timeline;
+    }
+
+    if (!isWorkspaceMode && _legacyThreadId == threadId) {
+      return _legacyTimeline(threadId);
+    }
+
+    return null;
+  }
+
+  CodexTimelineState _legacyTimeline(String threadId) {
+    return CodexTimelineState(
+      threadId: threadId,
+      connectionStatus: connectionStatus,
+      activeTurn: _legacyActiveTurn,
+      blocks: _legacyBlocks,
+      pendingLocalUserMessageBlockIds: _legacyPendingLocalUserMessageBlockIds,
+      localUserMessageProviderBindings: _legacyLocalUserMessageProviderBindings,
+    );
+  }
 
   CodexSessionState copyWith({
     CodexRuntimeSessionState? connectionStatus,
@@ -205,20 +488,45 @@ class CodexSessionState {
     bool clearPendingLocalUserMessageBlockIds = false,
     Map<String, String>? localUserMessageProviderBindings,
     bool clearLocalUserMessageProviderBindings = false,
+    String? rootThreadId,
+    bool clearRootThreadId = false,
+    String? selectedThreadId,
+    bool clearSelectedThreadId = false,
+    Map<String, CodexTimelineState>? timelinesByThreadId,
+    bool clearTimelinesByThreadId = false,
+    Map<String, CodexThreadRegistryEntry>? threadRegistry,
+    bool clearThreadRegistry = false,
+    Map<String, String>? requestOwnerById,
+    bool clearRequestOwnerById = false,
   }) {
     return CodexSessionState(
       connectionStatus: connectionStatus ?? this.connectionStatus,
-      threadId: clearThreadId ? null : (threadId ?? this.threadId),
-      activeTurn: clearActiveTurn ? null : (activeTurn ?? this.activeTurn),
-      blocks: blocks ?? this.blocks,
+      threadId: clearThreadId ? null : (threadId ?? _legacyThreadId),
+      activeTurn: clearActiveTurn ? null : (activeTurn ?? _legacyActiveTurn),
+      blocks: blocks ?? _legacyBlocks,
       pendingLocalUserMessageBlockIds: clearPendingLocalUserMessageBlockIds
           ? const <String>[]
           : (pendingLocalUserMessageBlockIds ??
-                this.pendingLocalUserMessageBlockIds),
+                _legacyPendingLocalUserMessageBlockIds),
       localUserMessageProviderBindings: clearLocalUserMessageProviderBindings
           ? const <String, String>{}
           : (localUserMessageProviderBindings ??
-                this.localUserMessageProviderBindings),
+                _legacyLocalUserMessageProviderBindings),
+      rootThreadId: clearRootThreadId
+          ? null
+          : (rootThreadId ?? this.rootThreadId),
+      selectedThreadId: clearSelectedThreadId
+          ? null
+          : (selectedThreadId ?? this.selectedThreadId),
+      timelinesByThreadId: clearTimelinesByThreadId
+          ? const <String, CodexTimelineState>{}
+          : (timelinesByThreadId ?? this.timelinesByThreadId),
+      threadRegistry: clearThreadRegistry
+          ? const <String, CodexThreadRegistryEntry>{}
+          : (threadRegistry ?? this.threadRegistry),
+      requestOwnerById: clearRequestOwnerById
+          ? const <String, String>{}
+          : (requestOwnerById ?? this.requestOwnerById),
     );
   }
 }

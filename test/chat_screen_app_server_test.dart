@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 
@@ -136,6 +137,223 @@ void main() {
   });
 
   testWidgets(
+    'blocks sending after a missing conversation until the user starts fresh',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final composerField = find.byType(TextField).first;
+      await tester.enterText(composerField, 'First prompt');
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      appServerClient.sendUserMessageError = const CodexAppServerException(
+        'turn/start failed: thread not found',
+      );
+
+      await tester.enterText(composerField, 'Second prompt');
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(find.text("This conversation can't continue."), findsOneWidget);
+      expect(find.text('Start new conversation'), findsOneWidget);
+      expect(find.text('First prompt'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(composerField).controller?.text,
+        'Second prompt',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(appServerClient.startSessionCalls, 1);
+      expect(appServerClient.sentMessages, <String>['First prompt']);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('conversation_recovery_startFreshConversation'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      appServerClient.sendUserMessageError = null;
+
+      expect(find.text("This conversation can't continue."), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(appServerClient.startSessionCalls, 2);
+      expect(appServerClient.sentMessages, <String>[
+        'First prompt',
+        'Second prompt',
+      ]);
+    },
+  );
+
+  testWidgets(
+    'shows an explicit thread-mismatch recovery notice when resume returns a different conversation',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..startSessionError = const CodexAppServerException(
+          'thread/resume returned a different thread id than requested.',
+          data: <String, Object?>{
+            'expectedThreadId': 'thread_old',
+            'actualThreadId': 'thread_new',
+          },
+        );
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          conversationHandoffStore: MemoryCodexConversationHandoffStore(
+            initialValue: const SavedConversationHandoff(
+              resumeThreadId: 'thread_old',
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final composerField = find.byType(TextField).first;
+      await tester.enterText(composerField, 'Resume the old work');
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Conversation identity changed.'), findsOneWidget);
+      expect(find.textContaining('"thread_old"'), findsWidgets);
+      expect(find.textContaining('"thread_new"'), findsWidgets);
+      expect(
+        tester.widget<TextField>(composerField).controller?.text,
+        'Resume the old work',
+      );
+      expect(appServerClient.sentMessages, isEmpty);
+    },
+  );
+
+  testWidgets('child agent output stays on its own timeline until selected', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      PocketRelayApp(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'thread/started',
+        params: <String, Object?>{
+          'thread': <String, Object?>{'id': 'thread_root'},
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'thread/started',
+        params: <String, Object?>{
+          'thread': <String, Object?>{
+            'id': 'thread_child',
+            'agentNickname': 'Reviewer',
+          },
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/started',
+        params: <String, Object?>{
+          'threadId': 'thread_child',
+          'turn': <String, Object?>{'id': 'turn_child_1', 'status': 'running'},
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_child',
+          'turnId': 'turn_child_1',
+          'item': <String, Object?>{
+            'id': 'item_child_1',
+            'type': 'agentMessage',
+            'status': 'completed',
+            'text': 'Child analysis',
+          },
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_child',
+          'turn': <String, Object?>{
+            'id': 'turn_child_1',
+            'status': 'completed',
+          },
+        },
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('timeline_thread_child')), findsOneWidget);
+    expect(find.text('Reviewer'), findsOneWidget);
+    expect(find.text('New'), findsOneWidget);
+    expect(find.text('Child analysis'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('timeline_thread_child')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Child analysis'), findsOneWidget);
+    expect(find.text('New'), findsNothing);
+  });
+
+  testWidgets(
     'renders an actionable host fingerprint card and saves it into connection settings',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
@@ -246,6 +464,89 @@ void main() {
         find.byKey(const ValueKey('open_connection_settings')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'renders SSH authentication failure as a dedicated settings-oriented card',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerSshAuthenticationFailedEvent(
+          host: 'example.com',
+          port: 22,
+          username: 'vince',
+          authMode: AuthMode.privateKey,
+          message: 'Permission denied',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('SSH authentication failed'), findsOneWidget);
+      expect(find.textContaining('private key'), findsWidgets);
+      expect(find.text('Permission denied'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('open_connection_settings')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'renders SSH remote launch failure as a dedicated settings-oriented card',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerSshRemoteLaunchFailedEvent(
+          host: 'example.com',
+          port: 22,
+          username: 'vince',
+          command: 'bash -lc codex app-server --listen stdio://',
+          message: 'exec request denied',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('SSH remote launch failed'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('ssh_remote_command_value')),
+        findsOneWidget,
+      );
+      expect(find.text('exec request denied'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
     },
   );
 

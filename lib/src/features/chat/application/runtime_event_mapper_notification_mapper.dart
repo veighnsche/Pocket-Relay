@@ -13,6 +13,7 @@ typedef _ItemLifecycleEventBuilder =
       required String? title,
       required String? detail,
       required Map<String, dynamic>? snapshot,
+      required CodexRuntimeCollabAgentToolCall? collaboration,
     });
 
 List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
@@ -73,6 +74,10 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
           providerThreadId: providerThreadId,
           rawMethod: event.method,
           rawPayload: event.params,
+          threadName: _asString(thread?['name']),
+          sourceKind: _threadSourceKind(thread),
+          agentNickname: _asString(thread?['agentNickname']),
+          agentRole: _asString(thread?['agentRole']),
         ),
       ];
     case 'thread/status/changed':
@@ -169,6 +174,7 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
               required title,
               required detail,
               required snapshot,
+              required collaboration,
             }) => CodexRuntimeItemStartedEvent(
               createdAt: createdAt,
               itemType: itemType,
@@ -181,6 +187,7 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
               title: title,
               detail: detail,
               snapshot: snapshot,
+              collaboration: collaboration,
             ),
       );
       return itemEvent == null
@@ -206,6 +213,7 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
               required title,
               required detail,
               required snapshot,
+              required collaboration,
             }) => CodexRuntimeItemCompletedEvent(
               createdAt: createdAt,
               itemType: itemType,
@@ -218,6 +226,7 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
               title: title,
               detail: detail,
               snapshot: snapshot,
+              collaboration: collaboration,
             ),
       );
       return itemEvent == null
@@ -252,6 +261,7 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
                         required title,
                         required detail,
                         required snapshot,
+                        required collaboration,
                       }) => CodexRuntimeItemUpdatedEvent(
                         createdAt: createdAt,
                         itemType: itemType,
@@ -264,6 +274,7 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
                         title: title,
                         detail: detail,
                         snapshot: snapshot,
+                        collaboration: collaboration,
                       ),
                 ) ??
                 _mapPartialItemUpdate(
@@ -467,6 +478,7 @@ CodexRuntimeItemLifecycleEvent? _mapItemLifecycle(
     title: _itemTitle(itemType),
     detail: _itemDetail(item, payload),
     snapshot: item,
+    collaboration: _collaborationDetails(itemType, item),
   );
 }
 

@@ -11,7 +11,7 @@ The shipped app is app-server-only.
 - Runtime pipeline: JSON-RPC events -> canonical runtime events -> session state -> transcript cards
 - Ongoing work: cleanup and ownership refactors after the app-server migration
 
-The active architecture cleanup history lives in `docs/app-server-migration-plan.md`.
+The active architecture cleanup history lives in `docs/000_app-server-migration-plan.md`.
 
 ## Why App-Server
 
@@ -28,7 +28,7 @@ That is why the app uses `codex app-server`.
 
 ```text
 docs/
-  app-server-migration-plan.md
+  000_app-server-migration-plan.md
 lib/
   main.dart
   src/

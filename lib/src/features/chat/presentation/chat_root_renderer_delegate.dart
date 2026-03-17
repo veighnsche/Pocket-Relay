@@ -30,6 +30,7 @@ abstract interface class ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<String> onSelectTimeline,
     required ValueChanged<ConnectionMode> onSelectConnectionMode,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
@@ -42,10 +43,13 @@ abstract interface class ChatRootRendererDelegate {
 
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
     required Future<void> Function() onSendPrompt,
     required Future<void> Function() onStopActiveTurn,
+    required ValueChanged<ChatConversationRecoveryActionId>
+    onConversationRecoveryAction,
   });
 }
 
@@ -101,6 +105,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<String> onSelectTimeline,
     required ValueChanged<ConnectionMode> onSelectConnectionMode,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
@@ -117,6 +122,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
         emptyStateRenderer: emptyStateRenderer,
         surfaceChangeToken: surfaceChangeToken,
         onScreenAction: onScreenAction,
+        onSelectTimeline: onSelectTimeline,
         onSelectConnectionMode: onSelectConnectionMode,
         onAutoFollowEligibilityChanged: onAutoFollowEligibilityChanged,
         onApproveRequest: onApproveRequest,
@@ -131,23 +137,30 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
     required Future<void> Function() onSendPrompt,
     required Future<void> Function() onStopActiveTurn,
+    required ValueChanged<ChatConversationRecoveryActionId>
+    onConversationRecoveryAction,
   }) {
     return switch (renderer) {
       ChatRootRegionRenderer.cupertino => CupertinoChatComposerRegion(
+        conversationRecoveryNotice: conversationRecoveryNotice,
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,
         onSendPrompt: onSendPrompt,
         onStopActiveTurn: onStopActiveTurn,
+        onConversationRecoveryAction: onConversationRecoveryAction,
       ),
       ChatRootRegionRenderer.flutter => FlutterChatComposerRegion(
+        conversationRecoveryNotice: conversationRecoveryNotice,
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,
         onSendPrompt: onSendPrompt,
         onStopActiveTurn: onStopActiveTurn,
+        onConversationRecoveryAction: onConversationRecoveryAction,
       ),
     };
   }

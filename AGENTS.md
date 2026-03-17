@@ -100,3 +100,14 @@ not limited to one screen, one feature, or one incident.
 - The ownership model is coherent.
 - The verification matches the risk of the change.
 - The final explanation accurately describes what is truly implemented.
+
+## 11. Docs chronology and naming
+
+- Files under `docs/` must use a three-digit chronological prefix followed by
+  `_`, for example `000_example-plan.md`.
+- The numeric prefix is ordered by document creation chronology, earliest first.
+- When adding a new doc to `docs/`, assign the next available number instead of
+  inserting it into the middle of the sequence unless the user explicitly asks
+  for a full renumbering pass.
+- When renaming or referencing docs, preserve and use the prefixed filenames in
+  links and cross-document references.

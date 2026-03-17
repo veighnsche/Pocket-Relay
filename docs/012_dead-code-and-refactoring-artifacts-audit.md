@@ -47,7 +47,7 @@ Completed items:
 - removed legacy file-read approval resolution support so transport behavior
   matches the controller's rejection-only handling
 - updated `README.md` to reflect the current app-server-only architecture
-- updated `docs/pre-phase-5-infrastructure-plan.md` so its frozen public
+- updated `docs/002_pre-phase-5-infrastructure-plan.md` so its frozen public
   surface matches the current client API
 
 Scope:

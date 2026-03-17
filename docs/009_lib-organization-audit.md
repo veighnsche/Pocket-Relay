@@ -106,8 +106,7 @@ I count `33` concrete shipped behaviors in `lib/`.
     [`buildSshCodexAppServerCommand()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_ssh_process.dart#L90).
 15. Perform the JSON-RPC `initialize` / `initialized` handshake in
     [`CodexAppServerConnection.connect()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_connection.dart#L46).
-16. Start a thread or resume an existing one, with fallback from
-    `thread/resume` to `thread/start`, in
+16. Start a thread or resume an existing one in
     [`CodexAppServerRequestApi.startSession()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_request_api.dart#L9).
 17. Send a prompt as `turn/start` in
     [`CodexAppServerRequestApi.sendUserMessage()`](/home/vince/Projects/codex_pocket/lib/src/features/chat/infrastructure/app_server/codex_app_server_request_api.dart#L86).

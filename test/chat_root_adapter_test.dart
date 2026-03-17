@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
@@ -739,6 +740,7 @@ Widget _buildAdapterApp({
       const ChatRootPlatformPolicy.allFlutter(),
   ChatRootRegionPolicy? regionPolicy,
   CodexProfileStore? profileStore,
+  CodexConversationHandoffStore? conversationHandoffStore,
   SavedProfile? savedProfile,
   ThemeData? theme,
 }) {
@@ -749,6 +751,8 @@ Widget _buildAdapterApp({
       profileStore:
           profileStore ??
           MemoryCodexProfileStore(initialValue: resolvedSavedProfile),
+      conversationHandoffStore:
+          conversationHandoffStore ?? MemoryCodexConversationHandoffStore(),
       appServerClient: appServerClient,
       initialSavedProfile: resolvedSavedProfile,
       platformPolicy: platformPolicy,
@@ -883,6 +887,7 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    required ValueChanged<String> onSelectTimeline,
     required ValueChanged<ConnectionMode> onSelectConnectionMode,
     required ValueChanged<bool> onAutoFollowEligibilityChanged,
     void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
@@ -928,10 +933,13 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
     required Future<void> Function() onSendPrompt,
     required Future<void> Function() onStopActiveTurn,
+    required ValueChanged<ChatConversationRecoveryActionId>
+    onConversationRecoveryAction,
   }) {
     renderersByRegion[ChatRootRegion.composer] = renderer;
     return SafeArea(

@@ -10,10 +10,10 @@ The app-server migration is complete enough to treat as the default architecture
 
 This document is the active refactor plan for the post-migration codebase.
 
-Detailed Phase 5 preflight planning and the rationale behind the infra cut live in `docs/pre-phase-5-infrastructure-plan.md`.
+Detailed Phase 5 preflight planning and the rationale behind the infra cut live in `docs/002_pre-phase-5-infrastructure-plan.md`.
 
 Follow-on cleanup planning for the remaining application-layer hotspots lives in
-`docs/post-phase-6-application-plan.md`.
+`docs/003_post-phase-6-application-plan.md`.
 
 Desktop-local `codex app-server` transport planning now lives in
 `docs/local-codex-connection-migration-plan.md`.

@@ -4,7 +4,7 @@ This document was the gate for Phase 5.
 
 Phase 5 is now complete. This file is kept as the planning record for the infrastructure cut.
 
-The active high-level refactor history still lives in `docs/app-server-migration-plan.md`. This document exists because the Phase 5 prep work was large enough to deserve its own planning artifact.
+The active high-level refactor history still lives in `docs/000_app-server-migration-plan.md`. This document exists because the Phase 5 prep work was large enough to deserve its own planning artifact.
 
 ## Why This Exists
 

@@ -159,12 +159,29 @@ class CodexAppServerSshRemoteProcessStartedEvent extends CodexAppServerEvent {
   final String command;
 }
 
+class CodexAppServerThread {
+  const CodexAppServerThread({
+    required this.id,
+    this.name,
+    this.sourceKind,
+    this.agentNickname,
+    this.agentRole,
+  });
+
+  final String id;
+  final String? name;
+  final String? sourceKind;
+  final String? agentNickname;
+  final String? agentRole;
+}
+
 class CodexAppServerSession {
   const CodexAppServerSession({
     required this.threadId,
     required this.cwd,
     required this.model,
     required this.modelProvider,
+    this.thread,
     this.approvalPolicy,
     this.sandbox,
   });
@@ -173,6 +190,7 @@ class CodexAppServerSession {
   final String cwd;
   final String model;
   final String modelProvider;
+  final CodexAppServerThread? thread;
   final Object? approvalPolicy;
   final Object? sandbox;
 }
