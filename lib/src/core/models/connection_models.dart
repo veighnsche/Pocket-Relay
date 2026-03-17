@@ -1,5 +1,7 @@
 enum AuthMode { password, privateKey }
 
+enum ConnectionMode { remote, local }
+
 class ConnectionProfile {
   const ConnectionProfile({
     required this.label,
@@ -12,6 +14,7 @@ class ConnectionProfile {
     required this.hostFingerprint,
     required this.dangerouslyBypassSandbox,
     required this.ephemeralSession,
+    this.connectionMode = ConnectionMode.remote,
   });
 
   final String label;
@@ -24,6 +27,7 @@ class ConnectionProfile {
   final String hostFingerprint;
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
+  final ConnectionMode connectionMode;
 
   factory ConnectionProfile.defaults() {
     return const ConnectionProfile(
@@ -37,14 +41,22 @@ class ConnectionProfile {
       hostFingerprint: '',
       dangerouslyBypassSandbox: false,
       ephemeralSession: false,
+      connectionMode: ConnectionMode.remote,
     );
   }
 
-  bool get isReady =>
+  bool get isRemote => connectionMode == ConnectionMode.remote;
+  bool get isLocal => connectionMode == ConnectionMode.local;
+
+  bool get isReady => switch (connectionMode) {
+    ConnectionMode.remote =>
       host.trim().isNotEmpty &&
-      username.trim().isNotEmpty &&
-      workspaceDir.trim().isNotEmpty &&
-      codexPath.trim().isNotEmpty;
+          username.trim().isNotEmpty &&
+          workspaceDir.trim().isNotEmpty &&
+          codexPath.trim().isNotEmpty,
+    ConnectionMode.local =>
+      workspaceDir.trim().isNotEmpty && codexPath.trim().isNotEmpty,
+  };
 
   ConnectionProfile copyWith({
     String? label,
@@ -57,6 +69,7 @@ class ConnectionProfile {
     String? hostFingerprint,
     bool? dangerouslyBypassSandbox,
     bool? ephemeralSession,
+    ConnectionMode? connectionMode,
   }) {
     return ConnectionProfile(
       label: label ?? this.label,
@@ -70,6 +83,7 @@ class ConnectionProfile {
       dangerouslyBypassSandbox:
           dangerouslyBypassSandbox ?? this.dangerouslyBypassSandbox,
       ephemeralSession: ephemeralSession ?? this.ephemeralSession,
+      connectionMode: connectionMode ?? this.connectionMode,
     );
   }
 
@@ -91,6 +105,10 @@ class ConnectionProfile {
       dangerouslyBypassSandbox:
           json['dangerouslyBypassSandbox'] as bool? ?? false,
       ephemeralSession: json['ephemeralSession'] as bool? ?? false,
+      connectionMode: _connectionModeFromName(
+        json['connectionMode'] as String?,
+        fallback: defaults.connectionMode,
+      ),
     );
   }
 
@@ -106,6 +124,7 @@ class ConnectionProfile {
       'hostFingerprint': hostFingerprint,
       'dangerouslyBypassSandbox': dangerouslyBypassSandbox,
       'ephemeralSession': ephemeralSession,
+      'connectionMode': connectionMode.name,
     };
   }
 
@@ -121,7 +140,8 @@ class ConnectionProfile {
         other.authMode == authMode &&
         other.hostFingerprint == hostFingerprint &&
         other.dangerouslyBypassSandbox == dangerouslyBypassSandbox &&
-        other.ephemeralSession == ephemeralSession;
+        other.ephemeralSession == ephemeralSession &&
+        other.connectionMode == connectionMode;
   }
 
   @override
@@ -136,6 +156,7 @@ class ConnectionProfile {
     hostFingerprint,
     dangerouslyBypassSandbox,
     ephemeralSession,
+    connectionMode,
   );
 }
 
@@ -197,6 +218,19 @@ class SavedProfile {
 
 AuthMode _authModeFromName(String? value, {required AuthMode fallback}) {
   for (final mode in AuthMode.values) {
+    if (mode.name == value) {
+      return mode;
+    }
+  }
+
+  return fallback;
+}
+
+ConnectionMode _connectionModeFromName(
+  String? value, {
+  required ConnectionMode fallback,
+}) {
+  for (final mode in ConnectionMode.values) {
     if (mode.name == value) {
       return mode;
     }

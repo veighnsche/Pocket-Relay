@@ -19,6 +19,9 @@ Reference code paths that drove this plan:
 - `.reference/codex/codex-rs/tui/src/markdown_render.rs`
 - `.reference/codex/codex-rs/app-server/README.md`
 
+The full app-server emission-by-emission audit now lives in
+`docs/codex-app-server-emission-parity.md`.
+
 ## What “Parity” Should Mean Here
 
 Parity should not mean cloning the terminal UI literally.

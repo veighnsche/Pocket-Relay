@@ -116,6 +116,48 @@ void main() {
   });
 
   test(
+    'local mode is rejected when desktop-local support is unavailable',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final localProfile = _configuredProfile().copyWith(
+        connectionMode: ConnectionMode.local,
+        host: '',
+        username: '',
+      );
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: localProfile,
+            secrets: const ConnectionSecrets(),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: localProfile,
+          secrets: const ConnectionSecrets(),
+        ),
+        supportsLocalConnectionMode: false,
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      final sent = await controller.sendPrompt('Hello local');
+
+      expect(sent, isFalse);
+      expect(
+        await snackBarMessage,
+        'Local Codex is only available on desktop.',
+      );
+      expect(appServerClient.connectCalls, 0);
+    },
+  );
+
+  test(
     'sendPrompt clears local prompt correlation state when sending fails before a turn starts',
     () async {
       final appServerClient = FakeCodexAppServerClient()

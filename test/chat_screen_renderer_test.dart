@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -7,6 +8,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 
 void main() {
@@ -27,6 +29,32 @@ void main() {
     expect(find.text('Transcript region'), findsOneWidget);
     expect(find.text('Composer region'), findsOneWidget);
   });
+
+  testWidgets(
+    'cupertino renderer installs obstructing chrome as the native navigation bar',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: CupertinoChatScreenRenderer(
+            screen: _screenContract(),
+            appChrome: const _TestCupertinoAppChrome(),
+            transcriptRegion: const Center(child: Text('Transcript region')),
+            composerRegion: const Text('Composer region'),
+          ),
+        ),
+      );
+
+      final scaffold = tester.widget<CupertinoPageScaffold>(
+        find.byType(CupertinoPageScaffold),
+      );
+
+      expect(scaffold.navigationBar, isA<_TestCupertinoAppChrome>());
+      expect(find.text('Injected cupertino chrome'), findsOneWidget);
+      expect(find.text('Transcript region'), findsOneWidget);
+      expect(find.text('Composer region'), findsOneWidget);
+    },
+  );
 
   testWidgets('forwards toolbar and menu actions through app chrome', (
     tester,
@@ -59,38 +87,49 @@ void main() {
     ]);
   });
 
-  testWidgets('forwards empty-state actions through transcript region', (
-    tester,
-  ) async {
-    final actions = <ChatScreenActionId>[];
+  testWidgets(
+    'forwards empty-state actions through transcript region',
+    (tester) async {
+      final actions = <ChatScreenActionId>[];
+      final selectedModes = <ConnectionMode>[];
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildPocketTheme(Brightness.light),
-        home: Scaffold(
-          body: FlutterChatTranscriptRegion(
-            screen: _screenContract(
-              isConfigured: false,
-              emptyState: const ChatEmptyStateContract(isConfigured: false),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Scaffold(
+            body: FlutterChatTranscriptRegion(
+              screen: _screenContract(
+                isConfigured: false,
+                emptyState: const ChatEmptyStateContract(
+                  isConfigured: false,
+                  connectionMode: ConnectionMode.remote,
+                ),
+              ),
+              onScreenAction: actions.add,
+              onSelectTimeline: (_) {},
+              onSelectConnectionMode: selectedModes.add,
+              onAutoFollowEligibilityChanged: (_) {},
             ),
-            onScreenAction: actions.add,
-            onSelectTimeline: (_) {},
-            onAutoFollowEligibilityChanged: (_) {},
           ),
         ),
-      ),
-    );
+      );
 
-    final configureButton = find.widgetWithText(
-      FilledButton,
-      'Configure remote',
-    );
-    await tester.ensureVisible(configureButton);
-    await tester.tap(configureButton);
-    await tester.pump();
+      await tester.tap(find.text('Local'));
+      await tester.pump();
 
-    expect(actions, <ChatScreenActionId>[ChatScreenActionId.openSettings]);
-  });
+      final configureButton = find.widgetWithText(
+        FilledButton,
+        'Configure connection',
+      );
+      await tester.ensureVisible(configureButton);
+      await tester.tap(configureButton);
+      await tester.pump();
+
+      expect(selectedModes, <ConnectionMode>[ConnectionMode.local]);
+      expect(actions, <ChatScreenActionId>[ChatScreenActionId.openSettings]);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
 
   testWidgets('renders timeline chips and forwards selection', (tester) async {
     final selectedTimelines = <String>[];
@@ -126,6 +165,7 @@ void main() {
             ),
             onScreenAction: (_) {},
             onSelectTimeline: selectedTimelines.add,
+            onSelectConnectionMode: (_) {},
             onAutoFollowEligibilityChanged: (_) {},
           ),
         ),
@@ -244,5 +284,23 @@ class _TestAppChrome extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(title: const Text('Injected chrome'));
+  }
+}
+
+class _TestCupertinoAppChrome extends StatelessWidget
+    implements ObstructingPreferredSizeWidget {
+  const _TestCupertinoAppChrome();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(44);
+
+  @override
+  bool shouldFullyObstruct(BuildContext context) => true;
+
+  @override
+  Widget build(BuildContext context) {
+    return const CupertinoNavigationBar(
+      middle: Text('Injected cupertino chrome'),
+    );
   }
 }

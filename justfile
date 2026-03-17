@@ -158,3 +158,35 @@ codex-mcp-loop:
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/codex-mcp-loop.sh"
+
+[no-exit-message]
+[script]
+screenshot-ios *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" ios "$@"
+
+[no-exit-message]
+[script]
+screenshot-macos *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" macos "$@"
+
+[no-exit-message]
+[script]
+screenshot-desktop *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" desktop "$@"
+
+[no-exit-message]
+[script]
+screenshot-both *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" both "$@"

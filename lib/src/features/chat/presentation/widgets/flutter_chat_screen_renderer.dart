@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
@@ -90,6 +91,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
     required this.screen,
     required this.onScreenAction,
     required this.onSelectTimeline,
+    required this.onSelectConnectionMode,
     required this.onAutoFollowEligibilityChanged,
     this.emptyStateRenderer = ChatEmptyStateRenderer.flutter,
     this.surfaceChangeToken,
@@ -103,6 +105,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
   final ChatScreenContract screen;
   final ValueChanged<ChatScreenActionId> onScreenAction;
   final ValueChanged<String> onSelectTimeline;
+  final ValueChanged<ConnectionMode> onSelectConnectionMode;
   final ValueChanged<bool> onAutoFollowEligibilityChanged;
   final ChatEmptyStateRenderer emptyStateRenderer;
   final Object? surfaceChangeToken;
@@ -125,6 +128,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
       onConfigure: () {
         onScreenAction(ChatScreenActionId.openSettings);
       },
+      onSelectConnectionMode: onSelectConnectionMode,
       onAutoFollowEligibilityChanged: onAutoFollowEligibilityChanged,
       emptyStateRenderer: emptyStateRenderer,
       onApproveRequest: onApproveRequest,

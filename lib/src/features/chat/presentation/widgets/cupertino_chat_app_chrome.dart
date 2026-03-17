@@ -19,16 +19,10 @@ class CupertinoChatAppChrome extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    final separatorColor = CupertinoDynamicColor.resolve(
-      CupertinoColors.separator,
-      context,
-    );
-
     return CupertinoNavigationBar(
       transitionBetweenRoutes: false,
       automaticallyImplyLeading: false,
-      backgroundColor: CupertinoColors.systemBackground.withValues(alpha: 0.84),
-      border: Border(bottom: BorderSide(color: separatorColor)),
+      automaticBackgroundVisibility: false,
       middle: ChatAppChromeTitle(
         header: screen.header,
         style: ChatAppChromeStyle.cupertino,

@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app.dart';
+import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
@@ -18,6 +19,25 @@ import 'package:pocket_relay/src/features/settings/presentation/cupertino_connec
 import 'support/fake_codex_app_server_client.dart';
 
 void main() {
+  testWidgets(
+    'enables the display wake lock for the top-level app shell',
+    (tester) async {
+      final controller = _FakeDisplayWakeLockController();
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+          displayWakeLockController: controller,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(controller.enabledStates, contains(true));
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
+
   testWidgets('shows the Pocket Relay shell', (tester) async {
     await tester.pumpWidget(
       PocketRelayApp(
@@ -62,6 +82,29 @@ void main() {
       expect(find.byType(FlutterChatComposerRegion), findsNothing);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets(
+    'uses the cupertino foundation path by default on macOS while transcript stays on the flutter region path',
+    (tester) async {
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChatRootAdapter), findsOneWidget);
+      expect(find.byType(CupertinoChatScreenRenderer), findsOneWidget);
+      expect(find.byType(CupertinoChatAppChrome), findsOneWidget);
+      expect(find.byType(CupertinoChatComposerRegion), findsOneWidget);
+      expect(find.byType(FlutterChatTranscriptRegion), findsOneWidget);
+      expect(find.byType(FlutterChatScreenRenderer), findsNothing);
+      expect(find.byType(FlutterChatAppChrome), findsNothing);
+      expect(find.byType(FlutterChatComposerRegion), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
   );
 
   testWidgets(
@@ -280,5 +323,14 @@ class _DeferredProfileStore implements CodexProfileStore {
     ConnectionSecrets secrets,
   ) async {
     _savedProfile = _savedProfile.copyWith(profile: profile, secrets: secrets);
+  }
+}
+
+class _FakeDisplayWakeLockController implements DisplayWakeLockController {
+  final List<bool> enabledStates = <bool>[];
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    enabledStates.add(enabled);
   }
 }

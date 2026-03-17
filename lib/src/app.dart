@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
+import 'package:pocket_relay/src/core/theme/pocket_cupertino_theme.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
@@ -17,11 +19,13 @@ class PocketRelayApp extends StatefulWidget {
     this.profileStore,
     this.conversationHandoffStore,
     this.appServerClient,
+    this.displayWakeLockController,
   });
 
   final CodexProfileStore? profileStore;
   final CodexConversationHandoffStore? conversationHandoffStore;
   final CodexAppServerClient? appServerClient;
+  final DisplayWakeLockController? displayWakeLockController;
 
   @override
   State<PocketRelayApp> createState() => _PocketRelayAppState();
@@ -131,13 +135,18 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
       theme: buildPocketTheme(Brightness.light),
       darkTheme: buildPocketTheme(Brightness.dark),
       themeMode: ThemeMode.system,
-      home: _PocketRelayHome(
-        savedProfile: savedProfile,
-        savedConversationHandoff: savedConversationHandoff,
-        profileStore: _profileStore,
-        conversationHandoffStore: _conversationHandoffStore,
-        appServerClient: _appServerClient,
-        platformPolicy: platformPolicy,
+      home: DisplayWakeLockHost(
+        displayWakeLockController:
+            widget.displayWakeLockController ??
+            const WakelockPlusDisplayWakeLockController(),
+        child: _PocketRelayHome(
+          savedProfile: savedProfile,
+          savedConversationHandoff: savedConversationHandoff,
+          profileStore: _profileStore,
+          conversationHandoffStore: _conversationHandoffStore,
+          appServerClient: _appServerClient,
+          platformPolicy: platformPolicy,
+        ),
       ),
     );
   }
@@ -218,7 +227,7 @@ class _CupertinoBootstrapShell extends StatelessWidget {
     final palette = context.pocketPalette;
 
     return CupertinoTheme(
-      data: MaterialBasedCupertinoThemeData(materialTheme: Theme.of(context)),
+      data: buildPocketCupertinoTheme(Theme.of(context)),
       child: CupertinoPageScaffold(
         backgroundColor: palette.backgroundTop,
         child: const _BootstrapBackground(

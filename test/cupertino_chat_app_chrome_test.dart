@@ -53,6 +53,35 @@ void main() {
       ]);
     },
   );
+
+  testWidgets(
+    'cupertino app chrome keeps a stable native background configuration',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Scaffold(
+            body: Column(
+              children: [
+                CupertinoChatAppChrome(
+                  screen: _screenContract(),
+                  onScreenAction: (_) {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final navBar = tester.widget<CupertinoNavigationBar>(
+        find.byType(CupertinoNavigationBar),
+      );
+
+      expect(navBar.automaticBackgroundVisibility, isFalse);
+      expect(navBar.backgroundColor, isNull);
+      expect(navBar.brightness, isNull);
+    },
+  );
 }
 
 ChatScreenContract _screenContract() {

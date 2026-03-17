@@ -67,26 +67,34 @@ class ChatRootRegionPolicy {
 }
 
 class ChatRootPlatformPolicy {
-  const ChatRootPlatformPolicy({required this.fallback, required this.iOS});
+  const ChatRootPlatformPolicy({
+    required this.fallback,
+    required this.iOS,
+    required this.macOS,
+  });
 
   const ChatRootPlatformPolicy.allFlutter()
     : this(
         fallback: const ChatRootRegionPolicy.allFlutter(),
         iOS: const ChatRootRegionPolicy.allFlutter(),
+        macOS: const ChatRootRegionPolicy.allFlutter(),
       );
 
   const ChatRootPlatformPolicy.cupertinoFoundation()
     : this(
         fallback: const ChatRootRegionPolicy.allFlutter(),
         iOS: const ChatRootRegionPolicy.cupertinoFoundation(),
+        macOS: const ChatRootRegionPolicy.cupertinoFoundation(),
       );
 
   final ChatRootRegionPolicy fallback;
   final ChatRootRegionPolicy iOS;
+  final ChatRootRegionPolicy macOS;
 
   ChatRootRegionPolicy policyFor(TargetPlatform platform) {
     return switch (platform) {
       TargetPlatform.iOS => iOS,
+      TargetPlatform.macOS => macOS,
       _ => fallback,
     };
   }

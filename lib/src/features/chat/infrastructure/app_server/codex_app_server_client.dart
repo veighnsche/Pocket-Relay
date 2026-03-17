@@ -4,8 +4,8 @@ export 'codex_app_server_models.dart';
 
 import 'codex_app_server_connection.dart';
 import 'codex_app_server_models.dart';
+import 'codex_app_server_process_launcher.dart';
 import 'codex_app_server_request_api.dart';
-import 'codex_app_server_ssh_process.dart';
 import 'codex_json_rpc_codec.dart';
 
 class CodexAppServerClient {
@@ -17,7 +17,7 @@ class CodexAppServerClient {
     this.clientName = 'pocket_relay',
     this.clientVersion = '1.0.0',
   }) : _connection = CodexAppServerConnection(
-         processLauncher: processLauncher ?? openSshCodexAppServerProcess,
+         processLauncher: processLauncher ?? openCodexAppServerProcess,
          jsonRpcCodec: jsonRpcCodec ?? const CodexJsonRpcCodec(),
          requestTracker: requestTracker ?? CodexJsonRpcRequestTracker(),
          inboundRequestStore:

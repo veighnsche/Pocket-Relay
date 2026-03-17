@@ -4,6 +4,7 @@ import 'package:pocket_relay/src/features/settings/presentation/connection_setti
 class ConnectionSettingsDraft {
   const ConnectionSettingsDraft({
     required this.label,
+    required this.connectionMode,
     required this.host,
     required this.port,
     required this.username,
@@ -24,6 +25,7 @@ class ConnectionSettingsDraft {
   }) {
     return ConnectionSettingsDraft(
       label: profile.label,
+      connectionMode: profile.connectionMode,
       host: profile.host,
       port: profile.port.toString(),
       username: profile.username,
@@ -40,6 +42,7 @@ class ConnectionSettingsDraft {
   }
 
   final String label;
+  final ConnectionMode connectionMode;
   final String host;
   final String port;
   final String username;
@@ -55,6 +58,7 @@ class ConnectionSettingsDraft {
 
   ConnectionSettingsDraft copyWith({
     String? label,
+    ConnectionMode? connectionMode,
     String? host,
     String? port,
     String? username,
@@ -70,6 +74,7 @@ class ConnectionSettingsDraft {
   }) {
     return ConnectionSettingsDraft(
       label: label ?? this.label,
+      connectionMode: connectionMode ?? this.connectionMode,
       host: host ?? this.host,
       port: port ?? this.port,
       username: username ?? this.username,
@@ -99,6 +104,12 @@ class ConnectionSettingsDraft {
       ConnectionSettingsFieldId.privateKeyPem => privateKeyPem,
       ConnectionSettingsFieldId.privateKeyPassphrase => privateKeyPassphrase,
     };
+  }
+
+  ConnectionSettingsDraft copyWithConnectionMode(
+    ConnectionMode connectionMode,
+  ) {
+    return copyWith(connectionMode: connectionMode);
   }
 
   ConnectionSettingsDraft copyWithField(

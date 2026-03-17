@@ -108,9 +108,33 @@ void main() {
         ).withValues(alpha: 0.92),
       );
       expect(
-        tester.widget<Text>(find.text('Remote target')).style?.color,
+        tester.widget<Text>(find.text('Connection')).style?.color,
         CupertinoDynamicColor.resolve(CupertinoColors.label, context),
       );
+    },
+  );
+
+  testWidgets(
+    'desktop settings expose a local and remote route chooser and hide SSH fields for local mode',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          supportsLocalConnectionMode: true,
+        ),
+      );
+
+      expect(find.text('Remote'), findsOneWidget);
+      expect(find.text('Local'), findsOneWidget);
+      expect(find.text('Host'), findsOneWidget);
+      expect(find.text('SSH password'), findsOneWidget);
+
+      await tester.tap(find.text('Local'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Host'), findsNothing);
+      expect(find.text('SSH password'), findsNothing);
+      expect(find.text('Local Codex'), findsOneWidget);
     },
   );
 
@@ -176,6 +200,7 @@ void main() {
 Widget _buildMaterialSettingsApp({
   Brightness brightness = Brightness.light,
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
+  bool supportsLocalConnectionMode = false,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(brightness),
@@ -184,6 +209,7 @@ Widget _buildMaterialSettingsApp({
     home: Scaffold(
       body: _buildHost(
         onSubmit: onSubmit,
+        supportsLocalConnectionMode: supportsLocalConnectionMode,
         builder: (context, viewModel, actions) {
           return ConnectionSheet(viewModel: viewModel, actions: actions);
         },
@@ -195,6 +221,7 @@ Widget _buildMaterialSettingsApp({
 Widget _buildCupertinoSettingsApp({
   Brightness brightness = Brightness.light,
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
+  bool supportsLocalConnectionMode = false,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(brightness),
@@ -203,6 +230,7 @@ Widget _buildCupertinoSettingsApp({
     home: Scaffold(
       body: _buildHost(
         onSubmit: onSubmit,
+        supportsLocalConnectionMode: supportsLocalConnectionMode,
         builder: (context, viewModel, actions) {
           return CupertinoConnectionSheet(
             viewModel: viewModel,
@@ -217,6 +245,7 @@ Widget _buildCupertinoSettingsApp({
 Widget _buildHost({
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
   required ConnectionSettingsHostBuilder builder,
+  bool supportsLocalConnectionMode = false,
 }) {
   return ConnectionSettingsHost(
     initialProfile: _configuredProfile(),
@@ -224,6 +253,7 @@ Widget _buildHost({
     onCancel: () {},
     onSubmit: onSubmit,
     builder: builder,
+    supportsLocalConnectionMode: supportsLocalConnectionMode,
   );
 }
 
