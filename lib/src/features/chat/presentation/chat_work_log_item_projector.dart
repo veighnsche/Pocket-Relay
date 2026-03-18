@@ -21,8 +21,14 @@ class ChatWorkLogItemProjector {
         entry.entryKind == CodexWorkLogEntryKind.commandExecution
         ? _tryParseReadCommand(normalizedTitle)
         : null;
+    final gitCommand =
+        readCommand == null &&
+            entry.entryKind == CodexWorkLogEntryKind.commandExecution
+        ? _tryParseGitCommand(normalizedTitle)
+        : null;
     final searchCommand =
         readCommand == null &&
+            gitCommand == null &&
             entry.entryKind == CodexWorkLogEntryKind.commandExecution
         ? _tryParseContentSearchCommand(normalizedTitle)
         : null;
@@ -30,6 +36,13 @@ class ChatWorkLogItemProjector {
     if (readCommand != null) {
       return _projectReadCommand(
         readCommand: readCommand,
+        entry: entry,
+        normalizedTitle: normalizedTitle,
+      );
+    }
+    if (gitCommand != null) {
+      return _projectGitCommand(
+        gitCommand: gitCommand,
         entry: entry,
         normalizedTitle: normalizedTitle,
       );
@@ -115,6 +128,24 @@ class ChatWorkLogItemProjector {
     };
   }
 
+  ChatGitWorkLogEntryContract _projectGitCommand({
+    required _ParsedGitCommand gitCommand,
+    required CodexWorkLogEntry entry,
+    required String normalizedTitle,
+  }) {
+    return ChatGitWorkLogEntryContract(
+      id: entry.id,
+      commandText: normalizedTitle,
+      subcommandLabel: gitCommand.subcommandLabel,
+      summaryLabel: gitCommand.summaryLabel,
+      primaryLabel: gitCommand.primaryLabel,
+      secondaryLabel: gitCommand.secondaryLabel,
+      turnId: entry.turnId,
+      isRunning: entry.isRunning,
+      exitCode: entry.exitCode,
+    );
+  }
+
   ChatContentSearchWorkLogEntryContract _projectSearchCommand({
     required _ParsedContentSearchCommand searchCommand,
     required CodexWorkLogEntry entry,
@@ -189,6 +220,17 @@ class ChatWorkLogItemProjector {
     );
   }
 
+  _ParsedGitCommand? _tryParseGitCommand(String commandText) {
+    if (commandText.isEmpty || _containsShellOperators(commandText)) {
+      return null;
+    }
+
+    return _tryParseGitCommandTokens(
+      _tokenizeShellCommand(commandText),
+      originalCommandText: commandText,
+    );
+  }
+
   _ParsedReadCommand? _tryParseReadCommandTokens(
     List<String>? tokens, {
     required String originalCommandText,
@@ -240,6 +282,34 @@ class ChatWorkLogItemProjector {
       'findstr' => _tryParseFindStrSearchCommand(tokens),
       _ => null,
     };
+  }
+
+  _ParsedGitCommand? _tryParseGitCommandTokens(
+    List<String>? tokens, {
+    required String originalCommandText,
+  }) {
+    if (tokens == null || tokens.isEmpty) {
+      return null;
+    }
+
+    final commandName = _commandName(tokens.first);
+    if (commandName == 'pwsh' || commandName == 'powershell') {
+      final unwrappedCommand = _unwrapPowerShellWrappedCommand(tokens);
+      if (unwrappedCommand == null || unwrappedCommand == originalCommandText) {
+        return null;
+      }
+      return _tryParseGitCommand(unwrappedCommand);
+    }
+    if (commandName != 'git') {
+      return null;
+    }
+
+    final invocation = _parseGitInvocation(tokens);
+    if (invocation == null) {
+      return null;
+    }
+
+    return _buildParsedGitCommand(invocation);
   }
 
   _ParsedSedReadCommand? _tryParseSedReadCommand(List<String> tokens) {
@@ -922,6 +992,538 @@ class ChatWorkLogItemProjector {
       scopeTargets: scopeTargets,
     );
   }
+
+  _ParsedGitInvocation? _parseGitInvocation(List<String> tokens) {
+    if (tokens.isEmpty) {
+      return null;
+    }
+
+    var index = 1;
+    String? repoPath;
+    String? gitDir;
+    String? workTree;
+
+    while (index < tokens.length) {
+      final token = tokens[index];
+      final normalizedToken = token.toLowerCase();
+
+      if (!token.startsWith('-') || token == '-') {
+        break;
+      }
+
+      if (token == '-C') {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        repoPath = tokens[index + 1];
+        index += 2;
+        continue;
+      }
+      if (token.startsWith('-C') && token.length > 2) {
+        repoPath = token.substring(2);
+        index++;
+        continue;
+      }
+
+      if (token == '-c') {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        index += 2;
+        continue;
+      }
+      if (token.startsWith('-c') && token.length > 2) {
+        index++;
+        continue;
+      }
+
+      if (normalizedToken == '--git-dir') {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        gitDir = tokens[index + 1];
+        index += 2;
+        continue;
+      }
+      if (normalizedToken.startsWith('--git-dir=')) {
+        gitDir = token.substring('--git-dir='.length);
+        index++;
+        continue;
+      }
+
+      if (normalizedToken == '--work-tree') {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        workTree = tokens[index + 1];
+        index += 2;
+        continue;
+      }
+      if (normalizedToken.startsWith('--work-tree=')) {
+        workTree = token.substring('--work-tree='.length);
+        index++;
+        continue;
+      }
+
+      if (normalizedToken == '--namespace' ||
+          normalizedToken == '--super-prefix' ||
+          normalizedToken == '--config-env' ||
+          normalizedToken == '--exec-path') {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        index += 2;
+        continue;
+      }
+      if (normalizedToken.startsWith('--namespace=') ||
+          normalizedToken.startsWith('--super-prefix=') ||
+          normalizedToken.startsWith('--config-env=') ||
+          normalizedToken.startsWith('--exec-path=')) {
+        index++;
+        continue;
+      }
+
+      index++;
+    }
+
+    final subcommand = index < tokens.length ? tokens[index] : null;
+    final args = index < tokens.length
+        ? tokens.sublist(index + 1)
+        : const <String>[];
+
+    return _ParsedGitInvocation(
+      subcommand: subcommand,
+      args: args,
+      repoPath: repoPath,
+      gitDir: gitDir,
+      workTree: workTree,
+    );
+  }
+
+  _ParsedGitCommand _buildParsedGitCommand(_ParsedGitInvocation invocation) {
+    final subcommand = invocation.subcommand;
+    final normalizedSubcommand = subcommand?.toLowerCase();
+    final repoScopeLabel = _gitScopeLabel(invocation);
+
+    if (normalizedSubcommand == null || normalizedSubcommand.isEmpty) {
+      return _ParsedGitCommand(
+        subcommandLabel: 'git',
+        summaryLabel: 'Running git',
+        primaryLabel: repoScopeLabel ?? 'Repository command',
+      );
+    }
+
+    return switch (normalizedSubcommand) {
+      'status' => _buildGitStatusCommand(invocation, repoScopeLabel),
+      'diff' => _buildGitDiffCommand(invocation, repoScopeLabel),
+      'show' => _buildGitShowCommand(invocation, repoScopeLabel),
+      'log' => _buildGitLogCommand(invocation, repoScopeLabel),
+      'grep' => _buildGitGrepCommand(invocation, repoScopeLabel),
+      'add' => _buildGitAddCommand(invocation, repoScopeLabel),
+      'restore' => _buildGitRestoreCommand(invocation, repoScopeLabel),
+      'checkout' => _buildGitCheckoutCommand(invocation, repoScopeLabel),
+      'switch' => _buildGitSwitchCommand(invocation, repoScopeLabel),
+      'rev-parse' => _buildGitRevParseCommand(invocation, repoScopeLabel),
+      'branch' => _buildGitBranchCommand(invocation, repoScopeLabel),
+      'commit' => _buildGitCommitCommand(invocation, repoScopeLabel),
+      'stash' => _buildGitStashCommand(invocation, repoScopeLabel),
+      'fetch' => _buildGitRemoteCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Fetching remote updates',
+      ),
+      'pull' => _buildGitRemoteCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Pulling remote changes',
+      ),
+      'push' => _buildGitRemoteCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Pushing commits',
+      ),
+      'merge' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Merging history',
+        emptyPrimaryLabel: 'Requested merge target',
+      ),
+      'rebase' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Rebasing commits',
+        emptyPrimaryLabel: 'Current branch',
+      ),
+      'cherry-pick' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Applying commit',
+        emptyPrimaryLabel: 'Selected commit',
+      ),
+      'revert' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Reverting commit',
+        emptyPrimaryLabel: 'Selected commit',
+      ),
+      'blame' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Tracing line history',
+        emptyPrimaryLabel: 'Requested file',
+      ),
+      'rm' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Removing tracked files',
+        emptyPrimaryLabel: 'Selected paths',
+      ),
+      'mv' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Moving tracked files',
+        emptyPrimaryLabel: 'Selected paths',
+      ),
+      'clean' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Cleaning untracked files',
+        emptyPrimaryLabel: 'Current repository',
+      ),
+      'reset' => _buildGitTargetedCommand(
+        invocation: invocation,
+        repoScopeLabel: repoScopeLabel,
+        summaryLabel: 'Resetting repository state',
+        emptyPrimaryLabel: 'Current branch',
+      ),
+      _ => _buildGenericGitCommand(invocation, repoScopeLabel),
+    };
+  }
+
+  _ParsedGitCommand _buildGitStatusCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      valueOptions: const <String>{
+        '--untracked-files',
+        '--ignored',
+        '--column',
+        '--ahead-behind',
+      },
+      shortValueOptions: const <String>{'u'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'status',
+      summaryLabel: 'Checking worktree status',
+      primaryLabel: _formatCompactItemList(
+        targets,
+        emptyLabel: 'Current repository',
+      ),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitDiffCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final isStaged =
+        invocation.args.contains('--staged') ||
+        invocation.args.contains('--cached');
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      valueOptions: const <String>{
+        '--diff-filter',
+        '--submodule',
+        '--output',
+        '--word-diff-regex',
+      },
+      shortValueOptions: const <String>{'U'},
+    );
+    final primaryLabel = isStaged
+        ? 'Staged changes'
+        : _formatCompactItemList(
+            targets,
+            emptyLabel: 'Working tree changes',
+          );
+    final secondaryLabel = _combineDetailLabels(<String?>[
+      isStaged && targets.isNotEmpty
+          ? _formatCompactItemList(targets, emptyLabel: '')
+          : null,
+      repoScopeLabel,
+    ]);
+    return _ParsedGitCommand(
+      subcommandLabel: 'diff',
+      summaryLabel: 'Inspecting diff',
+      primaryLabel: primaryLabel,
+      secondaryLabel: secondaryLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitShowCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      valueOptions: const <String>{'--format', '--pretty'},
+      shortValueOptions: const <String>{'n'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'show',
+      summaryLabel: 'Inspecting git object',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'HEAD'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitLogCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      valueOptions: const <String>{'--max-count', '--author', '--grep'},
+      shortValueOptions: const <String>{'n'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'log',
+      summaryLabel: 'Reviewing commit history',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Current branch'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitGrepCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final search = _parseGitGrepArgs(invocation.args);
+    if (search != null) {
+      return _ParsedGitCommand(
+        subcommandLabel: 'grep',
+        summaryLabel: 'Searching tracked files',
+        primaryLabel: search.query,
+        secondaryLabel: _combineDetailLabels(<String?>[
+          search.scopeTargets.isEmpty
+              ? 'In tracked files'
+              : 'In ${_formatCompactItemList(search.scopeTargets, emptyLabel: '')}',
+          repoScopeLabel,
+        ]),
+      );
+    }
+    return _buildGenericGitCommand(invocation, repoScopeLabel);
+  }
+
+  _ParsedGitCommand _buildGitAddCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      valueOptions: const <String>{'--chmod'},
+    );
+    final primaryLabel =
+        invocation.args.contains('-A') ||
+            invocation.args.contains('--all') ||
+            invocation.args.contains('-u') ||
+            invocation.args.contains('--update')
+        ? 'All tracked changes'
+        : _formatCompactItemList(targets, emptyLabel: 'Selected paths');
+    return _ParsedGitCommand(
+      subcommandLabel: 'add',
+      summaryLabel: 'Staging changes',
+      primaryLabel: primaryLabel,
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitRestoreCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(invocation.args);
+    return _ParsedGitCommand(
+      subcommandLabel: 'restore',
+      summaryLabel: invocation.args.contains('--staged')
+          ? 'Restoring staged changes'
+          : 'Restoring tracked files',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Selected paths'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitCheckoutCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final separatorIndex = invocation.args.indexOf('--');
+    if (separatorIndex >= 0) {
+      final pathTargets = invocation.args
+          .skip(separatorIndex + 1)
+          .where(_isNonEmptyToken)
+          .toList(growable: false);
+      return _ParsedGitCommand(
+        subcommandLabel: 'checkout',
+        summaryLabel: 'Restoring paths',
+        primaryLabel: _formatCompactItemList(
+          pathTargets,
+          emptyLabel: 'Selected paths',
+        ),
+        secondaryLabel: repoScopeLabel,
+      );
+    }
+
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      valueOptions: const <String>{'--detach'},
+      shortValueOptions: const <String>{'b', 'B'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'checkout',
+      summaryLabel: 'Switching checkout target',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Requested target'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitSwitchCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      shortValueOptions: const <String>{'c', 'C'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'switch',
+      summaryLabel: 'Switching branch',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Requested branch'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitRevParseCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(invocation.args);
+    return _ParsedGitCommand(
+      subcommandLabel: 'rev-parse',
+      summaryLabel: 'Resolving git reference',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Repository state'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitBranchCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(
+      invocation.args,
+      shortValueOptions: const <String>{'m', 'M', 'c', 'C'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'branch',
+      summaryLabel: targets.isEmpty ? 'Inspecting branches' : 'Managing branches',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Current repository'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitCommitCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final message = _extractGitOptionValue(
+      invocation.args,
+      options: const <String>{'--message'},
+      shortOptions: const <String>{'m'},
+    );
+    return _ParsedGitCommand(
+      subcommandLabel: 'commit',
+      summaryLabel: 'Creating commit',
+      primaryLabel: message ?? 'Staged changes',
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitStashCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(invocation.args);
+    return _ParsedGitCommand(
+      subcommandLabel: 'stash',
+      summaryLabel: 'Managing stash',
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Current stash state'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitRemoteCommand({
+    required _ParsedGitInvocation invocation,
+    required String? repoScopeLabel,
+    required String summaryLabel,
+  }) {
+    final targets = _collectGitPositionalArgs(invocation.args);
+    return _ParsedGitCommand(
+      subcommandLabel: invocation.subcommand ?? 'git',
+      summaryLabel: summaryLabel,
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: 'Default remote'),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGitTargetedCommand({
+    required _ParsedGitInvocation invocation,
+    required String? repoScopeLabel,
+    required String summaryLabel,
+    required String emptyPrimaryLabel,
+  }) {
+    final targets = _collectGitPositionalArgs(invocation.args);
+    return _ParsedGitCommand(
+      subcommandLabel: invocation.subcommand ?? 'git',
+      summaryLabel: summaryLabel,
+      primaryLabel: _formatCompactItemList(targets, emptyLabel: emptyPrimaryLabel),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitCommand _buildGenericGitCommand(
+    _ParsedGitInvocation invocation,
+    String? repoScopeLabel,
+  ) {
+    final targets = _collectGitPositionalArgs(invocation.args);
+    return _ParsedGitCommand(
+      subcommandLabel: invocation.subcommand ?? 'git',
+      summaryLabel: 'Running git ${invocation.subcommand ?? ''}'.trim(),
+      primaryLabel: _formatCompactItemList(
+        targets,
+        emptyLabel: 'Current repository',
+      ),
+      secondaryLabel: repoScopeLabel,
+    );
+  }
+
+  _ParsedGitGrepSearch? _parseGitGrepArgs(List<String> args) {
+    if (args.isEmpty) {
+      return null;
+    }
+
+    final syntheticTokens = <String>['grep', ...args];
+    final parsed = _tryParseGrepSearchCommand(syntheticTokens);
+    if (parsed == null) {
+      return null;
+    }
+    return _ParsedGitGrepSearch(
+      query: parsed.query,
+      scopeTargets: parsed.scopeTargets,
+    );
+  }
 }
 
 String _normalizeCompactToolLabel(String value) {
@@ -1212,6 +1814,176 @@ List<String>? _splitScopeTargets(String value) {
   return scopes;
 }
 
+String? _gitScopeLabel(_ParsedGitInvocation invocation) {
+  if (_isNonEmptyToken(invocation.repoPath)) {
+    return 'In ${invocation.repoPath}';
+  }
+  if (_isNonEmptyToken(invocation.workTree)) {
+    return 'Work tree ${invocation.workTree}';
+  }
+  if (_isNonEmptyToken(invocation.gitDir)) {
+    return 'Git dir ${invocation.gitDir}';
+  }
+  return null;
+}
+
+String _formatCompactItemList(
+  List<String> items, {
+  required String emptyLabel,
+}) {
+  if (items.isEmpty) {
+    return emptyLabel;
+  }
+  if (items.length == 1) {
+    return items.single;
+  }
+  if (items.length == 2) {
+    return '${items[0]}, ${items[1]}';
+  }
+  return '${items[0]}, ${items[1]}, +${items.length - 2} more';
+}
+
+String? _combineDetailLabels(Iterable<String?> values) {
+  final parts = values
+      .whereType<String>()
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) {
+    return null;
+  }
+  return parts.join(' · ');
+}
+
+List<String> _collectGitPositionalArgs(
+  List<String> args, {
+  Set<String> valueOptions = const <String>{},
+  Set<String> shortValueOptions = const <String>{},
+}) {
+  final positionals = <String>[];
+  var index = 0;
+  var afterSeparator = false;
+
+  while (index < args.length) {
+    final token = args[index];
+    final normalizedToken = token.toLowerCase();
+
+    if (afterSeparator) {
+      if (_isNonEmptyToken(token)) {
+        positionals.add(token);
+      }
+      index++;
+      continue;
+    }
+
+    if (token == '--') {
+      afterSeparator = true;
+      index++;
+      continue;
+    }
+
+    if (!token.startsWith('-') || token == '-') {
+      positionals.add(token);
+      index++;
+      continue;
+    }
+
+    if (valueOptions.contains(normalizedToken)) {
+      if (index + 1 >= args.length) {
+        return positionals;
+      }
+      index += 2;
+      continue;
+    }
+
+    if (_matchesInlineLongOption(token, options: valueOptions)) {
+      index++;
+      continue;
+    }
+
+    if (_matchesCompactShortOption(token, options: shortValueOptions)) {
+      index++;
+      continue;
+    }
+
+    if (shortValueOptions.contains(token.substring(1))) {
+      if (index + 1 >= args.length) {
+        return positionals;
+      }
+      index += 2;
+      continue;
+    }
+
+    index++;
+  }
+
+  return positionals;
+}
+
+String? _extractGitOptionValue(
+  List<String> args, {
+  Set<String> options = const <String>{},
+  Set<String> shortOptions = const <String>{},
+}) {
+  for (var index = 0; index < args.length; index++) {
+    final token = args[index];
+    final normalizedToken = token.toLowerCase();
+    if (options.contains(normalizedToken)) {
+      if (index + 1 >= args.length) {
+        return null;
+      }
+      return args[index + 1];
+    }
+    for (final option in options) {
+      if (token.startsWith('$option=')) {
+        return token.substring(option.length + 1);
+      }
+    }
+    if (token.startsWith('-') &&
+        !token.startsWith('--') &&
+        token.length >= 2 &&
+        shortOptions.contains(token[1])) {
+      if (token.length > 2) {
+        return token.substring(2);
+      }
+      if (index + 1 >= args.length) {
+        return null;
+      }
+      return args[index + 1];
+    }
+  }
+  return null;
+}
+
+bool _matchesInlineLongOption(
+  String token, {
+  required Set<String> options,
+}) {
+  if (!token.startsWith('--')) {
+    return false;
+  }
+  for (final option in options.where((option) => option.startsWith('--'))) {
+    if (token.startsWith('$option=')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _matchesCompactShortOption(
+  String token, {
+  required Set<String> options,
+}) {
+  if (!token.startsWith('-') || token.startsWith('--') || token.length <= 2) {
+    return false;
+  }
+  return options.contains(token[1]);
+}
+
+bool _isNonEmptyToken(String? value) {
+  return value != null && value.trim().isNotEmpty;
+}
+
 bool _isPowerShellNamedParameter(String token, String parameterName) {
   return token == '-$parameterName' || token.startsWith('-$parameterName:');
 }
@@ -1302,6 +2074,46 @@ class _ParsedGetContentReadCommand extends _ParsedReadCommand {
 
 class _ParsedPatternSearchCommand {
   const _ParsedPatternSearchCommand({
+    required this.query,
+    required this.scopeTargets,
+  });
+
+  final String query;
+  final List<String> scopeTargets;
+}
+
+class _ParsedGitCommand {
+  const _ParsedGitCommand({
+    required this.subcommandLabel,
+    required this.summaryLabel,
+    required this.primaryLabel,
+    this.secondaryLabel,
+  });
+
+  final String subcommandLabel;
+  final String summaryLabel;
+  final String primaryLabel;
+  final String? secondaryLabel;
+}
+
+class _ParsedGitInvocation {
+  const _ParsedGitInvocation({
+    required this.subcommand,
+    required this.args,
+    this.repoPath,
+    this.gitDir,
+    this.workTree,
+  });
+
+  final String? subcommand;
+  final List<String> args;
+  final String? repoPath;
+  final String? gitDir;
+  final String? workTree;
+}
+
+class _ParsedGitGrepSearch {
+  const _ParsedGitGrepSearch({
     required this.query,
     required this.scopeTargets,
   });

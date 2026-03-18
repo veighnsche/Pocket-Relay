@@ -277,6 +277,28 @@ final class ChatFindStrSearchWorkLogEntryContract
   String get commandLabel => 'findstr';
 }
 
+final class ChatGitWorkLogEntryContract extends ChatWorkLogEntryContract {
+  const ChatGitWorkLogEntryContract({
+    required super.id,
+    required this.commandText,
+    required this.subcommandLabel,
+    required this.summaryLabel,
+    required this.primaryLabel,
+    this.secondaryLabel,
+    super.turnId,
+    super.isRunning = false,
+    super.exitCode,
+  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+
+  final String commandText;
+  final String subcommandLabel;
+  final String summaryLabel;
+  final String primaryLabel;
+  final String? secondaryLabel;
+
+  String get commandLabel => 'git';
+}
+
 List<String> _splitSimpleSearchAlternation(String queryText) {
   final trimmedQuery = queryText.trim();
   if (!trimmedQuery.contains('|')) {

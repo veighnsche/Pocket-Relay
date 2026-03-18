@@ -1072,6 +1072,119 @@ void main() {
       expect(item.entries.single, isA<ChatGenericWorkLogEntryContract>());
     });
 
+    test('projects git status commands into git work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_git_status',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_git_status',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'git status',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatGitWorkLogEntryContract;
+
+      expect(entry.summaryLabel, 'Checking worktree status');
+      expect(entry.primaryLabel, 'Current repository');
+      expect(entry.secondaryLabel, isNull);
+    });
+
+    test('projects git diff commands into git work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_git_diff',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_git_diff',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'git diff --staged README.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatGitWorkLogEntryContract;
+
+      expect(entry.summaryLabel, 'Inspecting diff');
+      expect(entry.primaryLabel, 'Staged changes');
+      expect(entry.secondaryLabel, 'README.md');
+    });
+
+    test('projects git show commands into git work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_git_show',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_git_show',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'git show HEAD~1:README.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatGitWorkLogEntryContract;
+
+      expect(entry.summaryLabel, 'Inspecting git object');
+      expect(entry.primaryLabel, 'HEAD~1:README.md');
+    });
+
+    test('projects git grep commands into git work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_git_grep',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_git_grep',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'git grep -n "Pocket Relay" lib test',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatGitWorkLogEntryContract;
+
+      expect(entry.summaryLabel, 'Searching tracked files');
+      expect(entry.primaryLabel, 'Pocket Relay');
+      expect(entry.secondaryLabel, 'In lib, test');
+    });
+
+    test('keeps unknown git subcommands in the git work-log family', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_git_generic',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_git_generic',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'git sparse-checkout list',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatGitWorkLogEntryContract;
+
+      expect(entry.summaryLabel, 'Running git sparse-checkout');
+      expect(entry.primaryLabel, 'list');
+    });
+
     test(
       'projects changed-files blocks into structured changed-files item contracts',
       () {

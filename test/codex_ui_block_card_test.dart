@@ -1193,6 +1193,67 @@ void main() {
     },
   );
 
+  testWidgets(
+    'renders git commands as git-specific work-log rows',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: _entryCard(
+            block: CodexWorkLogGroupBlock(
+              id: 'worklog_git_commands',
+              createdAt: DateTime(2026, 3, 14, 12),
+              entries: <CodexWorkLogEntry>[
+                CodexWorkLogEntry(
+                  id: 'entry_git_status',
+                  createdAt: DateTime(2026, 3, 14, 12),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'git status',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_git_diff',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'git diff --staged README.md',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_git_show',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 2),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'git show HEAD~1:README.md',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_git_grep',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 3),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'git grep -n "relay_git_probe" lib test',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show 1 more'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Checking worktree status'), findsOneWidget);
+      expect(find.text('Current repository'), findsOneWidget);
+      expect(find.text('Inspecting diff'), findsOneWidget);
+      expect(find.text('Staged changes'), findsOneWidget);
+      expect(find.text('README.md'), findsOneWidget);
+      expect(find.text('Inspecting git object'), findsOneWidget);
+      expect(find.text('HEAD~1:README.md'), findsOneWidget);
+      expect(find.text('Searching tracked files'), findsOneWidget);
+      expect(find.text('relay_git_probe'), findsOneWidget);
+      expect(find.text('In lib, test'), findsOneWidget);
+
+      expect(find.text('git status'), findsNothing);
+      expect(find.text('git diff --staged README.md'), findsNothing);
+      expect(find.text('git show HEAD~1:README.md'), findsNothing);
+      expect(find.text('git grep -n "relay_git_probe" lib test'), findsNothing);
+    },
+  );
+
   testWidgets('renders thread token usage as a compact usage strip', (
     tester,
   ) async {

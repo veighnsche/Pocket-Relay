@@ -900,7 +900,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final beforeWorkDy = tester.getTopLeft(find.text('Before work')).dy;
-      final workDy = tester.getTopLeft(find.text('git status')).dy;
+      final workDy = tester.getTopLeft(
+        find.text('Checking worktree status'),
+      ).dy;
       final afterWorkDy = tester.getTopLeft(find.text('After work')).dy;
 
       expect(find.text('Work log'), findsOneWidget);
@@ -964,7 +966,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Work log'), findsOneWidget);
-    expect(find.text('git status'), findsOneWidget);
+    expect(find.text('Checking worktree status'), findsOneWidget);
+    expect(find.text('Current repository'), findsOneWidget);
+    expect(find.text('git status'), findsNothing);
     expect(find.text('Search docs'), findsOneWidget);
   });
 
@@ -1841,7 +1845,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Work log'), findsOneWidget);
-      expect(find.text('git status'), findsOneWidget);
+      expect(find.text('Checking worktree status'), findsOneWidget);
       expect(find.text('running'), findsOneWidget);
 
       appServerClient.emit(
@@ -1859,7 +1863,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('git status'), findsOneWidget);
+      expect(find.text('Checking worktree status'), findsOneWidget);
       expect(find.text('running'), findsNothing);
       expect(find.text('File change approval'), findsOneWidget);
 
@@ -1891,7 +1895,9 @@ void main() {
       expect(find.text('File change approval resolved'), findsOneWidget);
       expect(find.text('Search docs'), findsOneWidget);
 
-      final firstWorkDy = tester.getTopLeft(find.text('git status')).dy;
+      final firstWorkDy = tester.getTopLeft(
+        find.text('Checking worktree status'),
+      ).dy;
       final resolvedDy = tester
           .getTopLeft(find.text('File change approval resolved'))
           .dy;

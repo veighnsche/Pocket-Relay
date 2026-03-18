@@ -110,6 +110,8 @@ class _WorkLogEntryRow extends StatelessWidget {
         _SelectStringSearchWorkLogEntryRow(entry: searchEntry),
       final ChatFindStrSearchWorkLogEntryContract searchEntry =>
         _FindStrSearchWorkLogEntryRow(entry: searchEntry),
+      final ChatGitWorkLogEntryContract gitEntry =>
+        _GitWorkLogEntryRow(entry: gitEntry),
       final ChatGenericWorkLogEntryContract genericEntry =>
         _GenericWorkLogEntryRow(entry: genericEntry),
     };
@@ -210,6 +212,17 @@ Widget? _searchStatusBadge(
   );
 }
 
+Widget? _gitStatusBadge(
+  ThemeData theme,
+  ChatGitWorkLogEntryContract entry,
+) {
+  return _specialCommandStatusBadge(
+    theme: theme,
+    isRunning: entry.isRunning,
+    exitCode: entry.exitCode,
+  );
+}
+
 Widget? _specialCommandStatusBadge({
   required ThemeData theme,
   required bool isRunning,
@@ -286,6 +299,21 @@ class _FindStrSearchWorkLogEntryRow extends StatelessWidget {
       entry: entry,
       accent: amberAccent(Theme.of(context).brightness),
       icon: Icons.travel_explore_outlined,
+    );
+  }
+}
+
+class _GitWorkLogEntryRow extends StatelessWidget {
+  const _GitWorkLogEntryRow({required this.entry});
+
+  final ChatGitWorkLogEntryContract entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GitCommandCardShell(
+      entry: entry,
+      accent: amberAccent(Theme.of(context).brightness),
+      icon: Icons.source_outlined,
     );
   }
 }
@@ -500,6 +528,100 @@ TextSpan _buildSearchQuerySpan({
   }
 
   return TextSpan(children: children);
+}
+
+class _GitCommandCardShell extends StatelessWidget {
+  const _GitCommandCardShell({
+    required this.entry,
+    required this.accent,
+    required this.icon,
+  });
+
+  final ChatGitWorkLogEntryContract entry;
+  final Color accent;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cards = ConversationCardPalette.of(context);
+    final statusBadge = _gitStatusBadge(theme, entry);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+      decoration: BoxDecoration(
+        color: cards.tintedSurface(accent, lightAlpha: 0.1, darkAlpha: 0.2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cards.accentBorder(accent)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: cards.tintedSurface(
+                accent,
+                lightAlpha: 0.16,
+                darkAlpha: 0.3,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (statusBadge != null) ...[
+                  statusBadge,
+                  const SizedBox(height: 7),
+                ],
+                Text(
+                  entry.summaryLabel,
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11.5,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  entry.primaryLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cards.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    height: 1.15,
+                  ),
+                ),
+                if (entry.secondaryLabel != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    entry.secondaryLabel!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: cards.textSecondary,
+                      fontSize: 11.25,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ReadCommandCardShell extends StatelessWidget {
