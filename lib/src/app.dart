@@ -16,6 +16,7 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 
 class PocketRelayApp extends StatefulWidget {
   const PocketRelayApp({
@@ -44,39 +45,38 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
   CodexConnectionRepository? _ownedConnectionRepository;
   CodexConnectionHandoffStore? _ownedConnectionHandoffStore;
   CodexConnectionRepository? _ownedConnectionHandoffStoreRepository;
-  CodexConnectionRepository? _connectionRepository;
-  CodexConnectionHandoffStore? _connectionHandoffStore;
-  ConnectionLaneBinding? _laneBinding;
-  int _bootstrapLoadGeneration = 0;
+  late ConnectionWorkspaceController _workspaceController;
 
   @override
   void initState() {
     super.initState();
-    _bindDependencies();
-    _loadBootstrapState();
+    _workspaceController = _createWorkspaceController();
+    unawaited(_workspaceController.initialize());
   }
 
   @override
   void didUpdateWidget(covariant PocketRelayApp oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final laneDependenciesChanged =
+    final workspaceDependenciesChanged =
         oldWidget.connectionRepository != widget.connectionRepository ||
         oldWidget.connectionHandoffStore != widget.connectionHandoffStore ||
         oldWidget.appServerClient != widget.appServerClient ||
         oldWidget.platformPolicy != widget.platformPolicy ||
         oldWidget.chatRootPlatformPolicy != widget.chatRootPlatformPolicy;
-    if (!laneDependenciesChanged) {
+    if (!workspaceDependenciesChanged) {
       return;
     }
 
-    _bindDependencies();
-    setState(_resetBootstrapState);
-    _loadBootstrapState();
+    final previousWorkspaceController = _workspaceController;
+    _workspaceController = _createWorkspaceController();
+    setState(() {});
+    unawaited(_workspaceController.initialize());
+    previousWorkspaceController.dispose();
   }
 
   @override
   void dispose() {
-    _laneBinding?.dispose();
+    _workspaceController.dispose();
     super.dispose();
   }
 
@@ -87,15 +87,64 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
         );
   }
 
-  void _bindDependencies() {
+  ConnectionWorkspaceController _createWorkspaceController() {
     final connectionRepository =
         widget.connectionRepository ??
         (_ownedConnectionRepository ??= SecureCodexConnectionRepository());
-    _connectionRepository = connectionRepository;
+    final connectionHandoffStore = _resolveConnectionHandoffStore(
+      connectionRepository: connectionRepository,
+    );
+    final platformPolicy = _resolvedPlatformPolicy;
+    var usedInjectedAppServerClient = false;
 
+    return ConnectionWorkspaceController(
+      connectionRepository: connectionRepository,
+      connectionHandoffStore: connectionHandoffStore,
+      laneBindingFactory:
+          ({
+            required String connectionId,
+            required SavedConnection connection,
+            required SavedConversationHandoff handoff,
+          }) {
+            final injectedAppServerClient = widget.appServerClient;
+            final usingInjectedClient =
+                !usedInjectedAppServerClient && injectedAppServerClient != null;
+            if (usingInjectedClient) {
+              usedInjectedAppServerClient = true;
+            }
+
+            return ConnectionLaneBinding(
+              connectionId: connectionId,
+              profileStore: ConnectionScopedProfileStore(
+                connectionId: connectionId,
+                connectionRepository: connectionRepository,
+              ),
+              conversationHandoffStore:
+                  ConnectionScopedConversationHandoffStore(
+                    connectionId: connectionId,
+                    handoffStore: connectionHandoffStore,
+                  ),
+              appServerClient: usingInjectedClient
+                  ? injectedAppServerClient
+                  : CodexAppServerClient(),
+              initialSavedProfile: SavedProfile(
+                profile: connection.profile,
+                secrets: connection.secrets,
+              ),
+              initialSavedConversationHandoff: handoff,
+              supportsLocalConnectionMode:
+                  platformPolicy.supportsLocalConnectionMode,
+              ownsAppServerClient: !usingInjectedClient,
+            );
+          },
+    );
+  }
+
+  CodexConnectionHandoffStore _resolveConnectionHandoffStore({
+    required CodexConnectionRepository connectionRepository,
+  }) {
     if (widget.connectionHandoffStore case final injectedHandoffStore?) {
-      _connectionHandoffStore = injectedHandoffStore;
-      return;
+      return injectedHandoffStore;
     }
 
     final ownedHandoffStore = _ownedConnectionHandoffStore;
@@ -106,81 +155,7 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
       );
       _ownedConnectionHandoffStoreRepository = connectionRepository;
     }
-    _connectionHandoffStore = _ownedConnectionHandoffStore;
-  }
-
-  Future<void> _loadBootstrapState() async {
-    final loadGeneration = ++_bootstrapLoadGeneration;
-    await _loadCatalogBootstrapState(loadGeneration);
-  }
-
-  Future<void> _loadCatalogBootstrapState(int loadGeneration) async {
-    final connectionRepository = _connectionRepository;
-    final connectionHandoffStore = _connectionHandoffStore;
-    if (connectionRepository == null || connectionHandoffStore == null) {
-      return;
-    }
-
-    final catalog = await connectionRepository.loadCatalog();
-    if (!mounted ||
-        loadGeneration != _bootstrapLoadGeneration ||
-        connectionRepository != _connectionRepository ||
-        connectionHandoffStore != _connectionHandoffStore) {
-      return;
-    }
-    if (catalog.isEmpty) {
-      throw StateError(
-        'PocketRelayApp requires at least one saved connection during catalog bootstrap.',
-      );
-    }
-
-    final selectedConnectionId = catalog.orderedConnectionIds.first;
-    final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      connectionRepository.loadConnection(selectedConnectionId),
-      connectionHandoffStore.load(selectedConnectionId),
-    ]);
-    if (!mounted ||
-        loadGeneration != _bootstrapLoadGeneration ||
-        connectionRepository != _connectionRepository ||
-        connectionHandoffStore != _connectionHandoffStore) {
-      return;
-    }
-
-    final connection = results[0] as SavedConnection;
-    final handoff = results[1] as SavedConversationHandoff;
-    final savedProfile = SavedProfile(
-      profile: connection.profile,
-      secrets: connection.secrets,
-    );
-    final nextLaneBinding = ConnectionLaneBinding(
-      connectionId: selectedConnectionId,
-      profileStore: ConnectionScopedProfileStore(
-        connectionId: selectedConnectionId,
-        connectionRepository: connectionRepository,
-      ),
-      conversationHandoffStore: ConnectionScopedConversationHandoffStore(
-        connectionId: selectedConnectionId,
-        handoffStore: connectionHandoffStore,
-      ),
-      appServerClient: widget.appServerClient ?? CodexAppServerClient(),
-      initialSavedProfile: savedProfile,
-      initialSavedConversationHandoff: handoff,
-      supportsLocalConnectionMode:
-          _resolvedPlatformPolicy.supportsLocalConnectionMode,
-      ownsAppServerClient: widget.appServerClient == null,
-    );
-
-    final previousLaneBinding = _laneBinding;
-    setState(() {
-      _laneBinding = nextLaneBinding;
-    });
-    previousLaneBinding?.dispose();
-  }
-
-  void _resetBootstrapState() {
-    final previousLaneBinding = _laneBinding;
-    _laneBinding = null;
-    previousLaneBinding?.dispose();
+    return _ownedConnectionHandoffStore!;
   }
 
   @override
@@ -199,7 +174,7 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
             const WakelockPlusDisplayWakeLockController(),
         supportsWakeLock: platformPolicy.supportsWakeLock,
         child: _PocketRelayHome(
-          laneBinding: _laneBinding,
+          workspaceController: _workspaceController,
           platformPolicy: platformPolicy,
         ),
       ),
@@ -209,25 +184,30 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
 
 class _PocketRelayHome extends StatelessWidget {
   const _PocketRelayHome({
-    required this.laneBinding,
+    required this.workspaceController,
     required this.platformPolicy,
   });
 
-  final ConnectionLaneBinding? laneBinding;
+  final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
 
   @override
   Widget build(BuildContext context) {
-    final resolvedLaneBinding = laneBinding;
-    if (resolvedLaneBinding != null) {
-      return ChatRootAdapter(
-        laneBinding: resolvedLaneBinding,
-        platformPolicy: platformPolicy,
-      );
-    }
+    return AnimatedBuilder(
+      animation: workspaceController,
+      builder: (context, _) {
+        final selectedLaneBinding = workspaceController.selectedLaneBinding;
+        if (selectedLaneBinding != null) {
+          return ChatRootAdapter(
+            laneBinding: selectedLaneBinding,
+            platformPolicy: platformPolicy,
+          );
+        }
 
-    return _PocketRelayBootstrapShell(
-      screenShell: platformPolicy.regionPolicy.screenShell,
+        return _PocketRelayBootstrapShell(
+          screenShell: platformPolicy.regionPolicy.screenShell,
+        );
+      },
     );
   }
 }
