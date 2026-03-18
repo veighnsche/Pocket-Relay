@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_app_chrome.dart';
@@ -24,6 +25,8 @@ abstract interface class ChatRootRendererDelegate {
     required ChatRootRegionRenderer renderer,
     required ChatScreenContract screen,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    List<ChatChromeMenuAction> supplementalMenuActions =
+        const <ChatChromeMenuAction>[],
   });
 
   Widget buildTranscriptRegion({
@@ -91,15 +94,19 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatRootRegionRenderer renderer,
     required ChatScreenContract screen,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    List<ChatChromeMenuAction> supplementalMenuActions =
+        const <ChatChromeMenuAction>[],
   }) {
     return switch (renderer) {
       ChatRootRegionRenderer.cupertino => CupertinoChatAppChrome(
         screen: screen,
         onScreenAction: onScreenAction,
+        supplementalMenuActions: supplementalMenuActions,
       ),
       ChatRootRegionRenderer.flutter => FlutterChatAppChrome(
         screen: screen,
         onScreenAction: onScreenAction,
+        supplementalMenuActions: supplementalMenuActions,
       ),
     };
   }

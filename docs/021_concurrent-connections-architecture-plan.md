@@ -339,9 +339,12 @@ fake overlay attached to the nearest transcript.
 
 The roster page should list dormant connections only.
 
-Minimum actions:
+First-cut Phase 4 actions:
 
 - instantiate connection
+
+Follow-on management actions once settings ownership is retargeted:
+
 - edit connection settings
 - delete connection
 
@@ -598,9 +601,16 @@ The safest order is:
 
 ### Slice 4: Add workspace shell and roster page
 
+- add workspace shell state for live-lane vs dormant-roster visibility
+- broaden app chrome so workspace overflow actions can coexist with lane-local
+  menu actions
 - introduce horizontal paging across live lanes
 - add trailing dormant roster page
 - wire instantiate and terminate actions
+- keep dormant edit and reconnect semantics for Slice 5
+
+Detailed Phase 4 component and primitive guidance lives in
+`docs/024_phase-4-ui-primitives-and-upgrade-path.md`.
 
 ### Slice 5: Retarget settings flow
 

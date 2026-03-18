@@ -4,6 +4,7 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_app_chrome.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
@@ -50,16 +51,24 @@ class FlutterChatAppChrome extends StatelessWidget
     super.key,
     required this.screen,
     required this.onScreenAction,
+    this.supplementalMenuActions = const <ChatChromeMenuAction>[],
   });
 
   final ChatScreenContract screen;
   final ValueChanged<ChatScreenActionId> onScreenAction;
+  final List<ChatChromeMenuAction> supplementalMenuActions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
+    final menuActions = buildChatChromeMenuActions(
+      screen: screen,
+      onScreenAction: onScreenAction,
+      supplementalMenuActions: supplementalMenuActions,
+    );
+
     return AppBar(
       titleSpacing: 18,
       title: ChatAppChromeTitle(
@@ -76,10 +85,9 @@ class FlutterChatAppChrome extends StatelessWidget
             ),
           ),
         ),
-        if (screen.menuActions.isNotEmpty) ...[
+        if (menuActions.isNotEmpty) ...[
           ChatOverflowMenuButton(
-            actions: screen.menuActions,
-            onSelected: onScreenAction,
+            actions: menuActions,
             style: ChatAppChromeStyle.material,
           ),
           const SizedBox(width: 8),

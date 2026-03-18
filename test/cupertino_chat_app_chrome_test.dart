@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
@@ -80,6 +81,46 @@ void main() {
       expect(navBar.automaticBackgroundVisibility, isFalse);
       expect(navBar.backgroundColor, isNull);
       expect(navBar.brightness, isNull);
+    },
+  );
+
+  testWidgets(
+    'cupertino app chrome supports supplemental workspace menu actions',
+    (tester) async {
+      final laneActions = <ChatScreenActionId>[];
+      var openedDormantConnections = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Scaffold(
+            body: Column(
+              children: [
+                CupertinoChatAppChrome(
+                  screen: _screenContract(),
+                  onScreenAction: laneActions.add,
+                  supplementalMenuActions: <ChatChromeMenuAction>[
+                    ChatChromeMenuAction(
+                      label: 'Dormant connections',
+                      onSelected: () {
+                        openedDormantConnections = true;
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('cupertino_menu_actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dormant connections'));
+      await tester.pumpAndSettle();
+
+      expect(openedDormantConnections, isTrue);
+      expect(laneActions, isEmpty);
     },
   );
 }

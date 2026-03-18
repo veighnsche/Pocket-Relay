@@ -85,6 +85,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         isLoading: false,
         liveConnectionIds: nextLiveConnectionIds,
         selectedConnectionId: normalizedConnectionId,
+        viewport: ConnectionWorkspaceViewport.liveLane,
       ),
     );
   }
@@ -92,12 +93,30 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   void selectConnection(String connectionId) {
     final normalizedConnectionId = connectionId.trim();
     if (normalizedConnectionId.isEmpty ||
-        !_state.isConnectionLive(normalizedConnectionId) ||
-        _state.selectedConnectionId == normalizedConnectionId) {
+        !_state.isConnectionLive(normalizedConnectionId)) {
+      return;
+    }
+    if (_state.selectedConnectionId == normalizedConnectionId &&
+        _state.isShowingLiveLane) {
       return;
     }
 
-    _applyState(_state.copyWith(selectedConnectionId: normalizedConnectionId));
+    _applyState(
+      _state.copyWith(
+        selectedConnectionId: normalizedConnectionId,
+        viewport: ConnectionWorkspaceViewport.liveLane,
+      ),
+    );
+  }
+
+  void showDormantRoster() {
+    if (_state.isShowingDormantRoster) {
+      return;
+    }
+
+    _applyState(
+      _state.copyWith(viewport: ConnectionWorkspaceViewport.dormantRoster),
+    );
   }
 
   void terminateConnection(String connectionId) {
@@ -119,6 +138,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       removalIndex: removalIndex,
       nextLiveConnectionIds: nextLiveConnectionIds,
     );
+    final nextViewport = _nextViewportAfterTermination(
+      removedConnectionId: normalizedConnectionId,
+      nextSelectedConnectionId: nextSelectedConnectionId,
+    );
 
     binding.dispose();
     _applyState(
@@ -126,6 +149,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         isLoading: false,
         liveConnectionIds: nextLiveConnectionIds,
         selectedConnectionId: nextSelectedConnectionId,
+        viewport: nextViewport,
         clearSelectedConnectionId: nextSelectedConnectionId == null,
       ),
     );
@@ -168,6 +192,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         catalog: catalog,
         liveConnectionIds: <String>[firstConnectionId],
         selectedConnectionId: firstConnectionId,
+        viewport: ConnectionWorkspaceViewport.liveLane,
       ),
     );
   }
@@ -207,6 +232,18 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
     final nextIndex = removalIndex.clamp(0, nextLiveConnectionIds.length - 1);
     return nextLiveConnectionIds[nextIndex];
+  }
+
+  ConnectionWorkspaceViewport _nextViewportAfterTermination({
+    required String removedConnectionId,
+    required String? nextSelectedConnectionId,
+  }) {
+    if (_state.selectedConnectionId == removedConnectionId &&
+        nextSelectedConnectionId == null) {
+      return ConnectionWorkspaceViewport.dormantRoster;
+    }
+
+    return _state.viewport;
   }
 
   void _applyState(ConnectionWorkspaceState nextState) {

@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
@@ -79,7 +80,7 @@ void main() {
     await tester.tap(find.byTooltip('Connection settings'));
     await tester.pump();
 
-    await tester.tap(find.byType(PopupMenuButton<ChatScreenActionId>));
+    await tester.tap(find.byType(PopupMenuButton<int>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('New thread'));
     await tester.pumpAndSettle();
@@ -88,6 +89,45 @@ void main() {
       ChatScreenActionId.openSettings,
       ChatScreenActionId.newThread,
     ]);
+  });
+
+  testWidgets('app chrome supports supplemental workspace menu actions', (
+    tester,
+  ) async {
+    final laneActions = <ChatScreenActionId>[];
+    var openedDormantConnections = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildPocketTheme(Brightness.light),
+        home: Scaffold(
+          appBar: FlutterChatAppChrome(
+            screen: _screenContract(),
+            onScreenAction: laneActions.add,
+            supplementalMenuActions: <ChatChromeMenuAction>[
+              ChatChromeMenuAction(
+                label: 'Dormant connections',
+                onSelected: () {
+                  openedDormantConnections = true;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(PopupMenuButton<int>));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New thread'), findsOneWidget);
+    expect(find.text('Dormant connections'), findsOneWidget);
+
+    await tester.tap(find.text('Dormant connections'));
+    await tester.pumpAndSettle();
+
+    expect(openedDormantConnections, isTrue);
+    expect(laneActions, isEmpty);
   });
 
   testWidgets(

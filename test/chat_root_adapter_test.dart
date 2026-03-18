@@ -11,6 +11,7 @@ import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
@@ -1038,6 +1039,8 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
     required ChatRootRegionRenderer renderer,
     required ChatScreenContract screen,
     required ValueChanged<ChatScreenActionId> onScreenAction,
+    List<ChatChromeMenuAction> supplementalMenuActions =
+        const <ChatChromeMenuAction>[],
   }) {
     renderersByRegion[ChatRootRegion.appChrome] = renderer;
     return _FakePreferredAppChrome(

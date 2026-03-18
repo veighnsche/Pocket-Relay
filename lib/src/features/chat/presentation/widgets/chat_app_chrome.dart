@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 
 enum ChatAppChromeStyle { material, cupertino }
@@ -31,12 +32,10 @@ class ChatOverflowMenuButton extends StatelessWidget {
   const ChatOverflowMenuButton({
     super.key,
     required this.actions,
-    required this.onSelected,
     required this.style,
   });
 
-  final List<ChatScreenActionContract> actions;
-  final ValueChanged<ChatScreenActionId> onSelected;
+  final List<ChatChromeMenuAction> actions;
   final ChatAppChromeStyle style;
 
   @override
@@ -45,18 +44,18 @@ class ChatOverflowMenuButton extends StatelessWidget {
 
     return Material(
       type: MaterialType.transparency,
-      child: PopupMenuButton<ChatScreenActionId>(
+      child: PopupMenuButton<int>(
         tooltip: 'More actions',
-        onSelected: onSelected,
+        onSelected: (index) => actions[index].onSelected(),
         padding: EdgeInsets.zero,
         itemBuilder: (context) {
-          return actions
+          return actions.indexed
               .map(
-                (action) => PopupMenuItem<ChatScreenActionId>(
-                  value: action.id,
+                (entry) => PopupMenuItem<int>(
+                  value: entry.$1,
                   child: Text(
-                    action.label,
-                    style: action.id == ChatScreenActionId.clearTranscript
+                    entry.$2.label,
+                    style: entry.$2.isDestructive
                         ? TextStyle(color: theme.colorScheme.error)
                         : null,
                   ),
@@ -77,6 +76,24 @@ class ChatOverflowMenuButton extends StatelessWidget {
       ),
     );
   }
+}
+
+List<ChatChromeMenuAction> buildChatChromeMenuActions({
+  required ChatScreenContract screen,
+  required ValueChanged<ChatScreenActionId> onScreenAction,
+  List<ChatChromeMenuAction> supplementalMenuActions =
+      const <ChatChromeMenuAction>[],
+}) {
+  return <ChatChromeMenuAction>[
+    ...screen.menuActions.map(
+      (action) => ChatChromeMenuAction(
+        label: action.label,
+        onSelected: () => onScreenAction(action.id),
+        isDestructive: action.id == ChatScreenActionId.clearTranscript,
+      ),
+    ),
+    ...supplementalMenuActions,
+  ];
 }
 
 IconData chatActionIcon(

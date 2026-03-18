@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_renderer_delegate.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
@@ -23,12 +24,14 @@ class ChatRootAdapter extends StatefulWidget {
     required this.platformPolicy,
     this.overlayDelegate = const FlutterChatRootOverlayDelegate(),
     this.rendererDelegate = const FlutterChatRootRendererDelegate(),
+    this.supplementalMenuActions = const <ChatChromeMenuAction>[],
   });
 
   final ConnectionLaneBinding laneBinding;
   final PocketPlatformPolicy platformPolicy;
   final ChatRootOverlayDelegate overlayDelegate;
   final ChatRootRendererDelegate rendererDelegate;
+  final List<ChatChromeMenuAction> supplementalMenuActions;
 
   @override
   State<ChatRootAdapter> createState() => _ChatRootAdapterState();
@@ -103,6 +106,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       renderer: regionPolicy.rendererFor(ChatRootRegion.appChrome),
       screen: screen,
       onScreenAction: (action) => _handleScreenAction(action, screen),
+      supplementalMenuActions: widget.supplementalMenuActions,
     );
   }
 
