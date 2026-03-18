@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/features/chat/application/transcript_changed_files_parser.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_item_block_factory.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 
@@ -73,8 +74,18 @@ class TranscriptTurnArtifactBuilder {
     );
     var nextArtifacts = List<CodexTurnArtifact>.from(turn.artifacts);
     String artifactId;
+    final boundArtifactIndex = _boundWorkArtifactIndex(turn, item);
 
-    if (nextArtifacts.lastOrNull case final CodexTurnWorkArtifact lastWork) {
+    if (boundArtifactIndex != null) {
+      final boundArtifact =
+          nextArtifacts[boundArtifactIndex] as CodexTurnWorkArtifact;
+      nextArtifacts[boundArtifactIndex] = _workArtifactWithEntry(
+        boundArtifact,
+        entry,
+      );
+      artifactId = boundArtifact.id;
+    } else if (nextArtifacts.lastOrNull
+        case final CodexTurnWorkArtifact lastWork) {
       nextArtifacts[nextArtifacts.length - 1] = _workArtifactWithEntry(
         lastWork,
         entry,
@@ -97,6 +108,28 @@ class TranscriptTurnArtifactBuilder {
         item.itemId: artifactId,
       },
     );
+  }
+
+  int? _boundWorkArtifactIndex(
+    CodexActiveTurnState turn,
+    CodexSessionActiveItem item,
+  ) {
+    if (item.itemType != CodexCanonicalItemType.commandExecution) {
+      return null;
+    }
+
+    final boundArtifactId = turn.itemArtifactIds[item.itemId];
+    if (boundArtifactId == null) {
+      return null;
+    }
+
+    final index = turn.artifacts.indexWhere(
+      (artifact) => artifact.id == boundArtifactId,
+    );
+    if (index == -1 || turn.artifacts[index] is! CodexTurnWorkArtifact) {
+      return null;
+    }
+    return index;
   }
 
   CodexTurnWorkArtifact _workArtifactWithEntry(

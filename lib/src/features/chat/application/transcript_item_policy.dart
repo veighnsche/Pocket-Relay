@@ -100,7 +100,11 @@ class TranscriptItemPolicy {
     final title = _itemTitle(event, existing?.title);
     final aggregatedBody = _itemBody(event, existing?.aggregatedBody ?? '');
     final exitCode = _extractExitCode(event.snapshot) ?? existing?.exitCode;
-    final forkArtifact = _shouldForkVisibleArtifact(activeTurn, existing);
+    final forkArtifact = _shouldForkVisibleArtifact(
+      activeTurn,
+      existing,
+      itemType: event.itemType,
+    );
     final entryId = existing == null || forkArtifact
         ? _nextItemEntryId(state, activeTurn, itemId: event.itemId!)
         : existing.entryId;
@@ -142,7 +146,11 @@ class TranscriptItemPolicy {
     final itemType =
         existing?.itemType ??
         _itemSupport.itemTypeFromStreamKind(event.streamKind);
-    final forkArtifact = _shouldForkVisibleArtifact(activeTurn, existing);
+    final forkArtifact = _shouldForkVisibleArtifact(
+      activeTurn,
+      existing,
+      itemType: itemType,
+    );
     final previousAggregatedBody = existing?.aggregatedBody ?? '';
     final aggregatedBody = '$previousAggregatedBody${event.delta}';
     final artifactBaseBody = existing == null
@@ -223,8 +231,14 @@ class TranscriptItemPolicy {
 
   bool _shouldForkVisibleArtifact(
     CodexActiveTurnState? activeTurn,
-    CodexSessionActiveItem? existing,
-  ) {
+    CodexSessionActiveItem? existing, {
+    CodexCanonicalItemType? itemType,
+  }) {
+    final effectiveItemType = itemType ?? existing?.itemType;
+    if (effectiveItemType == CodexCanonicalItemType.commandExecution) {
+      return false;
+    }
+
     if (activeTurn == null ||
         existing == null ||
         activeTurn.artifacts.isEmpty) {

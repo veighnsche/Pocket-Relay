@@ -23,13 +23,14 @@ class TranscriptRequestPolicy {
 
     final turnId = event.turnId ?? state.activeTurn?.turnId;
     final threadId = event.threadId ?? state.activeTurn?.threadId;
-    final activeTurn = _freezeTailArtifact(
+    final activeTurn = _freezeArtifactsForRequest(
       _ensureActiveTurn(
         state.activeTurn,
         turnId: turnId,
         threadId: threadId,
         createdAt: event.createdAt,
       ),
+      itemId: event.itemId,
     );
     final wasBlocking = activeTurn?.hasBlockingRequests ?? false;
     if (event.requestType == CodexCanonicalRequestType.mcpServerElicitation) {
@@ -137,13 +138,14 @@ class TranscriptRequestPolicy {
 
     final turnId = event.turnId ?? state.activeTurn?.turnId;
     final threadId = event.threadId ?? state.activeTurn?.threadId;
-    final activeTurn = _freezeTailArtifact(
+    final activeTurn = _freezeArtifactsForRequest(
       _ensureActiveTurn(
         state.activeTurn,
         turnId: turnId,
         threadId: threadId,
         createdAt: event.createdAt,
       ),
+      itemId: event.itemId,
     );
     final wasBlocking = activeTurn?.hasBlockingRequests ?? false;
     final pendingRequest = CodexSessionPendingUserInputRequest(
@@ -430,6 +432,52 @@ class TranscriptRequestPolicy {
 
     final nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
     nextArtifacts[nextArtifacts.length - 1] = frozenTail;
+    return activeTurn.copyWith(artifacts: nextArtifacts);
+  }
+
+  CodexActiveTurnState? _freezeArtifactsForRequest(
+    CodexActiveTurnState? activeTurn, {
+    required String? itemId,
+  }) {
+    return _freezeCommandArtifact(
+      _freezeTailArtifact(activeTurn),
+      itemId: itemId,
+    );
+  }
+
+  CodexActiveTurnState? _freezeCommandArtifact(
+    CodexActiveTurnState? activeTurn, {
+    required String? itemId,
+  }) {
+    if (activeTurn == null || itemId == null) {
+      return activeTurn;
+    }
+
+    final item = activeTurn.itemsById[itemId];
+    if (item?.itemType != CodexCanonicalItemType.commandExecution) {
+      return activeTurn;
+    }
+
+    final artifactId = activeTurn.itemArtifactIds[itemId];
+    if (artifactId == null) {
+      return activeTurn;
+    }
+
+    final index = activeTurn.artifacts.indexWhere(
+      (artifact) => artifact.id == artifactId,
+    );
+    if (index == -1) {
+      return activeTurn;
+    }
+
+    final artifact = activeTurn.artifacts[index];
+    final frozenArtifact = freezeCodexTurnArtifact(artifact);
+    if (identical(frozenArtifact, artifact)) {
+      return activeTurn;
+    }
+
+    final nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
+    nextArtifacts[index] = frozenArtifact;
     return activeTurn.copyWith(artifacts: nextArtifacts);
   }
 

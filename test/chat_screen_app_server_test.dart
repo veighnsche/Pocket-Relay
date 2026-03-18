@@ -1965,6 +1965,93 @@ void main() {
   );
 
   testWidgets(
+    'keeps updating the existing work row after assistant text takes the tail',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'command_1',
+              'type': 'commandExecution',
+              'status': 'inProgress',
+              'command': 'git status',
+            },
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/commandExecution/outputDelta',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'command_1',
+            'delta': 'clean',
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/agentMessage/delta',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'assistant_1',
+            'delta': 'Investigating',
+          },
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Work log'), findsOneWidget);
+      expect(find.text('clean'), findsOneWidget);
+      expect(find.text('Investigating'), findsOneWidget);
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/commandExecution/outputDelta',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'command_1',
+            'delta': ' status',
+          },
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Work log'), findsOneWidget);
+      expect(find.text('clean'), findsNothing);
+      expect(find.text('clean status'), findsOneWidget);
+      expect(find.text('Investigating'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'promotes the next pending approval without broadening the pinned approval surface',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
