@@ -21,10 +21,22 @@ class ChatWorkLogItemProjector {
         entry.entryKind == CodexWorkLogEntryKind.commandExecution
         ? _tryParseReadCommand(normalizedTitle)
         : null;
+    final searchCommand =
+        readCommand == null &&
+            entry.entryKind == CodexWorkLogEntryKind.commandExecution
+        ? _tryParseContentSearchCommand(normalizedTitle)
+        : null;
 
     if (readCommand != null) {
       return _projectReadCommand(
         readCommand: readCommand,
+        entry: entry,
+        normalizedTitle: normalizedTitle,
+      );
+    }
+    if (searchCommand != null) {
+      return _projectSearchCommand(
+        searchCommand: searchCommand,
         entry: entry,
         normalizedTitle: normalizedTitle,
       );
@@ -99,6 +111,56 @@ class ChatWorkLogItemProjector {
           turnId: entry.turnId,
           isRunning: entry.isRunning,
           exitCode: entry.exitCode,
+      ),
+    };
+  }
+
+  ChatContentSearchWorkLogEntryContract _projectSearchCommand({
+    required _ParsedContentSearchCommand searchCommand,
+    required CodexWorkLogEntry entry,
+    required String normalizedTitle,
+  }) {
+    final scopeTargets = List<String>.unmodifiable(searchCommand.scopeTargets);
+    return switch (searchCommand) {
+      final _ParsedRipgrepSearchCommand rgSearch =>
+        ChatRipgrepSearchWorkLogEntryContract(
+          id: entry.id,
+          commandText: normalizedTitle,
+          queryText: rgSearch.query,
+          scopeTargets: scopeTargets,
+          turnId: entry.turnId,
+          isRunning: entry.isRunning,
+          exitCode: entry.exitCode,
+        ),
+      final _ParsedGrepSearchCommand grepSearch =>
+        ChatGrepSearchWorkLogEntryContract(
+          id: entry.id,
+          commandText: normalizedTitle,
+          queryText: grepSearch.query,
+          scopeTargets: scopeTargets,
+          turnId: entry.turnId,
+          isRunning: entry.isRunning,
+          exitCode: entry.exitCode,
+        ),
+      final _ParsedSelectStringSearchCommand selectStringSearch =>
+        ChatSelectStringSearchWorkLogEntryContract(
+          id: entry.id,
+          commandText: normalizedTitle,
+          queryText: selectStringSearch.query,
+          scopeTargets: scopeTargets,
+          turnId: entry.turnId,
+          isRunning: entry.isRunning,
+          exitCode: entry.exitCode,
+        ),
+      final _ParsedFindStrSearchCommand findStrSearch =>
+        ChatFindStrSearchWorkLogEntryContract(
+          id: entry.id,
+          commandText: normalizedTitle,
+          queryText: findStrSearch.query,
+          scopeTargets: scopeTargets,
+          turnId: entry.turnId,
+          isRunning: entry.isRunning,
+          exitCode: entry.exitCode,
         ),
     };
   }
@@ -109,6 +171,19 @@ class ChatWorkLogItemProjector {
     }
 
     return _tryParseReadCommandTokens(
+      _tokenizeShellCommand(commandText),
+      originalCommandText: commandText,
+    );
+  }
+
+  _ParsedContentSearchCommand? _tryParseContentSearchCommand(
+    String commandText,
+  ) {
+    if (commandText.isEmpty || _containsShellOperators(commandText)) {
+      return null;
+    }
+
+    return _tryParseContentSearchCommandTokens(
       _tokenizeShellCommand(commandText),
       originalCommandText: commandText,
     );
@@ -137,6 +212,32 @@ class ChatWorkLogItemProjector {
       'head' => _tryParseHeadReadCommand(tokens),
       'tail' => _tryParseTailReadCommand(tokens),
       'get-content' => _tryParseGetContentReadCommand(tokens),
+      _ => null,
+    };
+  }
+
+  _ParsedContentSearchCommand? _tryParseContentSearchCommandTokens(
+    List<String>? tokens, {
+    required String originalCommandText,
+  }) {
+    if (tokens == null || tokens.isEmpty) {
+      return null;
+    }
+
+    final commandName = _commandName(tokens.first);
+    if (commandName == 'pwsh' || commandName == 'powershell') {
+      final unwrappedCommand = _unwrapPowerShellWrappedCommand(tokens);
+      if (unwrappedCommand == null || unwrappedCommand == originalCommandText) {
+        return null;
+      }
+      return _tryParseContentSearchCommand(unwrappedCommand);
+    }
+
+    return switch (commandName) {
+      'rg' => _tryParseRipgrepSearchCommand(tokens),
+      'grep' => _tryParseGrepSearchCommand(tokens),
+      'select-string' => _tryParseSelectStringSearchCommand(tokens),
+      'findstr' => _tryParseFindStrSearchCommand(tokens),
       _ => null,
     };
   }
@@ -448,6 +549,379 @@ class ChatWorkLogItemProjector {
       lineCount: lineCount,
     );
   }
+
+  _ParsedRipgrepSearchCommand? _tryParseRipgrepSearchCommand(
+    List<String> tokens,
+  ) {
+    final parsed = _parseFlaggedPatternSearchCommand(
+      tokens: tokens,
+      booleanFlags: const <String>{
+        '-n',
+        '--line-number',
+        '-S',
+        '--smart-case',
+        '-i',
+        '--ignore-case',
+        '-F',
+        '--fixed-strings',
+        '-w',
+        '--word-regexp',
+        '-l',
+        '--files-with-matches',
+        '-L',
+        '--files-without-match',
+        '-c',
+        '--count',
+        '--hidden',
+        '--no-ignore',
+        '-u',
+        '-uu',
+        '-uuu',
+      },
+      valueFlags: const <String>{
+        '-g',
+        '--glob',
+        '-t',
+        '--type',
+        '-T',
+        '--type-not',
+        '-m',
+        '--max-count',
+        '-A',
+        '--after-context',
+        '-B',
+        '--before-context',
+        '-C',
+        '--context',
+      },
+      booleanShortFlags: const <String>{'n', 'S', 'i', 'F', 'w', 'l', 'L', 'c', 'u'},
+      valueShortFlags: const <String>{'g', 't', 'T', 'm', 'A', 'B', 'C'},
+    );
+    return parsed == null
+        ? null
+        : _ParsedRipgrepSearchCommand(
+            query: parsed.query,
+            scopeTargets: parsed.scopeTargets,
+          );
+  }
+
+  _ParsedGrepSearchCommand? _tryParseGrepSearchCommand(List<String> tokens) {
+    final parsed = _parseFlaggedPatternSearchCommand(
+      tokens: tokens,
+      booleanFlags: const <String>{
+        '-n',
+        '--line-number',
+        '-r',
+        '-R',
+        '--recursive',
+        '-i',
+        '--ignore-case',
+        '-F',
+        '--fixed-strings',
+        '-w',
+        '--word-regexp',
+        '-l',
+        '--files-with-matches',
+        '-L',
+        '--files-without-match',
+        '-c',
+        '--count',
+        '-h',
+        '--no-filename',
+        '-H',
+        '--with-filename',
+        '-s',
+      },
+      valueFlags: const <String>{
+        '-m',
+        '--max-count',
+        '-A',
+        '--after-context',
+        '-B',
+        '--before-context',
+        '-C',
+        '--context',
+        '--include',
+        '--exclude',
+        '--exclude-dir',
+      },
+      booleanShortFlags: const <String>{'n', 'r', 'R', 'i', 'F', 'w', 'l', 'L', 'c', 'h', 'H', 's'},
+      valueShortFlags: const <String>{'m', 'A', 'B', 'C'},
+    );
+    return parsed == null
+        ? null
+        : _ParsedGrepSearchCommand(
+            query: parsed.query,
+            scopeTargets: parsed.scopeTargets,
+          );
+  }
+
+  _ParsedSelectStringSearchCommand? _tryParseSelectStringSearchCommand(
+    List<String> tokens,
+  ) {
+    if (tokens.length < 2) {
+      return null;
+    }
+
+    String? query;
+    final scopeTargets = <String>[];
+
+    var index = 1;
+    while (index < tokens.length) {
+      final token = tokens[index];
+      final normalizedToken = token.toLowerCase();
+
+      if (_isPowerShellNamedParameter(normalizedToken, 'pattern')) {
+        final result = _resolvePowerShellParameterValue(
+          tokens: tokens,
+          index: index,
+          parameterName: 'pattern',
+        );
+        if (result == null || query != null) {
+          return null;
+        }
+        query = result.value;
+        index = result.nextIndex;
+        continue;
+      }
+
+      if (_isPowerShellNamedParameter(normalizedToken, 'path')) {
+        final result = _resolvePowerShellParameterValue(
+          tokens: tokens,
+          index: index,
+          parameterName: 'path',
+        );
+        if (result == null) {
+          return null;
+        }
+        final scopes = _splitScopeTargets(result.value);
+        if (scopes == null) {
+          return null;
+        }
+        scopeTargets.addAll(scopes);
+        index = result.nextIndex;
+        continue;
+      }
+
+      if (_isPowerShellNamedParameter(normalizedToken, 'literalpath')) {
+        final result = _resolvePowerShellParameterValue(
+          tokens: tokens,
+          index: index,
+          parameterName: 'literalpath',
+        );
+        if (result == null) {
+          return null;
+        }
+        final scopes = _splitScopeTargets(result.value);
+        if (scopes == null) {
+          return null;
+        }
+        scopeTargets.addAll(scopes);
+        index = result.nextIndex;
+        continue;
+      }
+
+      if (const <String>{
+        '-casesensitive',
+        '-simplematch',
+        '-list',
+        '-allmatches',
+        '-quiet',
+        '-notmatch',
+        '-raw',
+      }.contains(normalizedToken)) {
+        index++;
+        continue;
+      }
+
+      if (token.startsWith('-')) {
+        return null;
+      }
+
+      if (query == null) {
+        query = token;
+      } else if (!_isSearchScopeTarget(token)) {
+        return null;
+      } else {
+        scopeTargets.add(token);
+      }
+      index++;
+    }
+
+    if (!_isSearchQuery(query)) {
+      return null;
+    }
+
+    return _ParsedSelectStringSearchCommand(
+      query: query!,
+      scopeTargets: scopeTargets,
+    );
+  }
+
+  _ParsedFindStrSearchCommand? _tryParseFindStrSearchCommand(
+    List<String> tokens,
+  ) {
+    if (tokens.length < 2) {
+      return null;
+    }
+
+    String? query;
+    final scopeTargets = <String>[];
+
+    var index = 1;
+    while (index < tokens.length) {
+      final token = tokens[index];
+      final normalizedToken = token.toLowerCase();
+
+      if (normalizedToken == '/c') {
+        if (query != null || index + 1 >= tokens.length) {
+          return null;
+        }
+        query = tokens[index + 1];
+        index += 2;
+        continue;
+      }
+      if (normalizedToken.startsWith('/c:')) {
+        if (query != null || token.length <= 3) {
+          return null;
+        }
+        query = token.substring(3);
+        index++;
+        continue;
+      }
+
+      if (normalizedToken == '/g' ||
+          normalizedToken.startsWith('/g:') ||
+          normalizedToken == '/f' ||
+          normalizedToken.startsWith('/f:')) {
+        return null;
+      }
+
+      if (token.startsWith('/')) {
+        index++;
+        continue;
+      }
+
+      if (query == null) {
+        query = token;
+      } else if (!_isSearchScopeTarget(token)) {
+        return null;
+      } else {
+        scopeTargets.add(token);
+      }
+      index++;
+    }
+
+    if (!_isSearchQuery(query)) {
+      return null;
+    }
+
+    return _ParsedFindStrSearchCommand(
+      query: query!,
+      scopeTargets: scopeTargets,
+    );
+  }
+
+  _ParsedPatternSearchCommand? _parseFlaggedPatternSearchCommand({
+    required List<String> tokens,
+    required Set<String> booleanFlags,
+    required Set<String> valueFlags,
+    required Set<String> booleanShortFlags,
+    required Set<String> valueShortFlags,
+  }) {
+    if (tokens.length < 2) {
+      return null;
+    }
+
+    String? query;
+    var index = 1;
+    while (index < tokens.length && query == null) {
+      final token = tokens[index];
+      final normalizedToken = token.toLowerCase();
+      if (token == '--') {
+        index++;
+        break;
+      }
+
+      if (normalizedToken == '-e' || normalizedToken == '--regexp') {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        query = tokens[index + 1];
+        index += 2;
+        break;
+      }
+      if (normalizedToken.startsWith('--regexp=')) {
+        final value = token.substring('--regexp='.length);
+        if (!_isSearchQuery(value)) {
+          return null;
+        }
+        query = value;
+        index++;
+        break;
+      }
+      if (normalizedToken.startsWith('-e') && token.length > 2) {
+        query = token.substring(2);
+        index++;
+        break;
+      }
+
+      if (booleanFlags.contains(normalizedToken) ||
+          _isCombinedShortBooleanFlags(
+            token,
+            allowedFlags: booleanShortFlags,
+          )) {
+        index++;
+        continue;
+      }
+
+      if (valueFlags.contains(normalizedToken)) {
+        if (index + 1 >= tokens.length) {
+          return null;
+        }
+        index += 2;
+        continue;
+      }
+      if (_isLongFlagWithInlineValue(token, allowedFlags: valueFlags) ||
+          _isCompactShortValueFlag(
+            token,
+            allowedFlags: valueShortFlags,
+          )) {
+        index++;
+        continue;
+      }
+
+      if (token.startsWith('-')) {
+        return null;
+      }
+
+      query = token;
+      index++;
+    }
+
+    if (!_isSearchQuery(query)) {
+      return null;
+    }
+
+    if (index < tokens.length && tokens[index] == '--') {
+      index++;
+    }
+
+    final scopeTargets = <String>[];
+    while (index < tokens.length) {
+      final token = tokens[index];
+      if (!_isSearchScopeTarget(token)) {
+        return null;
+      }
+      scopeTargets.add(token);
+      index++;
+    }
+
+    return _ParsedPatternSearchCommand(
+      query: query!,
+      scopeTargets: scopeTargets,
+    );
+  }
 }
 
 String _normalizeCompactToolLabel(String value) {
@@ -667,12 +1141,75 @@ bool _isFileTarget(String? path) {
   return value != null && value.isNotEmpty && value != '-';
 }
 
+bool _isSearchQuery(String? value) {
+  final query = value?.trim();
+  return query != null && query.isNotEmpty;
+}
+
+bool _isSearchScopeTarget(String token) {
+  final value = token.trim();
+  return value.isNotEmpty && value != '-' && value != '--' && !value.startsWith('-');
+}
+
 int? _parsePositiveInt(String value) {
   final parsed = int.tryParse(value.trim());
   if (parsed == null || parsed <= 0) {
     return null;
   }
   return parsed;
+}
+
+bool _isCombinedShortBooleanFlags(
+  String token, {
+  required Set<String> allowedFlags,
+}) {
+  if (!token.startsWith('-') || token.startsWith('--') || token.length <= 2) {
+    return false;
+  }
+
+  for (final rune in token.substring(1).runes) {
+    if (!allowedFlags.contains(String.fromCharCode(rune))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _isCompactShortValueFlag(
+  String token, {
+  required Set<String> allowedFlags,
+}) {
+  if (!token.startsWith('-') || token.startsWith('--') || token.length <= 2) {
+    return false;
+  }
+  return allowedFlags.contains(token[1]);
+}
+
+bool _isLongFlagWithInlineValue(
+  String token, {
+  required Set<String> allowedFlags,
+}) {
+  if (!token.startsWith('--')) {
+    return false;
+  }
+  for (final flag in allowedFlags.where((flag) => flag.startsWith('--'))) {
+    if (token.startsWith('$flag=')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+List<String>? _splitScopeTargets(String value) {
+  final scopes = value
+      .split(',')
+      .map((segment) => segment.trim())
+      .where((segment) => segment.isNotEmpty)
+      .toList(growable: false);
+  if (scopes.isEmpty || scopes.any((scope) => !_isSearchScopeTarget(scope))) {
+    return null;
+  }
+  return scopes;
 }
 
 bool _isPowerShellNamedParameter(String token, String parameterName) {
@@ -706,6 +1243,16 @@ sealed class _ParsedReadCommand {
   const _ParsedReadCommand({required this.path});
 
   final String path;
+}
+
+sealed class _ParsedContentSearchCommand {
+  const _ParsedContentSearchCommand({
+    required this.query,
+    required this.scopeTargets,
+  });
+
+  final String query;
+  final List<String> scopeTargets;
 }
 
 class _ParsedSedReadCommand extends _ParsedReadCommand {
@@ -751,6 +1298,44 @@ class _ParsedGetContentReadCommand extends _ParsedReadCommand {
 
   final ChatGetContentReadMode mode;
   final int? lineCount;
+}
+
+class _ParsedPatternSearchCommand {
+  const _ParsedPatternSearchCommand({
+    required this.query,
+    required this.scopeTargets,
+  });
+
+  final String query;
+  final List<String> scopeTargets;
+}
+
+class _ParsedRipgrepSearchCommand extends _ParsedContentSearchCommand {
+  const _ParsedRipgrepSearchCommand({
+    required super.query,
+    required super.scopeTargets,
+  });
+}
+
+class _ParsedGrepSearchCommand extends _ParsedContentSearchCommand {
+  const _ParsedGrepSearchCommand({
+    required super.query,
+    required super.scopeTargets,
+  });
+}
+
+class _ParsedSelectStringSearchCommand extends _ParsedContentSearchCommand {
+  const _ParsedSelectStringSearchCommand({
+    required super.query,
+    required super.scopeTargets,
+  });
+}
+
+class _ParsedFindStrSearchCommand extends _ParsedContentSearchCommand {
+  const _ParsedFindStrSearchCommand({
+    required super.query,
+    required super.scopeTargets,
+  });
 }
 
 class _ResolvedPowerShellParameter {

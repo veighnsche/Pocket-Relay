@@ -908,6 +908,170 @@ void main() {
       },
     );
 
+    test('projects rg searches into command-specific work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_rg',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_rg',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'rg -n "Pocket Relay" lib test',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry =
+          item.entries.single as ChatRipgrepSearchWorkLogEntryContract;
+
+      expect(entry.queryText, 'Pocket Relay');
+      expect(entry.scopeTargets, <String>['lib', 'test']);
+      expect(entry.scopeLabel, 'In lib, test');
+      expect(entry.summaryLabel, 'Searching for');
+    });
+
+    test('projects grep searches into command-specific work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_grep',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_grep',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'grep -R -n "Pocket Relay" README.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatGrepSearchWorkLogEntryContract;
+
+      expect(entry.queryText, 'Pocket Relay');
+      expect(entry.scopeTargets, <String>['README.md']);
+      expect(entry.scopeLabel, 'In README.md');
+    });
+
+    test(
+      'projects Select-String searches into command-specific work-log entries',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_select_string',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_select_string',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title:
+                  r'Select-String -Path C:\repo\README.md -Pattern "Pocket Relay"',
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+        final entry =
+            item.entries.single as ChatSelectStringSearchWorkLogEntryContract;
+
+        expect(entry.queryText, 'Pocket Relay');
+        expect(entry.scopeTargets, <String>[r'C:\repo\README.md']);
+        expect(entry.scopeLabel, r'In C:\repo\README.md');
+      },
+    );
+
+    test('projects findstr searches into command-specific work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_findstr',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_findstr',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: r'findstr /n /s /c:"Pocket Relay" *.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry =
+          item.entries.single as ChatFindStrSearchWorkLogEntryContract;
+
+      expect(entry.queryText, 'Pocket Relay');
+      expect(entry.scopeTargets, <String>['*.md']);
+      expect(entry.scopeLabel, 'In *.md');
+    });
+
+    test(
+      'splits simple top-level alternation queries into structured display segments',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_rg_alt',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_rg_alt',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title:
+                  r'rg -n "pwsh|powershell|Get-Content|head -|tail -|/usr/bin/sed|/usr/bin/cat|/usr/bin/head|/usr/bin/tail|sed -n" lib test',
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+        final entry =
+            item.entries.single as ChatRipgrepSearchWorkLogEntryContract;
+
+        expect(
+          entry.querySegments,
+          <String>[
+            'pwsh',
+            'powershell',
+            'Get-Content',
+            'head -',
+            'tail -',
+            '/usr/bin/sed',
+            '/usr/bin/cat',
+            '/usr/bin/head',
+            '/usr/bin/tail',
+            'sed -n',
+          ],
+        );
+        expect(
+          entry.displayQueryText,
+          'pwsh | powershell | Get-Content | head - | tail - | /usr/bin/sed | /usr/bin/cat | /usr/bin/head | /usr/bin/tail | sed -n',
+        );
+      },
+    );
+
+    test('keeps chained rg commands as generic work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_rg_chain',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_rg_chain',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'rg -n "Pocket Relay" lib && grep -n "Pocket Relay" README.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+
+      expect(item.entries.single, isA<ChatGenericWorkLogEntryContract>());
+    });
+
     test(
       'projects changed-files blocks into structured changed-files item contracts',
       () {

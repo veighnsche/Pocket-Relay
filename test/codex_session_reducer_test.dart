@@ -1923,6 +1923,62 @@ void main() {
     );
   });
 
+  test('normalizes shell-wrapped rg titles in work-log entries', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now,
+        itemType: CodexCanonicalItemType.commandExecution,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_command_rg',
+        status: CodexRuntimeItemStatus.completed,
+        detail: '/usr/bin/zsh -lc "rg -n \\"Pocket Relay\\" lib test"',
+        snapshot: const <String, Object?>{
+          'result': <String, Object?>{'output': 'lib/main.dart:1:Pocket Relay'},
+          'exitCode': 0,
+        },
+      ),
+    );
+
+    final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+    expect(group.entries.single.title, 'rg -n "Pocket Relay" lib test');
+  });
+
+  test('normalizes PowerShell-wrapped Select-String titles in work-log entries', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemCompletedEvent(
+        createdAt: now,
+        itemType: CodexCanonicalItemType.commandExecution,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_command_select_string',
+        status: CodexRuntimeItemStatus.completed,
+        detail:
+            r'powershell.exe -NoLogo -NoProfile -Command "Select-String -Path C:\repo\README.md -Pattern \"Pocket Relay\""',
+        snapshot: const <String, Object?>{
+          'result': <String, Object?>{'output': 'README.md:1:Pocket Relay'},
+          'exitCode': 0,
+        },
+      ),
+    );
+
+    final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+    expect(
+      group.entries.single.title,
+      r'Select-String -Path C:\repo\README.md -Pattern "Pocket Relay"',
+    );
+  });
+
   test(
     'starts a new work group when a resolved request interrupts work history',
     () {

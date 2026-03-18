@@ -1060,11 +1060,117 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Get-Content'), findsOneWidget);
       expect(find.text('Reading first 25 lines'), findsOneWidget);
       expect(find.text('README.md'), findsOneWidget);
       expect(find.text(r'C:\repo\README.md'), findsOneWidget);
       expect(find.textContaining('powershell.exe -NoLogo'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'renders shell-wrapped rg commands as structured search work logs',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'item_cmd_rg_1',
+              'type': 'commandExecution',
+              'status': 'completed',
+              'command':
+                  '/usr/bin/zsh -lc "rg -n \\"relay_search_probe\\" lib test"',
+              'result': <String, Object?>{
+                'output': 'lib/main.dart:1:relay_search_probe',
+                'exitCode': 0,
+              },
+            },
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Searching for'), findsOneWidget);
+      expect(find.text('relay_search_probe'), findsOneWidget);
+      expect(find.text('In lib, test'), findsOneWidget);
+      expect(find.textContaining('/usr/bin/zsh -lc'), findsNothing);
+      expect(find.text('rg -n "relay_search_probe" lib test'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'renders PowerShell-wrapped Select-String commands as structured search work logs',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        PocketRelayApp(
+          profileStore: MemoryCodexProfileStore(
+            initialValue: SavedProfile(
+              profile: _configuredProfile(),
+              secrets: const ConnectionSecrets(password: 'secret'),
+            ),
+          ),
+          appServerClient: appServerClient,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'item_cmd_select_string_1',
+              'type': 'commandExecution',
+              'status': 'completed',
+              'command':
+                  r'powershell.exe -NoLogo -NoProfile -Command "Select-String -Path C:\repo\README.md -Pattern \"relay_search_probe\""',
+              'result': <String, Object?>{
+                'output': 'README.md:1:relay_search_probe',
+                'exitCode': 0,
+              },
+            },
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Searching for'), findsOneWidget);
+      expect(find.text('relay_search_probe'), findsOneWidget);
+      expect(find.text(r'In C:\repo\README.md'), findsOneWidget);
+      expect(find.textContaining('powershell.exe -NoLogo'), findsNothing);
+      expect(
+        find.text(
+          r'Select-String -Path C:\repo\README.md -Pattern "relay_search_probe"',
+        ),
+        findsNothing,
+      );
     },
   );
 

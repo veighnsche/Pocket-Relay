@@ -1008,7 +1008,6 @@ void main() {
     );
 
     expect(find.text('Reading lines 1 to 120'), findsOneWidget);
-    expect(find.text('sed'), findsOneWidget);
     expect(find.text('work_log_group_card.dart'), findsOneWidget);
     expect(
       find.text(
@@ -1068,19 +1067,15 @@ void main() {
       await tester.tap(find.text('Show 1 more'));
       await tester.pumpAndSettle();
 
-      expect(find.text('cat'), findsOneWidget);
-      expect(find.text('Reading full file'), findsNWidgets(1));
+      expect(find.text('Reading full file'), findsOneWidget);
       expect(find.text('README.md'), findsAtLeastNWidgets(2));
 
-      expect(find.text('head'), findsOneWidget);
       expect(find.text('Reading first 40 lines'), findsOneWidget);
       expect(find.text('019_codebase-handoff.md'), findsOneWidget);
 
-      expect(find.text('tail'), findsOneWidget);
       expect(find.text('Reading last 20 lines'), findsOneWidget);
       expect(find.text('output.txt'), findsOneWidget);
 
-      expect(find.text('Get-Content'), findsOneWidget);
       expect(find.text('Reading first 25 lines'), findsOneWidget);
       expect(find.text(r'C:\repo\README.md'), findsOneWidget);
 
@@ -1092,6 +1087,107 @@ void main() {
       expect(find.text('tail -20 logs/output.txt'), findsNothing);
       expect(
         find.text(r'Get-Content -Path C:\repo\README.md -TotalCount 25'),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'renders rg, grep, Select-String, and findstr searches as command-specific work-log rows',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: _entryCard(
+            block: CodexWorkLogGroupBlock(
+              id: 'worklog_searches',
+              createdAt: DateTime(2026, 3, 14, 12),
+              entries: <CodexWorkLogEntry>[
+                CodexWorkLogEntry(
+                  id: 'entry_rg',
+                  createdAt: DateTime(2026, 3, 14, 12),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'rg -n "Pocket Relay" lib test',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_grep',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'grep -R -n "Pocket Relay" README.md',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_select_string',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 2),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title:
+                      r'Select-String -Path C:\repo\README.md -Pattern "Pocket Relay"',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_findstr',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 3),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: r'findstr /n /s /c:"Pocket Relay" *.md',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show 1 more'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Searching for'), findsNWidgets(4));
+      expect(find.text('Pocket Relay'), findsNWidgets(4));
+      expect(find.text('In lib, test'), findsOneWidget);
+      expect(find.text('In README.md'), findsOneWidget);
+      expect(find.text(r'In C:\repo\README.md'), findsOneWidget);
+      expect(find.text('In *.md'), findsOneWidget);
+
+      expect(find.text('rg -n "Pocket Relay" lib test'), findsNothing);
+      expect(find.text('grep -R -n "Pocket Relay" README.md'), findsNothing);
+      expect(
+        find.text(
+          r'Select-String -Path C:\repo\README.md -Pattern "Pocket Relay"',
+        ),
+        findsNothing,
+      );
+      expect(find.text(r'findstr /n /s /c:"Pocket Relay" *.md'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'formats pipe-separated search queries into readable alternation text',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: _entryCard(
+            block: CodexWorkLogGroupBlock(
+              id: 'worklog_search_alternation',
+              createdAt: DateTime(2026, 3, 14, 12),
+              entries: <CodexWorkLogEntry>[
+                CodexWorkLogEntry(
+                  id: 'entry_rg_alt',
+                  createdAt: DateTime(2026, 3, 14, 12),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title:
+                      r'rg -n "pwsh|powershell|Get-Content|head -|tail -|/usr/bin/sed|/usr/bin/cat|/usr/bin/head|/usr/bin/tail|sed -n" lib test',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Searching for'), findsOneWidget);
+      expect(
+        find.textContaining('pwsh | powershell | Get-Content | head - | tail -'),
+        findsOneWidget,
+      );
+      expect(find.text('In lib, test'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'pwsh|powershell|Get-Content|head -|tail -|/usr/bin/sed',
+        ),
         findsNothing,
       );
     },

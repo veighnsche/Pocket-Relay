@@ -102,6 +102,14 @@ class _WorkLogEntryRow extends StatelessWidget {
         _TailReadWorkLogEntryRow(entry: readEntry),
       final ChatGetContentReadWorkLogEntryContract readEntry =>
         _GetContentReadWorkLogEntryRow(entry: readEntry),
+      final ChatRipgrepSearchWorkLogEntryContract searchEntry =>
+        _RipgrepSearchWorkLogEntryRow(entry: searchEntry),
+      final ChatGrepSearchWorkLogEntryContract searchEntry =>
+        _GrepSearchWorkLogEntryRow(entry: searchEntry),
+      final ChatSelectStringSearchWorkLogEntryContract searchEntry =>
+        _SelectStringSearchWorkLogEntryRow(entry: searchEntry),
+      final ChatFindStrSearchWorkLogEntryContract searchEntry =>
+        _FindStrSearchWorkLogEntryRow(entry: searchEntry),
       final ChatGenericWorkLogEntryContract genericEntry =>
         _GenericWorkLogEntryRow(entry: genericEntry),
     };
@@ -184,19 +192,102 @@ Widget? _readStatusBadge(
   ThemeData theme,
   ChatFileReadWorkLogEntryContract entry,
 ) {
-  if (entry.isRunning) {
+  return _specialCommandStatusBadge(
+    theme: theme,
+    isRunning: entry.isRunning,
+    exitCode: entry.exitCode,
+  );
+}
+
+Widget? _searchStatusBadge(
+  ThemeData theme,
+  ChatContentSearchWorkLogEntryContract entry,
+) {
+  return _specialCommandStatusBadge(
+    theme: theme,
+    isRunning: entry.isRunning,
+    exitCode: entry.exitCode,
+  );
+}
+
+Widget? _specialCommandStatusBadge({
+  required ThemeData theme,
+  required bool isRunning,
+  required int? exitCode,
+}) {
+  if (isRunning) {
     return TranscriptBadge(
       label: 'running',
       color: tealAccent(theme.brightness),
     );
   }
-  if (entry.exitCode != null && entry.exitCode != 0) {
+  if (exitCode != null && exitCode != 0) {
     return TranscriptBadge(
-      label: 'exit ${entry.exitCode}',
+      label: 'exit $exitCode',
       color: redAccent(theme.brightness),
     );
   }
   return null;
+}
+
+class _RipgrepSearchWorkLogEntryRow extends StatelessWidget {
+  const _RipgrepSearchWorkLogEntryRow({required this.entry});
+
+  final ChatRipgrepSearchWorkLogEntryContract entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SearchCommandCardShell(
+      entry: entry,
+      accent: tealAccent(Theme.of(context).brightness),
+      icon: Icons.manage_search_outlined,
+    );
+  }
+}
+
+class _GrepSearchWorkLogEntryRow extends StatelessWidget {
+  const _GrepSearchWorkLogEntryRow({required this.entry});
+
+  final ChatGrepSearchWorkLogEntryContract entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SearchCommandCardShell(
+      entry: entry,
+      accent: blueAccent(Theme.of(context).brightness),
+      icon: Icons.saved_search_outlined,
+    );
+  }
+}
+
+class _SelectStringSearchWorkLogEntryRow extends StatelessWidget {
+  const _SelectStringSearchWorkLogEntryRow({required this.entry});
+
+  final ChatSelectStringSearchWorkLogEntryContract entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SearchCommandCardShell(
+      entry: entry,
+      accent: violetAccent(Theme.of(context).brightness),
+      icon: Icons.find_in_page_outlined,
+    );
+  }
+}
+
+class _FindStrSearchWorkLogEntryRow extends StatelessWidget {
+  const _FindStrSearchWorkLogEntryRow({required this.entry});
+
+  final ChatFindStrSearchWorkLogEntryContract entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SearchCommandCardShell(
+      entry: entry,
+      accent: amberAccent(Theme.of(context).brightness),
+      icon: Icons.travel_explore_outlined,
+    );
+  }
 }
 
 class _SedReadWorkLogEntryRow extends StatelessWidget {
@@ -274,6 +365,143 @@ class _GetContentReadWorkLogEntryRow extends StatelessWidget {
   }
 }
 
+class _SearchCommandCardShell extends StatelessWidget {
+  const _SearchCommandCardShell({
+    required this.entry,
+    required this.accent,
+    required this.icon,
+  });
+
+  final ChatContentSearchWorkLogEntryContract entry;
+  final Color accent;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cards = ConversationCardPalette.of(context);
+    final statusBadge = _searchStatusBadge(theme, entry);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+      decoration: BoxDecoration(
+        color: cards.tintedSurface(accent, lightAlpha: 0.1, darkAlpha: 0.2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cards.accentBorder(accent)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: cards.tintedSurface(
+                accent,
+                lightAlpha: 0.16,
+                darkAlpha: 0.3,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (statusBadge != null) ...[
+                  statusBadge,
+                  const SizedBox(height: 7),
+                ],
+                Text(
+                  entry.summaryLabel,
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11.5,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text.rich(
+                  _buildSearchQuerySpan(
+                    entry: entry,
+                    cards: cards,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  entry.scopeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cards.textSecondary,
+                    fontSize: 11.25,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+TextSpan _buildSearchQuerySpan({
+  required ChatContentSearchWorkLogEntryContract entry,
+  required ConversationCardPalette cards,
+}) {
+  final segments = entry.querySegments;
+  if (segments.length <= 1) {
+    return TextSpan(
+      text: entry.displayQueryText,
+      style: TextStyle(
+        color: cards.textPrimary,
+        fontWeight: FontWeight.w800,
+        fontSize: 13.5,
+        height: 1.15,
+      ),
+    );
+  }
+
+  final children = <InlineSpan>[];
+  for (var index = 0; index < segments.length; index++) {
+    if (index > 0) {
+      children.add(
+        TextSpan(
+          text: ' | ',
+          style: TextStyle(
+            color: cards.textMuted,
+            fontWeight: FontWeight.w700,
+            fontSize: 12.25,
+            height: 1.2,
+          ),
+        ),
+      );
+    }
+    children.add(
+      TextSpan(
+        text: segments[index],
+        style: TextStyle(
+          color: cards.textPrimary,
+          fontWeight: FontWeight.w800,
+          fontSize: 13.5,
+          height: 1.15,
+        ),
+      ),
+    );
+  }
+
+  return TextSpan(children: children);
+}
+
 class _ReadCommandCardShell extends StatelessWidget {
   const _ReadCommandCardShell({
     required this.entry,
@@ -321,45 +549,10 @@ class _ReadCommandCardShell extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: cards.tintedSurface(
-                          accent,
-                          lightAlpha: 0.16,
-                          darkAlpha: 0.32,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: cards.accentBorder(
-                            accent,
-                            lightAlpha: 0.4,
-                            darkAlpha: 0.5,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        entry.commandLabel,
-                        style: TextStyle(
-                          color: accent,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10.5,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                    if (statusBadge != null) statusBadge,
-                  ],
-                ),
-                const SizedBox(height: 7),
+                if (statusBadge != null) ...[
+                  statusBadge,
+                  const SizedBox(height: 7),
+                ],
                 Text(
                   entry.summaryLabel,
                   style: TextStyle(
