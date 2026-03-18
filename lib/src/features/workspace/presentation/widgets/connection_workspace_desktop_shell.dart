@@ -4,6 +4,9 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_renderer.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_dormant_roster_content.dart';
 
@@ -12,10 +15,13 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
     super.key,
     required this.workspaceController,
     required this.platformPolicy,
+    this.settingsOverlayDelegate =
+        const ModalConnectionSettingsOverlayDelegate(),
   });
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
+  final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +152,9 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
                     workspaceController: workspaceController,
                     description:
                         'Choose another saved connection from the roster or return to a live lane from the sidebar.',
+                    platformBehavior: platformPolicy.behavior,
+                    settingsRenderer: _settingsRendererFor(platformPolicy),
+                    settingsOverlayDelegate: settingsOverlayDelegate,
                     useSafeArea: true,
                   ),
                   (false, final laneBinding?) => ChatRootAdapter(
@@ -189,6 +198,17 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
       ),
     ];
   }
+}
+
+ConnectionSettingsRenderer _settingsRendererFor(
+  PocketPlatformPolicy platformPolicy,
+) {
+  return switch (platformPolicy.regionPolicy.rendererFor(
+    ChatRootRegion.settingsOverlay,
+  )) {
+    ChatRootRegionRenderer.flutter => ConnectionSettingsRenderer.material,
+    ChatRootRegionRenderer.cupertino => ConnectionSettingsRenderer.cupertino,
+  };
 }
 
 class _SidebarSectionTitle extends StatelessWidget {

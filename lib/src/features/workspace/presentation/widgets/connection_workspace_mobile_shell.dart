@@ -7,6 +7,8 @@ import 'package:pocket_relay/src/core/theme/pocket_cupertino_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
+import 'package:pocket_relay/src/features/settings/presentation/connection_settings_renderer.dart';
 import 'package:pocket_relay/src/features/workspace/models/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_dormant_roster_content.dart';
@@ -16,10 +18,13 @@ class ConnectionWorkspaceMobileShell extends StatefulWidget {
     super.key,
     required this.workspaceController,
     required this.platformPolicy,
+    this.settingsOverlayDelegate =
+        const ModalConnectionSettingsOverlayDelegate(),
   });
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
+  final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
   State<ConnectionWorkspaceMobileShell> createState() =>
@@ -83,6 +88,7 @@ class _ConnectionWorkspaceMobileShellState
               key: const ValueKey('dormant_roster_page'),
               workspaceController: widget.workspaceController,
               platformPolicy: widget.platformPolicy,
+              settingsOverlayDelegate: widget.settingsOverlayDelegate,
             ),
           ],
         );
@@ -203,10 +209,12 @@ class _ConnectionWorkspaceDormantRosterPage extends StatefulWidget {
     super.key,
     required this.workspaceController,
     required this.platformPolicy,
+    required this.settingsOverlayDelegate,
   });
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
+  final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
   State<_ConnectionWorkspaceDormantRosterPage> createState() =>
@@ -221,6 +229,9 @@ class _ConnectionWorkspaceDormantRosterPageState
       workspaceController: widget.workspaceController,
       description:
           'Swipe back to a live lane or open another saved connection.',
+      platformBehavior: widget.platformPolicy.behavior,
+      settingsRenderer: _settingsRendererFor(widget.platformPolicy),
+      settingsOverlayDelegate: widget.settingsOverlayDelegate,
     );
 
     return switch (widget.platformPolicy.regionPolicy.screenShell) {
@@ -239,4 +250,15 @@ class _ConnectionWorkspaceDormantRosterPageState
       ),
     };
   }
+}
+
+ConnectionSettingsRenderer _settingsRendererFor(
+  PocketPlatformPolicy platformPolicy,
+) {
+  return switch (platformPolicy.regionPolicy.rendererFor(
+    ChatRootRegion.settingsOverlay,
+  )) {
+    ChatRootRegionRenderer.flutter => ConnectionSettingsRenderer.material,
+    ChatRootRegionRenderer.cupertino => ConnectionSettingsRenderer.cupertino,
+  };
 }

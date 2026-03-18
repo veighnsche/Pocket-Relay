@@ -46,6 +46,13 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     return _liveBindingsByConnectionId[connectionId];
   }
 
+  Future<SavedConnection> loadSavedConnection(String connectionId) async {
+    final normalizedConnectionId = _normalizeConnectionId(connectionId);
+    await initialize();
+    _requireKnownConnectionId(normalizedConnectionId);
+    return _connectionRepository.loadConnection(normalizedConnectionId);
+  }
+
   Future<void> initialize() {
     return _initializationFuture ??= _initializeOnce();
   }
