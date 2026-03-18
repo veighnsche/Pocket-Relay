@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
@@ -83,6 +84,129 @@ void main() {
     expect(sendCalls, 1);
   });
 
+  testWidgets('desktop enter sends the draft', (tester) async {
+    var sendCalls = 0;
+
+    await tester.pumpWidget(
+      _buildComposerApp(
+        platform: TargetPlatform.macOS,
+        contract: const ChatComposerContract(
+          draftText: '',
+          isTextInputEnabled: true,
+          isPrimaryActionEnabled: true,
+          isBusy: false,
+          placeholder: 'Message Codex',
+          primaryAction: ChatComposerPrimaryAction.send,
+        ),
+        onSend: () async {
+          sendCalls += 1;
+        },
+      ),
+    );
+
+    final fieldFinder = find.byType(CupertinoTextField);
+
+    await tester.tap(fieldFinder);
+    await tester.pump();
+    await tester.enterText(fieldFinder, 'Desktop draft');
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(sendCalls, 1);
+    expect(
+      tester.widget<CupertinoTextField>(fieldFinder).controller?.text,
+      'Desktop draft',
+    );
+  });
+
+  testWidgets('desktop shift+enter inserts a newline', (tester) async {
+    var sendCalls = 0;
+
+    await tester.pumpWidget(
+      _buildComposerApp(
+        platform: TargetPlatform.macOS,
+        contract: const ChatComposerContract(
+          draftText: '',
+          isTextInputEnabled: true,
+          isPrimaryActionEnabled: true,
+          isBusy: false,
+          placeholder: 'Message Codex',
+          primaryAction: ChatComposerPrimaryAction.send,
+        ),
+        onSend: () async {
+          sendCalls += 1;
+        },
+      ),
+    );
+
+    final fieldFinder = find.byType(CupertinoTextField);
+
+    await tester.tap(fieldFinder);
+    await tester.pump();
+    await tester.enterText(fieldFinder, 'Desktop draft');
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+
+    expect(sendCalls, 0);
+    expect(
+      tester.widget<CupertinoTextField>(fieldFinder).controller?.text,
+      'Desktop draft\n',
+    );
+  });
+
+  testWidgets('mobile enter does not send and the draft remains multiline', (
+    tester,
+  ) async {
+    var sendCalls = 0;
+
+    await tester.pumpWidget(
+      _buildComposerApp(
+        platform: TargetPlatform.iOS,
+        contract: const ChatComposerContract(
+          draftText: '',
+          isTextInputEnabled: true,
+          isPrimaryActionEnabled: true,
+          isBusy: false,
+          placeholder: 'Message Codex',
+          primaryAction: ChatComposerPrimaryAction.send,
+        ),
+        onSend: () async {
+          sendCalls += 1;
+        },
+      ),
+    );
+
+    final fieldFinder = find.byType(CupertinoTextField);
+
+    await tester.tap(fieldFinder);
+    await tester.pump();
+    await tester.enterText(fieldFinder, 'Mobile draft');
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(sendCalls, 0);
+    expect(
+      tester.widget<CupertinoTextField>(fieldFinder).textInputAction,
+      TextInputAction.newline,
+    );
+
+    await tester.enterText(fieldFinder, 'Mobile draft\nSecond line');
+    await tester.pump();
+
+    expect(
+      tester.widget<CupertinoTextField>(fieldFinder).controller?.text,
+      'Mobile draft\nSecond line',
+    );
+  });
+
   testWidgets('switches to stop action and forwards stop presses', (
     tester,
   ) async {
@@ -135,7 +259,9 @@ void main() {
       ),
     );
 
-    final field = tester.widget<CupertinoTextField>(find.byType(CupertinoTextField));
+    final field = tester.widget<CupertinoTextField>(
+      find.byType(CupertinoTextField),
+    );
     final surfaceContext = tester.element(
       find.byKey(const ValueKey('cupertino_composer_surface')),
     );
@@ -180,7 +306,9 @@ void main() {
       ),
     );
 
-    final field = tester.widget<CupertinoTextField>(find.byType(CupertinoTextField));
+    final field = tester.widget<CupertinoTextField>(
+      find.byType(CupertinoTextField),
+    );
     final contentRow = tester.widget<Row>(
       find.byKey(const ValueKey('chat_composer_content_row')),
     );
@@ -193,13 +321,14 @@ void main() {
 Widget _buildComposerApp({
   required ChatComposerContract contract,
   Brightness brightness = Brightness.light,
+  TargetPlatform platform = TargetPlatform.iOS,
   ValueChanged<String>? onChanged,
   Future<void> Function()? onSend,
   Future<void> Function()? onStop,
 }) {
   return MaterialApp(
-    theme: buildPocketTheme(brightness),
-    darkTheme: buildPocketTheme(Brightness.dark),
+    theme: buildPocketTheme(brightness).copyWith(platform: platform),
+    darkTheme: buildPocketTheme(Brightness.dark).copyWith(platform: platform),
     themeMode: brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
     home: Scaffold(
       body: CupertinoChatComposer(

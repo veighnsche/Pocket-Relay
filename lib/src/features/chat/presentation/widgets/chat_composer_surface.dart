@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 
@@ -27,7 +29,17 @@ class ChatComposerSurface extends StatefulWidget {
   State<ChatComposerSurface> createState() => _ChatComposerSurfaceState();
 }
 
+class _DesktopSendIntent extends Intent {
+  const _DesktopSendIntent();
+}
+
+class _DesktopInsertNewlineIntent extends Intent {
+  const _DesktopInsertNewlineIntent();
+}
+
 class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
+  static const _desktopSendIntent = _DesktopSendIntent();
+  static const _desktopInsertNewlineIntent = _DesktopInsertNewlineIntent();
   late final TextEditingController _controller;
 
   @override
@@ -83,19 +95,22 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
         ],
       ),
       child: _buildContent(
-        input: TextField(
-          controller: _controller,
-          enabled: widget.contract.isTextInputEnabled,
-          minLines: 1,
-          maxLines: 6,
-          textInputAction: TextInputAction.newline,
-          onChanged: widget.onChanged,
-          decoration: InputDecoration(
-            hintText: widget.contract.placeholder,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            filled: false,
+        input: _wrapInputWithKeyboardSubmit(
+          context,
+          TextField(
+            controller: _controller,
+            enabled: widget.contract.isTextInputEnabled,
+            minLines: 1,
+            maxLines: 6,
+            textInputAction: TextInputAction.newline,
+            onChanged: widget.onChanged,
+            decoration: InputDecoration(
+              hintText: widget.contract.placeholder,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+            ),
           ),
         ),
         primaryAction:
@@ -160,18 +175,21 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
           child: Padding(
             padding: surfacePadding,
             child: _buildContent(
-              input: CupertinoTextField(
-                controller: _controller,
-                enabled: widget.contract.isTextInputEnabled,
-                minLines: 1,
-                maxLines: 6,
-                textInputAction: TextInputAction.newline,
-                placeholder: widget.contract.placeholder,
-                style: TextStyle(color: labelColor),
-                placeholderStyle: TextStyle(color: placeholderColor),
-                onChanged: widget.onChanged,
-                padding: inputPadding,
-                decoration: const BoxDecoration(),
+              input: _wrapInputWithKeyboardSubmit(
+                context,
+                CupertinoTextField(
+                  controller: _controller,
+                  enabled: widget.contract.isTextInputEnabled,
+                  minLines: 1,
+                  maxLines: 6,
+                  textInputAction: TextInputAction.newline,
+                  placeholder: widget.contract.placeholder,
+                  style: TextStyle(color: labelColor),
+                  placeholderStyle: TextStyle(color: placeholderColor),
+                  onChanged: widget.onChanged,
+                  padding: inputPadding,
+                  decoration: const BoxDecoration(),
+                ),
               ),
               primaryAction:
                   widget.contract.primaryAction ==
@@ -231,5 +249,86 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
         ),
       ],
     );
+  }
+
+  Widget _wrapInputWithKeyboardSubmit(BuildContext context, Widget input) {
+    if (!_usesDesktopKeyboardSubmit(context)) {
+      return input;
+    }
+
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        _DesktopSendIntent: CallbackAction<_DesktopSendIntent>(
+          onInvoke: (_) {
+            if (!_canSubmitFromKeyboard) {
+              return null;
+            }
+
+            unawaited(widget.onSend());
+            return null;
+          },
+        ),
+        _DesktopInsertNewlineIntent:
+            CallbackAction<_DesktopInsertNewlineIntent>(
+              onInvoke: (_) {
+                if (!_canEditFromKeyboard) {
+                  return null;
+                }
+
+                _insertTextAtSelection('\n');
+                return null;
+              },
+            ),
+      },
+      child: Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.enter, shift: true):
+              _desktopInsertNewlineIntent,
+          SingleActivator(LogicalKeyboardKey.numpadEnter, shift: true):
+              _desktopInsertNewlineIntent,
+          SingleActivator(LogicalKeyboardKey.enter): _desktopSendIntent,
+          SingleActivator(LogicalKeyboardKey.numpadEnter): _desktopSendIntent,
+        },
+        child: input,
+      ),
+    );
+  }
+
+  bool _usesDesktopKeyboardSubmit(BuildContext context) {
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      _ => false,
+    };
+  }
+
+  bool get _canSubmitFromKeyboard {
+    return widget.contract.isTextInputEnabled &&
+        widget.contract.isPrimaryActionEnabled &&
+        widget.contract.primaryAction == ChatComposerPrimaryAction.send;
+  }
+
+  bool get _canEditFromKeyboard => widget.contract.isTextInputEnabled;
+
+  void _insertTextAtSelection(String insertedText) {
+    final currentValue = _controller.value;
+    final currentSelection = currentValue.selection;
+    final selection = currentSelection.isValid
+        ? currentSelection
+        : TextSelection.collapsed(offset: currentValue.text.length);
+    final nextText = currentValue.text.replaceRange(
+      selection.start,
+      selection.end,
+      insertedText,
+    );
+    final nextOffset = selection.start + insertedText.length;
+
+    _controller.value = currentValue.copyWith(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: nextOffset),
+      composing: TextRange.empty,
+    );
+    widget.onChanged(nextText);
   }
 }

@@ -1,4 +1,5 @@
 android_avd := "Pixel_9_API_36"
+ios_simulator := "apple_ios_simulator"
 
 default:
     @just --list
@@ -17,6 +18,46 @@ run-android:
 
 run-ios:
     flutter run -d ios
+
+[no-exit-message]
+[script]
+run-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" linux "{{android_avd}}" "{{ios_simulator}}"
+
+[no-exit-message]
+[script]
+run-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" macos "{{android_avd}}" "{{ios_simulator}}"
+
+[no-exit-message]
+[script]
+run-ios-simulator:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" ios-simulator "{{android_avd}}" "{{ios_simulator}}"
+
+[no-exit-message]
+[script]
+run-mobile:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" mobile "{{android_avd}}" "{{ios_simulator}}"
+
+[no-exit-message]
+[script]
+run-desktop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" desktop "{{android_avd}}" "{{ios_simulator}}"
 
 [no-exit-message]
 [script]
@@ -44,13 +85,7 @@ run-android-emulator:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    device="$(adb devices | awk '$1 ~ /^emulator-/ && $2 == "device" { print $1; exit }')"
-    if [ -z "$device" ]; then
-      echo "No running Android emulator found. Start one with 'just emulator' or 'just android-dev'." >&2
-      exit 1
-    fi
-
-    exec flutter run -d "$device"
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" android-emulator "{{android_avd}}" "{{ios_simulator}}"
 
 [no-exit-message]
 [script]
@@ -72,22 +107,7 @@ android-dev:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    avd="{{android_avd}}"
-    device="$(adb devices | awk '$1 ~ /^emulator-/ && $2 == "device" { print $1; exit }')"
-
-    if [ -z "$device" ]; then
-      flutter emulators --launch "$avd"
-
-      until device="$(adb devices | awk '$1 ~ /^emulator-/ && $2 == "device" { print $1; exit }')"; [ -n "$device" ]; do
-        sleep 2
-      done
-
-      until [ "$(adb -s "$device" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
-        sleep 2
-      done
-    fi
-
-    exec flutter run -d "$device"
+    exec "{{ justfile_directory() }}/scripts/host-run.sh" android-dev "{{android_avd}}" "{{ios_simulator}}"
 
 [no-exit-message]
 [script]
