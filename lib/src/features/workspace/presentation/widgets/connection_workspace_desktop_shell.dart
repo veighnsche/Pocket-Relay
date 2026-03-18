@@ -76,7 +76,8 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
 
                           return Padding(
                             padding: EdgeInsets.only(
-                              bottom: index == state.liveConnectionIds.length - 1
+                              bottom:
+                                  index == state.liveConnectionIds.length - 1
                                   ? 0
                                   : 10,
                             ),
@@ -87,10 +88,11 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
                               isSelected:
                                   state.isShowingLiveLane &&
                                   state.selectedConnectionId == connectionId,
-                              onTap: () =>
-                                  workspaceController.selectConnection(
-                                    connectionId,
-                                  ),
+                              onTap: () => workspaceController.selectConnection(
+                                connectionId,
+                              ),
+                              onClose: () => workspaceController
+                                  .terminateConnection(connectionId),
                             ),
                           );
                         }),
@@ -136,7 +138,10 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: switch ((state.isShowingDormantRoster, selectedLaneBinding)) {
+                child: switch ((
+                  state.isShowingDormantRoster,
+                  selectedLaneBinding,
+                )) {
                   (true, _) => ConnectionWorkspaceDormantRosterContent(
                     workspaceController: workspaceController,
                     description:
@@ -146,12 +151,10 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
                   (false, final laneBinding?) => ChatRootAdapter(
                     laneBinding: laneBinding,
                     platformPolicy: platformPolicy,
-                    supplementalMenuActions: <ChatChromeMenuAction>[
-                      ChatChromeMenuAction(
-                        label: 'Dormant connections',
-                        onSelected: workspaceController.showDormantRoster,
-                      ),
-                    ],
+                    supplementalMenuActions: _supplementalMenuActions(
+                      workspaceController: workspaceController,
+                      connectionId: laneBinding.connectionId,
+                    ),
                   ),
                   _ => const SizedBox.shrink(),
                 },
@@ -168,6 +171,23 @@ class ConnectionWorkspaceDesktopShell extends StatelessWidget {
       ConnectionMode.remote => '${profile.host} · ${profile.workspaceDir}',
       ConnectionMode.local => 'local Codex · ${profile.workspaceDir}',
     };
+  }
+
+  List<ChatChromeMenuAction> _supplementalMenuActions({
+    required ConnectionWorkspaceController workspaceController,
+    required String connectionId,
+  }) {
+    return <ChatChromeMenuAction>[
+      ChatChromeMenuAction(
+        label: 'Dormant connections',
+        onSelected: workspaceController.showDormantRoster,
+      ),
+      ChatChromeMenuAction(
+        label: 'Close lane',
+        onSelected: () => workspaceController.terminateConnection(connectionId),
+        isDestructive: true,
+      ),
+    ];
   }
 }
 
@@ -224,6 +244,7 @@ class _SidebarConnectionRow extends StatelessWidget {
     required this.subtitle,
     required this.isSelected,
     required this.onTap,
+    required this.onClose,
   });
 
   final String connectionId;
@@ -231,6 +252,7 @@ class _SidebarConnectionRow extends StatelessWidget {
   final String subtitle;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -245,40 +267,57 @@ class _SidebarConnectionRow extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        key: ValueKey<String>('desktop_live_$connectionId'),
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: borderColor),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                key: ValueKey<String>('desktop_live_$connectionId'),
+                borderRadius: BorderRadius.circular(22),
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            Tooltip(
+              message: 'Close lane',
+              child: IconButton(
+                key: ValueKey<String>('desktop_close_lane_$connectionId'),
+                visualDensity: VisualDensity.compact,
+                onPressed: onClose,
+                color: theme.colorScheme.onSurfaceVariant,
+                icon: const Icon(Icons.close),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
       ),
     );

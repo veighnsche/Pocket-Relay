@@ -618,6 +618,9 @@ Detailed Phase 4 component and primitive guidance lives in
 - live connection edits become explicit reconnect actions
 - dormant edits stay immediate
 
+Detailed Phase 5 upgrade guidance lives in
+`docs/025_phase-5-settings-retargeting-upgrade-path.md`.
+
 ### Slice 6: Hardening and cleanup
 
 - remove leftover singleton connection assumptions

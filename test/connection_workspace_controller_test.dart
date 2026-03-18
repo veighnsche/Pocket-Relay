@@ -83,6 +83,36 @@ void main() {
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
   });
 
+  test(
+    'terminating the last live lane shows the dormant roster and clears selection',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+
+      controller.terminateConnection('conn_primary');
+
+      expect(controller.state.liveConnectionIds, isEmpty);
+      expect(controller.state.dormantConnectionIds, <String>[
+        'conn_primary',
+        'conn_secondary',
+      ]);
+      expect(controller.state.selectedConnectionId, isNull);
+      expect(
+        controller.state.viewport,
+        ConnectionWorkspaceViewport.dormantRoster,
+      );
+      expect(controller.selectedLaneBinding, isNull);
+      expect(clientsById['conn_primary']?.disconnectCalls, 1);
+      expect(clientsById['conn_secondary']?.disconnectCalls, 0);
+    },
+  );
+
   test('showDormantRoster preserves the selected live lane', () async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final controller = _buildWorkspaceController(clientsById: clientsById);

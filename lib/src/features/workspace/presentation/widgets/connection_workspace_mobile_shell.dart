@@ -101,13 +101,23 @@ class _ConnectionWorkspaceMobileShellState
     return ChatRootAdapter(
       laneBinding: laneBinding,
       platformPolicy: widget.platformPolicy,
-      supplementalMenuActions: <ChatChromeMenuAction>[
-        ChatChromeMenuAction(
-          label: 'Dormant connections',
-          onSelected: widget.workspaceController.showDormantRoster,
-        ),
-      ],
+      supplementalMenuActions: _supplementalMenuActionsFor(connectionId),
     );
+  }
+
+  List<ChatChromeMenuAction> _supplementalMenuActionsFor(String connectionId) {
+    return <ChatChromeMenuAction>[
+      ChatChromeMenuAction(
+        label: 'Dormant connections',
+        onSelected: widget.workspaceController.showDormantRoster,
+      ),
+      ChatChromeMenuAction(
+        label: 'Close lane',
+        onSelected: () =>
+            widget.workspaceController.terminateConnection(connectionId),
+        isDestructive: true,
+      ),
+    ];
   }
 
   void _handlePageChanged(
@@ -209,7 +219,8 @@ class _ConnectionWorkspaceDormantRosterPageState
   Widget build(BuildContext context) {
     final content = ConnectionWorkspaceDormantRosterContent(
       workspaceController: widget.workspaceController,
-      description: 'Swipe back to a live lane or open another saved connection.',
+      description:
+          'Swipe back to a live lane or open another saved connection.',
     );
 
     return switch (widget.platformPolicy.regionPolicy.screenShell) {

@@ -30,8 +30,14 @@ void main() {
     expect(find.text('Connections'), findsOneWidget);
     expect(find.text('Live'), findsOneWidget);
     expect(find.text('Dormant'), findsOneWidget);
-    expect(find.byKey(const ValueKey('desktop_live_conn_primary')), findsOneWidget);
-    expect(find.byKey(const ValueKey('desktop_dormant_roster')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('desktop_live_conn_primary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('desktop_dormant_roster')),
+      findsOneWidget,
+    );
     expect(find.textContaining('Secondary Box'), findsOneWidget);
   });
 
@@ -53,7 +59,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.state.isShowingDormantRoster, isTrue);
-    expect(find.byKey(const ValueKey('dormant_connection_conn_secondary')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      findsOneWidget,
+    );
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
   });
 
@@ -82,6 +91,72 @@ void main() {
     expect(controller.state.selectedConnectionId, 'conn_secondary');
     expect(find.text('Secondary Box · secondary.local'), findsOneWidget);
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
+    expect(clientsById['conn_secondary']?.disconnectCalls, 0);
+  });
+
+  testWidgets('closing a live lane from the sidebar keeps other lanes intact', (
+    tester,
+  ) async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final controller = _buildWorkspaceController(clientsById: clientsById);
+    addTearDown(() async {
+      controller.dispose();
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await controller.instantiateConnection('conn_secondary');
+    await tester.pumpWidget(_buildShell(controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('desktop_close_lane_conn_primary')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.state.liveConnectionIds, <String>['conn_secondary']);
+    expect(controller.state.selectedConnectionId, 'conn_secondary');
+    expect(controller.state.dormantConnectionIds, <String>['conn_primary']);
+    expect(
+      find.byKey(const ValueKey('desktop_live_conn_primary')),
+      findsNothing,
+    );
+    expect(find.text('Secondary Box · secondary.local'), findsOneWidget);
+    expect(clientsById['conn_primary']?.disconnectCalls, 1);
+    expect(clientsById['conn_secondary']?.disconnectCalls, 0);
+  });
+
+  testWidgets('closing the last live lane shows the dormant roster', (
+    tester,
+  ) async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final controller = _buildWorkspaceController(clientsById: clientsById);
+    addTearDown(() async {
+      controller.dispose();
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await tester.pumpWidget(_buildShell(controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('desktop_close_lane_conn_primary')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.state.liveConnectionIds, isEmpty);
+    expect(controller.state.selectedConnectionId, isNull);
+    expect(controller.state.isShowingDormantRoster, isTrue);
+    expect(
+      find.byKey(const ValueKey('dormant_connection_conn_primary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      findsOneWidget,
+    );
+    expect(clientsById['conn_primary']?.disconnectCalls, 1);
     expect(clientsById['conn_secondary']?.disconnectCalls, 0);
   });
 }
