@@ -43,6 +43,8 @@ class ConnectionWorkspaceState {
     return reconnectRequiredConnectionIds.contains(connectionId);
   }
 
+  bool get isEmptyWorkspace => catalog.isEmpty;
+
   bool get isShowingLiveLane =>
       viewport == ConnectionWorkspaceViewport.liveLane;
 

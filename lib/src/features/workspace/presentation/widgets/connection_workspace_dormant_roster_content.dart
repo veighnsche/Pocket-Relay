@@ -46,14 +46,11 @@ class _ConnectionWorkspaceDormantRosterContentState
 
   @override
   Widget build(BuildContext context) {
-    final dormantConnections = widget
-        .workspaceController
-        .state
-        .catalog
-        .orderedConnections
+    final workspaceState = widget.workspaceController.state;
+    final dormantConnections = workspaceState.catalog.orderedConnections
         .where(
-          (connection) => widget.workspaceController.state.dormantConnectionIds
-              .contains(connection.id),
+          (connection) =>
+              workspaceState.dormantConnectionIds.contains(connection.id),
         )
         .toList(growable: false);
     final content = ListView(
@@ -84,7 +81,11 @@ class _ConnectionWorkspaceDormantRosterContentState
         ),
         const SizedBox(height: 18),
         if (dormantConnections.isEmpty)
-          _DormantConnectionsEmptyState(onReturnToLane: _handleReturnToLiveLane)
+          _DormantConnectionsEmptyState(
+            isEmptyWorkspace: workspaceState.isEmptyWorkspace,
+            canReturnToLane: workspaceState.selectedConnectionId != null,
+            onReturnToLane: _handleReturnToLiveLane,
+          )
         else
           ...dormantConnections.indexed.map((entry) {
             final index = entry.$1;
@@ -261,14 +262,26 @@ class _ConnectionWorkspaceDormantRosterContentState
 }
 
 class _DormantConnectionsEmptyState extends StatelessWidget {
-  const _DormantConnectionsEmptyState({required this.onReturnToLane});
+  const _DormantConnectionsEmptyState({
+    required this.isEmptyWorkspace,
+    required this.canReturnToLane,
+    required this.onReturnToLane,
+  });
 
+  final bool isEmptyWorkspace;
+  final bool canReturnToLane;
   final VoidCallback onReturnToLane;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.pocketPalette;
     final theme = Theme.of(context);
+    final title = isEmptyWorkspace
+        ? 'No saved connections yet.'
+        : 'No dormant connections yet.';
+    final message = isEmptyWorkspace
+        ? 'Add your first connection to start a new lane.'
+        : 'All saved connections are already live. Return to a lane to keep working.';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -289,23 +302,25 @@ class _DormantConnectionsEmptyState extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'No dormant connections yet.',
+              title,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'All saved connections are already live. Return to a lane to keep working.',
+              message,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onReturnToLane,
-              child: const Text('Return to lane'),
-            ),
+            if (canReturnToLane) ...[
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: onReturnToLane,
+                child: const Text('Return to lane'),
+              ),
+            ],
           ],
         ),
       ),

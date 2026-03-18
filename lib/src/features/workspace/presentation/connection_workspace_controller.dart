@@ -359,9 +359,17 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   Future<void> _initializeOnce() async {
     final catalog = await _connectionRepository.loadCatalog();
     if (catalog.isEmpty) {
-      throw StateError(
-        'ConnectionWorkspaceController requires at least one saved connection.',
+      _applyState(
+        const ConnectionWorkspaceState(
+          isLoading: false,
+          catalog: ConnectionCatalogState.empty(),
+          liveConnectionIds: <String>[],
+          selectedConnectionId: null,
+          viewport: ConnectionWorkspaceViewport.dormantRoster,
+          reconnectRequiredConnectionIds: <String>{},
+        ),
       );
+      return;
     }
 
     final firstConnectionId = catalog.orderedConnectionIds.first;

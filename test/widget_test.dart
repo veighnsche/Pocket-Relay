@@ -87,6 +87,21 @@ void main() {
     expect(find.text('Second Box · second.local'), findsNothing);
   });
 
+  testWidgets('boots an empty workspace into the dormant roster shell', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildCatalogApp(connectionRepository: MemoryCodexConnectionRepository()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ConnectionWorkspaceMobileShell), findsOneWidget);
+    expect(find.byKey(const ValueKey('workspace_page_view')), findsOneWidget);
+    expect(find.byType(ChatRootAdapter), findsNothing);
+    expect(find.text('No saved connections yet.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('add_connection')), findsOneWidget);
+  });
+
   testWidgets(
     'uses the cupertino foundation path by default on iOS while transcript stays on the flutter region path',
     (tester) async {

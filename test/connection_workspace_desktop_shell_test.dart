@@ -164,6 +164,22 @@ void main() {
     expect(clientsById['conn_secondary']?.disconnectCalls, 0);
   });
 
+  testWidgets('empty workspace shows the first-connection CTA', (tester) async {
+    final controller = _buildWorkspaceController(
+      clientsById: <String, FakeCodexAppServerClient>{},
+      repository: MemoryCodexConnectionRepository(),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.initialize();
+    await tester.pumpWidget(_buildShell(controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No saved connections yet.'), findsOneWidget);
+    expect(find.text('Return to lane'), findsNothing);
+    expect(find.byKey(const ValueKey('add_connection')), findsOneWidget);
+  });
+
   testWidgets('desktop dormant roster can add a saved connection', (
     tester,
   ) async {

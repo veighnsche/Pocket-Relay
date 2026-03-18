@@ -165,6 +165,53 @@ void main() {
   });
 
   testWidgets(
+    'empty workspace shows a first-connection CTA and can create the first saved connection',
+    (tester) async {
+      final controller = _buildWorkspaceController(
+        clientsById: <String, FakeCodexAppServerClient>{},
+        repository: MemoryCodexConnectionRepository(
+          connectionIdGenerator: () => 'conn_created',
+        ),
+      );
+      final settingsOverlayDelegate = FakeConnectionSettingsOverlayDelegate(
+        results: <ConnectionSettingsSubmitPayload?>[
+          ConnectionSettingsSubmitPayload(
+            profile: _profile('Created Box', 'created.local'),
+            secrets: const ConnectionSecrets(password: 'secret-3'),
+          ),
+        ],
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No saved connections yet.'), findsOneWidget);
+      expect(find.text('Return to lane'), findsNothing);
+      expect(find.byKey(const ValueKey('add_connection')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('add_connection')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('dormant_connection_conn_created')),
+        findsOneWidget,
+      );
+      expect(controller.state.catalog.orderedConnectionIds, <String>[
+        'conn_created',
+      ]);
+      expect(controller.state.liveConnectionIds, isEmpty);
+      expect(controller.state.isShowingDormantRoster, isTrue);
+    },
+  );
+
+  testWidgets(
     'closing the selected live lane keeps the remaining live lane active',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');

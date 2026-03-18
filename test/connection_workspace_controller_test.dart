@@ -11,6 +11,30 @@ import 'package:pocket_relay/src/features/workspace/presentation/connection_work
 import 'support/fake_codex_app_server_client.dart';
 
 void main() {
+  test(
+    'initializes an empty catalog into the dormant workspace state',
+    () async {
+      final controller = _buildWorkspaceController(
+        clientsById: <String, FakeCodexAppServerClient>{},
+        repository: MemoryCodexConnectionRepository(),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.catalog, const ConnectionCatalogState.empty());
+      expect(controller.state.liveConnectionIds, isEmpty);
+      expect(controller.state.dormantConnectionIds, isEmpty);
+      expect(controller.state.selectedConnectionId, isNull);
+      expect(
+        controller.state.viewport,
+        ConnectionWorkspaceViewport.dormantRoster,
+      );
+      expect(controller.selectedLaneBinding, isNull);
+    },
+  );
+
   test('initializes one live lane and keeps the rest dormant', () async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final controller = _buildWorkspaceController(clientsById: clientsById);
@@ -391,6 +415,45 @@ void main() {
         await handoffStore.load('conn_secondary'),
         const SavedConversationHandoff(),
       );
+    },
+  );
+
+  test(
+    'deleting the final dormant connection leaves a valid empty workspace',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        repository: MemoryCodexConnectionRepository(
+          initialConnections: <SavedConnection>[
+            SavedConnection(
+              id: 'conn_primary',
+              profile: _profile('Primary Box', 'primary.local'),
+              secrets: const ConnectionSecrets(password: 'secret-1'),
+            ),
+          ],
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+
+      controller.terminateConnection('conn_primary');
+      await controller.deleteDormantConnection('conn_primary');
+
+      expect(controller.state.catalog, const ConnectionCatalogState.empty());
+      expect(controller.state.liveConnectionIds, isEmpty);
+      expect(controller.state.dormantConnectionIds, isEmpty);
+      expect(controller.state.selectedConnectionId, isNull);
+      expect(
+        controller.state.viewport,
+        ConnectionWorkspaceViewport.dormantRoster,
+      );
+      expect(controller.selectedLaneBinding, isNull);
+      expect(clientsById['conn_primary']?.disconnectCalls, 1);
     },
   );
 }
