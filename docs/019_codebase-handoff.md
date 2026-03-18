@@ -334,8 +334,8 @@ This repo has broad coverage relative to its size. It is worth preserving.
 Common entry points:
 
 - `flutter run`
-- `just run-mobile`
-- `just run-desktop`
+- `just mobile`
+- `just desktop`
 - `just android-dev`
 - `just screenshot-ios`
 - `just screenshot-macos`

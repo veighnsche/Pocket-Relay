@@ -1,64 +1,97 @@
-android_avd := "Pixel_9_API_36"
-ios_simulator := "apple_ios_simulator"
+android_avd := "Pixel_6"
+ios_simulator := "iPhone 15"
 
+# List the canonical recipe surface without compatibility aliases.
+[private]
 default:
-    @just --list
+    @just --list --no-aliases --unsorted
 
+# Inspect the local Flutter toolchain and SDK wiring.
 doctor:
     flutter doctor -v
 
-emulator:
+# Boot the standard Pixel 6 Android emulator only.
+android-emulator:
     emulator @{{android_avd}} -gpu swiftshader_indirect -no-audio -no-snapshot -no-boot-anim -no-metrics
 
-emulator-host-experimental:
+alias emulator := android-emulator
+
+# Boot the standard Pixel 6 Android emulator with host GPU acceleration on Linux.
+android-emulator-host:
     env __GLX_VENDOR_LIBRARY_NAME=mesa QT_QPA_PLATFORM=xcb emulator @{{android_avd}} -gpu host -no-audio -no-snapshot -no-boot-anim -no-metrics
 
-run-android:
+alias emulator-host-experimental := android-emulator-host
+
+# Run on a directly connected Android device.
+[private]
+android-device:
     flutter run -d android
 
-run-ios:
+alias run-android := android-dev
+
+# Run on a directly connected iOS device.
+[private]
+ios-device:
     flutter run -d ios
 
+alias run-ios := ios-simulator
+
+# Run the Linux desktop app on a Linux host.
 [no-exit-message]
 [script]
-run-linux:
+linux-desktop:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" linux "{{android_avd}}" "{{ios_simulator}}"
 
+alias run-linux := linux-desktop
+
+# Run the macOS desktop app on a macOS host.
 [no-exit-message]
 [script]
-run-macos:
+macos-desktop:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" macos "{{android_avd}}" "{{ios_simulator}}"
 
+alias run-macos := macos-desktop
+
+# Boot the standard iPhone 15 simulator if needed and run the app.
 [no-exit-message]
 [script]
-run-ios-simulator:
+ios-simulator:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" ios-simulator "{{android_avd}}" "{{ios_simulator}}"
 
+alias run-ios-simulator := ios-simulator
+
+# Run the host-appropriate mobile target.
 [no-exit-message]
 [script]
-run-mobile:
+mobile:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" mobile "{{android_avd}}" "{{ios_simulator}}"
 
+alias run-mobile := mobile
+
+# Run the host-appropriate desktop target.
 [no-exit-message]
 [script]
-run-desktop:
+desktop:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" desktop "{{android_avd}}" "{{ios_simulator}}"
 
+alias run-desktop := desktop
+
+# Generate launcher icons from icon.png.
 [no-exit-message]
 [script]
 icons:
@@ -79,17 +112,21 @@ icons:
     flutter pub get
     dart run flutter_launcher_icons
 
+# Run against an already booted Pixel 6 Android emulator.
 [no-exit-message]
 [script]
-run-android-emulator:
+android-emulator-run:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" android-emulator "{{android_avd}}" "{{ios_simulator}}"
 
+alias run-android-emulator := android-dev
+
+# Attach Flutter to an already booted Android emulator.
 [no-exit-message]
 [script]
-attach-android-emulator:
+android-attach:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -101,6 +138,9 @@ attach-android-emulator:
 
     exec flutter attach -d "$device"
 
+alias attach-android-emulator := android-attach
+
+# Boot the standard Pixel 6 Android emulator if needed and run the app on it.
 [no-exit-message]
 [script]
 android-dev:
@@ -109,6 +149,7 @@ android-dev:
 
     exec "{{ justfile_directory() }}/scripts/host-run.sh" android-dev "{{android_avd}}" "{{ios_simulator}}"
 
+# Launch Codex with the repo-local MCP wiring.
 [no-exit-message]
 [script]
 codex-mcp *args:
@@ -171,6 +212,7 @@ codex-mcp *args:
       -c "mcp_servers.mobile-mcp.args=[\"@mobilenext/mobile-mcp@latest\"]" \
       {{args}}
 
+# Relaunch the MCP-wired Codex loop whenever it exits.
 [no-exit-message]
 [script]
 codex-mcp-loop:
@@ -179,6 +221,7 @@ codex-mcp-loop:
 
     exec "{{ justfile_directory() }}/scripts/codex-mcp-loop.sh"
 
+# Capture an iOS screenshot through the host helper.
 [no-exit-message]
 [script]
 screenshot-ios *args:
@@ -187,6 +230,7 @@ screenshot-ios *args:
 
     exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" ios "$@"
 
+# Capture a macOS screenshot through the host helper.
 [no-exit-message]
 [script]
 screenshot-macos *args:
@@ -195,6 +239,7 @@ screenshot-macos *args:
 
     exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" macos "$@"
 
+# Capture the current desktop screenshot through the host helper.
 [no-exit-message]
 [script]
 screenshot-desktop *args:
@@ -203,10 +248,13 @@ screenshot-desktop *args:
 
     exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" desktop "$@"
 
+# Capture both iOS and macOS screenshots through the host helper.
 [no-exit-message]
 [script]
-screenshot-both *args:
+screenshot-all *args:
     #!/usr/bin/env bash
     set -euo pipefail
 
     exec "{{ justfile_directory() }}/scripts/host-screenshot.sh" both "$@"
+
+alias screenshot-both := screenshot-all
