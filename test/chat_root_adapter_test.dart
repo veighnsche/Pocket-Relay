@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -471,10 +473,11 @@ void main() {
           appServerClient: appServerClient,
           overlayDelegate: overlayDelegate,
           rendererDelegate: rendererDelegate,
-          platformPolicy: const ChatRootPlatformPolicy.cupertinoFoundation(),
-          theme: buildPocketTheme(
-            Brightness.light,
-          ).copyWith(platform: TargetPlatform.iOS),
+          regionPolicy: const ChatRootPlatformPolicy.cupertinoFoundation()
+              .policyFor(TargetPlatform.iOS),
+          platformBehavior: PocketPlatformBehavior.resolve(
+            platform: TargetPlatform.iOS,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -508,10 +511,11 @@ void main() {
           appServerClient: appServerClient,
           overlayDelegate: overlayDelegate,
           rendererDelegate: rendererDelegate,
-          platformPolicy: const ChatRootPlatformPolicy.cupertinoFoundation(),
-          theme: buildPocketTheme(
-            Brightness.light,
-          ).copyWith(platform: TargetPlatform.macOS),
+          regionPolicy: const ChatRootPlatformPolicy.cupertinoFoundation()
+              .policyFor(TargetPlatform.macOS),
+          platformBehavior: PocketPlatformBehavior.resolve(
+            platform: TargetPlatform.macOS,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -736,15 +740,21 @@ Widget _buildAdapterApp({
   required ChatRootOverlayDelegate overlayDelegate,
   ChatRootRendererDelegate rendererDelegate =
       const FlutterChatRootRendererDelegate(),
-  ChatRootPlatformPolicy platformPolicy =
-      const ChatRootPlatformPolicy.allFlutter(),
-  ChatRootRegionPolicy? regionPolicy,
+  PocketPlatformPolicy? platformPolicy,
+  ChatRootRegionPolicy regionPolicy = const ChatRootRegionPolicy.allFlutter(),
+  PocketPlatformBehavior? platformBehavior,
   CodexProfileStore? profileStore,
   CodexConversationHandoffStore? conversationHandoffStore,
   SavedProfile? savedProfile,
   ThemeData? theme,
 }) {
   final resolvedSavedProfile = savedProfile ?? _savedProfile();
+  final resolvedPlatformPolicy =
+      platformPolicy ??
+      PocketPlatformPolicy(
+        behavior: platformBehavior ?? PocketPlatformBehavior.resolve(),
+        regionPolicy: regionPolicy,
+      );
   return MaterialApp(
     theme: theme ?? buildPocketTheme(Brightness.light),
     home: ChatRootAdapter(
@@ -755,8 +765,7 @@ Widget _buildAdapterApp({
           conversationHandoffStore ?? MemoryCodexConversationHandoffStore(),
       appServerClient: appServerClient,
       initialSavedProfile: resolvedSavedProfile,
-      platformPolicy: platformPolicy,
-      regionPolicy: regionPolicy,
+      platformPolicy: resolvedPlatformPolicy,
       overlayDelegate: overlayDelegate,
       rendererDelegate: rendererDelegate,
     ),
@@ -804,6 +813,7 @@ class _FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
     required BuildContext context,
     required ChatConnectionSettingsLaunchContract connectionSettings,
+    required PocketPlatformBehavior platformBehavior,
     required ConnectionSettingsRenderer renderer,
   }) async {
     connectionSettingsPayloads.add(connectionSettings);
@@ -884,6 +894,7 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
   Widget buildTranscriptRegion({
     required ChatRootRegionRenderer renderer,
     required ChatEmptyStateRenderer emptyStateRenderer,
+    required PocketPlatformBehavior platformBehavior,
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
@@ -933,6 +944,7 @@ class _FakeChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required PocketPlatformBehavior platformBehavior,
     required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,

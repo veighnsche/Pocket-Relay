@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 
 enum ChatEmptyStateVisualStyle { material, cupertino }
 
@@ -11,6 +11,7 @@ class ChatEmptyStateBody extends StatelessWidget {
     super.key,
     required this.isConfigured,
     required this.connectionMode,
+    required this.platformBehavior,
     required this.onConfigure,
     this.onSelectConnectionMode,
     required this.style,
@@ -18,6 +19,7 @@ class ChatEmptyStateBody extends StatelessWidget {
 
   final bool isConfigured;
   final ConnectionMode connectionMode;
+  final PocketPlatformBehavior platformBehavior;
   final VoidCallback onConfigure;
   final ValueChanged<ConnectionMode>? onSelectConnectionMode;
   final ChatEmptyStateVisualStyle style;
@@ -26,7 +28,7 @@ class ChatEmptyStateBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = supportsLocalCodexConnection();
+        final isDesktop = platformBehavior.isDesktopExperience;
         final maxWidth = isDesktop ? 820.0 : 640.0;
 
         return SingleChildScrollView(
@@ -51,6 +53,8 @@ class ChatEmptyStateBody extends StatelessWidget {
   }
 
   Widget _buildDesktopCard(BuildContext context, double availableWidth) {
+    final supportsLocalConnectionMode =
+        platformBehavior.supportsLocalConnectionMode;
     final content = Padding(
       padding: EdgeInsets.all(availableWidth >= 720 ? 32 : 28),
       child: Column(
@@ -85,10 +89,17 @@ class ChatEmptyStateBody extends StatelessWidget {
               items: _desktopDetails(),
               maxWidth: 560,
             ),
-          ] else ...[
+          ] else if (supportsLocalConnectionMode) ...[
             _buildDesktopRoutePanel(context, availableWidth),
             const SizedBox(height: 18),
             _buildConfigureButton(desktop: true),
+          ] else ...[
+            _buildDetailsPanel(context, items: _mobileDetails(), maxWidth: 560),
+            const SizedBox(height: 18),
+            _buildConfigureButton(
+              desktop: true,
+              supportsLocalConnectionMode: false,
+            ),
           ],
         ],
       ),
@@ -395,9 +406,12 @@ class ChatEmptyStateBody extends StatelessWidget {
 
   Widget _buildConfigureButton({
     required bool desktop,
+    bool supportsLocalConnectionMode = true,
     bool fullWidth = false,
   }) {
-    final label = desktop ? 'Configure connection' : 'Configure remote';
+    final label = desktop && supportsLocalConnectionMode
+        ? 'Configure connection'
+        : 'Configure remote';
     final button = switch (style) {
       ChatEmptyStateVisualStyle.material => FilledButton.icon(
         onPressed: onConfigure,
@@ -428,7 +442,9 @@ class ChatEmptyStateBody extends StatelessWidget {
 
   String _desktopTitle() {
     if (!isConfigured) {
-      return 'Choose how this desktop reaches Codex';
+      return platformBehavior.supportsLocalConnectionMode
+          ? 'Choose how this desktop reaches Codex'
+          : 'Remote Codex is ready on this desktop';
     }
 
     return switch (connectionMode) {
@@ -439,7 +455,9 @@ class ChatEmptyStateBody extends StatelessWidget {
 
   String _desktopBody() {
     if (!isConfigured) {
-      return 'Use local when the repo already lives on this machine. Use remote when the authoritative workspace stays on a developer box.';
+      return platformBehavior.supportsLocalConnectionMode
+          ? 'Use local when the repo already lives on this machine. Use remote when the authoritative workspace stays on a developer box.'
+          : 'Configure one remote workspace, then keep prompts, approvals, and live output readable from this desktop.';
     }
 
     return switch (connectionMode) {

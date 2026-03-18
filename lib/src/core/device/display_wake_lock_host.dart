@@ -2,17 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 bool supportsDisplayWakeLock([TargetPlatform? platform]) {
-  if (kIsWeb) {
-    return false;
-  }
-
-  return switch (platform ?? defaultTargetPlatform) {
-    TargetPlatform.android || TargetPlatform.iOS => true,
-    _ => false,
-  };
+  return PocketPlatformBehavior.resolve(
+    platform: platform,
+    isWeb: kIsWeb,
+  ).supportsWakeLock;
 }
 
 abstract interface class DisplayWakeLockController {

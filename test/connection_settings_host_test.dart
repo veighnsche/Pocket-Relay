@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
@@ -120,7 +121,7 @@ void main() {
       await tester.pumpWidget(
         _buildMaterialSettingsApp(
           onSubmit: (_) {},
-          supportsLocalConnectionMode: true,
+          platformBehavior: _desktopBehavior,
         ),
       );
 
@@ -200,7 +201,7 @@ void main() {
 Widget _buildMaterialSettingsApp({
   Brightness brightness = Brightness.light,
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
-  bool supportsLocalConnectionMode = false,
+  PocketPlatformBehavior platformBehavior = _mobileBehavior,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(brightness),
@@ -209,7 +210,7 @@ Widget _buildMaterialSettingsApp({
     home: Scaffold(
       body: _buildHost(
         onSubmit: onSubmit,
-        supportsLocalConnectionMode: supportsLocalConnectionMode,
+        platformBehavior: platformBehavior,
         builder: (context, viewModel, actions) {
           return ConnectionSheet(viewModel: viewModel, actions: actions);
         },
@@ -221,7 +222,7 @@ Widget _buildMaterialSettingsApp({
 Widget _buildCupertinoSettingsApp({
   Brightness brightness = Brightness.light,
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
-  bool supportsLocalConnectionMode = false,
+  PocketPlatformBehavior platformBehavior = _mobileBehavior,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(brightness),
@@ -230,7 +231,7 @@ Widget _buildCupertinoSettingsApp({
     home: Scaffold(
       body: _buildHost(
         onSubmit: onSubmit,
-        supportsLocalConnectionMode: supportsLocalConnectionMode,
+        platformBehavior: platformBehavior,
         builder: (context, viewModel, actions) {
           return CupertinoConnectionSheet(
             viewModel: viewModel,
@@ -245,15 +246,15 @@ Widget _buildCupertinoSettingsApp({
 Widget _buildHost({
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
   required ConnectionSettingsHostBuilder builder,
-  bool supportsLocalConnectionMode = false,
+  PocketPlatformBehavior platformBehavior = _mobileBehavior,
 }) {
   return ConnectionSettingsHost(
     initialProfile: _configuredProfile(),
     initialSecrets: const ConnectionSecrets(password: 'secret'),
+    platformBehavior: platformBehavior,
     onCancel: () {},
     onSubmit: onSubmit,
     builder: builder,
-    supportsLocalConnectionMode: supportsLocalConnectionMode,
   );
 }
 
@@ -295,3 +296,17 @@ ConnectionProfile _configuredProfile() {
     codexPath: 'codex',
   );
 }
+
+const _mobileBehavior = PocketPlatformBehavior(
+  experience: PocketPlatformExperience.mobile,
+  supportsLocalConnectionMode: false,
+  supportsWakeLock: true,
+  usesDesktopKeyboardSubmit: false,
+);
+
+const _desktopBehavior = PocketPlatformBehavior(
+  experience: PocketPlatformExperience.desktop,
+  supportsLocalConnectionMode: true,
+  supportsWakeLock: false,
+  usesDesktopKeyboardSubmit: true,
+);

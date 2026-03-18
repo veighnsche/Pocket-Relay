@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_transient_feedback.dart';
@@ -16,6 +17,7 @@ abstract interface class ChatRootOverlayDelegate {
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
     required BuildContext context,
     required ChatConnectionSettingsLaunchContract connectionSettings,
+    required PocketPlatformBehavior platformBehavior,
     required ConnectionSettingsRenderer renderer,
   });
 
@@ -38,6 +40,7 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
     required BuildContext context,
     required ChatConnectionSettingsLaunchContract connectionSettings,
+    required PocketPlatformBehavior platformBehavior,
     required ConnectionSettingsRenderer renderer,
   }) {
     return switch (renderer) {
@@ -51,6 +54,7 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
             return ConnectionSettingsHost(
               initialProfile: connectionSettings.initialProfile,
               initialSecrets: connectionSettings.initialSecrets,
+              platformBehavior: platformBehavior,
               onCancel: () => Navigator.of(sheetContext).pop(),
               onSubmit: (payload) {
                 Navigator.of(sheetContext).pop(payload);
@@ -68,6 +72,7 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
             return ConnectionSettingsHost(
               initialProfile: connectionSettings.initialProfile,
               initialSecrets: connectionSettings.initialSecrets,
+              platformBehavior: platformBehavior,
               onCancel: () => Navigator.of(sheetContext).pop(),
               onSubmit: (payload) {
                 Navigator.of(sheetContext).pop(payload);

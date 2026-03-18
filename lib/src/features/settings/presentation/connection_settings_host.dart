@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_draft.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_presenter.dart';
@@ -20,7 +20,7 @@ class ConnectionSettingsHost extends StatefulWidget {
     required this.onCancel,
     required this.onSubmit,
     required this.builder,
-    this.supportsLocalConnectionMode,
+    required this.platformBehavior,
   });
 
   final ConnectionProfile initialProfile;
@@ -28,7 +28,7 @@ class ConnectionSettingsHost extends StatefulWidget {
   final VoidCallback onCancel;
   final ValueChanged<ConnectionSettingsSubmitPayload> onSubmit;
   final ConnectionSettingsHostBuilder builder;
-  final bool? supportsLocalConnectionMode;
+  final PocketPlatformBehavior platformBehavior;
 
   @override
   State<ConnectionSettingsHost> createState() => _ConnectionSettingsHostState();
@@ -89,7 +89,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       initialSecrets: widget.initialSecrets,
       formState: formState ?? _formState,
       supportsLocalConnectionMode:
-          widget.supportsLocalConnectionMode ?? supportsLocalCodexConnection(),
+          widget.platformBehavior.supportsLocalConnectionMode,
     );
   }
 

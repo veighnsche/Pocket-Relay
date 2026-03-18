@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 
@@ -12,6 +13,7 @@ enum ChatComposerVisualStyle { material, cupertino }
 class ChatComposerSurface extends StatefulWidget {
   const ChatComposerSurface({
     super.key,
+    required this.platformBehavior,
     required this.contract,
     required this.onChanged,
     required this.onSend,
@@ -19,6 +21,7 @@ class ChatComposerSurface extends StatefulWidget {
     required this.style,
   });
 
+  final PocketPlatformBehavior platformBehavior;
   final ChatComposerContract contract;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSend;
@@ -252,7 +255,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   }
 
   Widget _wrapInputWithKeyboardSubmit(BuildContext context, Widget input) {
-    if (!_usesDesktopKeyboardSubmit(context)) {
+    if (!widget.platformBehavior.usesDesktopKeyboardSubmit) {
       return input;
     }
 
@@ -292,15 +295,6 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
         child: input,
       ),
     );
-  }
-
-  bool _usesDesktopKeyboardSubmit(BuildContext context) {
-    return switch (Theme.of(context).platform) {
-      TargetPlatform.macOS ||
-      TargetPlatform.windows ||
-      TargetPlatform.linux => true,
-      _ => false,
-    };
   }
 
   bool get _canSubmitFromKeyboard {

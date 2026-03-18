@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
@@ -105,6 +106,9 @@ void main() {
                   connectionMode: ConnectionMode.remote,
                 ),
               ),
+              platformBehavior: PocketPlatformBehavior.resolve(
+                platform: TargetPlatform.macOS,
+              ),
               onScreenAction: actions.add,
               onSelectTimeline: (_) {},
               onSelectConnectionMode: selectedModes.add,
@@ -163,6 +167,7 @@ void main() {
                 ),
               ],
             ),
+            platformBehavior: PocketPlatformBehavior.resolve(),
             onScreenAction: (_) {},
             onSelectTimeline: selectedTimelines.add,
             onSelectConnectionMode: (_) {},
@@ -196,6 +201,7 @@ void main() {
         theme: buildPocketTheme(Brightness.light),
         home: Scaffold(
           body: FlutterChatComposerRegion(
+            platformBehavior: PocketPlatformBehavior.resolve(),
             conversationRecoveryNotice: null,
             composer: _screenContract().composer,
             onComposerDraftChanged: draftValues.add,

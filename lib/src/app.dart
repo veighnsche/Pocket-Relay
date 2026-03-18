@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_cupertino_theme.dart';
@@ -20,12 +21,17 @@ class PocketRelayApp extends StatefulWidget {
     this.conversationHandoffStore,
     this.appServerClient,
     this.displayWakeLockController,
+    this.platformPolicy,
+    this.chatRootPlatformPolicy =
+        const ChatRootPlatformPolicy.cupertinoFoundation(),
   });
 
   final CodexProfileStore? profileStore;
   final CodexConversationHandoffStore? conversationHandoffStore;
   final CodexAppServerClient? appServerClient;
   final DisplayWakeLockController? displayWakeLockController;
+  final PocketPlatformPolicy? platformPolicy;
+  final ChatRootPlatformPolicy chatRootPlatformPolicy;
 
   @override
   State<PocketRelayApp> createState() => _PocketRelayAppState();
@@ -127,7 +133,11 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
   Widget build(BuildContext context) {
     final savedProfile = _savedProfile;
     final savedConversationHandoff = _savedConversationHandoff;
-    const platformPolicy = ChatRootPlatformPolicy.cupertinoFoundation();
+    final platformPolicy =
+        widget.platformPolicy ??
+        PocketPlatformPolicy.resolve(
+          chatRootPlatformPolicy: widget.chatRootPlatformPolicy,
+        );
 
     return MaterialApp(
       title: 'Pocket Relay',
@@ -139,6 +149,7 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
         displayWakeLockController:
             widget.displayWakeLockController ??
             const WakelockPlusDisplayWakeLockController(),
+        supportsWakeLock: platformPolicy.supportsWakeLock,
         child: _PocketRelayHome(
           savedProfile: savedProfile,
           savedConversationHandoff: savedConversationHandoff,
@@ -167,7 +178,7 @@ class _PocketRelayHome extends StatelessWidget {
   final CodexProfileStore profileStore;
   final CodexConversationHandoffStore conversationHandoffStore;
   final CodexAppServerClient appServerClient;
-  final ChatRootPlatformPolicy platformPolicy;
+  final PocketPlatformPolicy platformPolicy;
 
   @override
   Widget build(BuildContext context) {
@@ -184,11 +195,9 @@ class _PocketRelayHome extends StatelessWidget {
       );
     }
 
-    final screenShell = platformPolicy
-        .policyFor(Theme.of(context).platform)
-        .screenShell;
-
-    return _PocketRelayBootstrapShell(screenShell: screenShell);
+    return _PocketRelayBootstrapShell(
+      screenShell: platformPolicy.regionPolicy.screenShell,
+    );
   }
 }
 

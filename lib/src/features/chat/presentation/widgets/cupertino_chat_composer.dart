@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer_surface.dart';
 
 class CupertinoChatComposerRegion extends StatelessWidget {
   const CupertinoChatComposerRegion({
     super.key,
+    required this.platformBehavior,
     required this.conversationRecoveryNotice,
     required this.composer,
     required this.onComposerDraftChanged,
@@ -14,6 +16,7 @@ class CupertinoChatComposerRegion extends StatelessWidget {
     required this.onConversationRecoveryAction,
   });
 
+  final PocketPlatformBehavior platformBehavior;
   final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
   final ChatComposerContract composer;
   final ValueChanged<String> onComposerDraftChanged;
@@ -39,6 +42,7 @@ class CupertinoChatComposerRegion extends StatelessWidget {
               const SizedBox(height: 10),
             ],
             CupertinoChatComposer(
+              platformBehavior: platformBehavior,
               contract: composer,
               onChanged: onComposerDraftChanged,
               onSend: onSendPrompt,
@@ -54,12 +58,14 @@ class CupertinoChatComposerRegion extends StatelessWidget {
 class CupertinoChatComposer extends StatelessWidget {
   const CupertinoChatComposer({
     super.key,
+    required this.platformBehavior,
     required this.contract,
     required this.onChanged,
     required this.onSend,
     required this.onStop,
   });
 
+  final PocketPlatformBehavior platformBehavior;
   final ChatComposerContract contract;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSend;
@@ -68,6 +74,7 @@ class CupertinoChatComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChatComposerSurface(
+      platformBehavior: platformBehavior,
       contract: contract,
       onChanged: onChanged,
       onSend: onSend,

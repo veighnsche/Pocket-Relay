@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_chat_composer.dart';
@@ -332,6 +333,7 @@ Widget _buildComposerApp({
     themeMode: brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
     home: Scaffold(
       body: CupertinoChatComposer(
+        platformBehavior: PocketPlatformBehavior.resolve(platform: platform),
         contract: contract,
         onChanged: onChanged ?? (_) {},
         onSend: onSend ?? () async {},

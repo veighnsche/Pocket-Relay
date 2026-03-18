@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
@@ -13,6 +14,7 @@ class TranscriptList extends StatefulWidget {
     super.key,
     required this.surface,
     required this.followBehavior,
+    required this.platformBehavior,
     required this.onConfigure,
     this.onSelectConnectionMode,
     required this.onAutoFollowEligibilityChanged,
@@ -27,6 +29,7 @@ class TranscriptList extends StatefulWidget {
 
   final ChatTranscriptSurfaceContract surface;
   final ChatTranscriptFollowContract followBehavior;
+  final PocketPlatformBehavior platformBehavior;
   final VoidCallback onConfigure;
   final ValueChanged<ConnectionMode>? onSelectConnectionMode;
   final ValueChanged<bool> onAutoFollowEligibilityChanged;
@@ -93,12 +96,14 @@ class _TranscriptListState extends State<TranscriptList> {
         ChatEmptyStateRenderer.flutter => EmptyState(
           isConfigured: emptyState.isConfigured,
           connectionMode: emptyState.connectionMode,
+          platformBehavior: widget.platformBehavior,
           onConfigure: widget.onConfigure,
           onSelectConnectionMode: widget.onSelectConnectionMode,
         ),
         ChatEmptyStateRenderer.cupertino => CupertinoEmptyState(
           isConfigured: emptyState.isConfigured,
           connectionMode: emptyState.connectionMode,
+          platformBehavior: widget.platformBehavior,
           onConfigure: widget.onConfigure,
           onSelectConnectionMode: widget.onSelectConnectionMode,
         ),

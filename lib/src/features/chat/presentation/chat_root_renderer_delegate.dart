@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
@@ -27,6 +28,7 @@ abstract interface class ChatRootRendererDelegate {
   Widget buildTranscriptRegion({
     required ChatRootRegionRenderer renderer,
     required ChatEmptyStateRenderer emptyStateRenderer,
+    required PocketPlatformBehavior platformBehavior,
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
@@ -43,6 +45,7 @@ abstract interface class ChatRootRendererDelegate {
 
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required PocketPlatformBehavior platformBehavior,
     required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
@@ -102,6 +105,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   Widget buildTranscriptRegion({
     required ChatRootRegionRenderer renderer,
     required ChatEmptyStateRenderer emptyStateRenderer,
+    required PocketPlatformBehavior platformBehavior,
     required ChatScreenContract screen,
     required Object? surfaceChangeToken,
     required ValueChanged<ChatScreenActionId> onScreenAction,
@@ -120,6 +124,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
       ChatRootRegionRenderer.flutter => FlutterChatTranscriptRegion(
         screen: screen,
         emptyStateRenderer: emptyStateRenderer,
+        platformBehavior: platformBehavior,
         surfaceChangeToken: surfaceChangeToken,
         onScreenAction: onScreenAction,
         onSelectTimeline: onSelectTimeline,
@@ -137,6 +142,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   @override
   Widget buildComposerRegion({
     required ChatRootRegionRenderer renderer,
+    required PocketPlatformBehavior platformBehavior,
     required ChatConversationRecoveryNoticeContract? conversationRecoveryNotice,
     required ChatComposerContract composer,
     required ValueChanged<String> onComposerDraftChanged,
@@ -147,6 +153,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
   }) {
     return switch (renderer) {
       ChatRootRegionRenderer.cupertino => CupertinoChatComposerRegion(
+        platformBehavior: platformBehavior,
         conversationRecoveryNotice: conversationRecoveryNotice,
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,
@@ -155,6 +162,7 @@ class FlutterChatRootRendererDelegate implements ChatRootRendererDelegate {
         onConversationRecoveryAction: onConversationRecoveryAction,
       ),
       ChatRootRegionRenderer.flutter => FlutterChatComposerRegion(
+        platformBehavior: platformBehavior,
         conversationRecoveryNotice: conversationRecoveryNotice,
         composer: composer,
         onComposerDraftChanged: onComposerDraftChanged,

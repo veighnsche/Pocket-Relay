@@ -68,7 +68,7 @@ contracts -> widgets
 
 - creates or accepts stores and the app-server client
 - loads saved profile and saved conversation handoff
-- chooses the top-level platform policy
+- resolves the app-level platform policy once at the root
 - renders `ChatRootAdapter` once bootstrap state is ready
 
 ### Chat root binding layer
@@ -171,13 +171,33 @@ Responsibilities:
 
 ## 5. Platform And UI Conditioning
 
-The repo already has useful platform seams.
+The repo now has a real app-level platform seam.
+
+### App-level platform policy
+
+`lib/src/core/platform/pocket_platform_policy.dart`
+
+This is the first-class root policy. It resolves, from one place:
+
+- product behavior policy
+- region renderer policy
+
+### Platform behavior
+
+`lib/src/core/platform/pocket_platform_behavior.dart`
+
+This is the app-wide product-behavior model. It currently owns:
+
+- `mobile` vs `desktop` experience
+- whether local connection mode is available
+- whether display wake lock is available
+- whether desktop keyboard submit behavior should be enabled
 
 ### Region policy
 
 `lib/src/features/chat/presentation/chat_root_region_policy.dart`
 
-This chooses:
+This remains the visual/foundation policy and chooses:
 
 - screen shell renderer
 - app chrome renderer
@@ -198,46 +218,60 @@ Current policy behavior:
 
 `lib/src/core/utils/platform_capabilities.dart`
 
-This is currently used for desktop capability checks, especially whether local
-Codex mode should exist.
+This now acts as a compatibility wrapper over `PocketPlatformBehavior.resolve()`
+for places that still want a narrow helper.
 
-### Important nuance
+### Current ownership model
 
-The app has a decent platform-policy seam, but it does not yet have one clean,
-first-class app-wide "mobile vs desktop" abstraction. Right now that concept is
-partly expressed via:
+`lib/src/app.dart` resolves `PocketPlatformPolicy` once, and
+`lib/src/features/chat/presentation/chat_root_adapter.dart` passes its
+behavior/region decisions down into the shared renderers and widgets.
 
-- platform policy
-- desktop capability checks
-- widget-level layout branching
+Important consequence:
 
-For isolated behavior changes this is fine. For broad mobile vs desktop product
-splits, prefer introducing an explicit shared seam instead of scattering ad hoc
-checks.
+- mobile vs desktop behavior should now flow through `PocketPlatformBehavior`
+- Cupertino vs Material region selection should now flow through
+  `ChatRootRegionPolicy`
+- future platform-specific product splits should start from
+  `PocketPlatformPolicy`, not widget-local platform checks
 
 ## 6. Latest Change In This Session
 
-Implemented desktop/mobile composer-enter behavior in the shared composer
-surface.
+Implemented a first-class app-wide platform policy and routed the main desktop
+vs mobile behaviors through it.
 
 Files changed by this session:
 
+- `lib/src/core/platform/pocket_platform_policy.dart`
+- `lib/src/core/platform/pocket_platform_behavior.dart`
+- `lib/src/app.dart`
+- `lib/src/features/chat/presentation/chat_root_adapter.dart`
 - `lib/src/features/chat/presentation/widgets/chat_composer_surface.dart`
+- `lib/src/features/chat/presentation/widgets/chat_empty_state_body.dart`
+- `lib/src/features/settings/presentation/connection_settings_host.dart`
 - `test/chat_composer_test.dart`
 - `test/cupertino_chat_composer_test.dart`
+- `test/pocket_platform_behavior_test.dart`
+- `test/pocket_platform_policy_test.dart`
 
 Behavior now:
 
-- desktop `Enter` sends
-- desktop `Shift+Enter` inserts a newline
-- mobile keeps multiline/newline text entry behavior
-- the logic is centralized in the shared composer surface, so both Material and
-  Cupertino composer variants inherit it
+- the root resolves one `PocketPlatformPolicy`
+- desktop/mobile product behavior is modeled explicitly via
+  `PocketPlatformBehavior`
+- desktop composer `Enter` send behavior still lives in the shared composer
+  surface, but now depends on the shared behavior policy
+- empty-state desktop/mobile structure now depends on explicit experience
+  ownership instead of treating local-mode capability as a proxy for desktop
+- settings local/remote availability now depends on injected platform behavior
+- wake-lock enablement now comes from the same root policy
 
 Implementation note:
 
-- desktop keyboard handling is explicit, not left to the platform default
-- `Shift+Enter` newline insertion is also explicit in the shared surface
+- visual foundation policy and product behavior policy are now resolved together
+  at the root
+- low-level OS launch details for local processes still stay in the
+  infrastructure layer and are intentionally separate from the app UI policy
 
 ## 7. What The App Already Does Well
 
@@ -288,11 +322,10 @@ references.
 
 ## 10. Verification Snapshot
 
-As of 2026-03-18 after the composer enter-behavior change:
+As of 2026-03-18 after the platform-policy refactor:
 
 - `dart analyze` passes with no errors
-- the full Flutter test suite passes
-- the suite currently lands at 294 passing tests
+- the targeted platform-focused Flutter test suite passes
 
 This repo has broad coverage relative to its size. It is worth preserving.
 
@@ -321,7 +354,8 @@ Observed dirty/untracked files after this session:
 - modified: `justfile`
 - modified: `linux/CMakeLists.txt`
 - untracked: `scripts/host-run.sh`
-- modified by this session: the shared composer surface and its tests
+- modified by this session: the platform-policy refactor plus related widget and
+  test files
 
 Assumption:
 
@@ -343,8 +377,9 @@ If the next request is about:
   specific widget/card
 - connection/settings behavior: start in the settings host/presenter plus the
   connection models and stores
-- mobile vs desktop UX splits: prefer the shared platform/region seam or
-  introduce a clean form-factor seam instead of scattering widget-local checks
+- mobile vs desktop UX splits: start in `core/platform/` plus
+  `chat_root_adapter.dart`, then push the resolved policy into shared widgets
+  instead of adding widget-local platform checks
 
 ## 14. Short Resume Prompt For The Next Session
 
@@ -355,6 +390,8 @@ is app bootstrap -> `ChatRootAdapter` -> `ChatSessionController` -> app-server
 transport -> runtime mapper -> reducer -> session/timeline state ->
 presenter/projectors -> widgets. The major hotspots are `codex_session_state`,
 `chat_session_controller`, and `transcript_reducer`. The repo rules strongly
-prefer correct ownership over small diffs. As of 2026-03-18, full tests and
-analysis pass, and the latest change is desktop `Enter` to send plus
-`Shift+Enter` newline in the shared composer surface."
+prefer correct ownership over small diffs. As of 2026-03-18, `dart analyze`
+and the targeted platform-focused test suite pass, and the latest change is a
+first-class `PocketPlatformPolicy` / `PocketPlatformBehavior` seam that owns
+desktop vs mobile app behavior while `ChatRootRegionPolicy` owns
+Cupertino/Material region rendering."

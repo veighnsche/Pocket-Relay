@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
@@ -89,6 +90,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
   const FlutterChatTranscriptRegion({
     super.key,
     required this.screen,
+    required this.platformBehavior,
     required this.onScreenAction,
     required this.onSelectTimeline,
     required this.onSelectConnectionMode,
@@ -103,6 +105,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
   });
 
   final ChatScreenContract screen;
+  final PocketPlatformBehavior platformBehavior;
   final ValueChanged<ChatScreenActionId> onScreenAction;
   final ValueChanged<String> onSelectTimeline;
   final ValueChanged<ConnectionMode> onSelectConnectionMode;
@@ -124,6 +127,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
     final transcriptList = TranscriptList(
       surface: screen.transcriptSurface,
       followBehavior: screen.transcriptFollow,
+      platformBehavior: platformBehavior,
       surfaceChangeToken: surfaceChangeToken,
       onConfigure: () {
         onScreenAction(ChatScreenActionId.openSettings);
@@ -362,6 +366,7 @@ Color _timelineStatusColor(CodexAgentLifecycleState state, ThemeData theme) {
 class FlutterChatComposerRegion extends StatelessWidget {
   const FlutterChatComposerRegion({
     super.key,
+    required this.platformBehavior,
     required this.conversationRecoveryNotice,
     required this.composer,
     required this.onComposerDraftChanged,
@@ -370,6 +375,7 @@ class FlutterChatComposerRegion extends StatelessWidget {
     required this.onConversationRecoveryAction,
   });
 
+  final PocketPlatformBehavior platformBehavior;
   final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
   final ChatComposerContract composer;
   final ValueChanged<String> onComposerDraftChanged;
@@ -395,6 +401,7 @@ class FlutterChatComposerRegion extends StatelessWidget {
               const SizedBox(height: 10),
             ],
             ChatComposer(
+              platformBehavior: platformBehavior,
               contract: composer,
               onChanged: onComposerDraftChanged,
               onSend: onSendPrompt,

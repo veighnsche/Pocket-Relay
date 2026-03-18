@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/cupertino_empty_state.dart';
 
 void main() {
@@ -15,6 +16,7 @@ void main() {
           child: CupertinoEmptyState(
             isConfigured: false,
             connectionMode: ConnectionMode.remote,
+            platformBehavior: _mobileBehavior,
             onConfigure: () {
               configureCalls += 1;
             },
@@ -43,6 +45,7 @@ void main() {
           child: CupertinoEmptyState(
             isConfigured: true,
             connectionMode: ConnectionMode.remote,
+            platformBehavior: _mobileBehavior,
             onConfigure: _noop,
           ),
         ),
@@ -60,6 +63,7 @@ void main() {
           child: CupertinoEmptyState(
             isConfigured: true,
             connectionMode: ConnectionMode.remote,
+            platformBehavior: _mobileBehavior,
             onConfigure: _noop,
           ),
         ),
@@ -103,6 +107,7 @@ void main() {
             child: CupertinoEmptyState(
               isConfigured: false,
               connectionMode: ConnectionMode.remote,
+              platformBehavior: _desktopBehavior,
               onConfigure: _noop,
               onSelectConnectionMode: selectedModes.add,
             ),
@@ -132,3 +137,17 @@ void main() {
 }
 
 void _noop() {}
+
+const _mobileBehavior = PocketPlatformBehavior(
+  experience: PocketPlatformExperience.mobile,
+  supportsLocalConnectionMode: false,
+  supportsWakeLock: true,
+  usesDesktopKeyboardSubmit: false,
+);
+
+const _desktopBehavior = PocketPlatformBehavior(
+  experience: PocketPlatformExperience.desktop,
+  supportsLocalConnectionMode: true,
+  supportsWakeLock: false,
+  usesDesktopKeyboardSubmit: true,
+);
