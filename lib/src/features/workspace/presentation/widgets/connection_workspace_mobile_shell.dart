@@ -212,6 +212,12 @@ class _ConnectionWorkspaceDormantRosterPageState
     extends State<_ConnectionWorkspaceDormantRosterPage> {
   @override
   Widget build(BuildContext context) {
+    const navigationBar = CupertinoNavigationBar(
+      transitionBetweenRoutes: false,
+      automaticallyImplyLeading: false,
+      automaticBackgroundVisibility: false,
+      middle: Text(ConnectionWorkspaceCopy.savedConnectionsTitle),
+    );
     final content = ConnectionWorkspaceDormantRosterContent(
       workspaceController: widget.workspaceController,
       description: ConnectionWorkspaceCopy.mobileSavedConnectionsDescription,
@@ -231,13 +237,15 @@ class _ConnectionWorkspaceDormantRosterPageState
       ChatRootScreenShellRenderer.cupertino => CupertinoTheme(
         data: buildPocketCupertinoTheme(Theme.of(context)),
         child: CupertinoPageScaffold(
-          navigationBar: const CupertinoNavigationBar(
-            transitionBetweenRoutes: false,
-            automaticallyImplyLeading: false,
-            automaticBackgroundVisibility: false,
-            middle: Text(ConnectionWorkspaceCopy.savedConnectionsTitle),
+          navigationBar: navigationBar,
+          child: Padding(
+            padding: EdgeInsets.only(
+              top:
+                  MediaQuery.viewPaddingOf(context).top +
+                  navigationBar.preferredSize.height,
+            ),
+            child: content,
           ),
-          child: content,
         ),
       ),
     };

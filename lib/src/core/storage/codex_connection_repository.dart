@@ -308,11 +308,14 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
       }
 
       orderedConnectionIds.add(connectionId);
-      connectionsById[connectionId] = SavedConnectionSummary(
-        id: connectionId,
-        profile: ConnectionProfile.fromJson(
+      final profile = _normalizeLegacySeededProfile(
+        ConnectionProfile.fromJson(
           jsonDecode(rawProfile) as Map<String, dynamic>,
         ),
+      );
+      connectionsById[connectionId] = SavedConnectionSummary(
+        id: connectionId,
+        profile: profile,
       );
     }
 
@@ -371,6 +374,25 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
       orderedConnectionIds.add(normalizedConnectionId);
     }
     return orderedConnectionIds;
+  }
+
+  ConnectionProfile _normalizeLegacySeededProfile(ConnectionProfile profile) {
+    final trimmedWorkspaceDir = profile.workspaceDir.trim();
+    if (!ConnectionProfile.legacyWorkspaceDirPlaceholders.contains(
+      trimmedWorkspaceDir,
+    )) {
+      return profile;
+    }
+
+    final defaults = ConnectionProfile.defaults();
+    final legacySeededProfile = defaults.copyWith(
+      workspaceDir: trimmedWorkspaceDir,
+    );
+    if (profile != legacySeededProfile) {
+      return profile;
+    }
+
+    return defaults;
   }
 
   Future<void> _persistCatalogIndex(List<String> orderedConnectionIds) async {

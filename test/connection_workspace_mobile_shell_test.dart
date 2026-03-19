@@ -121,6 +121,19 @@ void main() {
       findsOneWidget,
     );
     expect(find.widgetWithText(CupertinoButton, 'Open lane'), findsWidgets);
+
+    final navBarBottom = tester
+        .getBottomLeft(
+          find.ancestor(
+            of: find.text('Saved connections').first,
+            matching: find.byType(CupertinoNavigationBar),
+          ),
+        )
+        .dy;
+    final addConnectionTop = tester
+        .getTopLeft(find.byKey(const ValueKey('add_connection')))
+        .dy;
+    expect(addConnectionTop, greaterThanOrEqualTo(navBarBottom));
   });
 
   testWidgets('instantiating from the roster opens a new live lane', (
@@ -506,10 +519,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Secondary Renamed'), findsOneWidget);
-    expect(
-      find.text('secondary.changed · /home/vince/Projects'),
-      findsOneWidget,
-    );
+    expect(find.text('secondary.changed · /workspace'), findsOneWidget);
     expect(
       controller.state.catalog.connectionForId('conn_secondary')?.profile.host,
       'secondary.changed',
@@ -517,6 +527,50 @@ void main() {
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
     expect(clientsById['conn_secondary']?.disconnectCalls, 0);
   });
+
+  testWidgets(
+    'saved connection cards show a workspace fallback when the saved path is missing',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: _profile(
+              'Secondary Box',
+              'secondary.local',
+            ).copyWith(workspaceDir: ''),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        repository: repository,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('workspace_page_view')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('secondary.local · Workspace not set'), findsOneWidget);
+    },
+  );
 
   testWidgets('deleting a dormant connection removes it from the roster', (
     tester,
@@ -640,6 +694,7 @@ ConnectionProfile _profile(String label, String host) {
     label: label,
     host: host,
     username: 'vince',
+    workspaceDir: '/workspace',
   );
 }
 

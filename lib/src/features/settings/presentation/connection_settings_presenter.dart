@@ -203,9 +203,7 @@ class ConnectionSettingsPresenter {
             id: ConnectionSettingsFieldId.workspaceDir,
             label: 'Workspace directory',
             value: draft.workspaceDir,
-            hintText: isRemote
-                ? '/home/vince/Projects'
-                : '/Users/vince/Projects',
+            hintText: '/path/to/workspace',
             errorText: workspaceDirError,
           ),
           ConnectionSettingsTextFieldContract(

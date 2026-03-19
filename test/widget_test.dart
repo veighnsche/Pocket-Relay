@@ -159,6 +159,12 @@ void main() {
       expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byType(Scaffold), findsNothing);
+      expect(find.text('Pocket Relay'), findsOneWidget);
+      expect(
+        find.text('Remote Codex, ready before the first lane opens.'),
+        findsOneWidget,
+      );
+      expect(find.byType(Image), findsOneWidget);
 
       connectionRepository.complete(_savedProfile());
       await tester.pumpAndSettle();
@@ -273,6 +279,7 @@ SavedProfile _savedProfile() {
       label: 'Dev Box',
       host: 'devbox.local',
       username: 'vince',
+      workspaceDir: '/workspace',
     ),
     secrets: const ConnectionSecrets(password: 'secret'),
   );

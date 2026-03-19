@@ -130,6 +130,77 @@ void main() {
   );
 
   test(
+    'loadConnection preserves user-entered workspace directories even when they match an old placeholder path',
+    () async {
+      final preferences = SharedPreferencesAsync();
+      await preferences.setString(
+        'pocket_relay.connections.index',
+        jsonEncode(<String, Object?>{
+          'schemaVersion': 1,
+          'orderedConnectionIds': <String>['conn_seed'],
+        }),
+      );
+      await preferences.setString(
+        'pocket_relay.connection.conn_seed.profile',
+        jsonEncode(
+          ConnectionProfile.defaults()
+              .copyWith(
+                host: 'relay.example.com',
+                username: 'vince',
+                workspaceDir: '/home/vince/Projects/Pocket-Relay',
+              )
+              .toJson(),
+        ),
+      );
+      final repository = SecureCodexConnectionRepository(
+        secureStorage: _FakeFlutterSecureStorage(<String, String>{}),
+        preferences: preferences,
+        connectionIdGenerator: () => 'conn_unused',
+      );
+
+      final connection = await repository.loadConnection('conn_seed');
+
+      expect(
+        connection.profile.workspaceDir,
+        '/home/vince/Projects/Pocket-Relay',
+      );
+      expect(connection.profile.host, 'relay.example.com');
+      expect(connection.profile.username, 'vince');
+    },
+  );
+
+  test(
+    'loadConnection clears the old seeded placeholder workspace only for the exact legacy default profile shape',
+    () async {
+      final preferences = SharedPreferencesAsync();
+      await preferences.setString(
+        'pocket_relay.connections.index',
+        jsonEncode(<String, Object?>{
+          'schemaVersion': 1,
+          'orderedConnectionIds': <String>['conn_seed'],
+        }),
+      );
+      await preferences.setString(
+        'pocket_relay.connection.conn_seed.profile',
+        jsonEncode(
+          ConnectionProfile.defaults()
+              .copyWith(workspaceDir: '/home/vince/Projects')
+              .toJson(),
+        ),
+      );
+      final repository = SecureCodexConnectionRepository(
+        secureStorage: _FakeFlutterSecureStorage(<String, String>{}),
+        preferences: preferences,
+        connectionIdGenerator: () => 'conn_unused',
+      );
+
+      final connection = await repository.loadConnection('conn_seed');
+
+      expect(connection.profile, ConnectionProfile.defaults());
+    },
+  );
+
+  test(
     'saveConnection appends a new saved connection to the catalog',
     () async {
       final secureStorage = _FakeFlutterSecureStorage(<String, String>{});

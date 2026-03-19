@@ -1,3 +1,5 @@
+import 'package:pocket_relay/src/core/models/connection_models.dart';
+
 abstract final class ConnectionWorkspaceCopy {
   static const String workspaceTitle = 'Connections';
   static const String openLanesSectionTitle = 'Open lanes';
@@ -28,6 +30,12 @@ abstract final class ConnectionWorkspaceCopy {
   static const String reconnectProgress = 'Applying…';
   static const String reconnectMenuAction = 'Apply saved settings';
   static const String reconnectMenuProgress = 'Applying saved settings…';
+  static const String collapseSidebarAction = 'Collapse sidebar';
+  static const String expandSidebarAction = 'Expand sidebar';
+  static const String workspaceNotSet = 'Workspace not set';
+  static const String hostNotSet = 'Host not set';
+  static const String remoteConnectionNotConfigured =
+      'Remote connection not configured';
   static const String emptyWorkspaceTitle = 'No saved connections yet.';
   static const String emptyWorkspaceMessage =
       'Add your first connection to open a new lane.';
@@ -46,5 +54,35 @@ abstract final class ConnectionWorkspaceCopy {
     return isEmptyWorkspace
         ? emptyWorkspaceMessage
         : allSavedConnectionsOpenMessage;
+  }
+
+  static String connectionSubtitle(ConnectionProfile profile) {
+    final host = profile.host.trim();
+    final workspaceDir = profile.workspaceDir.trim();
+
+    return switch (profile.connectionMode) {
+      ConnectionMode.remote when host.isNotEmpty && workspaceDir.isNotEmpty =>
+        '$host · $workspaceDir',
+      ConnectionMode.remote when host.isNotEmpty => '$host · $workspaceNotSet',
+      ConnectionMode.remote when workspaceDir.isNotEmpty =>
+        '$hostNotSet · $workspaceDir',
+      ConnectionMode.remote => remoteConnectionNotConfigured,
+      ConnectionMode.local when workspaceDir.isNotEmpty =>
+        'Local Codex · $workspaceDir',
+      ConnectionMode.local => 'Local Codex · $workspaceNotSet',
+    };
+  }
+
+  static String compactSavedConnectionLabel(ConnectionProfile profile) {
+    final host = profile.host.trim();
+    final workspaceDir = profile.workspaceDir.trim();
+
+    return switch (profile.connectionMode) {
+      ConnectionMode.remote when host.isNotEmpty => host,
+      ConnectionMode.remote when workspaceDir.isNotEmpty => hostNotSet,
+      ConnectionMode.remote => remoteConnectionNotConfigured,
+      ConnectionMode.local when workspaceDir.isNotEmpty => 'Local Codex',
+      ConnectionMode.local => workspaceNotSet,
+    };
   }
 }

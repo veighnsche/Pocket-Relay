@@ -254,7 +254,9 @@ class _FlutterBootstrapShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _BootstrapBackground(
-        child: const Center(child: CircularProgressIndicator()),
+        child: _BootstrapSplash(
+          progressIndicator: const CircularProgressIndicator(strokeWidth: 2.8),
+        ),
       ),
     );
   }
@@ -271,8 +273,11 @@ class _CupertinoBootstrapShell extends StatelessWidget {
       data: buildPocketCupertinoTheme(Theme.of(context)),
       child: CupertinoPageScaffold(
         backgroundColor: palette.backgroundTop,
-        child: const _BootstrapBackground(
-          child: Center(child: CupertinoActivityIndicator()),
+        child: _BootstrapBackground(
+          child: _BootstrapSplash(
+            progressIndicator: const CupertinoActivityIndicator(radius: 12),
+            useCupertinoText: true,
+          ),
         ),
       ),
     );
@@ -297,6 +302,105 @@ class _BootstrapBackground extends StatelessWidget {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+class _BootstrapSplash extends StatelessWidget {
+  const _BootstrapSplash({
+    required this.progressIndicator,
+    this.useCupertinoText = false,
+  });
+
+  final Widget progressIndicator;
+  final bool useCupertinoText;
+
+  @override
+  Widget build(BuildContext context) {
+    final materialTheme = Theme.of(context);
+    final cupertinoTheme = useCupertinoText ? CupertinoTheme.of(context) : null;
+    final titleStyle = useCupertinoText && cupertinoTheme != null
+        ? cupertinoTheme.textTheme.navLargeTitleTextStyle.copyWith(
+            fontSize: 33,
+            fontWeight: FontWeight.w700,
+            color: CupertinoColors.white,
+          )
+        : materialTheme.textTheme.headlineLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: -0.8,
+          );
+    final bodyStyle = useCupertinoText && cupertinoTheme != null
+        ? cupertinoTheme.textTheme.textStyle.copyWith(
+            fontSize: 15,
+            height: 1.45,
+            color: CupertinoColors.systemGrey2,
+          )
+        : materialTheme.textTheme.bodyLarge?.copyWith(
+            height: 1.45,
+            color: materialTheme.colorScheme.onSurface.withValues(alpha: 0.68),
+          );
+
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(38),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[
+                        Colors.white.withValues(alpha: 0.07),
+                        Colors.black.withValues(alpha: 0.22),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.24),
+                        blurRadius: 36,
+                        offset: const Offset(0, 20),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(22),
+                    child: Image.asset(
+                      'assets/icons/app_icon_master.png',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  'Pocket Relay',
+                  textAlign: TextAlign.center,
+                  style: titleStyle,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Remote Codex, ready before the first lane opens.',
+                  textAlign: TextAlign.center,
+                  style: bodyStyle,
+                ),
+                const SizedBox(height: 26),
+                progressIndicator,
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

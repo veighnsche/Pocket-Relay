@@ -112,7 +112,7 @@ void main() {
                   secrets: initialSecrets,
                 ).copyWith(
                   connectionMode: ConnectionMode.local,
-                  workspaceDir: '/Users/vince/Projects/Pocket-Relay',
+                  workspaceDir: '/workspace/local',
                 ),
             showValidationErrors: true,
           );
@@ -131,10 +131,7 @@ void main() {
       expect(contract.codexSection.title, 'Local Codex');
       expect(payload, isNotNull);
       expect(payload!.profile.connectionMode, ConnectionMode.local);
-      expect(
-        payload.profile.workspaceDir,
-        '/Users/vince/Projects/Pocket-Relay',
-      );
+      expect(payload.profile.workspaceDir, '/workspace/local');
     });
 
     test(

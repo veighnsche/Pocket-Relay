@@ -89,7 +89,7 @@ class _ConnectionWorkspaceDormantRosterContentState
             ),
             ConnectionWorkspaceRosterStyle.cupertino => SafeArea(
               top: false,
-              bottom: false,
+              bottom: true,
               child: content,
             ),
           }
@@ -246,10 +246,7 @@ class _ConnectionWorkspaceDormantRosterContentState
   }
 
   String _connectionSubtitle(ConnectionProfile profile) {
-    return switch (profile.connectionMode) {
-      ConnectionMode.remote => '${profile.host} · ${profile.workspaceDir}',
-      ConnectionMode.local => 'local Codex · ${profile.workspaceDir}',
-    };
+    return ConnectionWorkspaceCopy.connectionSubtitle(profile);
   }
 
   Future<void> _instantiateConnection(String connectionId) async {

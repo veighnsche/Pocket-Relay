@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -43,7 +44,53 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Secondary Box'), findsOneWidget);
+    expect(
+      tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('desktop_sidebar_toggle')),
+      ),
+      isA<CupertinoButton>(),
+    );
   });
+
+  testWidgets(
+    'macOS sidebar can collapse into a thin rail and still open saved connections',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      final expandedWidth = tester
+          .getSize(find.byKey(const ValueKey('desktop_sidebar')))
+          .width;
+
+      await tester.tap(find.byKey(const ValueKey('desktop_sidebar_toggle')));
+      await tester.pumpAndSettle();
+
+      final collapsedWidth = tester
+          .getSize(find.byKey(const ValueKey('desktop_sidebar')))
+          .width;
+
+      expect(collapsedWidth, lessThan(expandedWidth));
+      expect(collapsedWidth, lessThanOrEqualTo(80));
+      expect(find.text('Connections'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('desktop_dormant_roster')));
+      await tester.pumpAndSettle();
+
+      expect(controller.state.isShowingDormantRoster, isTrue);
+      expect(
+        find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('dormant sidebar action shows the roster in the main pane', (
     tester,
@@ -316,6 +363,44 @@ void main() {
       const SavedConversationHandoff(),
     );
   });
+
+  testWidgets(
+    'desktop sidebar shows an explicit fallback for an unconfigured saved connection',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: _profile('Secondary Box', '').copyWith(workspaceDir: ''),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        repository: repository,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Secondary Box · Remote connection not configured'),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 Widget _buildShell(
@@ -392,6 +477,7 @@ ConnectionProfile _profile(String label, String host) {
     label: label,
     host: host,
     username: 'vince',
+    workspaceDir: '/workspace',
   );
 }
 

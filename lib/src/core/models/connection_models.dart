@@ -5,6 +5,13 @@ enum AuthMode { password, privateKey }
 enum ConnectionMode { remote, local }
 
 class ConnectionProfile {
+  static const legacyWorkspaceDirPlaceholders = <String>{
+    '/home/vince/Projects',
+    '/home/vince/Projects/Pocket-Relay',
+    '/Users/vince/Projects',
+    '/Users/vince/Projects/Pocket-Relay',
+  };
+
   const ConnectionProfile({
     required this.label,
     required this.host,
@@ -37,7 +44,7 @@ class ConnectionProfile {
       host: '',
       port: 22,
       username: '',
-      workspaceDir: '/home/vince/Projects',
+      workspaceDir: '',
       codexPath: 'codex',
       authMode: AuthMode.password,
       hostFingerprint: '',
@@ -315,7 +322,8 @@ class ConnectionCatalogState {
   List<SavedConnectionSummary> get orderedConnections {
     return <SavedConnectionSummary>[
       for (final connectionId in orderedConnectionIds)
-        if (connectionsById[connectionId] case final summary?) summary,
+        if (connectionsById[connectionId] != null)
+          connectionsById[connectionId]!,
     ];
   }
 
