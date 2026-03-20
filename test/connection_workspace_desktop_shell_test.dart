@@ -12,7 +12,6 @@ import 'package:pocket_relay/src/features/chat/presentation/connection_lane_bind
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_detail.dart';
 import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_desktop_shell.dart';
@@ -164,69 +163,6 @@ void main() {
       expect(historyRepository.callCount, 1);
     },
   );
-
-  testWidgets('desktop history rows open read-only conversation detail', (
-    tester,
-  ) async {
-    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final controller = _buildWorkspaceController(clientsById: clientsById);
-    const summary = CodexWorkspaceConversationSummary(
-      sessionId: 'session_a',
-      preview: 'Investigate local and SSH conversation storage',
-      cwd: '/workspace',
-      messageCount: 7,
-      firstPromptAt: null,
-      lastActivityAt: null,
-    );
-    final historyRepository = FakeConversationHistoryRepository(
-      conversations: const <CodexWorkspaceConversationSummary>[summary],
-      detailsBySessionId: <String, CodexWorkspaceConversationDetail>{
-        'session_a': const CodexWorkspaceConversationDetail(
-          summary: summary,
-          sourcePath: '/root/.codex/sessions/a.jsonl',
-          startedAt: null,
-          entries: <CodexWorkspaceConversationDetailEntry>[
-            CodexWorkspaceConversationDetailEntry(
-              kind: CodexWorkspaceConversationDetailEntryKind.toolCall,
-              title: 'exec_command',
-              body: 'git status --short',
-              timestamp: null,
-            ),
-            CodexWorkspaceConversationDetailEntry(
-              kind: CodexWorkspaceConversationDetailEntryKind.toolResult,
-              title: 'Tool output',
-              body: 'M lib/main.dart',
-              timestamp: null,
-            ),
-          ],
-        ),
-      },
-    );
-    addTearDown(() async {
-      controller.dispose();
-      await _closeClients(clientsById);
-    });
-
-    await controller.initialize();
-    await tester.pumpWidget(
-      _buildShell(controller, conversationHistoryRepository: historyRepository),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('More actions'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Conversation history'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('workspace_conversation_session_a')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('git status --short'), findsOneWidget);
-    expect(find.text('M lib/main.dart'), findsOneWidget);
-    expect(historyRepository.detailCallCount, 1);
-  });
-
   testWidgets(
     'desktop overflow disables non-roster actions when the active lane has no workspace',
     (tester) async {
@@ -710,14 +646,10 @@ class FakeConversationHistoryRepository
     implements CodexWorkspaceConversationHistoryRepository {
   FakeConversationHistoryRepository({
     this.conversations = const <CodexWorkspaceConversationSummary>[],
-    this.detailsBySessionId =
-        const <String, CodexWorkspaceConversationDetail>{},
   });
 
   final List<CodexWorkspaceConversationSummary> conversations;
-  final Map<String, CodexWorkspaceConversationDetail> detailsBySessionId;
   int callCount = 0;
-  int detailCallCount = 0;
 
   @override
   Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
@@ -726,15 +658,5 @@ class FakeConversationHistoryRepository
   }) async {
     callCount += 1;
     return conversations;
-  }
-
-  @override
-  Future<CodexWorkspaceConversationDetail?> loadWorkspaceConversationDetail({
-    required ConnectionProfile profile,
-    required ConnectionSecrets secrets,
-    required String sessionId,
-  }) async {
-    detailCallCount += 1;
-    return detailsBySessionId[sessionId];
   }
 }

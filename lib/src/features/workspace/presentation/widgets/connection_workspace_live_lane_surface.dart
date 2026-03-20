@@ -233,13 +233,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
             title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
             future: widget.conversationHistoryRepository
                 .loadWorkspaceConversations(profile: profile, secrets: secrets),
-            onLoadConversationDetail: (sessionId) => widget
-                .conversationHistoryRepository
-                .loadWorkspaceConversationDetail(
-                  profile: profile,
-                  secrets: secrets,
-                  sessionId: sessionId,
-                ),
           ),
         );
       },
