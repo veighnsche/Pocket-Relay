@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
@@ -18,16 +17,13 @@ typedef ConnectionLaneBindingFactory =
 class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceController({
     required CodexConnectionRepository connectionRepository,
-    required CodexConnectionHandoffStore connectionHandoffStore,
     required CodexConnectionConversationStateStore connectionConversationStateStore,
     required ConnectionLaneBindingFactory laneBindingFactory,
   }) : _connectionRepository = connectionRepository,
-       _connectionHandoffStore = connectionHandoffStore,
        _connectionConversationStateStore = connectionConversationStateStore,
        _laneBindingFactory = laneBindingFactory;
 
   final CodexConnectionRepository _connectionRepository;
-  final CodexConnectionHandoffStore _connectionHandoffStore;
   final CodexConnectionConversationStateStore _connectionConversationStateStore;
   final ConnectionLaneBindingFactory _laneBindingFactory;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
@@ -481,13 +477,16 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   Future<ConnectionLaneBinding> _loadLaneBinding(String connectionId) async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
       _connectionRepository.loadConnection(connectionId),
-      _connectionHandoffStore.load(connectionId),
+      _connectionConversationStateStore.loadState(connectionId),
     ]);
+    final conversationState = results[1] as SavedConnectionConversationState;
 
     return _laneBindingFactory(
       connectionId: connectionId,
       connection: results[0] as SavedConnection,
-      handoff: results[1] as SavedConversationHandoff,
+      handoff: SavedConversationHandoff(
+        resumeThreadId: conversationState.normalizedSelectedThreadId,
+      ),
     );
   }
 

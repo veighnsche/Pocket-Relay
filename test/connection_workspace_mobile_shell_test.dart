@@ -846,7 +846,6 @@ ConnectionWorkspaceController _buildWorkspaceController({
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionHandoffStore: resolvedHandoffStore,
     connectionConversationStateStore: resolvedHistoryStore,
     laneBindingFactory:
         ({required connectionId, required connection, required handoff}) {

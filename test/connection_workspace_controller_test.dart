@@ -369,7 +369,6 @@ void main() {
       };
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionHandoffStore: handoffStore,
         connectionConversationStateStore: conversationStateStore,
         laneBindingFactory:
             ({required connectionId, required connection, required handoff}) {
@@ -483,7 +482,6 @@ void main() {
       };
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionHandoffStore: handoffStore,
         connectionConversationStateStore: historyStore,
         laneBindingFactory:
             ({required connectionId, required connection, required handoff}) {
@@ -626,7 +624,6 @@ ConnectionWorkspaceController _buildWorkspaceController({
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionHandoffStore: resolvedHandoffStore,
     connectionConversationStateStore: resolvedHistoryStore,
     laneBindingFactory:
         ({required connectionId, required connection, required handoff}) {
