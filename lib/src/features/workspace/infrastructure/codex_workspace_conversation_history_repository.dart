@@ -5,12 +5,19 @@ import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
+import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_detail.dart';
 import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 
 abstract interface class CodexWorkspaceConversationHistoryRepository {
   Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
+  });
+
+  Future<CodexWorkspaceConversationDetail?> loadWorkspaceConversationDetail({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required String sessionId,
   });
 }
 
@@ -32,19 +39,52 @@ class CodexStorageConversationHistoryRepository
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) async {
-    final workspaceDir = profile.workspaceDir.trim();
-    if (workspaceDir.isEmpty) {
+    final snapshot = await _loadSnapshot(profile: profile, secrets: secrets);
+    if (snapshot == null) {
       return const <CodexWorkspaceConversationSummary>[];
     }
 
-    final snapshot = profile.connectionMode == ConnectionMode.local
+    return _buildParser(profile).parseSummaries(snapshot);
+  }
+
+  @override
+  Future<CodexWorkspaceConversationDetail?> loadWorkspaceConversationDetail({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required String sessionId,
+  }) async {
+    final snapshot = await _loadSnapshot(profile: profile, secrets: secrets);
+    if (snapshot == null) {
+      return null;
+    }
+
+    return _buildParser(
+      profile,
+    ).parseConversationDetail(snapshot, sessionId: sessionId);
+  }
+
+  Future<CodexWorkspaceConversationStorageSnapshot?> _loadSnapshot({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    final workspaceDir = profile.workspaceDir.trim();
+    if (workspaceDir.isEmpty) {
+      return null;
+    }
+
+    return profile.connectionMode == ConnectionMode.local
         ? await _localLoader.load()
         : await _remoteLoader.load(profile: profile, secrets: secrets);
+  }
+
+  _CodexWorkspaceConversationHistoryParser _buildParser(
+    ConnectionProfile profile,
+  ) {
     return _CodexWorkspaceConversationHistoryParser(
-      workspaceDir: workspaceDir,
+      workspaceDir: profile.workspaceDir.trim(),
       caseInsensitivePaths:
           profile.connectionMode == ConnectionMode.local && Platform.isWindows,
-    ).parse(snapshot);
+    );
   }
 }
 
@@ -264,23 +304,16 @@ class _CodexWorkspaceConversationHistoryParser {
   final String workspaceDir;
   final bool caseInsensitivePaths;
 
-  List<CodexWorkspaceConversationSummary> parse(
+  List<CodexWorkspaceConversationSummary> parseSummaries(
     CodexWorkspaceConversationStorageSnapshot snapshot,
   ) {
     final historyBySessionId = _parseHistory(snapshot.historyJsonl);
-    final matchingSessionIds = <String, _SessionMeta>{};
-    for (final sessionDocument in snapshot.sessionDocuments) {
-      final meta = _parseSessionMeta(sessionDocument.contents);
-      if (meta == null || !_matchesWorkspace(meta.cwd)) {
-        continue;
-      }
-      matchingSessionIds[meta.sessionId] = meta;
-    }
-
+    final matchingSessionIds = _matchingSessions(snapshot);
     final summaries = <CodexWorkspaceConversationSummary>[];
     for (final entry in matchingSessionIds.entries) {
       final sessionId = entry.key;
-      final meta = entry.value;
+      final matchingSession = entry.value;
+      final meta = matchingSession.meta;
       final history = historyBySessionId[sessionId];
       summaries.add(
         CodexWorkspaceConversationSummary(
@@ -306,6 +339,50 @@ class _CodexWorkspaceConversationHistoryParser {
       return left.sessionId.compareTo(right.sessionId);
     });
     return summaries;
+  }
+
+  CodexWorkspaceConversationDetail? parseConversationDetail(
+    CodexWorkspaceConversationStorageSnapshot snapshot, {
+    required String sessionId,
+  }) {
+    final matchingSession = _matchingSessions(snapshot)[sessionId];
+    if (matchingSession == null) {
+      return null;
+    }
+
+    final history = _parseHistory(snapshot.historyJsonl)[sessionId];
+    final summary = CodexWorkspaceConversationSummary(
+      sessionId: sessionId,
+      preview: history?.preview ?? '',
+      cwd: matchingSession.meta.cwd,
+      messageCount: history?.messageCount ?? 0,
+      firstPromptAt: history?.firstPromptAt,
+      lastActivityAt: history?.lastPromptAt ?? matchingSession.meta.startedAt,
+    );
+
+    return CodexWorkspaceConversationDetail(
+      summary: summary,
+      sourcePath: matchingSession.document.path,
+      startedAt: matchingSession.meta.startedAt,
+      entries: _parseEntries(matchingSession.document.contents),
+    );
+  }
+
+  Map<String, _MatchingSession> _matchingSessions(
+    CodexWorkspaceConversationStorageSnapshot snapshot,
+  ) {
+    final matchingSessionIds = <String, _MatchingSession>{};
+    for (final sessionDocument in snapshot.sessionDocuments) {
+      final meta = _parseSessionMeta(sessionDocument.contents);
+      if (meta == null || !_matchesWorkspace(meta.cwd)) {
+        continue;
+      }
+      matchingSessionIds[meta.sessionId] = _MatchingSession(
+        meta: meta,
+        document: sessionDocument,
+      );
+    }
+    return matchingSessionIds;
   }
 
   Map<String, _HistoryAggregate> _parseHistory(String? historyJsonl) {
@@ -396,6 +473,172 @@ class _CodexWorkspaceConversationHistoryParser {
     return null;
   }
 
+  List<CodexWorkspaceConversationDetailEntry> _parseEntries(String contents) {
+    final entries = <CodexWorkspaceConversationDetailEntry>[];
+    for (final line in const LineSplitter().convert(contents)) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) {
+        continue;
+      }
+      try {
+        final json = jsonDecode(trimmedLine);
+        if (json is! Map) {
+          continue;
+        }
+        final map = Map<String, dynamic>.from(json);
+        final timestamp = _parseIsoTimestamp(map['timestamp']);
+        final type = _asTrimmedString(map['type']);
+        if (type == 'event_msg') {
+          final entry = _parseEventMessageEntry(map, timestamp);
+          if (entry != null) {
+            entries.add(entry);
+          }
+          continue;
+        }
+        if (type == 'response_item') {
+          final entry = _parseResponseItemEntry(map, timestamp);
+          if (entry != null) {
+            entries.add(entry);
+          }
+        }
+      } catch (_) {
+        // Skip malformed event rows.
+      }
+    }
+    return entries;
+  }
+
+  CodexWorkspaceConversationDetailEntry? _parseEventMessageEntry(
+    Map<String, dynamic> map,
+    DateTime? timestamp,
+  ) {
+    final payload = map['payload'];
+    if (payload is! Map) {
+      return null;
+    }
+    final payloadMap = Map<String, dynamic>.from(payload);
+    final type = _asTrimmedString(payloadMap['type']);
+    switch (type) {
+      case 'user_message':
+        final message = _asTrimmedString(payloadMap['message']);
+        if (message == null) {
+          return null;
+        }
+        return CodexWorkspaceConversationDetailEntry(
+          kind: CodexWorkspaceConversationDetailEntryKind.userMessage,
+          title: 'User',
+          body: message,
+          timestamp: timestamp,
+        );
+      case 'agent_message':
+        final message = _asTrimmedString(payloadMap['message']);
+        if (message == null) {
+          return null;
+        }
+        final phase = _asTrimmedString(payloadMap['phase']);
+        final title = phase == null
+            ? 'Codex'
+            : 'Codex ${_titleCaseLabel(phase)}';
+        return CodexWorkspaceConversationDetailEntry(
+          kind: CodexWorkspaceConversationDetailEntryKind.agentMessage,
+          title: title,
+          body: message,
+          timestamp: timestamp,
+        );
+      case 'task_started':
+        return CodexWorkspaceConversationDetailEntry(
+          kind: CodexWorkspaceConversationDetailEntryKind.lifecycle,
+          title: 'Task started',
+          body: 'Codex started processing this turn.',
+          timestamp: timestamp,
+        );
+      case 'task_complete':
+        final message = _asTrimmedString(payloadMap['last_agent_message']);
+        return CodexWorkspaceConversationDetailEntry(
+          kind: CodexWorkspaceConversationDetailEntryKind.lifecycle,
+          title: 'Task complete',
+          body: message ?? 'Codex finished processing this turn.',
+          timestamp: timestamp,
+        );
+      default:
+        return null;
+    }
+  }
+
+  CodexWorkspaceConversationDetailEntry? _parseResponseItemEntry(
+    Map<String, dynamic> map,
+    DateTime? timestamp,
+  ) {
+    final payload = map['payload'];
+    if (payload is! Map) {
+      return null;
+    }
+    final payloadMap = Map<String, dynamic>.from(payload);
+    final type = _asTrimmedString(payloadMap['type']);
+    switch (type) {
+      case 'function_call':
+        final name = _asTrimmedString(payloadMap['name']) ?? 'Tool call';
+        final arguments = _asTrimmedString(payloadMap['arguments']) ?? '';
+        return CodexWorkspaceConversationDetailEntry(
+          kind: CodexWorkspaceConversationDetailEntryKind.toolCall,
+          title: name,
+          body: arguments.isEmpty ? 'No arguments recorded.' : arguments,
+          timestamp: timestamp,
+        );
+      case 'function_call_output':
+        final output = _asTrimmedString(payloadMap['output']) ?? '';
+        return CodexWorkspaceConversationDetailEntry(
+          kind: CodexWorkspaceConversationDetailEntryKind.toolResult,
+          title: 'Tool output',
+          body: output.isEmpty ? 'No output recorded.' : output,
+          timestamp: timestamp,
+        );
+      case 'message':
+        final role = _asTrimmedString(payloadMap['role']);
+        if (role == null || (role != 'assistant' && role != 'user')) {
+          return null;
+        }
+        final body = _messageContentText(payloadMap['content']);
+        if (body == null) {
+          return null;
+        }
+        return CodexWorkspaceConversationDetailEntry(
+          kind: role == 'assistant'
+              ? CodexWorkspaceConversationDetailEntryKind.agentMessage
+              : CodexWorkspaceConversationDetailEntryKind.userMessage,
+          title: role == 'assistant' ? 'Assistant' : 'User',
+          body: body,
+          timestamp: timestamp,
+        );
+      default:
+        return null;
+    }
+  }
+
+  String? _messageContentText(Object? content) {
+    if (content is! List) {
+      return null;
+    }
+    final parts = <String>[];
+    for (final item in content) {
+      if (item is! Map) {
+        continue;
+      }
+      final itemMap = Map<String, dynamic>.from(item);
+      final itemType = _asTrimmedString(itemMap['type']);
+      if (itemType == 'input_text' || itemType == 'output_text') {
+        final text = _asTrimmedString(itemMap['text']);
+        if (text != null) {
+          parts.add(text);
+        }
+      }
+    }
+    if (parts.isEmpty) {
+      return null;
+    }
+    return parts.join('\n\n');
+  }
+
   bool _matchesWorkspace(String sessionCwd) {
     final normalizedWorkspace = _normalizePath(
       workspaceDir,
@@ -419,12 +662,30 @@ class _CodexWorkspaceConversationHistoryParser {
     return trimmed.isEmpty ? null : trimmed;
   }
 
+  static String _titleCaseLabel(String value) {
+    return value
+        .split('_')
+        .where((segment) => segment.isNotEmpty)
+        .map((segment) {
+          final lower = segment.toLowerCase();
+          return '${lower[0].toUpperCase()}${lower.substring(1)}';
+        })
+        .join(' ');
+  }
+
   static DateTime? _parseIsoTimestamp(Object? value) {
     if (value is! String) {
       return null;
     }
     return DateTime.tryParse(value)?.toLocal();
   }
+}
+
+class _MatchingSession {
+  const _MatchingSession({required this.meta, required this.document});
+
+  final _SessionMeta meta;
+  final CodexWorkspaceConversationSessionDocument document;
 }
 
 class _HistoryAggregate {

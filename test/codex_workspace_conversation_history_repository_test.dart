@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_detail.dart';
 
 void main() {
   test('filters local history to sessions inside the workspace tree', () async {
@@ -81,6 +82,62 @@ void main() {
     expect(conversations, hasLength(1));
     expect(conversations.single.sessionId, 'session_remote');
   });
+
+  test(
+    'loads read-only detail entries for a matching workspace session',
+    () async {
+      final repository = CodexStorageConversationHistoryRepository(
+        localLoader: FakeStorageLoader(
+          snapshot: const CodexWorkspaceConversationStorageSnapshot(
+            historyJsonl:
+                '{"session_id":"session_a","ts":1710000000,"text":"Open the transport code"}',
+            sessionDocuments: <CodexWorkspaceConversationSessionDocument>[
+              CodexWorkspaceConversationSessionDocument(
+                path: '/root/.codex/sessions/a.jsonl',
+                contents: '''
+{"timestamp":"2026-03-20T10:00:00Z","type":"session_meta","payload":{"id":"session_a","cwd":"/workspace/project","timestamp":"2026-03-20T10:00:00Z"}}
+{"timestamp":"2026-03-20T10:00:01Z","type":"event_msg","payload":{"type":"user_message","message":"Open the transport code"}}
+{"timestamp":"2026-03-20T10:00:02Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"git status --short"}}
+{"timestamp":"2026-03-20T10:00:03Z","type":"response_item","payload":{"type":"function_call_output","output":"M lib/main.dart"}}
+{"timestamp":"2026-03-20T10:00:04Z","type":"event_msg","payload":{"type":"agent_message","phase":"commentary","message":"I’m checking the repo state first."}}
+{"timestamp":"2026-03-20T10:00:05Z","type":"event_msg","payload":{"type":"task_complete","last_agent_message":"Done."}}
+''',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final detail = await repository.loadWorkspaceConversationDetail(
+        profile: ConnectionProfile.defaults().copyWith(
+          connectionMode: ConnectionMode.local,
+          workspaceDir: '/workspace',
+        ),
+        secrets: const ConnectionSecrets(),
+        sessionId: 'session_a',
+      );
+
+      expect(detail, isNotNull);
+      expect(detail!.summary.sessionId, 'session_a');
+      expect(detail.sourcePath, '/root/.codex/sessions/a.jsonl');
+      expect(detail.entries, hasLength(5));
+      expect(
+        detail.entries.map((entry) => entry.kind),
+        <CodexWorkspaceConversationDetailEntryKind>[
+          CodexWorkspaceConversationDetailEntryKind.userMessage,
+          CodexWorkspaceConversationDetailEntryKind.toolCall,
+          CodexWorkspaceConversationDetailEntryKind.toolResult,
+          CodexWorkspaceConversationDetailEntryKind.agentMessage,
+          CodexWorkspaceConversationDetailEntryKind.lifecycle,
+        ],
+      );
+      expect(detail.entries.first.body, 'Open the transport code');
+      expect(detail.entries[1].title, 'exec_command');
+      expect(detail.entries[2].body, 'M lib/main.dart');
+      expect(detail.entries[3].title, 'Codex Commentary');
+      expect(detail.entries.last.title, 'Task complete');
+    },
+  );
 }
 
 class FakeStorageLoader implements CodexWorkspaceConversationStorageLoader {
