@@ -71,22 +71,8 @@ void main() {
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final historyStore = MemoryCodexConnectionConversationHistoryStore(
-      initialValues: <String, List<SavedConversationThread>>{
-        'conn_primary': const <SavedConversationThread>[
-          SavedConversationThread(
-            threadId: 'thread_a',
-            preview: 'Refactor the transport parity layer',
-            messageCount: 4,
-            firstPromptAt: null,
-            lastActivityAt: null,
-          ),
-        ],
-      },
-    );
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
-      historyStore: historyStore,
     );
     addTearDown(() async {
       controller.dispose();
@@ -102,33 +88,15 @@ void main() {
     await tester.tap(find.text('Conversation history'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Conversation history'), findsWidgets);
-    expect(find.text('Refactor the transport parity layer'), findsOneWidget);
+    expect(find.text('Could not load conversations'), findsOneWidget);
   });
 
   testWidgets(
-    'overflow menu shows the saved handoff thread when no recorded history exists yet',
+    'overflow menu shows an honest error until Codex-backed history loading exists',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-      final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialStates: <String, SavedConnectionConversationState>{
-          'conn_primary': const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-            conversations: <SavedConversationThread>[
-              SavedConversationThread(
-                threadId: 'thread_saved',
-                preview: '',
-                messageCount: 1,
-                firstPromptAt: null,
-                lastActivityAt: null,
-              ),
-            ],
-          ),
-        },
-      );
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
-        historyStore: historyStore,
       );
       addTearDown(() async {
         controller.dispose();
@@ -144,7 +112,7 @@ void main() {
       await tester.tap(find.text('Conversation history'));
       await tester.pumpAndSettle();
 
-      expect(find.text('thread_saved'), findsOneWidget);
+      expect(find.text('Could not load conversations'), findsOneWidget);
     },
   );
   testWidgets(
@@ -171,19 +139,6 @@ void main() {
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
         repository: repository,
-        historyStore: MemoryCodexConnectionConversationHistoryStore(
-          initialValues: <String, List<SavedConversationThread>>{
-            'conn_primary': const <SavedConversationThread>[
-              SavedConversationThread(
-                threadId: 'thread_a',
-                preview: 'Should never load',
-                messageCount: 1,
-                firstPromptAt: null,
-                lastActivityAt: null,
-              ),
-            ],
-          },
-        ),
       );
       addTearDown(() async {
         controller.dispose();
@@ -744,7 +699,7 @@ void main() {
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final historyStore = MemoryCodexConnectionConversationHistoryStore(
+    final conversationStateStore = MemoryCodexConnectionConversationHistoryStore(
       initialStates: <String, SavedConnectionConversationState>{
         'conn_secondary': const SavedConnectionConversationState(
           selectedThreadId: 'thread_saved',
@@ -753,7 +708,7 @@ void main() {
     );
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
-      historyStore: historyStore,
+      conversationStateStore: conversationStateStore,
     );
     addTearDown(() async {
       controller.dispose();
@@ -781,7 +736,7 @@ void main() {
       'conn_primary',
     ]);
     expect(
-      await historyStore.loadState('conn_secondary'),
+      await conversationStateStore.loadState('conn_secondary'),
       const SavedConnectionConversationState(),
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
@@ -808,7 +763,7 @@ Widget _buildShell(
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationHistoryStore? historyStore,
+  MemoryCodexConnectionConversationHistoryStore? conversationStateStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -826,12 +781,12 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
-  final resolvedHistoryStore =
-      historyStore ?? MemoryCodexConnectionConversationHistoryStore();
+  final resolvedConversationStateStore =
+      conversationStateStore ?? MemoryCodexConnectionConversationHistoryStore();
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionConversationStateStore: resolvedHistoryStore,
+    connectionConversationStateStore: resolvedConversationStateStore,
     laneBindingFactory:
         ({
           required connectionId,
@@ -845,13 +800,9 @@ ConnectionWorkspaceController _buildWorkspaceController({
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
             ),
-            conversationHistoryStore: ConnectionScopedConversationHistoryStore(
-              connectionId: connectionId,
-              historyStore: resolvedHistoryStore,
-            ),
             conversationStateStore: ConnectionScopedConversationStateStore(
               connectionId: connectionId,
-              conversationStateStore: resolvedHistoryStore,
+              conversationStateStore: resolvedConversationStateStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(

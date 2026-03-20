@@ -104,19 +104,13 @@ void main() {
   );
 
   test(
-    'sendPrompt records conversation history by thread id',
+    'sendPrompt records selected thread id by thread id',
     () async {
       final appServerClient = FakeCodexAppServerClient();
       final historyStore = _RecordingConversationHistoryStore(
-        initialValue: const <SavedConversationThread>[
-          SavedConversationThread(
-            threadId: 'thread_123',
-            preview: 'First prompt',
-            messageCount: 1,
-            firstPromptAt: null,
-            lastActivityAt: null,
-          ),
-        ],
+        initialState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_123',
+        ),
       );
       addTearDown(appServerClient.close);
 
@@ -127,7 +121,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationHistoryStore: historyStore,
         conversationStateStore: historyStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
@@ -139,11 +132,7 @@ void main() {
 
       expect(await controller.sendPrompt('Second prompt'), isTrue);
 
-      expect(historyStore.saved.single.normalizedThreadId, 'thread_123');
-      expect(historyStore.saved.single.preview, 'First prompt');
-      expect(historyStore.saved.single.messageCount, 2);
-      expect(historyStore.saved.single.firstPromptAt, isNotNull);
-      expect(historyStore.saved.single.lastActivityAt, isNotNull);
+      expect(historyStore.state.normalizedSelectedThreadId, 'thread_123');
     },
   );
 
@@ -942,34 +931,12 @@ ConnectionProfile _configuredProfile() {
   );
 }
 
-class _RecordingConversationHistoryStore
-    implements CodexConversationHistoryStore, CodexConversationStateStore {
+class _RecordingConversationHistoryStore implements CodexConversationStateStore {
   _RecordingConversationHistoryStore({
-    List<SavedConversationThread> initialValue =
-        const <SavedConversationThread>[],
     SavedConnectionConversationState? initialState,
-  }) : saved = List<SavedConversationThread>.from(
-         initialState?.conversations ?? initialValue,
-       ),
-       state =
-           initialState ??
-           SavedConnectionConversationState(
-             conversations: List<SavedConversationThread>.from(initialValue),
-           );
+  }) : state = initialState ?? const SavedConnectionConversationState();
 
-  List<SavedConversationThread> saved;
   SavedConnectionConversationState state;
-
-  @override
-  Future<List<SavedConversationThread>> load() async {
-    return List<SavedConversationThread>.from(saved);
-  }
-
-  @override
-  Future<void> save(List<SavedConversationThread> conversations) async {
-    saved = List<SavedConversationThread>.from(conversations);
-    state = state.copyWith(conversations: saved);
-  }
 
   @override
   Future<SavedConnectionConversationState> loadState() async {
@@ -979,6 +946,5 @@ class _RecordingConversationHistoryStore
   @override
   Future<void> saveState(SavedConnectionConversationState nextState) async {
     state = nextState;
-    saved = List<SavedConversationThread>.from(nextState.conversations);
   }
 }

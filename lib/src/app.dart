@@ -24,7 +24,7 @@ class PocketRelayApp extends StatefulWidget {
   const PocketRelayApp({
     super.key,
     this.connectionRepository,
-    this.connectionConversationHistoryStore,
+    this.connectionConversationStateStore,
     this.appServerClient,
     this.displayWakeLockController,
     this.platformPolicy,
@@ -35,8 +35,7 @@ class PocketRelayApp extends StatefulWidget {
   });
 
   final CodexConnectionRepository? connectionRepository;
-  final CodexConnectionConversationHistoryStore?
-  connectionConversationHistoryStore;
+  final CodexConnectionConversationStateStore? connectionConversationStateStore;
   final CodexAppServerClient? appServerClient;
   final DisplayWakeLockController? displayWakeLockController;
   final PocketPlatformPolicy? platformPolicy;
@@ -49,7 +48,7 @@ class PocketRelayApp extends StatefulWidget {
 
 class _PocketRelayAppState extends State<PocketRelayApp> {
   CodexConnectionRepository? _ownedConnectionRepository;
-  CodexConnectionConversationHistoryStore? _ownedConversationHistoryStore;
+  CodexConnectionConversationStateStore? _ownedConversationStateStore;
   late ConnectionWorkspaceController _workspaceController;
 
   @override
@@ -64,8 +63,8 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     super.didUpdateWidget(oldWidget);
     final workspaceDependenciesChanged =
         oldWidget.connectionRepository != widget.connectionRepository ||
-        oldWidget.connectionConversationHistoryStore !=
-            widget.connectionConversationHistoryStore ||
+        oldWidget.connectionConversationStateStore !=
+            widget.connectionConversationStateStore ||
         oldWidget.appServerClient != widget.appServerClient ||
         oldWidget.platformPolicy != widget.platformPolicy ||
         oldWidget.chatRootPlatformPolicy != widget.chatRootPlatformPolicy;
@@ -97,14 +96,15 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     final connectionRepository =
         widget.connectionRepository ??
         (_ownedConnectionRepository ??= SecureCodexConnectionRepository());
-    final conversationHistoryStore = _resolveConversationHistoryStore();
     final platformPolicy = _resolvedPlatformPolicy;
     var usedInjectedAppServerClient = false;
 
     return ConnectionWorkspaceController(
       connectionRepository: connectionRepository,
       connectionConversationStateStore:
-          conversationHistoryStore as CodexConnectionConversationStateStore,
+          widget.connectionConversationStateStore ??
+          (_ownedConversationStateStore ??=
+              SecureCodexConnectionConversationHistoryStore()),
       laneBindingFactory:
           ({
             required String connectionId,
@@ -124,16 +124,12 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
                 connectionId: connectionId,
                 connectionRepository: connectionRepository,
               ),
-              conversationHistoryStore:
-                  ConnectionScopedConversationHistoryStore(
-                    connectionId: connectionId,
-                    historyStore: conversationHistoryStore,
-                  ),
               conversationStateStore: ConnectionScopedConversationStateStore(
                 connectionId: connectionId,
                 conversationStateStore:
-                    conversationHistoryStore
-                        as CodexConnectionConversationStateStore,
+                    widget.connectionConversationStateStore ??
+                    (_ownedConversationStateStore ??=
+                        SecureCodexConnectionConversationHistoryStore()),
               ),
               appServerClient: usingInjectedClient
                   ? injectedAppServerClient
@@ -149,12 +145,6 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
             );
           },
     );
-  }
-
-  CodexConnectionConversationHistoryStore _resolveConversationHistoryStore() {
-    return widget.connectionConversationHistoryStore ??
-        (_ownedConversationHistoryStore ??=
-            SecureCodexConnectionConversationHistoryStore());
   }
 
   @override

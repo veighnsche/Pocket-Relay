@@ -36,28 +36,6 @@ class ConnectionScopedProfileStore implements CodexProfileStore {
   }
 }
 
-class ConnectionScopedConversationHistoryStore
-    implements CodexConversationHistoryStore {
-  ConnectionScopedConversationHistoryStore({
-    required String connectionId,
-    required CodexConnectionConversationHistoryStore historyStore,
-  }) : _connectionId = _normalizeConnectionId(connectionId),
-       _historyStore = historyStore;
-
-  final String _connectionId;
-  final CodexConnectionConversationHistoryStore _historyStore;
-
-  @override
-  Future<List<SavedConversationThread>> load() {
-    return _historyStore.load(_connectionId);
-  }
-
-  @override
-  Future<void> save(List<SavedConversationThread> conversations) {
-    return _historyStore.save(_connectionId, conversations);
-  }
-}
-
 class ConnectionScopedConversationStateStore
     implements CodexConversationStateStore {
   ConnectionScopedConversationStateStore({

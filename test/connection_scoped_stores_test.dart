@@ -53,59 +53,6 @@ void main() {
   );
 
   test(
-    'ConnectionScopedConversationHistoryStore loads and saves only its connection',
-    () async {
-      final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialValues: <String, List<SavedConversationThread>>{
-          'conn_a': const <SavedConversationThread>[
-            SavedConversationThread(
-              threadId: 'thread_a',
-              preview: 'Prompt A',
-              messageCount: 2,
-              firstPromptAt: null,
-              lastActivityAt: null,
-            ),
-          ],
-          'conn_b': const <SavedConversationThread>[
-            SavedConversationThread(
-              threadId: 'thread_b',
-              preview: 'Prompt B',
-              messageCount: 1,
-              firstPromptAt: null,
-              lastActivityAt: null,
-            ),
-          ],
-        },
-      );
-      final store = ConnectionScopedConversationHistoryStore(
-        connectionId: 'conn_a',
-        historyStore: historyStore,
-      );
-
-      final initial = await store.load();
-      await store.save(const <SavedConversationThread>[
-        SavedConversationThread(
-          threadId: 'thread_a_updated',
-          preview: 'Prompt A updated',
-          messageCount: 3,
-          firstPromptAt: null,
-          lastActivityAt: null,
-        ),
-      ]);
-
-      expect(initial.single.normalizedThreadId, 'thread_a');
-      expect(
-        (await historyStore.load('conn_a')).single.normalizedThreadId,
-        'thread_a_updated',
-      );
-      expect(
-        (await historyStore.load('conn_b')).single.normalizedThreadId,
-        'thread_b',
-      );
-    },
-  );
-
-  test(
     'ConnectionScopedConversationStateStore loads and saves only its connection',
     () async {
       final conversationStateStore =
@@ -113,15 +60,6 @@ void main() {
             initialStates: <String, SavedConnectionConversationState>{
               'conn_a': const SavedConnectionConversationState(
                 selectedThreadId: 'thread_handoff',
-                conversations: <SavedConversationThread>[
-                  SavedConversationThread(
-                    threadId: 'thread_handoff',
-                    preview: 'Prompt A',
-                    messageCount: 1,
-                    firstPromptAt: null,
-                    lastActivityAt: null,
-                  ),
-                ],
               ),
               'conn_b': const SavedConnectionConversationState(
                 selectedThreadId: 'thread_other',

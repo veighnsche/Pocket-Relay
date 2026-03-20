@@ -288,7 +288,7 @@ SavedProfile _savedProfile() {
 PocketRelayApp _buildCatalogApp({
   SavedProfile? savedProfile,
   CodexConnectionRepository? connectionRepository,
-  CodexConnectionConversationHistoryStore? connectionConversationHistoryStore,
+  CodexConnectionConversationStateStore? connectionConversationStateStore,
   DisplayWakeLockController? displayWakeLockController,
   CodexAppServerClient? appServerClient,
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
@@ -300,8 +300,8 @@ PocketRelayApp _buildCatalogApp({
           savedProfile: savedProfile ?? _savedProfile(),
           connectionId: 'conn_primary',
         ),
-    connectionConversationHistoryStore:
-        connectionConversationHistoryStore ??
+    connectionConversationStateStore:
+        connectionConversationStateStore ??
         MemoryCodexConnectionConversationHistoryStore(),
     displayWakeLockController: displayWakeLockController,
     appServerClient: appServerClient,

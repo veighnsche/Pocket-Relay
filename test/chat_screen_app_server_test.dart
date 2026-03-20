@@ -203,7 +203,7 @@ void main() {
       await tester.pumpWidget(
         _buildCatalogApp(
           appServerClient: appServerClient,
-          connectionConversationHistoryStore:
+          connectionConversationStateStore:
               MemoryCodexConnectionConversationHistoryStore(
             initialStates: <String, SavedConnectionConversationState>{
               'conn_primary': const SavedConnectionConversationState(
@@ -2652,7 +2652,7 @@ PocketRelayApp _buildCatalogApp({
   required CodexAppServerClient appServerClient,
   SavedProfile? savedProfile,
   CodexConnectionRepository? connectionRepository,
-  CodexConnectionConversationHistoryStore? connectionConversationHistoryStore,
+  CodexConnectionConversationStateStore? connectionConversationStateStore,
 }) {
   return PocketRelayApp(
     connectionRepository:
@@ -2661,8 +2661,8 @@ PocketRelayApp _buildCatalogApp({
           savedProfile: savedProfile ?? _savedProfile(),
           connectionId: 'conn_primary',
         ),
-    connectionConversationHistoryStore:
-        connectionConversationHistoryStore ??
+    connectionConversationStateStore:
+        connectionConversationStateStore ??
         MemoryCodexConnectionConversationHistoryStore(),
     appServerClient: appServerClient,
   );

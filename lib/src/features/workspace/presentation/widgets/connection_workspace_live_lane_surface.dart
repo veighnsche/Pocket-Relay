@@ -225,7 +225,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
           heightFactor: 0.82,
           child: ConnectionWorkspaceConversationHistorySheet(
             title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-            future: widget.laneBinding.conversationHistoryStore.load(),
+            future: Future<List<SavedConversationThread>>.error(
+              StateError(
+                'Workspace conversation history is unavailable until Codex-backed history loading is implemented.',
+              ),
+            ),
             onResumeConversation: (conversation) {
               unawaited(_resumeConversation(conversation));
             },

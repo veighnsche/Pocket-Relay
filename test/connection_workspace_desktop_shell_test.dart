@@ -120,22 +120,8 @@ void main() {
     'desktop overflow menu opens the workspace conversation history sheet',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-      final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialValues: <String, List<SavedConversationThread>>{
-          'conn_primary': const <SavedConversationThread>[
-            SavedConversationThread(
-              threadId: 'thread_a',
-              preview: 'Investigate local and SSH conversation storage',
-              messageCount: 7,
-              firstPromptAt: null,
-              lastActivityAt: null,
-            ),
-          ],
-        },
-      );
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
-        historyStore: historyStore,
       );
       addTearDown(() async {
         controller.dispose();
@@ -151,11 +137,7 @@ void main() {
       await tester.tap(find.text('Conversation history'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Conversation history'), findsWidgets);
-      expect(
-        find.text('Investigate local and SSH conversation storage'),
-        findsOneWidget,
-      );
+      expect(find.text('Could not load conversations'), findsOneWidget);
     },
   );
   testWidgets(
@@ -182,19 +164,6 @@ void main() {
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
         repository: repository,
-        historyStore: MemoryCodexConnectionConversationHistoryStore(
-          initialValues: <String, List<SavedConversationThread>>{
-            'conn_primary': const <SavedConversationThread>[
-              SavedConversationThread(
-                threadId: 'thread_a',
-                preview: 'Should never load',
-                messageCount: 1,
-                firstPromptAt: null,
-                lastActivityAt: null,
-              ),
-            ],
-          },
-        ),
       );
       addTearDown(() async {
         controller.dispose();
@@ -247,26 +216,12 @@ void main() {
     },
   );
 
-  testWidgets('desktop conversation history row resumes the selected thread', (
+  testWidgets('desktop conversation history shows an honest error for now', (
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final historyStore = MemoryCodexConnectionConversationHistoryStore(
-      initialValues: <String, List<SavedConversationThread>>{
-        'conn_primary': const <SavedConversationThread>[
-          SavedConversationThread(
-            threadId: 'thread_resume_me',
-            preview: 'Resume me',
-            messageCount: 2,
-            firstPromptAt: null,
-            lastActivityAt: null,
-          ),
-        ],
-      },
-    );
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
-      historyStore: historyStore,
     );
     addTearDown(() async {
       controller.dispose();
@@ -281,12 +236,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Conversation history'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Resume me'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Conversation history'), findsNothing);
-    expect(controller.bindingForConnectionId('conn_primary'), isNotNull);
-    expect(clientsById['conn_primary']?.disconnectCalls, 1);
+    expect(find.text('Could not load conversations'), findsOneWidget);
+    expect(clientsById['conn_primary']?.disconnectCalls, 0);
   });
 
   testWidgets('selecting a live lane from the sidebar returns to the lane', (
@@ -498,10 +449,11 @@ void main() {
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final historyStore = MemoryCodexConnectionConversationHistoryStore();
+    final conversationStateStore =
+        MemoryCodexConnectionConversationHistoryStore();
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
-      historyStore: historyStore,
+      conversationStateStore: conversationStateStore,
     );
     addTearDown(() async {
       controller.dispose();
@@ -525,7 +477,7 @@ void main() {
       'conn_primary',
     ]);
     expect(
-      await historyStore.loadState('conn_secondary'),
+      await conversationStateStore.loadState('conn_secondary'),
       const SavedConnectionConversationState(),
     );
   });
@@ -589,7 +541,7 @@ Widget _buildShell(
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationHistoryStore? historyStore,
+  MemoryCodexConnectionConversationHistoryStore? conversationStateStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -607,12 +559,12 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
-  final resolvedHistoryStore =
-      historyStore ?? MemoryCodexConnectionConversationHistoryStore();
+  final resolvedConversationStateStore =
+      conversationStateStore ?? MemoryCodexConnectionConversationHistoryStore();
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionConversationStateStore: resolvedHistoryStore,
+    connectionConversationStateStore: resolvedConversationStateStore,
     laneBindingFactory:
         ({
           required connectionId,
@@ -626,13 +578,9 @@ ConnectionWorkspaceController _buildWorkspaceController({
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
             ),
-            conversationHistoryStore: ConnectionScopedConversationHistoryStore(
-              connectionId: connectionId,
-              historyStore: resolvedHistoryStore,
-            ),
             conversationStateStore: ConnectionScopedConversationStateStore(
               connectionId: connectionId,
-              conversationStateStore: resolvedHistoryStore,
+              conversationStateStore: resolvedConversationStateStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(

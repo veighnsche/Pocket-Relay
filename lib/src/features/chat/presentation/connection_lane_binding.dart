@@ -15,8 +15,6 @@ class ConnectionLaneBinding {
   ConnectionLaneBinding({
     required this.connectionId,
     required CodexProfileStore profileStore,
-    this.conversationHistoryStore =
-        const DiscardingCodexConversationHistoryStore(),
     this.conversationStateStore = const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
@@ -28,7 +26,6 @@ class ConnectionLaneBinding {
   }) : _ownsAppServerClient = ownsAppServerClient,
        sessionController = ChatSessionController(
          profileStore: profileStore,
-         conversationHistoryStore: conversationHistoryStore,
          conversationStateStore: conversationStateStore,
          appServerClient: appServerClient,
          initialSavedProfile: initialSavedProfile,
@@ -42,7 +39,6 @@ class ConnectionLaneBinding {
   }
 
   final String connectionId;
-  final CodexConversationHistoryStore conversationHistoryStore;
   final CodexConversationStateStore conversationStateStore;
   final CodexAppServerClient appServerClient;
   final ChatSessionController sessionController;

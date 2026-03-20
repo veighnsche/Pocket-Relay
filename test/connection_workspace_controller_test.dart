@@ -483,11 +483,6 @@ void main() {
                   connectionId: connectionId,
                   connectionRepository: repository,
                 ),
-                conversationHistoryStore:
-                    ConnectionScopedConversationHistoryStore(
-                      connectionId: connectionId,
-                      historyStore: historyStore,
-                    ),
                 conversationStateStore: ConnectionScopedConversationStateStore(
                   connectionId: connectionId,
                   conversationStateStore: historyStore,
@@ -518,12 +513,10 @@ void main() {
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
       expect(nextBinding, isNot(same(firstBinding)));
-      expect((await historyStore.loadState('conn_primary')).normalizedSelectedThreadId,
-          'thread_resumed');
       expect(
-        (await historyStore.loadState('conn_primary')).conversations
-            .map((entry) => entry.normalizedThreadId),
-        contains('thread_resumed'),
+        (await historyStore.loadState('conn_primary'))
+            .normalizedSelectedThreadId,
+        'thread_resumed',
       );
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
       expect(clientsByConnectionId['conn_primary']!.last.disconnectCalls, 0);
@@ -618,10 +611,6 @@ ConnectionWorkspaceController _buildWorkspaceController({
             profileStore: ConnectionScopedProfileStore(
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
-            ),
-            conversationHistoryStore: ConnectionScopedConversationHistoryStore(
-              connectionId: connectionId,
-              historyStore: seededHistoryStore,
             ),
             conversationStateStore: ConnectionScopedConversationStateStore(
               connectionId: connectionId,

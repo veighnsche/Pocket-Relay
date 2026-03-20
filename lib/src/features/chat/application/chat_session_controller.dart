@@ -17,8 +17,6 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
-    this.conversationHistoryStore =
-        const DiscardingCodexConversationHistoryStore(),
     this.conversationStateStore = const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
@@ -44,7 +42,6 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   final CodexProfileStore profileStore;
-  final CodexConversationHistoryStore conversationHistoryStore;
   final CodexConversationStateStore conversationStateStore;
   final CodexAppServerClient appServerClient;
 
@@ -484,7 +481,7 @@ class ChatSessionController extends ChangeNotifier {
         model: _selectedModelOverride(),
         effort: _profile.reasoningEffort,
       );
-      await _recordConversationHistory(threadId: turn.threadId, prompt: prompt);
+      await _recordConversationSelection(threadId: turn.threadId);
       _rememberContinuationThread(turn.threadId);
       _applyRuntimeEvent(
         CodexRuntimeTurnStartedEvent(
@@ -1046,60 +1043,22 @@ class ChatSessionController extends ChangeNotifier {
     return value is String ? value : null;
   }
 
-  Future<void> _recordConversationHistory({
+  Future<void> _recordConversationSelection({
     required String threadId,
-    required String prompt,
   }) async {
     final normalizedThreadId = _normalizedThreadId(threadId);
     if (normalizedThreadId == null) {
       return;
     }
-
-    final trimmedPrompt = prompt.trim();
-    if (trimmedPrompt.isEmpty) {
-      return;
-    }
-
-    final now = DateTime.now();
     try {
       final currentState = await conversationStateStore.loadState();
-      final currentHistory = currentState.conversations;
-      final updatedHistory = <SavedConversationThread>[];
-      SavedConversationThread? matchingEntry;
-      for (final entry in currentHistory) {
-        if (entry.normalizedThreadId == normalizedThreadId) {
-          matchingEntry = entry;
-          continue;
-        }
-        updatedHistory.add(entry);
-      }
-
-      final nextEntry =
-          matchingEntry?.copyWith(
-            preview: matchingEntry.preview.trim().isEmpty
-                ? trimmedPrompt
-                : matchingEntry.preview,
-            messageCount: matchingEntry.messageCount + 1,
-            firstPromptAt: matchingEntry.firstPromptAt ?? now,
-            lastActivityAt: now,
-          ) ??
-          SavedConversationThread(
-            threadId: normalizedThreadId,
-            preview: trimmedPrompt,
-            messageCount: 1,
-            firstPromptAt: now,
-            lastActivityAt: now,
-          );
-      updatedHistory.insert(0, nextEntry);
       await conversationStateStore.saveState(
         currentState.copyWith(
           selectedThreadId: normalizedThreadId,
-          conversations: updatedHistory,
         ),
       );
-      await conversationHistoryStore.save(updatedHistory);
     } catch (_) {
-      // Conversation history persistence must not break the active session.
+      // Conversation selection persistence must not break the active session.
     }
   }
 }
