@@ -46,18 +46,27 @@ class ChatOverflowMenuButton extends StatelessWidget {
       type: MaterialType.transparency,
       child: PopupMenuButton<int>(
         tooltip: 'More actions',
-        onSelected: (index) => actions[index].onSelected(),
+        onSelected: (index) {
+          final action = actions[index];
+          if (!action.isEnabled) {
+            return;
+          }
+          action.onSelected();
+        },
         padding: EdgeInsets.zero,
         itemBuilder: (context) {
           return actions.indexed
               .map(
                 (entry) => PopupMenuItem<int>(
                   value: entry.$1,
+                  enabled: entry.$2.isEnabled,
                   child: Text(
                     entry.$2.label,
-                    style: entry.$2.isDestructive
-                        ? TextStyle(color: theme.colorScheme.error)
-                        : null,
+                    style: !entry.$2.isEnabled
+                        ? TextStyle(color: theme.disabledColor)
+                        : (entry.$2.isDestructive
+                              ? TextStyle(color: theme.colorScheme.error)
+                              : null),
                   ),
                 ),
               )
@@ -90,6 +99,7 @@ List<ChatChromeMenuAction> buildChatChromeMenuActions({
         label: action.label,
         onSelected: () => onScreenAction(action.id),
         isDestructive: action.id == ChatScreenActionId.clearTranscript,
+        isEnabled: action.isEnabled,
       ),
     ),
     ...supplementalMenuActions,

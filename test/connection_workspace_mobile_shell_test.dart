@@ -11,6 +11,8 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_mobile_shell.dart';
 
@@ -67,6 +69,138 @@ void main() {
     expect(controller.state.isShowingDormantRoster, isTrue);
     expect(find.byKey(const ValueKey('dormant_roster_page')), findsOneWidget);
   });
+
+  testWidgets('overflow menu opens the workspace conversation history sheet', (
+    tester,
+  ) async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final controller = _buildWorkspaceController(clientsById: clientsById);
+    final historyRepository = FakeConversationHistoryRepository(
+      conversations: const <CodexWorkspaceConversationSummary>[
+        CodexWorkspaceConversationSummary(
+          sessionId: 'session_a',
+          preview: 'Refactor the transport parity layer',
+          cwd: '/workspace',
+          messageCount: 4,
+          firstPromptAt: null,
+          lastActivityAt: null,
+        ),
+      ],
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await tester.pumpWidget(
+      _buildShell(controller, conversationHistoryRepository: historyRepository),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Conversation history'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Conversation history'), findsWidgets);
+    expect(find.text('Refactor the transport parity layer'), findsOneWidget);
+    expect(historyRepository.callCount, 1);
+  });
+
+  testWidgets(
+    'overflow menu disables non-roster actions when the active lane has no workspace',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile(
+              'Primary Box',
+              'primary.local',
+            ).copyWith(workspaceDir: ''),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: _profile('Secondary Box', 'secondary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        repository: repository,
+      );
+      final historyRepository = FakeConversationHistoryRepository(
+        conversations: const <CodexWorkspaceConversationSummary>[
+          CodexWorkspaceConversationSummary(
+            sessionId: 'session_a',
+            preview: 'Should never load',
+            cwd: '/workspace',
+            messageCount: 1,
+            firstPromptAt: null,
+            lastActivityAt: null,
+          ),
+        ],
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          conversationHistoryRepository: historyRepository,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      final newThreadItem = tester.widget<PopupMenuItem<int>>(
+        find.ancestor(
+          of: find.text('New thread'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+      );
+      final clearTranscriptItem = tester.widget<PopupMenuItem<int>>(
+        find.ancestor(
+          of: find.text('Clear transcript'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+      );
+      final historyItem = tester.widget<PopupMenuItem<int>>(
+        find.ancestor(
+          of: find.text('Conversation history'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+      );
+      final closeLaneItem = tester.widget<PopupMenuItem<int>>(
+        find.ancestor(
+          of: find.text('Close lane'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+      );
+      final savedConnectionsItem = tester.widget<PopupMenuItem<int>>(
+        find.ancestor(
+          of: find.text('Saved connections'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+      );
+
+      expect(newThreadItem.enabled, isFalse);
+      expect(clearTranscriptItem.enabled, isFalse);
+      expect(historyItem.enabled, isFalse);
+      expect(closeLaneItem.enabled, isFalse);
+      expect(savedConnectionsItem.enabled, isTrue);
+      expect(historyRepository.callCount, 0);
+    },
+  );
 
   testWidgets('swiping offscreen does not dispose the live lane', (
     tester,
@@ -624,6 +758,7 @@ void main() {
 Widget _buildShell(
   ConnectionWorkspaceController controller, {
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
+  CodexWorkspaceConversationHistoryRepository? conversationHistoryRepository,
   TargetPlatform platform = TargetPlatform.android,
 }) {
   return MaterialApp(
@@ -631,6 +766,8 @@ Widget _buildShell(
     home: ConnectionWorkspaceMobileShell(
       workspaceController: controller,
       platformPolicy: PocketPlatformPolicy.resolve(platform: platform),
+      conversationHistoryRepository:
+          conversationHistoryRepository ?? FakeConversationHistoryRepository(),
       settingsOverlayDelegate:
           settingsOverlayDelegate ?? FakeConnectionSettingsOverlayDelegate(),
     ),
@@ -713,5 +850,24 @@ Future<void> _closeClients(
 ) async {
   for (final client in clientsById.values) {
     await client.close();
+  }
+}
+
+class FakeConversationHistoryRepository
+    implements CodexWorkspaceConversationHistoryRepository {
+  FakeConversationHistoryRepository({
+    this.conversations = const <CodexWorkspaceConversationSummary>[],
+  });
+
+  final List<CodexWorkspaceConversationSummary> conversations;
+  int callCount = 0;
+
+  @override
+  Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    callCount += 1;
+    return conversations;
   }
 }

@@ -6,6 +6,7 @@ abstract final class ConnectionWorkspaceCopy {
   static const String savedSectionTitle = 'Saved';
   static const String savedConnectionsTitle = 'Saved connections';
   static const String savedConnectionsMenuLabel = savedConnectionsTitle;
+  static const String conversationHistoryMenuLabel = 'Conversation history';
   static const String mobileSavedConnectionsDescription =
       'Swipe back to an open lane or open another saved connection.';
   static const String desktopSidebarDescription =

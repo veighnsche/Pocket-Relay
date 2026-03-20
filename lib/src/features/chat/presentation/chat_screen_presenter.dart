@@ -25,6 +25,7 @@ class ChatScreenPresenter {
     ConnectionMode? preferredConnectionMode,
   }) {
     final isConfigured = profile.isReady;
+    final hasWorkspaceScope = profile.workspaceDir.trim().isNotEmpty;
     final isBusy = sessionState.isBusy;
     final timelineSummaries = _timelineSummaries(sessionState);
     final conversationRecoveryNotice = _conversationRecoveryNotice(
@@ -54,7 +55,7 @@ class ChatScreenPresenter {
               }
             : 'Configure Codex',
       ),
-      actions: const <ChatScreenActionContract>[
+      actions: <ChatScreenActionContract>[
         ChatScreenActionContract(
           id: ChatScreenActionId.openSettings,
           label: 'Connection settings',
@@ -66,11 +67,13 @@ class ChatScreenPresenter {
           id: ChatScreenActionId.newThread,
           label: 'New thread',
           placement: ChatScreenActionPlacement.menu,
+          isEnabled: hasWorkspaceScope,
         ),
         ChatScreenActionContract(
           id: ChatScreenActionId.clearTranscript,
           label: 'Clear transcript',
           placement: ChatScreenActionPlacement.menu,
+          isEnabled: hasWorkspaceScope,
         ),
       ],
       timelineSummaries: timelineSummaries,

@@ -46,6 +46,7 @@ class ChatScreenActionContract {
     required this.placement,
     this.tooltip,
     this.icon,
+    this.isEnabled = true,
   });
 
   final ChatScreenActionId id;
@@ -53,6 +54,7 @@ class ChatScreenActionContract {
   final ChatScreenActionPlacement placement;
   final String? tooltip;
   final ChatScreenActionIcon? icon;
+  final bool isEnabled;
 }
 
 class ChatHeaderContract {

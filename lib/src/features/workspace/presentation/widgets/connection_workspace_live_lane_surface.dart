@@ -11,7 +11,9 @@ import 'package:pocket_relay/src/features/chat/presentation/connection_lane_bind
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 
+import 'connection_workspace_conversation_history_sheet.dart';
 import 'connection_workspace_settings_renderer.dart';
 
 class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
@@ -20,6 +22,7 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
     required this.workspaceController,
     required this.laneBinding,
     required this.platformPolicy,
+    required this.conversationHistoryRepository,
     this.settingsOverlayDelegate =
         const ModalConnectionSettingsOverlayDelegate(),
   });
@@ -27,6 +30,8 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
   final ConnectionWorkspaceController workspaceController;
   final ConnectionLaneBinding laneBinding;
   final PocketPlatformPolicy platformPolicy;
+  final CodexWorkspaceConversationHistoryRepository
+  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -72,7 +77,21 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   List<ChatChromeMenuAction> _supplementalMenuActionsFor({
     required bool requiresReconnect,
   }) {
+    final hasWorkspaceHistoryScope = widget
+        .laneBinding
+        .sessionController
+        .profile
+        .workspaceDir
+        .trim()
+        .isNotEmpty;
     return <ChatChromeMenuAction>[
+      ChatChromeMenuAction(
+        label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
+        onSelected: () {
+          unawaited(_showConversationHistory());
+        },
+        isEnabled: hasWorkspaceHistoryScope,
+      ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
         onSelected: widget.workspaceController.showDormantRoster,
@@ -85,6 +104,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
           onSelected: () {
             unawaited(_applySavedSettings());
           },
+          isEnabled: hasWorkspaceHistoryScope,
         ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.closeLaneAction,
@@ -92,6 +112,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
           widget.laneBinding.connectionId,
         ),
         isDestructive: true,
+        isEnabled: hasWorkspaceHistoryScope,
       ),
     ];
   }
@@ -196,6 +217,26 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         });
       }
     }
+  }
+
+  Future<void> _showConversationHistory() {
+    final sessionController = widget.laneBinding.sessionController;
+    final profile = sessionController.profile;
+    final secrets = sessionController.secrets;
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return FractionallySizedBox(
+          heightFactor: 0.82,
+          child: ConnectionWorkspaceConversationHistorySheet(
+            title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
+            future: widget.conversationHistoryRepository
+                .loadWorkspaceConversations(profile: profile, secrets: secrets),
+          ),
+        );
+      },
+    );
   }
 
   Future<(ConnectionProfile, ConnectionSecrets)> _resolveInitialSettings({
