@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
-import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
@@ -50,9 +49,9 @@ void main() {
     'sendPrompt resumes the saved conversation handoff after controller restart',
     () async {
       final appServerClient = FakeCodexAppServerClient();
-      final handoffStore = MemoryCodexConversationHandoffStore(
-        initialValue: const SavedConversationHandoff(
-          resumeThreadId: 'thread_saved',
+      final conversationStateStore = _RecordingConversationHistoryStore(
+        initialState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
         ),
       );
       addTearDown(appServerClient.close);
@@ -64,14 +63,14 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationHandoffStore: handoffStore,
+        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
         ),
-        initialSavedConversationHandoff: const SavedConversationHandoff(
-          resumeThreadId: 'thread_saved',
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
         ),
       );
       addTearDown(controller.dispose);
@@ -98,19 +97,19 @@ void main() {
         'thread_saved',
       );
       expect(
-        await handoffStore.load(),
-        const SavedConversationHandoff(resumeThreadId: 'thread_saved'),
+        (await conversationStateStore.loadState()).normalizedSelectedThreadId,
+        'thread_saved',
       );
     },
   );
 
   test(
-    'sendPrompt records resumable conversation history by thread id',
+    'sendPrompt records conversation history by thread id',
     () async {
       final appServerClient = FakeCodexAppServerClient();
       final historyStore = _RecordingConversationHistoryStore(
-        initialValue: const <SavedResumableConversation>[
-          SavedResumableConversation(
+        initialValue: const <SavedConversationThread>[
+          SavedConversationThread(
             threadId: 'thread_123',
             preview: 'First prompt',
             messageCount: 1,
@@ -467,18 +466,13 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationHandoffStore: MemoryCodexConversationHandoffStore(
-          initialValue: const SavedConversationHandoff(
-            resumeThreadId: 'thread_old',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
         ),
-        initialSavedConversationHandoff: const SavedConversationHandoff(
-          resumeThreadId: 'thread_old',
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_old',
         ),
       );
       addTearDown(controller.dispose);
@@ -951,24 +945,29 @@ ConnectionProfile _configuredProfile() {
 class _RecordingConversationHistoryStore
     implements CodexConversationHistoryStore, CodexConversationStateStore {
   _RecordingConversationHistoryStore({
-    List<SavedResumableConversation> initialValue =
-        const <SavedResumableConversation>[],
-  }) : saved = List<SavedResumableConversation>.from(initialValue),
-       state = SavedConnectionConversationState(
-         conversations: List<SavedResumableConversation>.from(initialValue),
-       );
+    List<SavedConversationThread> initialValue =
+        const <SavedConversationThread>[],
+    SavedConnectionConversationState? initialState,
+  }) : saved = List<SavedConversationThread>.from(
+         initialState?.conversations ?? initialValue,
+       ),
+       state =
+           initialState ??
+           SavedConnectionConversationState(
+             conversations: List<SavedConversationThread>.from(initialValue),
+           );
 
-  List<SavedResumableConversation> saved;
+  List<SavedConversationThread> saved;
   SavedConnectionConversationState state;
 
   @override
-  Future<List<SavedResumableConversation>> load() async {
-    return List<SavedResumableConversation>.from(saved);
+  Future<List<SavedConversationThread>> load() async {
+    return List<SavedConversationThread>.from(saved);
   }
 
   @override
-  Future<void> save(List<SavedResumableConversation> conversations) async {
-    saved = List<SavedResumableConversation>.from(conversations);
+  Future<void> save(List<SavedConversationThread> conversations) async {
+    saved = List<SavedConversationThread>.from(conversations);
     state = state.copyWith(conversations: saved);
   }
 
@@ -980,6 +979,6 @@ class _RecordingConversationHistoryStore
   @override
   Future<void> saveState(SavedConnectionConversationState nextState) async {
     state = nextState;
-    saved = List<SavedResumableConversation>.from(nextState.conversations);
+    saved = List<SavedConversationThread>.from(nextState.conversations);
   }
 }

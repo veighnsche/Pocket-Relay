@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
-import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
@@ -16,26 +15,24 @@ class ConnectionLaneBinding {
   ConnectionLaneBinding({
     required this.connectionId,
     required CodexProfileStore profileStore,
-    required CodexConversationHandoffStore conversationHandoffStore,
     this.conversationHistoryStore =
         const DiscardingCodexConversationHistoryStore(),
     this.conversationStateStore = const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
-    SavedConversationHandoff initialSavedConversationHandoff =
-        const SavedConversationHandoff(),
+    SavedConnectionConversationState initialConversationState =
+        const SavedConnectionConversationState(),
     ChatScreenEffectMapper effectMapper = const ChatScreenEffectMapper(),
     bool? supportsLocalConnectionMode,
     bool ownsAppServerClient = false,
   }) : _ownsAppServerClient = ownsAppServerClient,
        sessionController = ChatSessionController(
          profileStore: profileStore,
-         conversationHandoffStore: conversationHandoffStore,
          conversationHistoryStore: conversationHistoryStore,
          conversationStateStore: conversationStateStore,
          appServerClient: appServerClient,
          initialSavedProfile: initialSavedProfile,
-         initialSavedConversationHandoff: initialSavedConversationHandoff,
+         initialConversationState: initialConversationState,
          supportsLocalConnectionMode: supportsLocalConnectionMode,
        ) {
     _screenEffectSubscription = sessionController.snackBarMessages

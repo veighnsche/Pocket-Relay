@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
-import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
@@ -18,15 +17,13 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
-    this.conversationHandoffStore =
-        const DiscardingCodexConversationHandoffStore(),
     this.conversationHistoryStore =
         const DiscardingCodexConversationHistoryStore(),
     this.conversationStateStore = const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
-    SavedConversationHandoff initialSavedConversationHandoff =
-        const SavedConversationHandoff(),
+    SavedConnectionConversationState initialConversationState =
+        const SavedConnectionConversationState(),
     TranscriptReducer reducer = const TranscriptReducer(),
     CodexRuntimeEventMapper? runtimeEventMapper,
     bool? supportsLocalConnectionMode,
@@ -40,14 +37,13 @@ class ChatSessionController extends ChangeNotifier {
       _secrets = initial.secrets;
       _isLoading = false;
     }
-    _resumeThreadId = initialSavedConversationHandoff.normalizedResumeThreadId;
+    _resumeThreadId = initialConversationState.normalizedSelectedThreadId;
     _appServerEventSubscription = appServerClient.events.listen(
       _handleAppServerEvent,
     );
   }
 
   final CodexProfileStore profileStore;
-  final CodexConversationHandoffStore conversationHandoffStore;
   final CodexConversationHistoryStore conversationHistoryStore;
   final CodexConversationStateStore conversationStateStore;
   final CodexAppServerClient appServerClient;
@@ -1013,27 +1009,22 @@ class ChatSessionController extends ChangeNotifier {
       return;
     }
 
-    final handoff = SavedConversationHandoff(
-      resumeThreadId:
-          _activeConversationThreadId() ?? _resumeConversationThreadId(),
-    );
-    unawaited(_persistConversationHandoff(handoff));
+    final selectedThreadId =
+        _activeConversationThreadId() ?? _resumeConversationThreadId();
+    unawaited(_persistConversationSelection(selectedThreadId));
   }
 
-  Future<void> _persistConversationHandoff(
-    SavedConversationHandoff handoff,
-  ) async {
+  Future<void> _persistConversationSelection(String? selectedThreadId) async {
     try {
       final currentState = await conversationStateStore.loadState();
       await conversationStateStore.saveState(
         currentState.copyWith(
-          selectedThreadId: handoff.normalizedResumeThreadId,
-          clearSelectedThreadId: handoff.normalizedResumeThreadId == null,
+          selectedThreadId: selectedThreadId,
+          clearSelectedThreadId: selectedThreadId == null,
         ),
       );
-      await conversationHandoffStore.save(handoff);
     } catch (_) {
-      // Conversation handoff persistence must not break the active session.
+      // Conversation selection persistence must not break the active session.
     }
   }
 
@@ -1073,8 +1064,8 @@ class ChatSessionController extends ChangeNotifier {
     try {
       final currentState = await conversationStateStore.loadState();
       final currentHistory = currentState.conversations;
-      final updatedHistory = <SavedResumableConversation>[];
-      SavedResumableConversation? matchingEntry;
+      final updatedHistory = <SavedConversationThread>[];
+      SavedConversationThread? matchingEntry;
       for (final entry in currentHistory) {
         if (entry.normalizedThreadId == normalizedThreadId) {
           matchingEntry = entry;
@@ -1092,7 +1083,7 @@ class ChatSessionController extends ChangeNotifier {
             firstPromptAt: matchingEntry.firstPromptAt ?? now,
             lastActivityAt: now,
           ) ??
-          SavedResumableConversation(
+          SavedConversationThread(
             threadId: normalizedThreadId,
             preview: trimmedPrompt,
             messageCount: 1,

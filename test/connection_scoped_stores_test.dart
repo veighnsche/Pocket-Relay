@@ -1,9 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
-import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 
 void main() {
@@ -55,46 +53,12 @@ void main() {
   );
 
   test(
-    'ConnectionScopedConversationHandoffStore loads and saves only its connection',
-    () async {
-      final handoffStore = MemoryCodexConnectionHandoffStore(
-        initialValues: <String, SavedConversationHandoff>{
-          'conn_a': const SavedConversationHandoff(resumeThreadId: 'thread_a'),
-          'conn_b': const SavedConversationHandoff(resumeThreadId: 'thread_b'),
-        },
-      );
-      final store = ConnectionScopedConversationHandoffStore(
-        connectionId: 'conn_a',
-        handoffStore: handoffStore,
-      );
-
-      final initial = await store.load();
-      await store.save(
-        const SavedConversationHandoff(resumeThreadId: 'thread_a_updated'),
-      );
-
-      expect(
-        initial,
-        const SavedConversationHandoff(resumeThreadId: 'thread_a'),
-      );
-      expect(
-        await handoffStore.load('conn_a'),
-        const SavedConversationHandoff(resumeThreadId: 'thread_a_updated'),
-      );
-      expect(
-        await handoffStore.load('conn_b'),
-        const SavedConversationHandoff(resumeThreadId: 'thread_b'),
-      );
-    },
-  );
-
-  test(
     'ConnectionScopedConversationHistoryStore loads and saves only its connection',
     () async {
       final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialValues: <String, List<SavedResumableConversation>>{
-          'conn_a': const <SavedResumableConversation>[
-            SavedResumableConversation(
+        initialValues: <String, List<SavedConversationThread>>{
+          'conn_a': const <SavedConversationThread>[
+            SavedConversationThread(
               threadId: 'thread_a',
               preview: 'Prompt A',
               messageCount: 2,
@@ -102,8 +66,8 @@ void main() {
               lastActivityAt: null,
             ),
           ],
-          'conn_b': const <SavedResumableConversation>[
-            SavedResumableConversation(
+          'conn_b': const <SavedConversationThread>[
+            SavedConversationThread(
               threadId: 'thread_b',
               preview: 'Prompt B',
               messageCount: 1,
@@ -119,8 +83,8 @@ void main() {
       );
 
       final initial = await store.load();
-      await store.save(const <SavedResumableConversation>[
-        SavedResumableConversation(
+      await store.save(const <SavedConversationThread>[
+        SavedConversationThread(
           threadId: 'thread_a_updated',
           preview: 'Prompt A updated',
           messageCount: 3,
@@ -142,15 +106,15 @@ void main() {
   );
 
   test(
-    'ConnectionScopedConversationHandoffStore and history store can share one conversation state backing',
+    'ConnectionScopedConversationStateStore loads and saves only its connection',
     () async {
       final conversationStateStore =
           MemoryCodexConnectionConversationHistoryStore(
             initialStates: <String, SavedConnectionConversationState>{
               'conn_a': const SavedConnectionConversationState(
                 selectedThreadId: 'thread_handoff',
-                conversations: <SavedResumableConversation>[
-                  SavedResumableConversation(
+                conversations: <SavedConversationThread>[
+                  SavedConversationThread(
                     threadId: 'thread_handoff',
                     preview: 'Prompt A',
                     messageCount: 1,
@@ -159,26 +123,34 @@ void main() {
                   ),
                 ],
               ),
+              'conn_b': const SavedConnectionConversationState(
+                selectedThreadId: 'thread_other',
+              ),
             },
           );
-      final handoffStore = ConnectionScopedConversationHandoffStore(
+      final store = ConnectionScopedConversationStateStore(
         connectionId: 'conn_a',
-        handoffStore: MemoryCodexConnectionHandoffStore(
-          conversationStateStore: conversationStateStore,
-        ),
+        conversationStateStore: conversationStateStore,
       );
-      final historyStore = ConnectionScopedConversationHistoryStore(
-        connectionId: 'conn_a',
-        historyStore: conversationStateStore,
+
+      final initial = await store.loadState();
+      await store.saveState(
+        const SavedConnectionConversationState(
+          selectedThreadId: 'thread_updated',
+        ),
       );
 
       expect(
-        (await handoffStore.load()).normalizedResumeThreadId,
+        initial.normalizedSelectedThreadId,
         'thread_handoff',
       );
       expect(
-        (await historyStore.load()).single.normalizedThreadId,
-        'thread_handoff',
+        (await conversationStateStore.loadState('conn_a')).normalizedSelectedThreadId,
+        'thread_updated',
+      );
+      expect(
+        (await conversationStateStore.loadState('conn_b')).normalizedSelectedThreadId,
+        'thread_other',
       );
     },
   );

@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
-import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 
 import 'support/fake_codex_app_server_client.dart';
@@ -208,13 +207,14 @@ void main() {
       await tester.pumpWidget(
         _buildCatalogApp(
           appServerClient: appServerClient,
-          connectionHandoffStore: MemoryCodexConnectionHandoffStore(
-            initialValues: <String, SavedConversationHandoff>{
-              'conn_primary': const SavedConversationHandoff(
-                resumeThreadId: 'thread_old',
+          connectionConversationHistoryStore:
+              MemoryCodexConnectionConversationHistoryStore(
+                initialStates: <String, SavedConnectionConversationState>{
+                  'conn_primary': const SavedConnectionConversationState(
+                    selectedThreadId: 'thread_old',
+                  ),
+                },
               ),
-            },
-          ),
         ),
       );
 
@@ -2661,7 +2661,7 @@ ConnectionProfile _configuredProfile() {
   return ConnectionProfile.defaults().copyWith(
     host: 'example.com',
     username: 'vince',
-    workspaceDir: '/workspace/project',
+    workspaceDir: '/workspace',
   );
 }
 
@@ -2675,7 +2675,7 @@ PocketRelayApp _buildCatalogApp({
   required CodexAppServerClient appServerClient,
   SavedProfile? savedProfile,
   CodexConnectionRepository? connectionRepository,
-  CodexConnectionHandoffStore? connectionHandoffStore,
+  CodexConnectionConversationHistoryStore? connectionConversationHistoryStore,
 }) {
   return PocketRelayApp(
     connectionRepository:
@@ -2684,8 +2684,9 @@ PocketRelayApp _buildCatalogApp({
           savedProfile: savedProfile ?? _savedProfile(),
           connectionId: 'conn_primary',
         ),
-    connectionHandoffStore:
-        connectionHandoffStore ?? MemoryCodexConnectionHandoffStore(),
+    connectionConversationHistoryStore:
+        connectionConversationHistoryStore ??
+        MemoryCodexConnectionConversationHistoryStore(),
     appServerClient: appServerClient,
   );
 }

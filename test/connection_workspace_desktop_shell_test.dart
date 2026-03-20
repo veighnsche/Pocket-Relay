@@ -3,9 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
-import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
@@ -15,7 +13,6 @@ import 'package:pocket_relay/src/features/workspace/presentation/connection_work
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_desktop_shell.dart';
 
 import 'support/fake_codex_app_server_client.dart';
-import 'support/fake_codex_workspace_conversation_history_repository.dart';
 import 'support/fake_connection_settings_overlay_delegate.dart';
 
 void main() {
@@ -122,9 +119,9 @@ void main() {
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialValues: <String, List<SavedResumableConversation>>{
-          'conn_primary': const <SavedResumableConversation>[
-            SavedResumableConversation(
+        initialValues: <String, List<SavedConversationThread>>{
+          'conn_primary': const <SavedConversationThread>[
+            SavedConversationThread(
               threadId: 'thread_a',
               preview: 'Investigate local and SSH conversation storage',
               messageCount: 7,
@@ -184,9 +181,9 @@ void main() {
         clientsById: clientsById,
         repository: repository,
         historyStore: MemoryCodexConnectionConversationHistoryStore(
-          initialValues: <String, List<SavedResumableConversation>>{
-            'conn_primary': const <SavedResumableConversation>[
-              SavedResumableConversation(
+          initialValues: <String, List<SavedConversationThread>>{
+            'conn_primary': const <SavedConversationThread>[
+              SavedConversationThread(
                 threadId: 'thread_a',
                 preview: 'Should never load',
                 messageCount: 1,
@@ -253,9 +250,9 @@ void main() {
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final historyStore = MemoryCodexConnectionConversationHistoryStore(
-      initialValues: <String, List<SavedResumableConversation>>{
-        'conn_primary': const <SavedResumableConversation>[
-          SavedResumableConversation(
+      initialValues: <String, List<SavedConversationThread>>{
+        'conn_primary': const <SavedConversationThread>[
+          SavedConversationThread(
             threadId: 'thread_resume_me',
             preview: 'Resume me',
             messageCount: 2,
@@ -499,16 +496,10 @@ void main() {
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final handoffStore = MemoryCodexConnectionHandoffStore(
-      initialValues: <String, SavedConversationHandoff>{
-        'conn_secondary': const SavedConversationHandoff(
-          resumeThreadId: 'thread_saved',
-        ),
-      },
-    );
+    final historyStore = MemoryCodexConnectionConversationHistoryStore();
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
-      handoffStore: handoffStore,
+      historyStore: historyStore,
     );
     addTearDown(() async {
       controller.dispose();
@@ -532,8 +523,8 @@ void main() {
       'conn_primary',
     ]);
     expect(
-      await handoffStore.load('conn_secondary'),
-      const SavedConversationHandoff(),
+      await historyStore.loadState('conn_secondary'),
+      const SavedConnectionConversationState(),
     );
   });
 
@@ -587,8 +578,6 @@ Widget _buildShell(
       platformPolicy: PocketPlatformPolicy.resolve(
         platform: TargetPlatform.macOS,
       ),
-      conversationHistoryRepository:
-          const FakeCodexWorkspaceConversationHistoryRepository(),
       settingsOverlayDelegate:
           settingsOverlayDelegate ?? FakeConnectionSettingsOverlayDelegate(),
     ),
@@ -598,7 +587,6 @@ Widget _buildShell(
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionHandoffStore? handoffStore,
   MemoryCodexConnectionConversationHistoryStore? historyStore,
 }) {
   final resolvedRepository =
@@ -619,27 +607,22 @@ ConnectionWorkspaceController _buildWorkspaceController({
       );
   final resolvedHistoryStore =
       historyStore ?? MemoryCodexConnectionConversationHistoryStore();
-  final resolvedHandoffStore =
-      handoffStore ??
-      MemoryCodexConnectionHandoffStore(
-        conversationStateStore: resolvedHistoryStore,
-      );
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionHandoffStore: resolvedHandoffStore,
+    connectionConversationStateStore: resolvedHistoryStore,
     laneBindingFactory:
-        ({required connectionId, required connection, required handoff}) {
+        ({
+          required connectionId,
+          required connection,
+          required conversationState,
+        }) {
           final appServerClient = clientsById[connectionId]!;
           return ConnectionLaneBinding(
             connectionId: connectionId,
             profileStore: ConnectionScopedProfileStore(
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
-            ),
-            conversationHandoffStore: ConnectionScopedConversationHandoffStore(
-              connectionId: connectionId,
-              handoffStore: resolvedHandoffStore,
             ),
             conversationHistoryStore: ConnectionScopedConversationHistoryStore(
               connectionId: connectionId,
@@ -654,7 +637,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
               profile: connection.profile,
               secrets: connection.secrets,
             ),
-            initialSavedConversationHandoff: handoff,
+            initialConversationState: conversationState,
             ownsAppServerClient: false,
           );
         },

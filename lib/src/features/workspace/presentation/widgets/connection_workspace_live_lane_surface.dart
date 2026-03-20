@@ -10,10 +10,8 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.da
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 
 import 'connection_workspace_conversation_history_sheet.dart';
 
@@ -23,7 +21,6 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
     required this.workspaceController,
     required this.laneBinding,
     required this.platformPolicy,
-    required this.conversationHistoryRepository,
     this.settingsOverlayDelegate =
         const ModalConnectionSettingsOverlayDelegate(),
   });
@@ -31,8 +28,6 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
   final ConnectionWorkspaceController workspaceController;
   final ConnectionLaneBinding laneBinding;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository
-  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -220,27 +215,17 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   }
 
   Future<void> _showConversationHistory() {
-    final sessionController = widget.laneBinding.sessionController;
-    final profile = sessionController.profile;
-    final secrets = sessionController.secrets;
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) {
+      builder: (context) {
         return FractionallySizedBox(
           heightFactor: 0.82,
           child: ConnectionWorkspaceConversationHistorySheet(
             title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-            future: _loadConversationHistory(
-              profile: profile,
-              secrets: secrets,
-            ),
-            onConversationSelected: (conversation) async {
-              Navigator.of(sheetContext).pop();
-              await widget.workspaceController.resumeConversation(
-                connectionId: widget.laneBinding.connectionId,
-                threadId: conversation.sessionId,
-              );
+            future: widget.laneBinding.conversationHistoryStore.load(),
+            onResumeConversation: (conversation) {
+              unawaited(_resumeConversation(conversation));
             },
           ),
         );
@@ -248,149 +233,16 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     );
   }
 
-  Future<List<CodexWorkspaceConversationSummary>> _loadConversationHistory({
-    required ConnectionProfile profile,
-    required ConnectionSecrets secrets,
-  }) async {
-    final savedStateFuture = widget.laneBinding.conversationStateStore
-        .loadState();
-    List<CodexWorkspaceConversationSummary> workspaceConversations;
-    Object? workspaceLoadError;
-    StackTrace? workspaceLoadStackTrace;
-
-    try {
-      workspaceConversations = await widget.conversationHistoryRepository
-          .loadWorkspaceConversations(profile: profile, secrets: secrets);
-    } catch (error, stackTrace) {
-      workspaceConversations = const <CodexWorkspaceConversationSummary>[];
-      workspaceLoadError = error;
-      workspaceLoadStackTrace = stackTrace;
+  Future<void> _resumeConversation(SavedConversationThread conversation) async {
+    if (!mounted) {
+      return;
     }
 
-    final savedState = await savedStateFuture;
-    final mergedConversations = _mergeConversationSummaries(
-      workspaceConversations: workspaceConversations,
-      savedState: savedState,
-      workspaceDir: profile.workspaceDir.trim(),
+    Navigator.of(context).pop();
+    await widget.workspaceController.resumeConversation(
+      connectionId: widget.laneBinding.connectionId,
+      threadId: conversation.normalizedThreadId,
     );
-    if (mergedConversations.isNotEmpty || workspaceLoadError == null) {
-      return mergedConversations;
-    }
-
-    Error.throwWithStackTrace(
-      workspaceLoadError,
-      workspaceLoadStackTrace ?? StackTrace.current,
-    );
-  }
-
-  List<CodexWorkspaceConversationSummary> _mergeConversationSummaries({
-    required List<CodexWorkspaceConversationSummary> workspaceConversations,
-    required SavedConnectionConversationState savedState,
-    required String workspaceDir,
-  }) {
-    final conversationsById = <String, CodexWorkspaceConversationSummary>{};
-    final orderedConversationIds = <String>[];
-
-    void addConversation(CodexWorkspaceConversationSummary conversation) {
-      final normalizedSessionId = conversation.sessionId.trim();
-      if (normalizedSessionId.isEmpty) {
-        return;
-      }
-
-      final normalizedConversation = CodexWorkspaceConversationSummary(
-        sessionId: normalizedSessionId,
-        preview: conversation.preview,
-        cwd: conversation.cwd,
-        messageCount: conversation.messageCount,
-        firstPromptAt: conversation.firstPromptAt,
-        lastActivityAt: conversation.lastActivityAt,
-      );
-      final existingConversation = conversationsById[normalizedSessionId];
-      if (existingConversation == null) {
-        conversationsById[normalizedSessionId] = normalizedConversation;
-        orderedConversationIds.add(normalizedSessionId);
-        return;
-      }
-
-      conversationsById[normalizedSessionId] = _preferRicherConversation(
-        existingConversation,
-        normalizedConversation,
-      );
-    }
-
-    for (final conversation in workspaceConversations) {
-      addConversation(conversation);
-    }
-
-    for (final conversation in savedState.conversations) {
-      addConversation(
-        _summaryFromSavedConversation(
-          conversation: conversation,
-          workspaceDir: workspaceDir,
-        ),
-      );
-    }
-
-    final selectedThreadId = savedState.normalizedSelectedThreadId;
-    if (selectedThreadId != null) {
-      addConversation(
-        CodexWorkspaceConversationSummary(
-          sessionId: selectedThreadId,
-          preview: '',
-          cwd: workspaceDir,
-          messageCount: 1,
-          firstPromptAt: null,
-          lastActivityAt: null,
-        ),
-      );
-    }
-
-    return <CodexWorkspaceConversationSummary>[
-      for (final conversationId in orderedConversationIds)
-        conversationsById[conversationId]!,
-    ];
-  }
-
-  CodexWorkspaceConversationSummary _summaryFromSavedConversation({
-    required SavedResumableConversation conversation,
-    required String workspaceDir,
-  }) {
-    return CodexWorkspaceConversationSummary(
-      sessionId: conversation.normalizedThreadId,
-      preview: conversation.preview,
-      cwd: workspaceDir,
-      messageCount: conversation.messageCount,
-      firstPromptAt: conversation.firstPromptAt,
-      lastActivityAt: conversation.lastActivityAt,
-    );
-  }
-
-  CodexWorkspaceConversationSummary _preferRicherConversation(
-    CodexWorkspaceConversationSummary existingConversation,
-    CodexWorkspaceConversationSummary candidateConversation,
-  ) {
-    final existingScore = _conversationScore(existingConversation);
-    final candidateScore = _conversationScore(candidateConversation);
-    return candidateScore > existingScore
-        ? candidateConversation
-        : existingConversation;
-  }
-
-  int _conversationScore(CodexWorkspaceConversationSummary conversation) {
-    var score = 0;
-    if (conversation.trimmedPreview.isNotEmpty) {
-      score += 4;
-    }
-    if (conversation.messageCount > 0) {
-      score += 2;
-    }
-    if (conversation.lastActivityAt != null) {
-      score += 1;
-    }
-    if (conversation.cwd.trim().isNotEmpty) {
-      score += 1;
-    }
-    return score;
   }
 
   Future<(ConnectionProfile, ConnectionSecrets)> _resolveInitialSettings({
