@@ -12,8 +12,8 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
   });
 
   final String title;
-  final Future<List<SavedResumableConversation>> future;
-  final ValueChanged<SavedResumableConversation> onResumeConversation;
+  final Future<List<SavedConversationThread>> future;
+  final ValueChanged<SavedConversationThread> onResumeConversation;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +86,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: FutureBuilder<List<SavedResumableConversation>>(
+              child: FutureBuilder<List<SavedConversationThread>>(
                 future: future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
@@ -109,8 +109,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
                   if (conversations.isEmpty) {
                     return const _ConversationHistoryMessage(
                       title: 'No matching conversations',
-                      body:
-                          'No resumable workspace conversations are available yet.',
+                      body: 'No workspace conversations are available yet.',
                     );
                   }
 
@@ -172,7 +171,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     );
   }
 
-  String _subtitleFor(SavedResumableConversation conversation) {
+  String _subtitleFor(SavedConversationThread conversation) {
     final activity = conversation.lastActivityAt?.toLocal();
     final activityLabel = activity == null
         ? 'Unknown activity time'

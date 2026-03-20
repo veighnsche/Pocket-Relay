@@ -72,9 +72,9 @@ void main() {
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final historyStore = MemoryCodexConnectionConversationHistoryStore(
-      initialValues: <String, List<SavedResumableConversation>>{
-        'conn_primary': const <SavedResumableConversation>[
-          SavedResumableConversation(
+      initialValues: <String, List<SavedConversationThread>>{
+        'conn_primary': const <SavedConversationThread>[
+          SavedConversationThread(
             threadId: 'thread_a',
             preview: 'Refactor the transport parity layer',
             messageCount: 4,
@@ -114,8 +114,8 @@ void main() {
         initialStates: <String, SavedConnectionConversationState>{
           'conn_primary': const SavedConnectionConversationState(
             selectedThreadId: 'thread_saved',
-            conversations: <SavedResumableConversation>[
-              SavedResumableConversation(
+            conversations: <SavedConversationThread>[
+              SavedConversationThread(
                 threadId: 'thread_saved',
                 preview: '',
                 messageCount: 1,
@@ -172,9 +172,9 @@ void main() {
         clientsById: clientsById,
         repository: repository,
         historyStore: MemoryCodexConnectionConversationHistoryStore(
-          initialValues: <String, List<SavedResumableConversation>>{
-            'conn_primary': const <SavedResumableConversation>[
-              SavedResumableConversation(
+          initialValues: <String, List<SavedConversationThread>>{
+            'conn_primary': const <SavedConversationThread>[
+              SavedConversationThread(
                 threadId: 'thread_a',
                 preview: 'Should never load',
                 messageCount: 1,

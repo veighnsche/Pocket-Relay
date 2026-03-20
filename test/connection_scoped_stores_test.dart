@@ -56,9 +56,9 @@ void main() {
     'ConnectionScopedConversationHistoryStore loads and saves only its connection',
     () async {
       final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialValues: <String, List<SavedResumableConversation>>{
-          'conn_a': const <SavedResumableConversation>[
-            SavedResumableConversation(
+        initialValues: <String, List<SavedConversationThread>>{
+          'conn_a': const <SavedConversationThread>[
+            SavedConversationThread(
               threadId: 'thread_a',
               preview: 'Prompt A',
               messageCount: 2,
@@ -66,8 +66,8 @@ void main() {
               lastActivityAt: null,
             ),
           ],
-          'conn_b': const <SavedResumableConversation>[
-            SavedResumableConversation(
+          'conn_b': const <SavedConversationThread>[
+            SavedConversationThread(
               threadId: 'thread_b',
               preview: 'Prompt B',
               messageCount: 1,
@@ -83,8 +83,8 @@ void main() {
       );
 
       final initial = await store.load();
-      await store.save(const <SavedResumableConversation>[
-        SavedResumableConversation(
+      await store.save(const <SavedConversationThread>[
+        SavedConversationThread(
           threadId: 'thread_a_updated',
           preview: 'Prompt A updated',
           messageCount: 3,
@@ -113,8 +113,8 @@ void main() {
             initialStates: <String, SavedConnectionConversationState>{
               'conn_a': const SavedConnectionConversationState(
                 selectedThreadId: 'thread_handoff',
-                conversations: <SavedResumableConversation>[
-                  SavedResumableConversation(
+                conversations: <SavedConversationThread>[
+                  SavedConversationThread(
                     threadId: 'thread_handoff',
                     preview: 'Prompt A',
                     messageCount: 1,

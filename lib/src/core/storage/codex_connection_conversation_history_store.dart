@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'shared_preferences_async_migration.dart';
 
-class SavedResumableConversation {
-  const SavedResumableConversation({
+class SavedConversationThread {
+  const SavedConversationThread({
     required this.threadId,
     required this.preview,
     required this.messageCount,
@@ -21,14 +21,14 @@ class SavedResumableConversation {
 
   String get normalizedThreadId => threadId.trim();
 
-  SavedResumableConversation copyWith({
+  SavedConversationThread copyWith({
     String? threadId,
     String? preview,
     int? messageCount,
     Object? firstPromptAt = _historySentinel,
     Object? lastActivityAt = _historySentinel,
   }) {
-    return SavedResumableConversation(
+    return SavedConversationThread(
       threadId: threadId ?? this.threadId,
       preview: preview ?? this.preview,
       messageCount: messageCount ?? this.messageCount,
@@ -51,8 +51,8 @@ class SavedResumableConversation {
     };
   }
 
-  factory SavedResumableConversation.fromJson(Map<String, dynamic> json) {
-    return SavedResumableConversation(
+  factory SavedConversationThread.fromJson(Map<String, dynamic> json) {
+    return SavedConversationThread(
       threadId: json['threadId'] as String? ?? '',
       preview: json['preview'] as String? ?? '',
       messageCount: json['messageCount'] as int? ?? 0,
@@ -72,11 +72,11 @@ class SavedResumableConversation {
 class SavedConnectionConversationState {
   const SavedConnectionConversationState({
     this.selectedThreadId,
-    this.conversations = const <SavedResumableConversation>[],
+    this.conversations = const <SavedConversationThread>[],
   });
 
   final String? selectedThreadId;
-  final List<SavedResumableConversation> conversations;
+  final List<SavedConversationThread> conversations;
 
   String? get normalizedSelectedThreadId {
     final normalized = selectedThreadId?.trim();
@@ -89,7 +89,7 @@ class SavedConnectionConversationState {
   SavedConnectionConversationState copyWith({
     String? selectedThreadId,
     bool clearSelectedThreadId = false,
-    List<SavedResumableConversation>? conversations,
+    List<SavedConversationThread>? conversations,
   }) {
     return SavedConnectionConversationState(
       selectedThreadId: clearSelectedThreadId
@@ -115,13 +115,13 @@ class SavedConnectionConversationState {
         ? rawConversations
               .whereType<Map>()
               .map(
-                (entry) => SavedResumableConversation.fromJson(
+                (entry) => SavedConversationThread.fromJson(
                   Map<String, dynamic>.from(entry),
                 ),
               )
               .where((entry) => entry.normalizedThreadId.isNotEmpty)
               .toList(growable: false)
-        : const <SavedResumableConversation>[];
+        : const <SavedConversationThread>[];
 
     return SavedConnectionConversationState(
       selectedThreadId: json['selectedThreadId'] as String?,
@@ -133,9 +133,9 @@ class SavedConnectionConversationState {
 const Object _historySentinel = Object();
 
 abstract interface class CodexConversationHistoryStore {
-  Future<List<SavedResumableConversation>> load();
+  Future<List<SavedConversationThread>> load();
 
-  Future<void> save(List<SavedResumableConversation> conversations);
+  Future<void> save(List<SavedConversationThread> conversations);
 }
 
 abstract interface class CodexConversationStateStore {
@@ -145,11 +145,11 @@ abstract interface class CodexConversationStateStore {
 }
 
 abstract interface class CodexConnectionConversationHistoryStore {
-  Future<List<SavedResumableConversation>> load(String connectionId);
+  Future<List<SavedConversationThread>> load(String connectionId);
 
   Future<void> save(
     String connectionId,
-    List<SavedResumableConversation> conversations,
+    List<SavedConversationThread> conversations,
   );
 
   Future<void> delete(String connectionId);
@@ -187,15 +187,15 @@ class SecureCodexConnectionConversationHistoryStore
   Future<void>? _preferencesReady;
 
   @override
-  Future<List<SavedResumableConversation>> load(String connectionId) async {
+  Future<List<SavedConversationThread>> load(String connectionId) async {
     final state = await loadState(connectionId);
-    return List<SavedResumableConversation>.from(state.conversations);
+    return List<SavedConversationThread>.from(state.conversations);
   }
 
   @override
   Future<void> save(
     String connectionId,
-    List<SavedResumableConversation> conversations,
+    List<SavedConversationThread> conversations,
   ) async {
     final currentState = await loadState(connectionId);
     await saveState(
@@ -312,7 +312,7 @@ class SecureCodexConnectionConversationHistoryStore
     }
 
     final conversations = rawHistory == null || rawHistory.trim().isEmpty
-        ? const <SavedResumableConversation>[]
+        ? const <SavedConversationThread>[]
         : _decodeLegacyHistory(rawHistory);
     final selectedThreadId = rawHandoff == null || rawHandoff.trim().isEmpty
         ? null
@@ -327,8 +327,8 @@ class SecureCodexConnectionConversationHistoryStore
       selectedThreadId: selectedThreadId,
       conversations: alreadyPresent
           ? conversations
-          : <SavedResumableConversation>[
-              SavedResumableConversation(
+          : <SavedConversationThread>[
+              SavedConversationThread(
                 threadId: selectedThreadId,
                 preview: '',
                 messageCount: 1,
@@ -340,16 +340,16 @@ class SecureCodexConnectionConversationHistoryStore
     );
   }
 
-  List<SavedResumableConversation> _decodeLegacyHistory(String rawHistory) {
+  List<SavedConversationThread> _decodeLegacyHistory(String rawHistory) {
     final decoded = jsonDecode(rawHistory);
     if (decoded is! List) {
-      return const <SavedResumableConversation>[];
+      return const <SavedConversationThread>[];
     }
 
     return decoded
         .whereType<Map>()
         .map(
-          (entry) => SavedResumableConversation.fromJson(
+          (entry) => SavedConversationThread.fromJson(
             Map<String, dynamic>.from(entry),
           ),
         )
@@ -421,14 +421,14 @@ class MemoryCodexConnectionConversationHistoryStore
         CodexConnectionConversationHistoryStore,
         CodexConnectionConversationStateStore {
   MemoryCodexConnectionConversationHistoryStore({
-    Map<String, List<SavedResumableConversation>>? initialValues,
+    Map<String, List<SavedConversationThread>>? initialValues,
     Map<String, SavedConnectionConversationState>? initialStates,
   }) : _statesByConnectionId = initialStates == null
            ? <String, SavedConnectionConversationState>{
                if (initialValues != null)
                  for (final entry in initialValues.entries)
                    entry.key: SavedConnectionConversationState(
-                     conversations: List<SavedResumableConversation>.from(
+                     conversations: List<SavedConversationThread>.from(
                        entry.value,
                      ),
                    ),
@@ -439,7 +439,7 @@ class MemoryCodexConnectionConversationHistoryStore
                      key,
                      SavedConnectionConversationState(
                        selectedThreadId: value.selectedThreadId,
-                       conversations: List<SavedResumableConversation>.from(
+                       conversations: List<SavedConversationThread>.from(
                          value.conversations,
                        ),
                      ),
@@ -449,8 +449,8 @@ class MemoryCodexConnectionConversationHistoryStore
   final Map<String, SavedConnectionConversationState> _statesByConnectionId;
 
   @override
-  Future<List<SavedResumableConversation>> load(String connectionId) async {
-    return List<SavedResumableConversation>.from(
+  Future<List<SavedConversationThread>> load(String connectionId) async {
+    return List<SavedConversationThread>.from(
       (await loadState(connectionId)).conversations,
     );
   }
@@ -458,7 +458,7 @@ class MemoryCodexConnectionConversationHistoryStore
   @override
   Future<void> save(
     String connectionId,
-    List<SavedResumableConversation> conversations,
+    List<SavedConversationThread> conversations,
   ) async {
     final state = await loadState(connectionId);
     await saveState(connectionId, state.copyWith(conversations: conversations));
@@ -479,7 +479,7 @@ class MemoryCodexConnectionConversationHistoryStore
     }
     return SavedConnectionConversationState(
       selectedThreadId: state.selectedThreadId,
-      conversations: List<SavedResumableConversation>.from(state.conversations),
+      conversations: List<SavedConversationThread>.from(state.conversations),
     );
   }
 
@@ -496,7 +496,7 @@ class MemoryCodexConnectionConversationHistoryStore
 
     _statesByConnectionId[connectionId] = SavedConnectionConversationState(
       selectedThreadId: state.normalizedSelectedThreadId,
-      conversations: List<SavedResumableConversation>.from(state.conversations),
+      conversations: List<SavedConversationThread>.from(state.conversations),
     );
   }
 
@@ -511,12 +511,12 @@ class DiscardingCodexConversationHistoryStore
   const DiscardingCodexConversationHistoryStore();
 
   @override
-  Future<List<SavedResumableConversation>> load() async {
-    return const <SavedResumableConversation>[];
+  Future<List<SavedConversationThread>> load() async {
+    return const <SavedConversationThread>[];
   }
 
   @override
-  Future<void> save(List<SavedResumableConversation> conversations) async {}
+  Future<void> save(List<SavedConversationThread> conversations) async {}
 }
 
 class DiscardingCodexConversationStateStore

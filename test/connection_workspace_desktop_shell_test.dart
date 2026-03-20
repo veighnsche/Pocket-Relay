@@ -121,9 +121,9 @@ void main() {
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final historyStore = MemoryCodexConnectionConversationHistoryStore(
-        initialValues: <String, List<SavedResumableConversation>>{
-          'conn_primary': const <SavedResumableConversation>[
-            SavedResumableConversation(
+        initialValues: <String, List<SavedConversationThread>>{
+          'conn_primary': const <SavedConversationThread>[
+            SavedConversationThread(
               threadId: 'thread_a',
               preview: 'Investigate local and SSH conversation storage',
               messageCount: 7,
@@ -183,9 +183,9 @@ void main() {
         clientsById: clientsById,
         repository: repository,
         historyStore: MemoryCodexConnectionConversationHistoryStore(
-          initialValues: <String, List<SavedResumableConversation>>{
-            'conn_primary': const <SavedResumableConversation>[
-              SavedResumableConversation(
+          initialValues: <String, List<SavedConversationThread>>{
+            'conn_primary': const <SavedConversationThread>[
+              SavedConversationThread(
                 threadId: 'thread_a',
                 preview: 'Should never load',
                 messageCount: 1,
@@ -252,9 +252,9 @@ void main() {
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final historyStore = MemoryCodexConnectionConversationHistoryStore(
-      initialValues: <String, List<SavedResumableConversation>>{
-        'conn_primary': const <SavedResumableConversation>[
-          SavedResumableConversation(
+      initialValues: <String, List<SavedConversationThread>>{
+        'conn_primary': const <SavedConversationThread>[
+          SavedConversationThread(
             threadId: 'thread_resume_me',
             preview: 'Resume me',
             messageCount: 2,

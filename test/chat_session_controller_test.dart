@@ -104,12 +104,12 @@ void main() {
   );
 
   test(
-    'sendPrompt records resumable conversation history by thread id',
+    'sendPrompt records conversation history by thread id',
     () async {
       final appServerClient = FakeCodexAppServerClient();
       final historyStore = _RecordingConversationHistoryStore(
-        initialValue: const <SavedResumableConversation>[
-          SavedResumableConversation(
+        initialValue: const <SavedConversationThread>[
+          SavedConversationThread(
             threadId: 'thread_123',
             preview: 'First prompt',
             messageCount: 1,
@@ -945,29 +945,29 @@ ConnectionProfile _configuredProfile() {
 class _RecordingConversationHistoryStore
     implements CodexConversationHistoryStore, CodexConversationStateStore {
   _RecordingConversationHistoryStore({
-    List<SavedResumableConversation> initialValue =
-        const <SavedResumableConversation>[],
+    List<SavedConversationThread> initialValue =
+        const <SavedConversationThread>[],
     SavedConnectionConversationState? initialState,
-  }) : saved = List<SavedResumableConversation>.from(
+  }) : saved = List<SavedConversationThread>.from(
          initialState?.conversations ?? initialValue,
        ),
        state =
            initialState ??
            SavedConnectionConversationState(
-             conversations: List<SavedResumableConversation>.from(initialValue),
+             conversations: List<SavedConversationThread>.from(initialValue),
            );
 
-  List<SavedResumableConversation> saved;
+  List<SavedConversationThread> saved;
   SavedConnectionConversationState state;
 
   @override
-  Future<List<SavedResumableConversation>> load() async {
-    return List<SavedResumableConversation>.from(saved);
+  Future<List<SavedConversationThread>> load() async {
+    return List<SavedConversationThread>.from(saved);
   }
 
   @override
-  Future<void> save(List<SavedResumableConversation> conversations) async {
-    saved = List<SavedResumableConversation>.from(conversations);
+  Future<void> save(List<SavedConversationThread> conversations) async {
+    saved = List<SavedConversationThread>.from(conversations);
     state = state.copyWith(conversations: saved);
   }
 
@@ -979,6 +979,6 @@ class _RecordingConversationHistoryStore
   @override
   Future<void> saveState(SavedConnectionConversationState nextState) async {
     state = nextState;
-    saved = List<SavedResumableConversation>.from(nextState.conversations);
+    saved = List<SavedConversationThread>.from(nextState.conversations);
   }
 }

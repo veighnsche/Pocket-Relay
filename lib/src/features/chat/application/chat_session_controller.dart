@@ -1064,8 +1064,8 @@ class ChatSessionController extends ChangeNotifier {
     try {
       final currentState = await conversationStateStore.loadState();
       final currentHistory = currentState.conversations;
-      final updatedHistory = <SavedResumableConversation>[];
-      SavedResumableConversation? matchingEntry;
+      final updatedHistory = <SavedConversationThread>[];
+      SavedConversationThread? matchingEntry;
       for (final entry in currentHistory) {
         if (entry.normalizedThreadId == normalizedThreadId) {
           matchingEntry = entry;
@@ -1083,7 +1083,7 @@ class ChatSessionController extends ChangeNotifier {
             firstPromptAt: matchingEntry.firstPromptAt ?? now,
             lastActivityAt: now,
           ) ??
-          SavedResumableConversation(
+          SavedConversationThread(
             threadId: normalizedThreadId,
             preview: trimmedPrompt,
             messageCount: 1,

@@ -230,10 +230,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     final currentState = await _connectionConversationStateStore.loadState(
       normalizedConnectionId,
     );
-    final nextConversations = <SavedResumableConversation>[
+    final nextConversations = <SavedConversationThread>[
       for (final conversation in currentState.conversations)
         if (conversation.normalizedThreadId != normalizedThreadId) conversation,
-      SavedResumableConversation(
+      SavedConversationThread(
         threadId: normalizedThreadId,
         preview: '',
         messageCount: 1,

@@ -236,7 +236,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   }
 
   Future<void> _resumeConversation(
-    SavedResumableConversation conversation,
+    SavedConversationThread conversation,
   ) async {
     if (!mounted) {
       return;

@@ -48,12 +48,12 @@ class ConnectionScopedConversationHistoryStore
   final CodexConnectionConversationHistoryStore _historyStore;
 
   @override
-  Future<List<SavedResumableConversation>> load() {
+  Future<List<SavedConversationThread>> load() {
     return _historyStore.load(_connectionId);
   }
 
   @override
-  Future<void> save(List<SavedResumableConversation> conversations) {
+  Future<void> save(List<SavedConversationThread> conversations) {
     return _historyStore.save(_connectionId, conversations);
   }
 }
