@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
@@ -19,6 +20,9 @@ class ChatSessionController extends ChangeNotifier {
     required this.profileStore,
     this.conversationHandoffStore =
         const DiscardingCodexConversationHandoffStore(),
+    this.conversationHistoryStore =
+        const DiscardingCodexConversationHistoryStore(),
+    this.conversationStateStore = const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
     SavedConversationHandoff initialSavedConversationHandoff =
@@ -44,6 +48,8 @@ class ChatSessionController extends ChangeNotifier {
 
   final CodexProfileStore profileStore;
   final CodexConversationHandoffStore conversationHandoffStore;
+  final CodexConversationHistoryStore conversationHistoryStore;
+  final CodexConversationStateStore conversationStateStore;
   final CodexAppServerClient appServerClient;
 
   final TranscriptReducer _sessionReducer;
@@ -482,6 +488,7 @@ class ChatSessionController extends ChangeNotifier {
         model: _selectedModelOverride(),
         effort: _profile.reasoningEffort,
       );
+      await _recordConversationHistory(threadId: turn.threadId, prompt: prompt);
       _rememberContinuationThread(turn.threadId);
       _applyRuntimeEvent(
         CodexRuntimeTurnStartedEvent(
@@ -1017,6 +1024,13 @@ class ChatSessionController extends ChangeNotifier {
     SavedConversationHandoff handoff,
   ) async {
     try {
+      final currentState = await conversationStateStore.loadState();
+      await conversationStateStore.saveState(
+        currentState.copyWith(
+          selectedThreadId: handoff.normalizedResumeThreadId,
+          clearSelectedThreadId: handoff.normalizedResumeThreadId == null,
+        ),
+      );
       await conversationHandoffStore.save(handoff);
     } catch (_) {
       // Conversation handoff persistence must not break the active session.
@@ -1039,5 +1053,62 @@ class ChatSessionController extends ChangeNotifier {
 
   static String? _asString(Object? value) {
     return value is String ? value : null;
+  }
+
+  Future<void> _recordConversationHistory({
+    required String threadId,
+    required String prompt,
+  }) async {
+    final normalizedThreadId = _normalizedThreadId(threadId);
+    if (normalizedThreadId == null) {
+      return;
+    }
+
+    final trimmedPrompt = prompt.trim();
+    if (trimmedPrompt.isEmpty) {
+      return;
+    }
+
+    final now = DateTime.now();
+    try {
+      final currentState = await conversationStateStore.loadState();
+      final currentHistory = currentState.conversations;
+      final updatedHistory = <SavedResumableConversation>[];
+      SavedResumableConversation? matchingEntry;
+      for (final entry in currentHistory) {
+        if (entry.normalizedThreadId == normalizedThreadId) {
+          matchingEntry = entry;
+          continue;
+        }
+        updatedHistory.add(entry);
+      }
+
+      final nextEntry =
+          matchingEntry?.copyWith(
+            preview: matchingEntry.preview.trim().isEmpty
+                ? trimmedPrompt
+                : matchingEntry.preview,
+            messageCount: matchingEntry.messageCount + 1,
+            firstPromptAt: matchingEntry.firstPromptAt ?? now,
+            lastActivityAt: now,
+          ) ??
+          SavedResumableConversation(
+            threadId: normalizedThreadId,
+            preview: trimmedPrompt,
+            messageCount: 1,
+            firstPromptAt: now,
+            lastActivityAt: now,
+          );
+      updatedHistory.insert(0, nextEntry);
+      await conversationStateStore.saveState(
+        currentState.copyWith(
+          selectedThreadId: normalizedThreadId,
+          conversations: updatedHistory,
+        ),
+      );
+      await conversationHistoryStore.save(updatedHistory);
+    } catch (_) {
+      // Conversation history persistence must not break the active session.
+    }
   }
 }

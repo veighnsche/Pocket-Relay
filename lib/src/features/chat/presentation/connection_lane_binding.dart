@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
@@ -16,6 +17,9 @@ class ConnectionLaneBinding {
     required this.connectionId,
     required CodexProfileStore profileStore,
     required CodexConversationHandoffStore conversationHandoffStore,
+    this.conversationHistoryStore =
+        const DiscardingCodexConversationHistoryStore(),
+    this.conversationStateStore = const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
     SavedConversationHandoff initialSavedConversationHandoff =
@@ -27,6 +31,8 @@ class ConnectionLaneBinding {
        sessionController = ChatSessionController(
          profileStore: profileStore,
          conversationHandoffStore: conversationHandoffStore,
+         conversationHistoryStore: conversationHistoryStore,
+         conversationStateStore: conversationStateStore,
          appServerClient: appServerClient,
          initialSavedProfile: initialSavedProfile,
          initialSavedConversationHandoff: initialSavedConversationHandoff,
@@ -39,6 +45,8 @@ class ConnectionLaneBinding {
   }
 
   final String connectionId;
+  final CodexConversationHistoryStore conversationHistoryStore;
+  final CodexConversationStateStore conversationStateStore;
   final CodexAppServerClient appServerClient;
   final ChatSessionController sessionController;
   final ChatComposerDraftHost composerDraftHost = ChatComposerDraftHost();

@@ -25,12 +25,11 @@ void main() {
   });
 
   test(
-    'load ignores legacy singleton handoff data once the migration window is closed',
+    'load migrates legacy per-connection handoff data into conversation state',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{
-        'codex_pocket.conversation_handoff': jsonEncode(<String, Object?>{
-          'resumeThreadId': 'thread_legacy',
-        }),
+        'pocket_relay.connection.conn_secondary.conversation_handoff':
+            jsonEncode(<String, Object?>{'resumeThreadId': 'thread_legacy'}),
       });
 
       final preferences = SharedPreferencesAsync();
@@ -38,12 +37,18 @@ void main() {
 
       final handoff = await store.load('conn_secondary');
 
-      expect(handoff, const SavedConversationHandoff());
+      expect(handoff.normalizedResumeThreadId, 'thread_legacy');
       expect(
         await preferences.getString(
           'pocket_relay.connection.conn_secondary.conversation_handoff',
         ),
         isNull,
+      );
+      expect(
+        await preferences.getString(
+          'pocket_relay.connection.conn_secondary.conversation_state',
+        ),
+        isNotNull,
       );
     },
   );

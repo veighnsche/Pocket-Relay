@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
@@ -14,7 +15,6 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_desktop_shell.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_live_lane_surface.dart';
@@ -25,7 +25,7 @@ class PocketRelayApp extends StatefulWidget {
     super.key,
     this.connectionRepository,
     this.connectionHandoffStore,
-    this.conversationHistoryRepository,
+    this.connectionConversationHistoryStore,
     this.appServerClient,
     this.displayWakeLockController,
     this.platformPolicy,
@@ -36,8 +36,8 @@ class PocketRelayApp extends StatefulWidget {
 
   final CodexConnectionRepository? connectionRepository;
   final CodexConnectionHandoffStore? connectionHandoffStore;
-  final CodexWorkspaceConversationHistoryRepository?
-  conversationHistoryRepository;
+  final CodexConnectionConversationHistoryStore?
+  connectionConversationHistoryStore;
   final CodexAppServerClient? appServerClient;
   final DisplayWakeLockController? displayWakeLockController;
   final PocketPlatformPolicy? platformPolicy;
@@ -51,8 +51,7 @@ class PocketRelayApp extends StatefulWidget {
 class _PocketRelayAppState extends State<PocketRelayApp> {
   CodexConnectionRepository? _ownedConnectionRepository;
   CodexConnectionHandoffStore? _ownedConnectionHandoffStore;
-  CodexWorkspaceConversationHistoryRepository?
-  _ownedConversationHistoryRepository;
+  CodexConnectionConversationHistoryStore? _ownedConversationHistoryStore;
   late ConnectionWorkspaceController _workspaceController;
 
   @override
@@ -68,8 +67,8 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     final workspaceDependenciesChanged =
         oldWidget.connectionRepository != widget.connectionRepository ||
         oldWidget.connectionHandoffStore != widget.connectionHandoffStore ||
-        oldWidget.conversationHistoryRepository !=
-            widget.conversationHistoryRepository ||
+        oldWidget.connectionConversationHistoryStore !=
+            widget.connectionConversationHistoryStore ||
         oldWidget.appServerClient != widget.appServerClient ||
         oldWidget.platformPolicy != widget.platformPolicy ||
         oldWidget.chatRootPlatformPolicy != widget.chatRootPlatformPolicy;
@@ -102,6 +101,7 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
         widget.connectionRepository ??
         (_ownedConnectionRepository ??= SecureCodexConnectionRepository());
     final connectionHandoffStore = _resolveConnectionHandoffStore();
+    final conversationHistoryStore = _resolveConversationHistoryStore();
     final platformPolicy = _resolvedPlatformPolicy;
     var usedInjectedAppServerClient = false;
 
@@ -132,6 +132,17 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
                     connectionId: connectionId,
                     handoffStore: connectionHandoffStore,
                   ),
+              conversationHistoryStore:
+                  ConnectionScopedConversationHistoryStore(
+                    connectionId: connectionId,
+                    historyStore: conversationHistoryStore,
+                  ),
+              conversationStateStore: ConnectionScopedConversationStateStore(
+                connectionId: connectionId,
+                conversationStateStore:
+                    conversationHistoryStore
+                        as CodexConnectionConversationStateStore,
+              ),
               appServerClient: usingInjectedClient
                   ? injectedAppServerClient
                   : CodexAppServerClient(),
@@ -148,11 +159,10 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     );
   }
 
-  CodexWorkspaceConversationHistoryRepository
-  _resolveConversationHistoryRepository() {
-    return widget.conversationHistoryRepository ??
-        (_ownedConversationHistoryRepository ??=
-            CodexStorageConversationHistoryRepository());
+  CodexConnectionConversationHistoryStore _resolveConversationHistoryStore() {
+    return widget.connectionConversationHistoryStore ??
+        (_ownedConversationHistoryStore ??=
+            SecureCodexConnectionConversationHistoryStore());
   }
 
   CodexConnectionHandoffStore _resolveConnectionHandoffStore() {
@@ -160,7 +170,13 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
       return injectedHandoffStore;
     }
 
-    return _ownedConnectionHandoffStore ??= SecureCodexConnectionHandoffStore();
+    final conversationHistoryStore = _resolveConversationHistoryStore();
+    return _ownedConnectionHandoffStore ??= SecureCodexConnectionHandoffStore(
+      conversationStateStore:
+          conversationHistoryStore is CodexConnectionConversationStateStore
+          ? conversationHistoryStore as CodexConnectionConversationStateStore
+          : null,
+    );
   }
 
   @override
@@ -181,8 +197,6 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
         child: _PocketRelayHome(
           workspaceController: _workspaceController,
           platformPolicy: platformPolicy,
-          conversationHistoryRepository:
-              _resolveConversationHistoryRepository(),
           settingsOverlayDelegate: widget.settingsOverlayDelegate,
         ),
       ),
@@ -194,14 +208,11 @@ class _PocketRelayHome extends StatelessWidget {
   const _PocketRelayHome({
     required this.workspaceController,
     required this.platformPolicy,
-    required this.conversationHistoryRepository,
     required this.settingsOverlayDelegate,
   });
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository
-  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -218,7 +229,6 @@ class _PocketRelayHome extends StatelessWidget {
           return ConnectionWorkspaceMobileShell(
             workspaceController: workspaceController,
             platformPolicy: platformPolicy,
-            conversationHistoryRepository: conversationHistoryRepository,
             settingsOverlayDelegate: settingsOverlayDelegate,
           );
         }
@@ -227,7 +237,6 @@ class _PocketRelayHome extends StatelessWidget {
           return ConnectionWorkspaceDesktopShell(
             workspaceController: workspaceController,
             platformPolicy: platformPolicy,
-            conversationHistoryRepository: conversationHistoryRepository,
             settingsOverlayDelegate: settingsOverlayDelegate,
           );
         }
@@ -238,7 +247,6 @@ class _PocketRelayHome extends StatelessWidget {
             workspaceController: workspaceController,
             laneBinding: selectedLaneBinding,
             platformPolicy: platformPolicy,
-            conversationHistoryRepository: conversationHistoryRepository,
             settingsOverlayDelegate: settingsOverlayDelegate,
           );
         }

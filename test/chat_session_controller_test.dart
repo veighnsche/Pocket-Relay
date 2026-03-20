@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
@@ -100,6 +101,50 @@ void main() {
         await handoffStore.load(),
         const SavedConversationHandoff(resumeThreadId: 'thread_saved'),
       );
+    },
+  );
+
+  test(
+    'sendPrompt records resumable conversation history by thread id',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      final historyStore = _RecordingConversationHistoryStore(
+        initialValue: const <SavedResumableConversation>[
+          SavedResumableConversation(
+            threadId: 'thread_123',
+            preview: 'First prompt',
+            messageCount: 1,
+            firstPromptAt: null,
+            lastActivityAt: null,
+          ),
+        ],
+      );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        conversationHistoryStore: historyStore,
+        conversationStateStore: historyStore,
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('Second prompt'), isTrue);
+
+      expect(historyStore.saved.single.normalizedThreadId, 'thread_123');
+      expect(historyStore.saved.single.preview, 'First prompt');
+      expect(historyStore.saved.single.messageCount, 2);
+      expect(historyStore.saved.single.firstPromptAt, isNotNull);
+      expect(historyStore.saved.single.lastActivityAt, isNotNull);
     },
   );
 
@@ -901,4 +946,40 @@ ConnectionProfile _configuredProfile() {
     username: 'vince',
     workspaceDir: '/workspace',
   );
+}
+
+class _RecordingConversationHistoryStore
+    implements CodexConversationHistoryStore, CodexConversationStateStore {
+  _RecordingConversationHistoryStore({
+    List<SavedResumableConversation> initialValue =
+        const <SavedResumableConversation>[],
+  }) : saved = List<SavedResumableConversation>.from(initialValue),
+       state = SavedConnectionConversationState(
+         conversations: List<SavedResumableConversation>.from(initialValue),
+       );
+
+  List<SavedResumableConversation> saved;
+  SavedConnectionConversationState state;
+
+  @override
+  Future<List<SavedResumableConversation>> load() async {
+    return List<SavedResumableConversation>.from(saved);
+  }
+
+  @override
+  Future<void> save(List<SavedResumableConversation> conversations) async {
+    saved = List<SavedResumableConversation>.from(conversations);
+    state = state.copyWith(conversations: saved);
+  }
+
+  @override
+  Future<SavedConnectionConversationState> loadState() async {
+    return state;
+  }
+
+  @override
+  Future<void> saveState(SavedConnectionConversationState nextState) async {
+    state = nextState;
+    saved = List<SavedResumableConversation>.from(nextState.conversations);
+  }
 }
