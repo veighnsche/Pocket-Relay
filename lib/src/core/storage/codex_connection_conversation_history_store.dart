@@ -72,11 +72,9 @@ class SavedConversationThread {
 class SavedConnectionConversationState {
   const SavedConnectionConversationState({
     this.selectedThreadId,
-    this.conversations = const <SavedConversationThread>[],
   });
 
   final String? selectedThreadId;
-  final List<SavedConversationThread> conversations;
 
   String? get normalizedSelectedThreadId {
     final normalized = selectedThreadId?.trim();
@@ -89,70 +87,33 @@ class SavedConnectionConversationState {
   SavedConnectionConversationState copyWith({
     String? selectedThreadId,
     bool clearSelectedThreadId = false,
-    List<SavedConversationThread>? conversations,
   }) {
     return SavedConnectionConversationState(
       selectedThreadId: clearSelectedThreadId
           ? null
           : (selectedThreadId ?? this.selectedThreadId),
-      conversations: conversations ?? this.conversations,
     );
   }
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'selectedThreadId': normalizedSelectedThreadId,
-      'conversations': conversations
-          .where((entry) => entry.normalizedThreadId.isNotEmpty)
-          .map((entry) => entry.toJson())
-          .toList(growable: false),
     };
   }
 
   factory SavedConnectionConversationState.fromJson(Map<String, dynamic> json) {
-    final rawConversations = json['conversations'];
-    final conversations = rawConversations is List
-        ? rawConversations
-              .whereType<Map>()
-              .map(
-                (entry) => SavedConversationThread.fromJson(
-                  Map<String, dynamic>.from(entry),
-                ),
-              )
-              .where((entry) => entry.normalizedThreadId.isNotEmpty)
-              .toList(growable: false)
-        : const <SavedConversationThread>[];
-
     return SavedConnectionConversationState(
       selectedThreadId: json['selectedThreadId'] as String?,
-      conversations: conversations,
     );
   }
 }
 
 const Object _historySentinel = Object();
 
-abstract interface class CodexConversationHistoryStore {
-  Future<List<SavedConversationThread>> load();
-
-  Future<void> save(List<SavedConversationThread> conversations);
-}
-
 abstract interface class CodexConversationStateStore {
   Future<SavedConnectionConversationState> loadState();
 
   Future<void> saveState(SavedConnectionConversationState state);
-}
-
-abstract interface class CodexConnectionConversationHistoryStore {
-  Future<List<SavedConversationThread>> load(String connectionId);
-
-  Future<void> save(
-    String connectionId,
-    List<SavedConversationThread> conversations,
-  );
-
-  Future<void> delete(String connectionId);
 }
 
 abstract interface class CodexConnectionConversationStateStore {
@@ -167,9 +128,7 @@ abstract interface class CodexConnectionConversationStateStore {
 }
 
 class SecureCodexConnectionConversationHistoryStore
-    implements
-        CodexConnectionConversationHistoryStore,
-        CodexConnectionConversationStateStore {
+    implements CodexConnectionConversationStateStore {
   static const _stateKeyPrefix = 'pocket_relay.connection.';
   static const _stateKeySuffix = '.conversation_state';
   static const _legacyHistoryKeySuffix = '.conversation_history';
@@ -185,29 +144,6 @@ class SecureCodexConnectionConversationHistoryStore
   final MemoryCodexConnectionConversationHistoryStore _fallbackStore =
       MemoryCodexConnectionConversationHistoryStore();
   Future<void>? _preferencesReady;
-
-  @override
-  Future<List<SavedConversationThread>> load(String connectionId) async {
-    final state = await loadState(connectionId);
-    return List<SavedConversationThread>.from(state.conversations);
-  }
-
-  @override
-  Future<void> save(
-    String connectionId,
-    List<SavedConversationThread> conversations,
-  ) async {
-    final currentState = await loadState(connectionId);
-    await saveState(
-      connectionId,
-      currentState.copyWith(conversations: conversations),
-    );
-  }
-
-  @override
-  Future<void> delete(String connectionId) {
-    return deleteState(connectionId);
-  }
 
   @override
   Future<SavedConnectionConversationState> loadState(
@@ -253,13 +189,9 @@ class SecureCodexConnectionConversationHistoryStore
     await _ensurePreferencesReady();
     final normalizedState = SavedConnectionConversationState(
       selectedThreadId: state.normalizedSelectedThreadId,
-      conversations: state.conversations
-          .where((entry) => entry.normalizedThreadId.isNotEmpty)
-          .toList(growable: false),
     );
     final key = _stateKeyForConnection(normalizedConnectionId);
-    if (normalizedState.normalizedSelectedThreadId == null &&
-        normalizedState.conversations.isEmpty) {
+    if (normalizedState.normalizedSelectedThreadId == null) {
       await preferences.remove(key);
     } else {
       await preferences.setString(key, jsonEncode(normalizedState.toJson()));
@@ -300,61 +232,17 @@ class SecureCodexConnectionConversationHistoryStore
       return null;
     }
 
-    final rawHistory = await preferences.getString(
-      _legacyHistoryKeyForConnection(connectionId),
-    );
     final rawHandoff = await preferences.getString(
       _legacyHandoffKeyForConnection(connectionId),
     );
-    if ((rawHistory == null || rawHistory.trim().isEmpty) &&
-        (rawHandoff == null || rawHandoff.trim().isEmpty)) {
+    if (rawHandoff == null || rawHandoff.trim().isEmpty) {
       return null;
     }
 
-    final conversations = rawHistory == null || rawHistory.trim().isEmpty
-        ? const <SavedConversationThread>[]
-        : _decodeLegacyHistory(rawHistory);
-    final selectedThreadId = rawHandoff == null || rawHandoff.trim().isEmpty
-        ? null
-        : _decodeLegacySelectedThreadId(rawHandoff);
-
-    final alreadyPresent = selectedThreadId == null
-        ? true
-        : conversations.any(
-            (entry) => entry.normalizedThreadId == selectedThreadId,
-          );
+    final selectedThreadId = _decodeLegacySelectedThreadId(rawHandoff);
     return SavedConnectionConversationState(
       selectedThreadId: selectedThreadId,
-      conversations: alreadyPresent
-          ? conversations
-          : <SavedConversationThread>[
-              SavedConversationThread(
-                threadId: selectedThreadId,
-                preview: '',
-                messageCount: 1,
-                firstPromptAt: null,
-                lastActivityAt: null,
-              ),
-              ...conversations,
-            ],
     );
-  }
-
-  List<SavedConversationThread> _decodeLegacyHistory(String rawHistory) {
-    final decoded = jsonDecode(rawHistory);
-    if (decoded is! List) {
-      return const <SavedConversationThread>[];
-    }
-
-    return decoded
-        .whereType<Map>()
-        .map(
-          (entry) => SavedConversationThread.fromJson(
-            Map<String, dynamic>.from(entry),
-          ),
-        )
-        .where((entry) => entry.normalizedThreadId.isNotEmpty)
-        .toList(growable: false);
   }
 
   String? _decodeLegacySelectedThreadId(String rawHandoff) {
@@ -417,57 +305,22 @@ class SecureCodexConnectionConversationHistoryStore
 }
 
 class MemoryCodexConnectionConversationHistoryStore
-    implements
-        CodexConnectionConversationHistoryStore,
-        CodexConnectionConversationStateStore {
+    implements CodexConnectionConversationStateStore {
   MemoryCodexConnectionConversationHistoryStore({
-    Map<String, List<SavedConversationThread>>? initialValues,
     Map<String, SavedConnectionConversationState>? initialStates,
-  }) : _statesByConnectionId = initialStates == null
-           ? <String, SavedConnectionConversationState>{
-               if (initialValues != null)
-                 for (final entry in initialValues.entries)
-                   entry.key: SavedConnectionConversationState(
-                     conversations: List<SavedConversationThread>.from(
-                       entry.value,
-                     ),
-                   ),
-             }
-           : initialStates.map(
+  }) : _statesByConnectionId = (initialStates ??
+               const <String, SavedConnectionConversationState>{})
+           .map(
                (key, value) =>
                    MapEntry<String, SavedConnectionConversationState>(
                      key,
                      SavedConnectionConversationState(
                        selectedThreadId: value.selectedThreadId,
-                       conversations: List<SavedConversationThread>.from(
-                         value.conversations,
-                       ),
                      ),
                    ),
              );
 
   final Map<String, SavedConnectionConversationState> _statesByConnectionId;
-
-  @override
-  Future<List<SavedConversationThread>> load(String connectionId) async {
-    return List<SavedConversationThread>.from(
-      (await loadState(connectionId)).conversations,
-    );
-  }
-
-  @override
-  Future<void> save(
-    String connectionId,
-    List<SavedConversationThread> conversations,
-  ) async {
-    final state = await loadState(connectionId);
-    await saveState(connectionId, state.copyWith(conversations: conversations));
-  }
-
-  @override
-  Future<void> delete(String connectionId) {
-    return deleteState(connectionId);
-  }
 
   @override
   Future<SavedConnectionConversationState> loadState(
@@ -479,7 +332,6 @@ class MemoryCodexConnectionConversationHistoryStore
     }
     return SavedConnectionConversationState(
       selectedThreadId: state.selectedThreadId,
-      conversations: List<SavedConversationThread>.from(state.conversations),
     );
   }
 
@@ -488,15 +340,13 @@ class MemoryCodexConnectionConversationHistoryStore
     String connectionId,
     SavedConnectionConversationState state,
   ) async {
-    if (state.normalizedSelectedThreadId == null &&
-        state.conversations.isEmpty) {
+    if (state.normalizedSelectedThreadId == null) {
       _statesByConnectionId.remove(connectionId);
       return;
     }
 
     _statesByConnectionId[connectionId] = SavedConnectionConversationState(
       selectedThreadId: state.normalizedSelectedThreadId,
-      conversations: List<SavedConversationThread>.from(state.conversations),
     );
   }
 
@@ -504,19 +354,6 @@ class MemoryCodexConnectionConversationHistoryStore
   Future<void> deleteState(String connectionId) async {
     _statesByConnectionId.remove(connectionId);
   }
-}
-
-class DiscardingCodexConversationHistoryStore
-    implements CodexConversationHistoryStore {
-  const DiscardingCodexConversationHistoryStore();
-
-  @override
-  Future<List<SavedConversationThread>> load() async {
-    return const <SavedConversationThread>[];
-  }
-
-  @override
-  Future<void> save(List<SavedConversationThread> conversations) async {}
 }
 
 class DiscardingCodexConversationStateStore

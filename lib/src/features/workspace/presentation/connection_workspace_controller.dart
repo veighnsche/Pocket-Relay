@@ -228,25 +228,12 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
     await initialize();
     _requireKnownConnectionId(normalizedConnectionId);
-    final currentState = await _connectionConversationStateStore.loadState(
-      normalizedConnectionId,
-    );
-    final nextConversations = <SavedConversationThread>[
-      for (final conversation in currentState.conversations)
-        if (conversation.normalizedThreadId != normalizedThreadId) conversation,
-      SavedConversationThread(
-        threadId: normalizedThreadId,
-        preview: '',
-        messageCount: 1,
-        firstPromptAt: null,
-        lastActivityAt: null,
-      ),
-    ];
     await _connectionConversationStateStore.saveState(
       normalizedConnectionId,
-      currentState.copyWith(
+      (await _connectionConversationStateStore.loadState(
+        normalizedConnectionId,
+      )).copyWith(
         selectedThreadId: normalizedThreadId,
-        conversations: nextConversations,
       ),
     );
 
