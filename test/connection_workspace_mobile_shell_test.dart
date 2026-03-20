@@ -15,6 +15,7 @@ import 'package:pocket_relay/src/features/workspace/presentation/connection_work
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_mobile_shell.dart';
 
 import 'support/fake_codex_app_server_client.dart';
+import 'support/fake_codex_workspace_conversation_history_repository.dart';
 import 'support/fake_connection_settings_overlay_delegate.dart';
 
 void main() {
@@ -788,6 +789,8 @@ Widget _buildShell(
     home: ConnectionWorkspaceMobileShell(
       workspaceController: controller,
       platformPolicy: PocketPlatformPolicy.resolve(platform: platform),
+      conversationHistoryRepository:
+          const FakeCodexWorkspaceConversationHistoryRepository(),
       settingsOverlayDelegate:
           settingsOverlayDelegate ?? FakeConnectionSettingsOverlayDelegate(),
     ),

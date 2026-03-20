@@ -15,6 +15,7 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_region_policy.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_desktop_shell.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_live_lane_surface.dart';
@@ -26,6 +27,7 @@ class PocketRelayApp extends StatefulWidget {
     this.connectionRepository,
     this.connectionHandoffStore,
     this.connectionConversationHistoryStore,
+    this.workspaceConversationHistoryRepository,
     this.appServerClient,
     this.displayWakeLockController,
     this.platformPolicy,
@@ -38,6 +40,8 @@ class PocketRelayApp extends StatefulWidget {
   final CodexConnectionHandoffStore? connectionHandoffStore;
   final CodexConnectionConversationHistoryStore?
   connectionConversationHistoryStore;
+  final CodexWorkspaceConversationHistoryRepository?
+  workspaceConversationHistoryRepository;
   final CodexAppServerClient? appServerClient;
   final DisplayWakeLockController? displayWakeLockController;
   final PocketPlatformPolicy? platformPolicy;
@@ -52,6 +56,8 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
   CodexConnectionRepository? _ownedConnectionRepository;
   CodexConnectionHandoffStore? _ownedConnectionHandoffStore;
   CodexConnectionConversationHistoryStore? _ownedConversationHistoryStore;
+  CodexWorkspaceConversationHistoryRepository?
+  _ownedWorkspaceConversationHistoryRepository;
   late ConnectionWorkspaceController _workspaceController;
 
   @override
@@ -179,6 +185,13 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     );
   }
 
+  CodexWorkspaceConversationHistoryRepository
+  _resolveWorkspaceConversationHistoryRepository() {
+    return widget.workspaceConversationHistoryRepository ??
+        (_ownedWorkspaceConversationHistoryRepository ??=
+            CodexStorageConversationHistoryRepository());
+  }
+
   @override
   Widget build(BuildContext context) {
     final platformPolicy = _resolvedPlatformPolicy;
@@ -197,6 +210,8 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
         child: _PocketRelayHome(
           workspaceController: _workspaceController,
           platformPolicy: platformPolicy,
+          conversationHistoryRepository:
+              _resolveWorkspaceConversationHistoryRepository(),
           settingsOverlayDelegate: widget.settingsOverlayDelegate,
         ),
       ),
@@ -208,11 +223,14 @@ class _PocketRelayHome extends StatelessWidget {
   const _PocketRelayHome({
     required this.workspaceController,
     required this.platformPolicy,
+    required this.conversationHistoryRepository,
     required this.settingsOverlayDelegate,
   });
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
+  final CodexWorkspaceConversationHistoryRepository
+  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -229,6 +247,7 @@ class _PocketRelayHome extends StatelessWidget {
           return ConnectionWorkspaceMobileShell(
             workspaceController: workspaceController,
             platformPolicy: platformPolicy,
+            conversationHistoryRepository: conversationHistoryRepository,
             settingsOverlayDelegate: settingsOverlayDelegate,
           );
         }
@@ -237,6 +256,7 @@ class _PocketRelayHome extends StatelessWidget {
           return ConnectionWorkspaceDesktopShell(
             workspaceController: workspaceController,
             platformPolicy: platformPolicy,
+            conversationHistoryRepository: conversationHistoryRepository,
             settingsOverlayDelegate: settingsOverlayDelegate,
           );
         }
@@ -247,6 +267,7 @@ class _PocketRelayHome extends StatelessWidget {
             workspaceController: workspaceController,
             laneBinding: selectedLaneBinding,
             platformPolicy: platformPolicy,
+            conversationHistoryRepository: conversationHistoryRepository,
             settingsOverlayDelegate: settingsOverlayDelegate,
           );
         }

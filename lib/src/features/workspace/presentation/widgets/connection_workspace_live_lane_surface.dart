@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
+import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
@@ -224,17 +226,171 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
+      builder: (sheetContext) {
         return FractionallySizedBox(
           heightFactor: 0.82,
           child: ConnectionWorkspaceConversationHistorySheet(
             title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-            future: widget.conversationHistoryRepository
-                .loadWorkspaceConversations(profile: profile, secrets: secrets),
+            future: _loadConversationHistory(
+              profile: profile,
+              secrets: secrets,
+            ),
+            onConversationSelected: (conversation) async {
+              Navigator.of(sheetContext).pop();
+              await widget.workspaceController.resumeConversation(
+                connectionId: widget.laneBinding.connectionId,
+                threadId: conversation.sessionId,
+              );
+            },
           ),
         );
       },
     );
+  }
+
+  Future<List<CodexWorkspaceConversationSummary>> _loadConversationHistory({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    final savedStateFuture = widget.laneBinding.conversationStateStore
+        .loadState();
+    List<CodexWorkspaceConversationSummary> workspaceConversations;
+    Object? workspaceLoadError;
+    StackTrace? workspaceLoadStackTrace;
+
+    try {
+      workspaceConversations = await widget.conversationHistoryRepository
+          .loadWorkspaceConversations(profile: profile, secrets: secrets);
+    } catch (error, stackTrace) {
+      workspaceConversations = const <CodexWorkspaceConversationSummary>[];
+      workspaceLoadError = error;
+      workspaceLoadStackTrace = stackTrace;
+    }
+
+    final savedState = await savedStateFuture;
+    final mergedConversations = _mergeConversationSummaries(
+      workspaceConversations: workspaceConversations,
+      savedState: savedState,
+      workspaceDir: profile.workspaceDir.trim(),
+    );
+    if (mergedConversations.isNotEmpty || workspaceLoadError == null) {
+      return mergedConversations;
+    }
+
+    Error.throwWithStackTrace(
+      workspaceLoadError,
+      workspaceLoadStackTrace ?? StackTrace.current,
+    );
+  }
+
+  List<CodexWorkspaceConversationSummary> _mergeConversationSummaries({
+    required List<CodexWorkspaceConversationSummary> workspaceConversations,
+    required SavedConnectionConversationState savedState,
+    required String workspaceDir,
+  }) {
+    final conversationsById = <String, CodexWorkspaceConversationSummary>{};
+    final orderedConversationIds = <String>[];
+
+    void addConversation(CodexWorkspaceConversationSummary conversation) {
+      final normalizedSessionId = conversation.sessionId.trim();
+      if (normalizedSessionId.isEmpty) {
+        return;
+      }
+
+      final normalizedConversation = CodexWorkspaceConversationSummary(
+        sessionId: normalizedSessionId,
+        preview: conversation.preview,
+        cwd: conversation.cwd,
+        messageCount: conversation.messageCount,
+        firstPromptAt: conversation.firstPromptAt,
+        lastActivityAt: conversation.lastActivityAt,
+      );
+      final existingConversation = conversationsById[normalizedSessionId];
+      if (existingConversation == null) {
+        conversationsById[normalizedSessionId] = normalizedConversation;
+        orderedConversationIds.add(normalizedSessionId);
+        return;
+      }
+
+      conversationsById[normalizedSessionId] = _preferRicherConversation(
+        existingConversation,
+        normalizedConversation,
+      );
+    }
+
+    for (final conversation in workspaceConversations) {
+      addConversation(conversation);
+    }
+
+    for (final conversation in savedState.conversations) {
+      addConversation(
+        _summaryFromSavedConversation(
+          conversation: conversation,
+          workspaceDir: workspaceDir,
+        ),
+      );
+    }
+
+    final selectedThreadId = savedState.normalizedSelectedThreadId;
+    if (selectedThreadId != null) {
+      addConversation(
+        CodexWorkspaceConversationSummary(
+          sessionId: selectedThreadId,
+          preview: '',
+          cwd: workspaceDir,
+          messageCount: 1,
+          firstPromptAt: null,
+          lastActivityAt: null,
+        ),
+      );
+    }
+
+    return <CodexWorkspaceConversationSummary>[
+      for (final conversationId in orderedConversationIds)
+        conversationsById[conversationId]!,
+    ];
+  }
+
+  CodexWorkspaceConversationSummary _summaryFromSavedConversation({
+    required SavedResumableConversation conversation,
+    required String workspaceDir,
+  }) {
+    return CodexWorkspaceConversationSummary(
+      sessionId: conversation.normalizedThreadId,
+      preview: conversation.preview,
+      cwd: workspaceDir,
+      messageCount: conversation.messageCount,
+      firstPromptAt: conversation.firstPromptAt,
+      lastActivityAt: conversation.lastActivityAt,
+    );
+  }
+
+  CodexWorkspaceConversationSummary _preferRicherConversation(
+    CodexWorkspaceConversationSummary existingConversation,
+    CodexWorkspaceConversationSummary candidateConversation,
+  ) {
+    final existingScore = _conversationScore(existingConversation);
+    final candidateScore = _conversationScore(candidateConversation);
+    return candidateScore > existingScore
+        ? candidateConversation
+        : existingConversation;
+  }
+
+  int _conversationScore(CodexWorkspaceConversationSummary conversation) {
+    var score = 0;
+    if (conversation.trimmedPreview.isNotEmpty) {
+      score += 4;
+    }
+    if (conversation.messageCount > 0) {
+      score += 2;
+    }
+    if (conversation.lastActivityAt != null) {
+      score += 1;
+    }
+    if (conversation.cwd.trim().isNotEmpty) {
+      score += 1;
+    }
+    return score;
   }
 
   Future<(ConnectionProfile, ConnectionSecrets)> _resolveInitialSettings({

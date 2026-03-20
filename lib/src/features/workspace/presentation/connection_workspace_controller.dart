@@ -212,6 +212,50 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
   }
 
+  Future<void> resumeConversation({
+    required String connectionId,
+    required String threadId,
+  }) async {
+    final normalizedConnectionId = _normalizeConnectionId(connectionId);
+    final normalizedThreadId = _normalizeConnectionId(threadId);
+    await initialize();
+    _requireKnownConnectionId(normalizedConnectionId);
+
+    await _connectionHandoffStore.save(
+      normalizedConnectionId,
+      SavedConversationHandoff(resumeThreadId: normalizedThreadId),
+    );
+
+    final nextBinding = await _loadLaneBinding(normalizedConnectionId);
+    if (_isDisposed) {
+      nextBinding.dispose();
+      return;
+    }
+
+    final previousBinding = _liveBindingsByConnectionId[normalizedConnectionId];
+    if (previousBinding == null) {
+      nextBinding.dispose();
+      return;
+    }
+
+    _liveBindingsByConnectionId[normalizedConnectionId] = nextBinding;
+    previousBinding.dispose();
+    _applyState(
+      _state.copyWith(
+        selectedConnectionId: normalizedConnectionId,
+        viewport: ConnectionWorkspaceViewport.liveLane,
+        reconnectRequiredConnectionIds: _sanitizeReconnectRequiredConnectionIds(
+          catalog: _state.catalog,
+          liveConnectionIds: _state.liveConnectionIds,
+          reconnectRequiredConnectionIds: <String>{
+            for (final connectionId in _state.reconnectRequiredConnectionIds)
+              if (connectionId != normalizedConnectionId) connectionId,
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> deleteDormantConnection(String connectionId) async {
     final normalizedConnectionId = _normalizeConnectionId(connectionId);
     await initialize();

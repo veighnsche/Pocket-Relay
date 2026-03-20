@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
@@ -8,10 +10,13 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     super.key,
     required this.title,
     required this.future,
+    this.onConversationSelected,
   });
 
   final String title;
   final Future<List<CodexWorkspaceConversationSummary>> future;
+  final Future<void> Function(CodexWorkspaceConversationSummary conversation)?
+  onConversationSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +137,13 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
                             horizontal: 16,
                             vertical: 10,
                           ),
+                          onTap: onConversationSelected == null
+                              ? null
+                              : () {
+                                  unawaited(
+                                    onConversationSelected!(conversation),
+                                  );
+                                },
                           title: Text(
                             conversation.trimmedPreview.isEmpty
                                 ? conversation.sessionId
