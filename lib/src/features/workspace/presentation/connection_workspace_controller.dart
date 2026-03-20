@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
@@ -18,13 +19,16 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceController({
     required CodexConnectionRepository connectionRepository,
     required CodexConnectionHandoffStore connectionHandoffStore,
+    required CodexConnectionConversationStateStore connectionConversationStateStore,
     required ConnectionLaneBindingFactory laneBindingFactory,
   }) : _connectionRepository = connectionRepository,
        _connectionHandoffStore = connectionHandoffStore,
+       _connectionConversationStateStore = connectionConversationStateStore,
        _laneBindingFactory = laneBindingFactory;
 
   final CodexConnectionRepository _connectionRepository;
   final CodexConnectionHandoffStore _connectionHandoffStore;
+  final CodexConnectionConversationStateStore _connectionConversationStateStore;
   final ConnectionLaneBindingFactory _laneBindingFactory;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
       <String, ConnectionLaneBinding>{};
@@ -212,6 +216,81 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
   }
 
+  Future<void> resumeConversation({
+    required String connectionId,
+    required String threadId,
+  }) async {
+    final normalizedConnectionId = _normalizeConnectionId(connectionId);
+    final normalizedThreadId = threadId.trim();
+    if (normalizedThreadId.isEmpty) {
+      throw ArgumentError.value(
+        threadId,
+        'threadId',
+        'Thread id must not be empty.',
+      );
+    }
+
+    await initialize();
+    _requireKnownConnectionId(normalizedConnectionId);
+    final currentState = await _connectionConversationStateStore.loadState(
+      normalizedConnectionId,
+    );
+    final nextConversations = <SavedResumableConversation>[
+      for (final conversation in currentState.conversations)
+        if (conversation.normalizedThreadId != normalizedThreadId) conversation,
+      SavedResumableConversation(
+        threadId: normalizedThreadId,
+        preview: '',
+        messageCount: 1,
+        firstPromptAt: null,
+        lastActivityAt: null,
+      ),
+    ];
+    await _connectionConversationStateStore.saveState(
+      normalizedConnectionId,
+      currentState.copyWith(
+        selectedThreadId: normalizedThreadId,
+        conversations: nextConversations,
+      ),
+    );
+
+    if (_state.isConnectionLive(normalizedConnectionId)) {
+      final previousBinding =
+          _liveBindingsByConnectionId[normalizedConnectionId];
+      if (previousBinding == null) {
+        return;
+      }
+
+      final nextBinding = await _loadLaneBinding(normalizedConnectionId);
+      if (_isDisposed) {
+        nextBinding.dispose();
+        return;
+      }
+
+      _liveBindingsByConnectionId[normalizedConnectionId] = nextBinding;
+      previousBinding.dispose();
+      _applyState(
+        _state.copyWith(
+          selectedConnectionId: normalizedConnectionId,
+          viewport: ConnectionWorkspaceViewport.liveLane,
+          reconnectRequiredConnectionIds:
+              _sanitizeReconnectRequiredConnectionIds(
+                catalog: _state.catalog,
+                liveConnectionIds: _state.liveConnectionIds,
+                reconnectRequiredConnectionIds: <String>{
+                  for (final connectionId
+                      in _state.reconnectRequiredConnectionIds)
+                    if (connectionId != normalizedConnectionId) connectionId,
+                },
+              ),
+        ),
+      );
+      return;
+    }
+
+    await instantiateConnection(normalizedConnectionId);
+  }
+
   Future<void> deleteDormantConnection(String connectionId) async {
     final normalizedConnectionId = _normalizeConnectionId(connectionId);
     await initialize();
@@ -223,7 +302,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       );
     }
 
-    await _connectionHandoffStore.delete(normalizedConnectionId);
+    await _connectionConversationStateStore.deleteState(normalizedConnectionId);
     await _connectionRepository.deleteConnection(normalizedConnectionId);
     final nextCatalog = await _connectionRepository.loadCatalog();
     if (_isDisposed) {

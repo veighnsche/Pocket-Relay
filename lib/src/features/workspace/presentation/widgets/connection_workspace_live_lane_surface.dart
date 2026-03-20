@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.dart';
@@ -11,7 +12,6 @@ import 'package:pocket_relay/src/features/chat/presentation/connection_lane_bind
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 
 import 'connection_workspace_conversation_history_sheet.dart';
 import 'connection_workspace_settings_renderer.dart';
@@ -22,7 +22,6 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
     required this.workspaceController,
     required this.laneBinding,
     required this.platformPolicy,
-    required this.conversationHistoryRepository,
     this.settingsOverlayDelegate =
         const ModalConnectionSettingsOverlayDelegate(),
   });
@@ -30,8 +29,6 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
   final ConnectionWorkspaceController workspaceController;
   final ConnectionLaneBinding laneBinding;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository
-  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -220,9 +217,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   }
 
   Future<void> _showConversationHistory() {
-    final sessionController = widget.laneBinding.sessionController;
-    final profile = sessionController.profile;
-    final secrets = sessionController.secrets;
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -231,11 +225,27 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
           heightFactor: 0.82,
           child: ConnectionWorkspaceConversationHistorySheet(
             title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-            future: widget.conversationHistoryRepository
-                .loadWorkspaceConversations(profile: profile, secrets: secrets),
+            future: widget.laneBinding.conversationHistoryStore.load(),
+            onResumeConversation: (conversation) {
+              unawaited(_resumeConversation(conversation));
+            },
           ),
         );
       },
+    );
+  }
+
+  Future<void> _resumeConversation(
+    SavedResumableConversation conversation,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop();
+    await widget.workspaceController.resumeConversation(
+      connectionId: widget.laneBinding.connectionId,
+      threadId: conversation.normalizedThreadId,
     );
   }
 

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 
 class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
   const ConnectionWorkspaceConversationHistorySheet({
     super.key,
     required this.title,
     required this.future,
+    required this.onResumeConversation,
   });
 
   final String title;
-  final Future<List<CodexWorkspaceConversationSummary>> future;
+  final Future<List<SavedResumableConversation>> future;
+  final ValueChanged<SavedResumableConversation> onResumeConversation;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +65,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Conversations scoped to this workspace directory.',
+                          'Pick a saved conversation to resume in this lane.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(
@@ -84,7 +86,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: FutureBuilder<List<CodexWorkspaceConversationSummary>>(
+              child: FutureBuilder<List<SavedResumableConversation>>(
                 future: future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
@@ -126,16 +128,17 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
                         ),
                         child: ListTile(
                           key: ValueKey<String>(
-                            'workspace_conversation_${conversation.sessionId}',
+                            'workspace_conversation_${conversation.normalizedThreadId}',
                           ),
+                          onTap: () => onResumeConversation(conversation),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 10,
                           ),
                           title: Text(
-                            conversation.trimmedPreview.isEmpty
-                                ? conversation.sessionId
-                                : conversation.trimmedPreview,
+                            conversation.preview.trim().isEmpty
+                                ? conversation.normalizedThreadId
+                                : conversation.preview.trim(),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -152,6 +155,10 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
                               style: TextStyle(color: cards.textMuted),
                             ),
                           ),
+                          trailing: Icon(
+                            Icons.play_arrow_rounded,
+                            color: cards.textMuted,
+                          ),
                         ),
                       );
                     },
@@ -165,12 +172,12 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     );
   }
 
-  String _subtitleFor(CodexWorkspaceConversationSummary conversation) {
-    final activity = conversation.lastActivityAt;
+  String _subtitleFor(SavedResumableConversation conversation) {
+    final activity = conversation.lastActivityAt?.toLocal();
     final activityLabel = activity == null
         ? 'Unknown activity time'
         : _timestampLabel(activity);
-    return '${conversation.messageCount} prompts · $activityLabel\n${conversation.cwd}';
+    return '${conversation.messageCount} prompts · $activityLabel\n${conversation.normalizedThreadId}';
   }
 
   String _timestampLabel(DateTime value) {

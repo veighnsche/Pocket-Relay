@@ -750,16 +750,19 @@ void main() {
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final historyStore = MemoryCodexConnectionConversationHistoryStore();
     final handoffStore = MemoryCodexConnectionHandoffStore(
       initialValues: <String, SavedConversationHandoff>{
         'conn_secondary': const SavedConversationHandoff(
           resumeThreadId: 'thread_saved',
         ),
       },
+      conversationStateStore: historyStore,
     );
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
       handoffStore: handoffStore,
+      historyStore: historyStore,
     );
     addTearDown(() async {
       controller.dispose();
@@ -787,8 +790,8 @@ void main() {
       'conn_primary',
     ]);
     expect(
-      await handoffStore.load('conn_secondary'),
-      const SavedConversationHandoff(),
+      await historyStore.loadState('conn_secondary'),
+      const SavedConnectionConversationState(),
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
     expect(clientsById['conn_secondary']?.disconnectCalls, 0);
@@ -844,6 +847,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
     connectionHandoffStore: resolvedHandoffStore,
+    connectionConversationStateStore: resolvedHistoryStore,
     laneBindingFactory:
         ({required connectionId, required connection, required handoff}) {
           final appServerClient = clientsById[connectionId]!;

@@ -111,6 +111,8 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
     return ConnectionWorkspaceController(
       connectionRepository: connectionRepository,
       connectionHandoffStore: connectionHandoffStore,
+      connectionConversationStateStore:
+          conversationHistoryStore as CodexConnectionConversationStateStore,
       laneBindingFactory:
           ({
             required String connectionId,

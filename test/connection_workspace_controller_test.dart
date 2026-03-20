@@ -361,6 +361,8 @@ void main() {
         ],
       );
       final handoffStore = MemoryCodexConnectionHandoffStore();
+      final conversationStateStore =
+          MemoryCodexConnectionConversationHistoryStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
@@ -368,6 +370,7 @@ void main() {
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
         connectionHandoffStore: handoffStore,
+        connectionConversationStateStore: conversationStateStore,
         laneBindingFactory:
             ({required connectionId, required connection, required handoff}) {
               final appServerClient = FakeCodexAppServerClient();
@@ -422,16 +425,19 @@ void main() {
     'deleteDormantConnection removes the saved definition and handoff',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final historyStore = MemoryCodexConnectionConversationHistoryStore();
       final handoffStore = MemoryCodexConnectionHandoffStore(
         initialValues: <String, SavedConversationHandoff>{
           'conn_secondary': const SavedConversationHandoff(
             resumeThreadId: 'thread_saved',
           ),
         },
+        conversationStateStore: historyStore,
       );
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
         handoffStore: handoffStore,
+        historyStore: historyStore,
       );
       addTearDown(() async {
         controller.dispose();
@@ -446,8 +452,8 @@ void main() {
       ]);
       expect(controller.state.dormantConnectionIds, isEmpty);
       expect(
-        await handoffStore.load('conn_secondary'),
-        const SavedConversationHandoff(),
+        await historyStore.loadState('conn_secondary'),
+        const SavedConnectionConversationState(),
       );
     },
   );
@@ -478,6 +484,7 @@ void main() {
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
         connectionHandoffStore: handoffStore,
+        connectionConversationStateStore: historyStore,
         laneBindingFactory:
             ({required connectionId, required connection, required handoff}) {
               final appServerClient = FakeCodexAppServerClient();
@@ -528,9 +535,12 @@ void main() {
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
       expect(nextBinding, isNot(same(firstBinding)));
+      expect((await historyStore.loadState('conn_primary')).normalizedSelectedThreadId,
+          'thread_resumed');
       expect(
-        await handoffStore.load('conn_primary'),
-        const SavedConversationHandoff(resumeThreadId: 'thread_resumed'),
+        (await historyStore.loadState('conn_primary')).conversations
+            .map((entry) => entry.normalizedThreadId),
+        contains('thread_resumed'),
       );
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
       expect(clientsByConnectionId['conn_primary']!.last.disconnectCalls, 0);
@@ -617,6 +627,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
     connectionHandoffStore: resolvedHandoffStore,
+    connectionConversationStateStore: resolvedHistoryStore,
     laneBindingFactory:
         ({required connectionId, required connection, required handoff}) {
           final appServerClient = clientsById[connectionId]!;
