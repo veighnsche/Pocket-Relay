@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
@@ -452,6 +453,89 @@ void main() {
   );
 
   test(
+    'resumeConversation stores the selected thread id and replaces the live binding',
+    () async {
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: _profile('Secondary Box', 'secondary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+      );
+      final handoffStore = MemoryCodexConnectionHandoffStore();
+      final historyStore = MemoryCodexConnectionConversationHistoryStore();
+      final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
+        'conn_primary': <FakeCodexAppServerClient>[],
+        'conn_secondary': <FakeCodexAppServerClient>[],
+      };
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        connectionHandoffStore: handoffStore,
+        laneBindingFactory:
+            ({required connectionId, required connection, required handoff}) {
+              final appServerClient = FakeCodexAppServerClient();
+              clientsByConnectionId[connectionId]!.add(appServerClient);
+              return ConnectionLaneBinding(
+                connectionId: connectionId,
+                profileStore: ConnectionScopedProfileStore(
+                  connectionId: connectionId,
+                  connectionRepository: repository,
+                ),
+                conversationHandoffStore:
+                    ConnectionScopedConversationHandoffStore(
+                      connectionId: connectionId,
+                      handoffStore: handoffStore,
+                    ),
+                conversationHistoryStore:
+                    ConnectionScopedConversationHistoryStore(
+                      connectionId: connectionId,
+                      historyStore: historyStore,
+                    ),
+                appServerClient: appServerClient,
+                initialSavedProfile: SavedProfile(
+                  profile: connection.profile,
+                  secrets: connection.secrets,
+                ),
+                initialSavedConversationHandoff: handoff,
+                ownsAppServerClient: false,
+              );
+            },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClientLists(clientsByConnectionId);
+      });
+
+      await controller.initialize();
+      final firstBinding = controller.bindingForConnectionId('conn_primary');
+
+      await controller.resumeConversation(
+        connectionId: 'conn_primary',
+        threadId: 'thread_resumed',
+      );
+
+      final nextBinding = controller.bindingForConnectionId('conn_primary');
+      expect(nextBinding, isNotNull);
+      expect(nextBinding, isNot(same(firstBinding)));
+      expect(
+        await handoffStore.load('conn_primary'),
+        const SavedConversationHandoff(resumeThreadId: 'thread_resumed'),
+      );
+      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
+      expect(clientsByConnectionId['conn_primary']!.last.disconnectCalls, 0);
+      expect(controller.state.selectedConnectionId, 'conn_primary');
+      expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
+    },
+  );
+
+  test(
     'deleting the final dormant connection leaves a valid empty workspace',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -495,6 +579,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
   MemoryCodexConnectionHandoffStore? handoffStore,
+  MemoryCodexConnectionConversationHistoryStore? historyStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -512,6 +597,8 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
+  final resolvedHistoryStore =
+      historyStore ?? MemoryCodexConnectionConversationHistoryStore();
   final resolvedHandoffStore =
       handoffStore ??
       MemoryCodexConnectionHandoffStore(
@@ -520,6 +607,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
             resumeThreadId: 'thread_saved',
           ),
         },
+        conversationStateStore: resolvedHistoryStore,
       );
 
   return ConnectionWorkspaceController(
@@ -537,6 +625,10 @@ ConnectionWorkspaceController _buildWorkspaceController({
             conversationHandoffStore: ConnectionScopedConversationHandoffStore(
               connectionId: connectionId,
               handoffStore: resolvedHandoffStore,
+            ),
+            conversationHistoryStore: ConnectionScopedConversationHistoryStore(
+              connectionId: connectionId,
+              historyStore: resolvedHistoryStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(

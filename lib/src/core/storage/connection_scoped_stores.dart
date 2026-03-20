@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
+import 'codex_connection_conversation_history_store.dart';
 import 'codex_connection_handoff_store.dart';
 import 'codex_connection_repository.dart';
 import 'codex_conversation_handoff_store.dart';
@@ -56,6 +57,28 @@ class ConnectionScopedConversationHandoffStore
   @override
   Future<void> save(SavedConversationHandoff handoff) {
     return _handoffStore.save(_connectionId, handoff);
+  }
+}
+
+class ConnectionScopedConversationHistoryStore
+    implements CodexConversationHistoryStore {
+  ConnectionScopedConversationHistoryStore({
+    required String connectionId,
+    required CodexConnectionConversationHistoryStore historyStore,
+  }) : _connectionId = _normalizeConnectionId(connectionId),
+       _historyStore = historyStore;
+
+  final String _connectionId;
+  final CodexConnectionConversationHistoryStore _historyStore;
+
+  @override
+  Future<List<SavedResumableConversation>> load() {
+    return _historyStore.load(_connectionId);
+  }
+
+  @override
+  Future<void> save(List<SavedResumableConversation> conversations) {
+    return _historyStore.save(_connectionId, conversations);
   }
 }
 

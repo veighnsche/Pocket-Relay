@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_handoff_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/codex_conversation_handoff_store.dart';
@@ -11,8 +12,6 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_desktop_shell.dart';
 
@@ -123,18 +122,22 @@ void main() {
     'desktop overflow menu opens the workspace conversation history sheet',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-      final controller = _buildWorkspaceController(clientsById: clientsById);
-      final historyRepository = FakeConversationHistoryRepository(
-        conversations: const <CodexWorkspaceConversationSummary>[
-          CodexWorkspaceConversationSummary(
-            sessionId: 'session_a',
-            preview: 'Investigate local and SSH conversation storage',
-            cwd: '/workspace',
-            messageCount: 7,
-            firstPromptAt: null,
-            lastActivityAt: null,
-          ),
-        ],
+      final historyStore = MemoryCodexConnectionConversationHistoryStore(
+        initialValues: <String, List<SavedResumableConversation>>{
+          'conn_primary': const <SavedResumableConversation>[
+            SavedResumableConversation(
+              threadId: 'thread_a',
+              preview: 'Investigate local and SSH conversation storage',
+              messageCount: 7,
+              firstPromptAt: null,
+              lastActivityAt: null,
+            ),
+          ],
+        },
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        historyStore: historyStore,
       );
       addTearDown(() async {
         controller.dispose();
@@ -142,12 +145,7 @@ void main() {
       });
 
       await controller.initialize();
-      await tester.pumpWidget(
-        _buildShell(
-          controller,
-          conversationHistoryRepository: historyRepository,
-        ),
-      );
+      await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('More actions'));
@@ -160,7 +158,6 @@ void main() {
         find.text('Investigate local and SSH conversation storage'),
         findsOneWidget,
       );
-      expect(historyRepository.callCount, 1);
     },
   );
   testWidgets(
@@ -187,18 +184,19 @@ void main() {
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
         repository: repository,
-      );
-      final historyRepository = FakeConversationHistoryRepository(
-        conversations: const <CodexWorkspaceConversationSummary>[
-          CodexWorkspaceConversationSummary(
-            sessionId: 'session_a',
-            preview: 'Should never load',
-            cwd: '/workspace',
-            messageCount: 1,
-            firstPromptAt: null,
-            lastActivityAt: null,
-          ),
-        ],
+        historyStore: MemoryCodexConnectionConversationHistoryStore(
+          initialValues: <String, List<SavedResumableConversation>>{
+            'conn_primary': const <SavedResumableConversation>[
+              SavedResumableConversation(
+                threadId: 'thread_a',
+                preview: 'Should never load',
+                messageCount: 1,
+                firstPromptAt: null,
+                lastActivityAt: null,
+              ),
+            ],
+          },
+        ),
       );
       addTearDown(() async {
         controller.dispose();
@@ -206,12 +204,7 @@ void main() {
       });
 
       await controller.initialize();
-      await tester.pumpWidget(
-        _buildShell(
-          controller,
-          conversationHistoryRepository: historyRepository,
-        ),
-      );
+      await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('More actions'));
@@ -253,9 +246,50 @@ void main() {
       expect(historyItem.enabled, isFalse);
       expect(closeLaneItem.enabled, isFalse);
       expect(savedConnectionsItem.enabled, isTrue);
-      expect(historyRepository.callCount, 0);
     },
   );
+
+  testWidgets('desktop conversation history row resumes the selected thread', (
+    tester,
+  ) async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final historyStore = MemoryCodexConnectionConversationHistoryStore(
+      initialValues: <String, List<SavedResumableConversation>>{
+        'conn_primary': const <SavedResumableConversation>[
+          SavedResumableConversation(
+            threadId: 'thread_resume_me',
+            preview: 'Resume me',
+            messageCount: 2,
+            firstPromptAt: null,
+            lastActivityAt: null,
+          ),
+        ],
+      },
+    );
+    final controller = _buildWorkspaceController(
+      clientsById: clientsById,
+      historyStore: historyStore,
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await tester.pumpWidget(_buildShell(controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Conversation history'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Resume me'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Conversation history'), findsNothing);
+    expect(controller.bindingForConnectionId('conn_primary'), isNotNull);
+    expect(clientsById['conn_primary']?.disconnectCalls, 1);
+  });
 
   testWidgets('selecting a live lane from the sidebar returns to the lane', (
     tester,
@@ -546,7 +580,6 @@ void main() {
 Widget _buildShell(
   ConnectionWorkspaceController controller, {
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
-  CodexWorkspaceConversationHistoryRepository? conversationHistoryRepository,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(Brightness.light),
@@ -555,8 +588,6 @@ Widget _buildShell(
       platformPolicy: PocketPlatformPolicy.resolve(
         platform: TargetPlatform.macOS,
       ),
-      conversationHistoryRepository:
-          conversationHistoryRepository ?? FakeConversationHistoryRepository(),
       settingsOverlayDelegate:
           settingsOverlayDelegate ?? FakeConnectionSettingsOverlayDelegate(),
     ),
@@ -567,6 +598,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
   MemoryCodexConnectionHandoffStore? handoffStore,
+  MemoryCodexConnectionConversationHistoryStore? historyStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -584,8 +616,13 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
+  final resolvedHistoryStore =
+      historyStore ?? MemoryCodexConnectionConversationHistoryStore();
   final resolvedHandoffStore =
-      handoffStore ?? MemoryCodexConnectionHandoffStore();
+      handoffStore ??
+      MemoryCodexConnectionHandoffStore(
+        conversationStateStore: resolvedHistoryStore,
+      );
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
@@ -602,6 +639,10 @@ ConnectionWorkspaceController _buildWorkspaceController({
             conversationHandoffStore: ConnectionScopedConversationHandoffStore(
               connectionId: connectionId,
               handoffStore: resolvedHandoffStore,
+            ),
+            conversationHistoryStore: ConnectionScopedConversationHistoryStore(
+              connectionId: connectionId,
+              historyStore: resolvedHistoryStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(
@@ -639,24 +680,5 @@ Future<void> _closeClients(
 ) async {
   for (final client in clientsById.values) {
     await client.close();
-  }
-}
-
-class FakeConversationHistoryRepository
-    implements CodexWorkspaceConversationHistoryRepository {
-  FakeConversationHistoryRepository({
-    this.conversations = const <CodexWorkspaceConversationSummary>[],
-  });
-
-  final List<CodexWorkspaceConversationSummary> conversations;
-  int callCount = 0;
-
-  @override
-  Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
-    required ConnectionProfile profile,
-    required ConnectionSecrets secrets,
-  }) async {
-    callCount += 1;
-    return conversations;
   }
 }
