@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/conversation_card_palette.dart';
 
 class UserInputResultCard extends StatelessWidget {

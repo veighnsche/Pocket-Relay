@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer_surface.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_surface.dart';
 
 class ChatComposer extends StatelessWidget {
   const ChatComposer({

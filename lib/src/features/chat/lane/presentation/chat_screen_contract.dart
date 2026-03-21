@@ -1,7 +1,7 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 
 enum ChatScreenActionId {

@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_composer_draft.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 
 class ChatComposerDraftHost extends ChangeNotifier {
   ChatComposerDraft _draft = const ChatComposerDraft();

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer.dart';
 
 void main() {
   testWidgets('resyncs displayed text from the composer contract', (

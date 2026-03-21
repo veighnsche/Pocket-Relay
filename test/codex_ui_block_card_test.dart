@@ -9,9 +9,9 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_projector.dart';
-import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/alert_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/conversation_entry_card.dart';

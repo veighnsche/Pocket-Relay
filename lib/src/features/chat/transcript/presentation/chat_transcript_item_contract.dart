@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_work_log_contract.dart';
 
 sealed class ChatTranscriptItemContract {

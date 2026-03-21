@@ -12,7 +12,7 @@ import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/approval_request_card.dart';

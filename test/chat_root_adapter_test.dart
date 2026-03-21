@@ -15,7 +15,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapt
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';

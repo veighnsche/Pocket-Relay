@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_draft.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_draft.dart';
 
 class PendingUserInputFormScope extends StatefulWidget {
   const PendingUserInputFormScope({

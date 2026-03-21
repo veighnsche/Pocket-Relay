@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 
 class ChatPendingRequestPlacementContract {
   ChatPendingRequestPlacementContract({

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_lane_header_projector.dart';
+import 'package:pocket_relay/src/features/chat/lane_header/presentation/chat_lane_header_projector.dart';
 
 void main() {
   const projector = ChatLaneHeaderProjector();

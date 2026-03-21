@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_draft.dart';
-import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
-import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_presenter.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_draft.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_form_scope.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_presenter.dart';
 
 void main() {
   group('PendingUserInputPresenter', () {

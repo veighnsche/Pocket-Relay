@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 
 class ChatTranscriptFollowHost extends ChangeNotifier {
   static const double defaultResumeDistance = 72;

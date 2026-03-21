@@ -1,7 +1,7 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_item_projector.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_projector.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_projector.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_work_log_item_projector.dart';
 

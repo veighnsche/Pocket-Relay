@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_request_projector.dart';
+import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_projector.dart';
 
 class ChatPendingRequestPlacementProjector {
   const ChatPendingRequestPlacementProjector({

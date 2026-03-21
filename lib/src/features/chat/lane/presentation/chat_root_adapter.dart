@@ -10,7 +10,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_con
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_effect.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_effect_mapper.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_presenter.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
+import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 
