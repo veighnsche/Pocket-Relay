@@ -79,6 +79,110 @@ void main() {
     expect(codeStyle?.color, const Color(0xFFE7F3F4));
   });
 
+  testWidgets('renders status blocks as flat transcript annotations', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexStatusBlock(
+            id: 'status_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'Context compacted',
+            body: 'Older transcript context was compacted upstream.',
+            statusKind: CodexStatusBlockKind.compaction,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Context compacted'), findsOneWidget);
+    expect(
+      find.text('Older transcript context was compacted upstream.'),
+      findsOneWidget,
+    );
+    expect(
+      _findDecoratedContainerColorForText(
+        tester,
+        'Older transcript context was compacted upstream.',
+      ),
+      isNull,
+    );
+  });
+
+  testWidgets('renders error blocks as flat transcript annotations', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexErrorBlock(
+            id: 'error_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'Patch apply failed',
+            body: 'The patch could not be applied cleanly.',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Patch apply failed'), findsOneWidget);
+    expect(
+      find.text('The patch could not be applied cleanly.'),
+      findsOneWidget,
+    );
+    expect(
+      _findDecoratedContainerColorForText(
+        tester,
+        'The patch could not be applied cleanly.',
+      ),
+      isNull,
+    );
+  });
+
+  testWidgets('renders plan updates as flat transcript annotations', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexPlanUpdateBlock(
+            id: 'plan_update_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            explanation: 'Updated the execution sequence.',
+            steps: const <CodexRuntimePlanStep>[
+              CodexRuntimePlanStep(
+                step: 'Inspect the existing transcript item hierarchy.',
+                status: CodexRuntimePlanStepStatus.completed,
+              ),
+              CodexRuntimePlanStep(
+                step: 'Replace framed transcript annotations.',
+                status: CodexRuntimePlanStepStatus.inProgress,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Updated Plan'), findsOneWidget);
+    expect(find.text('Updated the execution sequence.'), findsOneWidget);
+    expect(
+      find.text('Inspect the existing transcript item hierarchy.'),
+      findsOneWidget,
+    );
+    expect(find.text('Replace framed transcript annotations.'), findsOneWidget);
+    expect(find.text('DONE'), findsOneWidget);
+    expect(find.text('ACTIVE'), findsOneWidget);
+    expect(
+      _findDecoratedContainerColorForText(
+        tester,
+        'Updated the execution sequence.',
+      ),
+      isNull,
+    );
+  });
+
   testWidgets(
     'keeps reasoning flat while retaining changed-files surface in dark mode',
     (tester) async {
@@ -1189,7 +1293,7 @@ void main() {
       expect(find.text('README.md'), findsAtLeastNWidgets(2));
 
       expect(find.text('Reading first 40 lines'), findsOneWidget);
-      expect(find.text('019_codebase-handoff.md'), findsOneWidget);
+      expect(find.text('021_codebase-handoff.md'), findsOneWidget);
 
       expect(find.text('Reading last 20 lines'), findsOneWidget);
       expect(find.text('output.txt'), findsOneWidget);
