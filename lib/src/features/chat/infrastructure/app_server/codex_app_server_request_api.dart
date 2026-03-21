@@ -69,19 +69,11 @@ class CodexAppServerRequestApi {
     }
 
     connection.setTrackedThread(threadId);
-
-    return CodexAppServerSession(
-      threadId: threadId,
-      cwd: _asString(payload['cwd']) ?? effectiveCwd,
-      model: _asString(payload['model']) ?? '',
-      modelProvider: _asString(payload['modelProvider']) ?? '',
-      reasoningEffort:
-          _asString(payload['reasoningEffort']) ??
-          _asString(payload['reasoning_effort']) ??
-          _asString(payload['effort']),
+    return _sessionFromPayload(
+      payload,
       thread: thread,
-      approvalPolicy: payload['approvalPolicy'],
-      sandbox: payload['sandbox'],
+      threadId: threadId,
+      fallbackCwd: effectiveCwd,
     );
   }
 
@@ -90,19 +82,11 @@ class CodexAppServerRequestApi {
     required String threadId,
   }) async {
     connection.requireConnected();
-
-    final effectiveThreadId = threadId.trim();
-    if (effectiveThreadId.isEmpty) {
-      throw const CodexAppServerException('Thread id cannot be empty.');
-    }
-
-    final response = await connection.sendRequest(
-      'thread/read',
-      <String, Object?>{'threadId': effectiveThreadId, 'includeTurns': false},
-    );
-    return _threadReadDecoder.decodeSummaryResponse(
-      response,
-      fallbackThreadId: effectiveThreadId,
+    final effectiveThreadId = _requireThreadId(threadId);
+    return _sendThreadRead(
+      connection,
+      threadId: effectiveThreadId,
+      includeTurns: false,
     );
   }
 
@@ -111,19 +95,10 @@ class CodexAppServerRequestApi {
     required String threadId,
   }) async {
     connection.requireConnected();
-
-    final effectiveThreadId = threadId.trim();
-    if (effectiveThreadId.isEmpty) {
-      throw const CodexAppServerException('Thread id cannot be empty.');
-    }
-
-    final response = await connection.sendRequest(
-      'thread/read',
-      <String, Object?>{'threadId': effectiveThreadId, 'includeTurns': true},
-    );
-    return _threadReadDecoder.decodeHistoryResponse(
-      response,
-      fallbackThreadId: effectiveThreadId,
+    final effectiveThreadId = _requireThreadId(threadId);
+    return _sendThreadReadWithTurns(
+      connection,
+      threadId: effectiveThreadId,
     );
   }
 
@@ -133,11 +108,7 @@ class CodexAppServerRequestApi {
     required int numTurns,
   }) async {
     connection.requireConnected();
-
-    final effectiveThreadId = threadId.trim();
-    if (effectiveThreadId.isEmpty) {
-      throw const CodexAppServerException('Thread id cannot be empty.');
-    }
+    final effectiveThreadId = _requireThreadId(threadId);
     if (numTurns < 1) {
       throw const CodexAppServerException('numTurns must be >= 1.');
     }
@@ -164,11 +135,7 @@ class CodexAppServerRequestApi {
   }) async {
     final profile = connection.requireProfile();
     connection.requireConnected();
-
-    final effectiveThreadId = threadId.trim();
-    if (effectiveThreadId.isEmpty) {
-      throw const CodexAppServerException('Thread id cannot be empty.');
-    }
+    final effectiveThreadId = _requireThreadId(threadId);
 
     final normalizedPath = path?.trim();
     final normalizedCwd = cwd?.trim();
@@ -195,23 +162,51 @@ class CodexAppServerRequestApi {
     );
     final forkedThreadId = thread.id;
     connection.setTrackedThread(forkedThreadId);
-
-    return CodexAppServerSession(
-      threadId: forkedThreadId,
-      cwd: _asString(payload['cwd']) ?? normalizedCwd ?? profile.workspaceDir,
-      model: _asString(payload['model']) ?? model?.trim() ?? '',
-      modelProvider:
-          _asString(payload['modelProvider']) ??
-          modelProvider?.trim() ??
-          thread.modelProvider,
-      reasoningEffort:
-          _asString(payload['reasoningEffort']) ??
-          _asString(payload['reasoning_effort']) ??
-          _asString(payload['effort']),
+    return _sessionFromPayload(
+      payload,
       thread: thread,
-      approvalPolicy: payload['approvalPolicy'],
-      sandbox: payload['sandbox'],
+      threadId: forkedThreadId,
+      fallbackCwd: normalizedCwd ?? profile.workspaceDir,
+      fallbackModel: model?.trim() ?? '',
+      fallbackModelProvider: modelProvider?.trim() ?? thread.modelProvider,
     );
+  }
+
+  Future<CodexAppServerThreadSummary> _sendThreadRead(
+    CodexAppServerConnection connection, {
+    required String threadId,
+    required bool includeTurns,
+  }) async {
+    final response = await connection.sendRequest(
+      'thread/read',
+      <String, Object?>{'threadId': threadId, 'includeTurns': includeTurns},
+    );
+    return _threadReadDecoder.decodeSummaryResponse(
+      response,
+      fallbackThreadId: threadId,
+    );
+  }
+
+  Future<CodexAppServerThreadHistory> _sendThreadReadWithTurns(
+    CodexAppServerConnection connection, {
+    required String threadId,
+  }) async {
+    final response = await connection.sendRequest(
+      'thread/read',
+      <String, Object?>{'threadId': threadId, 'includeTurns': true},
+    );
+    return _threadReadDecoder.decodeHistoryResponse(
+      response,
+      fallbackThreadId: threadId,
+    );
+  }
+
+  static String _requireThreadId(String threadId) {
+    final effectiveThreadId = threadId.trim();
+    if (effectiveThreadId.isEmpty) {
+      throw const CodexAppServerException('Thread id cannot be empty.');
+    }
+    return effectiveThreadId;
   }
 
   Future<CodexAppServerThreadListPage> listThreads(
@@ -465,6 +460,33 @@ class CodexAppServerRequestApi {
 
   static String? _asString(Object? value) {
     return value is String ? value : null;
+  }
+
+  static CodexAppServerSession _sessionFromPayload(
+    Map<String, dynamic> payload, {
+    required CodexAppServerThreadSummary thread,
+    required String threadId,
+    required String fallbackCwd,
+    String fallbackModel = '',
+    String fallbackModelProvider = '',
+  }) {
+    return CodexAppServerSession(
+      threadId: threadId,
+      cwd: _asString(payload['cwd']) ?? fallbackCwd,
+      model: _asString(payload['model']) ?? fallbackModel,
+      modelProvider:
+          _asString(payload['modelProvider']) ?? fallbackModelProvider,
+      reasoningEffort: _responseReasoningEffort(payload),
+      thread: thread,
+      approvalPolicy: payload['approvalPolicy'],
+      sandbox: payload['sandbox'],
+    );
+  }
+
+  static String? _responseReasoningEffort(Map<String, dynamic> payload) {
+    return _asString(payload['reasoningEffort']) ??
+        _asString(payload['reasoning_effort']) ??
+        _asString(payload['effort']);
   }
 
   static CodexAppServerThreadSummary _requireThreadSummary(
