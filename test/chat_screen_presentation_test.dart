@@ -884,7 +884,7 @@ void main() {
             id: 'entry_sed',
             createdAt: DateTime(2026, 3, 15, 12),
             entryKind: CodexWorkLogEntryKind.commandExecution,
-            title: "sed -n '1,120p' lib/src/app.dart",
+            title: "sed -n '1,120p' lib/src/app/pocket_relay_app.dart",
           ),
         ],
       );
@@ -895,8 +895,8 @@ void main() {
 
       expect(entry.lineStart, 1);
       expect(entry.lineEnd, 120);
-      expect(entry.fileName, 'app.dart');
-      expect(entry.filePath, 'lib/src/app.dart');
+      expect(entry.fileName, 'pocket_relay_app.dart');
+      expect(entry.filePath, 'lib/src/app/pocket_relay_app.dart');
       expect(entry.summaryLabel, 'Reading lines 1 to 120');
     });
 
@@ -1111,7 +1111,7 @@ void main() {
             id: 'entry_sed_ne',
             createdAt: DateTime(2026, 3, 15, 12),
             entryKind: CodexWorkLogEntryKind.commandExecution,
-            title: "sed -ne '5,25p' lib/src/app.dart",
+            title: "sed -ne '5,25p' lib/src/app/pocket_relay_app.dart",
           ),
         ],
       );
@@ -1134,7 +1134,7 @@ void main() {
             id: 'entry_sed_chain',
             createdAt: DateTime(2026, 3, 15, 12),
             entryKind: CodexWorkLogEntryKind.commandExecution,
-            title: "sed -n '1,120p' lib/src/app.dart && rg Pocket Relay",
+            title: "sed -n '1,120p' lib/src/app/pocket_relay_app.dart && rg Pocket Relay",
           ),
         ],
       );
@@ -1154,7 +1154,7 @@ void main() {
             id: 'entry_sed_reversed',
             createdAt: DateTime(2026, 3, 15, 12),
             entryKind: CodexWorkLogEntryKind.commandExecution,
-            title: "sed -n '40,1p' lib/src/app.dart",
+            title: "sed -n '40,1p' lib/src/app/pocket_relay_app.dart",
           ),
         ],
       );
