@@ -12,9 +12,11 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/turn_boundary_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/user_input_result_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
 
@@ -283,6 +285,31 @@ void main() {
     await tester.pump();
 
     expect(approvedRequestId, 'request_1');
+  });
+
+  testWidgets('routes resolved approvals through the decision card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexApprovalRequestBlock(
+            id: 'request_resolved_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            requestId: 'request_resolved_1',
+            requestType: CodexCanonicalRequestType.fileChangeApproval,
+            title: 'File change approval resolved',
+            body: 'Codex received approval for this request.',
+            isResolved: true,
+            resolutionLabel: 'approved',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(ApprovalDecisionCard), findsOneWidget);
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.text('approved'), findsOneWidget);
   });
 
   testWidgets(
@@ -615,6 +642,33 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.text('Workspace'), findsNothing);
     expect(find.text('Project'), findsNothing);
+  });
+
+  testWidgets('routes resolved user-input requests through the result card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexUserInputRequestBlock(
+            id: 'input_resolved_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            requestId: 'input_resolved_1',
+            requestType: CodexCanonicalRequestType.toolUserInput,
+            title: 'Input submitted',
+            body: 'Project: Pocket Relay',
+            isResolved: true,
+            answers: <String, List<String>>{
+              'project': <String>['Pocket Relay'],
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(UserInputResultCard), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('submitted'), findsOneWidget);
   });
 
   testWidgets(

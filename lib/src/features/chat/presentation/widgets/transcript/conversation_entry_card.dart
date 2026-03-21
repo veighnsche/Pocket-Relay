@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/assistant_message_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
@@ -13,6 +14,7 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/c
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/status_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/turn_boundary_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/usage_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/user_input_result_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/user_message_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/work_log_group_card.dart';
 
@@ -64,16 +66,21 @@ class ConversationEntryCard extends StatelessWidget {
         item: changedFilesItem,
         onOpenDiff: onOpenChangedFileDiff,
       ),
-      final ChatApprovalRequestItemContract approvalItem => ApprovalRequestCard(
-        request: approvalItem.request,
-        onApprove: onApproveRequest,
-        onDeny: onDenyRequest,
-      ),
+      final ChatApprovalRequestItemContract approvalItem =>
+        approvalItem.request.isResolved
+        ? ApprovalDecisionCard(request: approvalItem.request)
+        : ApprovalRequestCard(
+            request: approvalItem.request,
+            onApprove: onApproveRequest,
+            onDeny: onDenyRequest,
+          ),
       final ChatUserInputRequestItemContract userInputItem =>
-        PendingUserInputRequestHost(
-          request: userInputItem.request,
-          onSubmit: onSubmitUserInput,
-        ),
+        userInputItem.request.isResolved
+        ? UserInputResultCard(request: userInputItem.request)
+        : PendingUserInputRequestHost(
+            request: userInputItem.request,
+            onSubmit: onSubmitUserInput,
+          ),
       final ChatSshItemContract sshItem => SshCardHost(
         block: sshItem.block,
         onSaveFingerprint: onSaveHostFingerprint,
