@@ -104,60 +104,44 @@ class ChatScreenPresenter {
     required CodexSessionState sessionState,
     required bool isConfigured,
   }) {
-    final title = _workspaceProjectTitle(
-      sessionState.headerMetadata.cwd,
-      fallbackPath: profile.workspaceDir,
-    );
+    final title = profile.label.trim().isEmpty ? 'Codex' : profile.label.trim();
     final subtitle = _sessionSubtitle(
+      profile: profile,
       sessionState: sessionState,
       isConfigured: isConfigured,
     );
     return ChatHeaderContract(title: title, subtitle: subtitle);
   }
 
-  String _workspaceProjectTitle(
-    String? liveCwd, {
-    required String fallbackPath,
-  }) {
-    final projectName =
-        _projectNameFromPath(liveCwd) ?? _projectNameFromPath(fallbackPath);
-    if (projectName != null) {
-      return projectName;
-    }
-    return 'Codex';
-  }
-
   String _sessionSubtitle({
+    required ConnectionProfile profile,
     required CodexSessionState sessionState,
     required bool isConfigured,
   }) {
-    final model = sessionState.headerMetadata.model?.trim();
-    final effort = sessionState.headerMetadata.reasoningEffort?.trim();
-    if (model != null && model.isNotEmpty) {
-      final normalizedEffort = _formatReasoningEffort(effort);
-      if (normalizedEffort == null) {
-        return model;
-      }
-      return '$model · $normalizedEffort';
-    }
     if (!isConfigured) {
       return 'Configure Codex';
     }
-    return 'Waiting for Codex session';
-  }
 
-  String? _projectNameFromPath(String? path) {
-    final normalized = path?.trim();
-    if (normalized == null || normalized.isEmpty) {
-      return null;
+    final connectionDescriptor = switch (profile.connectionMode) {
+      ConnectionMode.remote => profile.host.trim(),
+      ConnectionMode.local => 'local Codex',
+    };
+    final model = sessionState.headerMetadata.model?.trim();
+    final effort = sessionState.headerMetadata.reasoningEffort?.trim();
+    final base = connectionDescriptor.isEmpty
+        ? <String>[]
+        : <String>[connectionDescriptor];
+    if (model != null && model.isNotEmpty) {
+      final normalizedEffort = _formatReasoningEffort(effort);
+      if (normalizedEffort == null) {
+        return <String>[...base, model].join(' · ');
+      }
+      return <String>[...base, model, normalizedEffort].join(' · ');
     }
-    final trimmed = normalized.replaceAll(RegExp(r'[\\/]+$'), '');
-    if (trimmed.isEmpty) {
-      return null;
+    if (base.isNotEmpty) {
+      return base.join(' · ');
     }
-    final parts = trimmed.split(RegExp(r'[\\/]'));
-    final candidate = parts.isEmpty ? trimmed : parts.last.trim();
-    return candidate.isEmpty ? null : candidate;
+    return 'Waiting for Codex session';
   }
 
   String? _formatReasoningEffort(String? value) {

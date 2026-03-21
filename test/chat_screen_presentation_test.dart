@@ -46,8 +46,8 @@ void main() {
           transcriptFollow: _defaultTranscriptFollowContract,
         );
 
-        expect(contract.header.title, 'workspace');
-        expect(contract.header.subtitle, 'Waiting for Codex session');
+        expect(contract.header.title, 'Dev Box');
+        expect(contract.header.subtitle, 'devbox.local');
         expect(
           contract.toolbarActions.map((action) => action.id),
           <ChatScreenActionId>[ChatScreenActionId.openSettings],
@@ -70,7 +70,7 @@ void main() {
       },
     );
 
-    test('uses live Codex header metadata for the lane title and subtitle', () {
+    test('uses profile title and live Codex subtitle metadata', () {
       final sessionState = CodexSessionState.initial().copyWith(
         headerMetadata: const CodexSessionHeaderMetadata(
           cwd: r'C:\Users\vince\Projects\InfraServer',
@@ -93,8 +93,8 @@ void main() {
         transcriptFollow: _defaultTranscriptFollowContract,
       );
 
-      expect(contract.header.title, 'InfraServer');
-      expect(contract.header.subtitle, 'gpt-5.4 · high effort');
+      expect(contract.header.title, 'Dev Box');
+      expect(contract.header.subtitle, 'devbox.local · gpt-5.4 · high effort');
     });
 
     test(

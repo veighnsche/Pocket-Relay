@@ -32,8 +32,8 @@ void main() {
     expect(appServerClient.sentMessages, <String>['Hello Codex']);
     expect(find.text('Hello Codex'), findsOneWidget);
     expect(tester.widget<TextField>(composerField).controller?.text, isEmpty);
-    expect(find.text('Pocket-Relay'), findsOneWidget);
-    expect(find.text('gpt-5.4'), findsOneWidget);
+    expect(find.text('Developer Box'), findsOneWidget);
+    expect(find.text('example.com · gpt-5.4'), findsOneWidget);
 
     appServerClient.emit(
       const CodexAppServerNotificationEvent(
