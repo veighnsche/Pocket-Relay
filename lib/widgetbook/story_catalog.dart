@@ -17,7 +17,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_s
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/assistant_message_card.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/changed_files_card.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/changed_files_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/error_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/plan_update_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/proposed_plan_card.dart';
@@ -32,7 +32,7 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/usage_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/user_input_request_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/user_message_card.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/work_log_group_card.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/work_log_group_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/conversation_card_palette.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';

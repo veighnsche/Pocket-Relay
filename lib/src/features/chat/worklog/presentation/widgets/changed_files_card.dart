@@ -3,7 +3,7 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/changed_file_syntax_highlighter.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/conversation_card_palette.dart';

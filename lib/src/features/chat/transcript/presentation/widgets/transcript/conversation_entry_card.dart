@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/alert_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/assistant_message_card.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/changed_files_card.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/changed_files_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/error_card.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/exec_command_card.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/exec_command_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/pending_user_input_request_host.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/plan_update_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/proposed_plan_card.dart';
@@ -15,12 +15,12 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/session_status_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/ssh/ssh_card_host.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/status_card.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/tool_activity_card.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/tool_activity_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/turn_boundary_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/usage_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/user_input_result_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/user_message_card.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/work_log_group_card.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/work_log_group_card.dart';
 
 class ConversationEntryCard extends StatelessWidget {
   const ConversationEntryCard({

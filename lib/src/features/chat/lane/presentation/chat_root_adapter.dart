@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';

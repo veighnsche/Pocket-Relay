@@ -1,5 +1,5 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 
 class ChatChangedFilesItemProjector {

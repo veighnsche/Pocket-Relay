@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
-import 'package:pocket_relay/src/features/chat/presentation/chat_work_log_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/domain/chat_work_log_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/conversation_card_palette.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
