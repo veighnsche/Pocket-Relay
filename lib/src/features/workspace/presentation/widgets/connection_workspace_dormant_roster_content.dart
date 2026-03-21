@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_screen_shell.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
@@ -303,52 +306,46 @@ class _DormantConnectionsEmptyState extends StatelessWidget {
     final palette = context.pocketPalette;
     final theme = Theme.of(context);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: palette.surfaceBorder),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadowColor,
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              ConnectionWorkspaceCopy.emptySavedConnectionsTitle(
-                isEmptyWorkspace: isEmptyWorkspace,
-              ),
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              ConnectionWorkspaceCopy.emptySavedConnectionsMessage(
-                isEmptyWorkspace: isEmptyWorkspace,
-              ),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (canReturnToLane) ...[
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: onReturnToLane,
-                child: const Text(
-                  ConnectionWorkspaceCopy.returnToOpenLaneAction,
-                ),
-              ),
-            ],
-          ],
+    return PocketPanelSurface(
+      backgroundColor: palette.surface.withValues(alpha: 0.86),
+      borderColor: palette.surfaceBorder,
+      padding: const EdgeInsets.all(PocketSpacing.xxl),
+      radius: PocketRadii.xxl,
+      boxShadow: <BoxShadow>[
+        BoxShadow(
+          color: palette.shadowColor,
+          blurRadius: 18,
+          offset: const Offset(0, 6),
         ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            ConnectionWorkspaceCopy.emptySavedConnectionsTitle(
+              isEmptyWorkspace: isEmptyWorkspace,
+            ),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: PocketSpacing.xs),
+          Text(
+            ConnectionWorkspaceCopy.emptySavedConnectionsMessage(
+              isEmptyWorkspace: isEmptyWorkspace,
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (canReturnToLane) ...[
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onReturnToLane,
+              child: const Text(ConnectionWorkspaceCopy.returnToOpenLaneAction),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -387,77 +384,73 @@ class _DormantConnectionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isBusy = isOpening || isEditing || isDeleting;
 
-    return DecoratedBox(
+    return PocketPanelSurface(
       key: ValueKey<String>('dormant_connection_$connectionId'),
-      decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: palette.surfaceBorder),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadowColor,
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+      backgroundColor: palette.surface.withValues(alpha: 0.9),
+      borderColor: palette.surfaceBorder,
+      padding: PocketSpacing.panelPadding,
+      radius: PocketRadii.xxl,
+      boxShadow: <BoxShadow>[
+        BoxShadow(
+          color: palette.shadowColor,
+          blurRadius: 18,
+          offset: const Offset(0, 6),
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton(
+                key: ValueKey<String>('instantiate_$connectionId'),
+                onPressed: isBusy ? null : onOpen,
+                child: Text(
+                  isOpening
+                      ? ConnectionWorkspaceCopy.openingLaneAction
+                      : ConnectionWorkspaceCopy.openLaneAction,
+                ),
+              ),
+              OutlinedButton(
+                key: ValueKey<String>('edit_$connectionId'),
+                onPressed: isBusy ? null : onEdit,
+                child: Text(
+                  isEditing
+                      ? ConnectionWorkspaceCopy.saveProgress
+                      : ConnectionWorkspaceCopy.editAction,
+                ),
+              ),
+              TextButton(
+                key: ValueKey<String>('delete_$connectionId'),
+                onPressed: isBusy ? null : onDelete,
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                child: Text(
+                  isDeleting
+                      ? ConnectionWorkspaceCopy.deleteProgress
+                      : ConnectionWorkspaceCopy.deleteAction,
+                ),
+              ),
+            ],
           ),
         ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                FilledButton(
-                  key: ValueKey<String>('instantiate_$connectionId'),
-                  onPressed: isBusy ? null : onOpen,
-                  child: Text(
-                    isOpening
-                        ? ConnectionWorkspaceCopy.openingLaneAction
-                        : ConnectionWorkspaceCopy.openLaneAction,
-                  ),
-                ),
-                OutlinedButton(
-                  key: ValueKey<String>('edit_$connectionId'),
-                  onPressed: isBusy ? null : onEdit,
-                  child: Text(
-                    isEditing
-                        ? ConnectionWorkspaceCopy.saveProgress
-                        : ConnectionWorkspaceCopy.editAction,
-                  ),
-                ),
-                TextButton(
-                  key: ValueKey<String>('delete_$connectionId'),
-                  onPressed: isBusy ? null : onDelete,
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                  ),
-                  child: Text(
-                    isDeleting
-                        ? ConnectionWorkspaceCopy.deleteProgress
-                        : ConnectionWorkspaceCopy.deleteAction,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

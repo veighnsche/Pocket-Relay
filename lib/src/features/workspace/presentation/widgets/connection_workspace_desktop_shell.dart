@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/models/connection_workspace_state.dart';
@@ -22,7 +25,8 @@ class ConnectionWorkspaceDesktopShell extends StatefulWidget {
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository? conversationHistoryRepository;
+  final CodexWorkspaceConversationHistoryRepository?
+  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -135,8 +139,18 @@ class _MaterialDesktopSidebar extends StatelessWidget {
         bottom: false,
         child: ListView(
           padding: isCollapsed
-              ? const EdgeInsets.fromLTRB(8, 14, 8, 18)
-              : const EdgeInsets.fromLTRB(14, 18, 14, 24),
+              ? const EdgeInsets.fromLTRB(
+                  PocketSpacing.xs,
+                  PocketSpacing.lg,
+                  PocketSpacing.xs,
+                  PocketSpacing.xl,
+                )
+              : const EdgeInsets.fromLTRB(
+                  PocketSpacing.lg,
+                  PocketSpacing.xl,
+                  PocketSpacing.lg,
+                  PocketSpacing.xxxl,
+                ),
           children: isCollapsed
               ? _buildCollapsedChildren(context)
               : _buildExpandedChildren(context),
@@ -352,7 +366,7 @@ class _MaterialSidebarSectionTitle extends StatelessWidget {
         DecoratedBox(
           decoration: BoxDecoration(
             color: palette.subtleSurface,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: PocketRadii.circular(PocketRadii.pill),
             border: Border.all(color: palette.surfaceBorder),
           ),
           child: Padding(
@@ -405,7 +419,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
       child: Ink(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: PocketRadii.circular(22),
           border: Border.all(color: borderColor),
         ),
         child: Row(
@@ -413,7 +427,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
             Expanded(
               child: InkWell(
                 key: ValueKey<String>('desktop_live_$connectionId'),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: PocketRadii.circular(22),
                 onTap: onTap,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
@@ -438,30 +452,14 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
                       ),
                       if (requiresReconnect) ...[
                         const SizedBox(height: 8),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.28,
-                              ),
-                            ),
+                        DefaultTextStyle(
+                          style: theme.textTheme.labelSmall!.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            child: Text(
-                              ConnectionWorkspaceCopy.reconnectBadge,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                          child: PocketTintBadge(
+                            label: ConnectionWorkspaceCopy.reconnectBadge,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ],
@@ -524,12 +522,12 @@ class _MaterialDormantRosterSidebarRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         key: const ValueKey('desktop_dormant_roster'),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: PocketRadii.circular(22),
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: PocketRadii.circular(22),
             border: Border.all(color: borderColor),
           ),
           child: Padding(
@@ -587,14 +585,14 @@ class _MaterialCollapsedSidebarButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         key: buttonKey,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: PocketRadii.circular(PocketRadii.lg),
         onTap: onTap,
         child: Ink(
           width: 60,
           height: 56,
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: PocketRadii.circular(PocketRadii.lg),
             border: Border.all(color: borderColor),
           ),
           child: Stack(
@@ -620,7 +618,7 @@ class _MaterialCollapsedSidebarButton extends StatelessWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: PocketRadii.circular(PocketRadii.pill),
                     ),
                     child: const SizedBox(width: 8, height: 8),
                   ),
