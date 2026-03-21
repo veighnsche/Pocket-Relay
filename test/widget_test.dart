@@ -19,17 +19,45 @@ import 'support/fake_connection_settings_overlay_delegate.dart';
 
 void main() {
   testWidgets(
-    'enables the display wake lock for the top-level app shell',
+    'keeps the display awake only while a turn is actively ticking',
     (tester) async {
       final controller = _FakeDisplayWakeLockController();
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        _buildCatalogApp(displayWakeLockController: controller),
+        _buildCatalogApp(
+          displayWakeLockController: controller,
+          appServerClient: appServerClient,
+        ),
       );
 
       await tester.pumpAndSettle();
 
-      expect(controller.enabledStates, contains(true));
+      expect(controller.enabledStates, isEmpty);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('composer_input')),
+        'Keep the screen awake while this runs',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(controller.enabledStates, <bool>[true]);
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.enabledStates, <bool>[true, false]);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );

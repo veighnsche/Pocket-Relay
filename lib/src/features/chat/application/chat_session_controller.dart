@@ -663,6 +663,9 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   Future<void> _restoreInitialConversationIfNeeded() async {
+    await _conversationSelection.persistInitialSelectionIfNeeded(
+      ephemeralSession: _profile.ephemeralSession,
+    );
     final threadId = _resumeConversationThreadId();
     if (threadId == null ||
         _historicalConversationRestoreState != null ||

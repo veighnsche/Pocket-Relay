@@ -301,14 +301,14 @@ Map<String, FakeCodexAppServerClient> _buildClientsById([
   String firstConnectionId = 'conn_primary',
   String? secondConnectionId,
 ]) {
+  final secondaryClients = secondConnectionId == null
+      ? null
+      : <String, FakeCodexAppServerClient>{
+          secondConnectionId: FakeCodexAppServerClient(),
+        };
   return <String, FakeCodexAppServerClient>{
     firstConnectionId: FakeCodexAppServerClient(),
-    ...?switch (secondConnectionId) {
-      final id? => <String, FakeCodexAppServerClient>{
-        id: FakeCodexAppServerClient(),
-      },
-      null => null,
-    },
+    ...?secondaryClients,
   };
 }
 

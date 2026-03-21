@@ -17,6 +17,7 @@ import 'package:pocket_relay/src/features/workspace/presentation/connection_work
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_desktop_shell.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_live_lane_surface.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_mobile_shell.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
 
 class PocketRelayApp extends StatefulWidget {
   const PocketRelayApp({
@@ -149,7 +150,8 @@ class _PocketRelayAppState extends State<PocketRelayApp> {
       theme: buildPocketTheme(Brightness.light),
       darkTheme: buildPocketTheme(Brightness.dark),
       themeMode: ThemeMode.system,
-      home: DisplayWakeLockHost(
+      home: WorkspaceTurnWakeLockHost(
+        workspaceController: _workspaceController,
         displayWakeLockController:
             widget.displayWakeLockController ??
             const WakelockPlusDisplayWakeLockController(),
