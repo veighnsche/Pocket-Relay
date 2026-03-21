@@ -19,6 +19,10 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_s
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 
+part 'chat_session_controller_events.dart';
+part 'chat_session_controller_history.dart';
+part 'chat_session_controller_thread_metadata.dart';
+
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
@@ -344,7 +348,8 @@ class ChatSessionController extends ChangeNotifier {
       ),
       rememberContinuationThread: true,
       failureTitle: 'Continue from prompt failed',
-      failureMessage: 'Could not rewind this conversation to the selected prompt.',
+      failureMessage:
+          'Could not rewind this conversation to the selected prompt.',
     );
     if (nextState == null) {
       return null;
@@ -568,21 +573,7 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   void _handleAppServerEvent(CodexAppServerEvent event) {
-    if (event is CodexAppServerRequestEvent &&
-        _isUnsupportedHostRequest(event.method)) {
-      unawaited(_handleUnsupportedHostRequest(event));
-      return;
-    }
-
-    final runtimeEvents = _runtimeEventMapper.mapEvent(event);
-    if (_isTrackingSshBootstrapFailures &&
-        runtimeEvents.any(_isSshBootstrapFailureRuntimeEvent)) {
-      _sawTrackedSshBootstrapFailure = true;
-    }
-
-    for (final runtimeEvent in runtimeEvents) {
-      _applyRuntimeEvent(runtimeEvent);
-    }
+    _handleChatSessionAppServerEvent(this, event);
   }
 
   bool _isUnsupportedHostRequest(String method) {
@@ -590,111 +581,12 @@ class ChatSessionController extends ChangeNotifier {
         method == 'item/tool/call';
   }
 
-  Future<void> _handleUnsupportedHostRequest(
-    CodexAppServerRequestEvent event,
-  ) async {
-    final payload = _asObject(event.params);
-    final threadId = _asString(payload?['threadId']);
-    final turnId = _asString(payload?['turnId']);
-    final itemId = _asString(payload?['itemId']);
-    final toolName = _asString(payload?['tool']) ?? 'dynamic tool';
-
-    final (title, message) = switch (event.method) {
-      'account/chatgptAuthTokens/refresh' => (
-        'Auth refresh unsupported',
-        'Pocket Relay does not manage external ChatGPT tokens, so this app-server auth refresh request was rejected.',
-      ),
-      'item/tool/call' => (
-        'Dynamic tool unsupported',
-        'Pocket Relay does not implement the experimental host-side tool "$toolName", so the request was rejected.',
-      ),
-      _ => (
-        'Request unsupported',
-        'Pocket Relay rejected an unsupported app-server request.',
-      ),
-    };
-
-    _applyRuntimeEvent(
-      CodexRuntimeStatusEvent(
-        createdAt: DateTime.now(),
-        threadId: threadId,
-        turnId: turnId,
-        itemId: itemId,
-        requestId: event.requestId,
-        rawMethod: event.method,
-        rawPayload: event.params,
-        title: title,
-        message: message,
-      ),
-    );
-
-    try {
-      if (event.method == 'item/tool/call') {
-        await appServerClient.respondDynamicToolCall(
-          requestId: event.requestId,
-          success: false,
-          contentItems: <Map<String, Object?>>[
-            <String, Object?>{'type': 'inputText', 'text': message},
-          ],
-        );
-        return;
-      }
-
-      await appServerClient.rejectServerRequest(
-        requestId: event.requestId,
-        message: message,
-      );
-    } catch (error) {
-      _reportAppServerFailure(
-        title: 'Request handling failed',
-        message: 'Could not reject an unsupported app-server request.',
-        error: error,
-      );
-    }
-  }
-
-  void _applyRuntimeEvent(CodexRuntimeEvent event) {
-    _applySessionState(
-      _sessionReducer.reduceRuntimeEvent(_sessionState, event),
-    );
-    if (event is CodexRuntimeThreadStartedEvent) {
-      unawaited(_hydrateThreadMetadataIfNeeded(event));
-    }
-  }
-
   Future<void> _restoreInitialConversationIfNeeded() async {
-    await _conversationSelection.persistInitialSelectionIfNeeded(
-      ephemeralSession: _profile.ephemeralSession,
-    );
-    final threadId = _resumeConversationThreadId();
-    if (threadId == null ||
-        _historicalConversationRestoreState != null ||
-        _sessionState.rootThreadId != null ||
-        _sessionState.transcriptBlocks.isNotEmpty) {
-      return;
-    }
-
-    await _restoreConversationTranscript(threadId);
+    await _restoreInitialConversationIfNeededForController(this);
   }
 
   Future<void> _restoreConversationTranscript(String threadId) async {
-    await _performHistoryRestoringThreadTransition(
-      operation: () => appServerClient.readThreadWithTurns(threadId: threadId),
-      loadingRestoreState: ChatHistoricalConversationRestoreState(
-        threadId: threadId,
-        phase: ChatHistoricalConversationRestorePhase.loading,
-      ),
-      emptyHistoryRestoreState: ChatHistoricalConversationRestoreState(
-        threadId: threadId,
-        phase: ChatHistoricalConversationRestorePhase.unavailable,
-      ),
-      failureRestoreState: ChatHistoricalConversationRestoreState(
-        threadId: threadId,
-        phase: ChatHistoricalConversationRestorePhase.failed,
-      ),
-      failureTitle: 'Conversation load failed',
-      failureMessage: 'Could not load the saved conversation transcript.',
-    );
+    await _restoreConversationTranscriptForController(this, threadId);
   }
 
   Future<CodexSessionState?> _performHistoryRestoringThreadTransition({
@@ -706,174 +598,24 @@ class ChatSessionController extends ChangeNotifier {
     ChatHistoricalConversationRestoreState? failureRestoreState,
     bool rememberContinuationThread = false,
   }) async {
-    if (loadingRestoreState != null) {
-      _setHistoricalConversationRestoreState(loadingRestoreState);
-    }
-
-    try {
-      await _ensureAppServerConnected();
-      final thread = await operation();
-      if (_isDisposed) {
-        return null;
-      }
-
-      final nextState = _restoredSessionStateFromHistory(thread);
-      _clearConversationRecovery();
-      _historicalConversationRestoreState = nextState.transcriptBlocks.isEmpty
-          ? emptyHistoryRestoreState
-          : null;
-      if (rememberContinuationThread) {
-        _rememberContinuationThread(thread.id);
-      }
-      _applySessionState(nextState);
-      return nextState;
-    } catch (error) {
-      if (failureRestoreState != null) {
-        _setHistoricalConversationRestoreState(failureRestoreState);
-      }
-      _reportAppServerFailure(
-        title: failureTitle,
-        message: failureMessage,
-        error: error,
-      );
-      return null;
-    }
-  }
-
-  CodexSessionState _restoredSessionStateFromHistory(
-    CodexAppServerThreadHistory thread,
-  ) {
-    final historicalConversation = _historicalConversationNormalizer.normalize(
-      thread,
+    return _performHistoryRestoringThreadTransitionForController(
+      this,
+      operation: operation,
+      failureTitle: failureTitle,
+      failureMessage: failureMessage,
+      loadingRestoreState: loadingRestoreState,
+      emptyHistoryRestoreState: emptyHistoryRestoreState,
+      failureRestoreState: failureRestoreState,
+      rememberContinuationThread: rememberContinuationThread,
     );
-    return _historicalConversationRestorer.restore(historicalConversation);
   }
 
   Future<bool> _sendPromptWithAppServer(String prompt) async {
-    _isTrackingSshBootstrapFailures = true;
-    _sawTrackedSshBootstrapFailure = false;
-    try {
-      final threadId = await _ensureAppServerThread();
-      _clearConversationRecovery();
-      _applySessionState(
-        _sessionState.copyWith(
-          connectionStatus: CodexRuntimeSessionState.running,
-        ),
-      );
-      final turn = await appServerClient.sendUserMessage(
-        threadId: threadId,
-        text: prompt,
-        model: _selectedModelOverride(),
-        effort: _profile.reasoningEffort,
-      );
-      await _conversationSelection.recordConversationSelection(
-        threadId: turn.threadId,
-      );
-      _rememberContinuationThread(turn.threadId);
-      _applyRuntimeEvent(
-        CodexRuntimeTurnStartedEvent(
-          createdAt: DateTime.now(),
-          threadId: turn.threadId,
-          turnId: turn.turnId,
-          rawMethod: 'turn/start(response)',
-        ),
-      );
-      return true;
-    } catch (error) {
-      final recoveryAssessment = _conversationRecoveryPolicy.assessSendFailure(
-        error: error,
-        sessionState: _sessionState,
-        sessionLabel: _sessionLabel(),
-        preferredAlternateThreadId: appServerClient.threadId,
-      );
-      if (recoveryAssessment.recoveryState != null) {
-        _setConversationRecovery(recoveryAssessment.recoveryState!);
-      }
-      if (_sessionState.activeTurn == null &&
-          _sessionState.pendingLocalUserMessageBlockIds.isNotEmpty) {
-        _applySessionState(
-          _sessionReducer.clearLocalUserMessageCorrelationState(_sessionState),
-        );
-      }
-      await Future<void>.microtask(() {});
-      _reportAppServerFailure(
-        title: recoveryAssessment.presentation.title,
-        message: recoveryAssessment.presentation.message,
-        error: error,
-        runtimeErrorMessage:
-            recoveryAssessment.presentation.runtimeErrorMessage,
-        suppressRuntimeError: _sawTrackedSshBootstrapFailure,
-        suppressSnackBar: recoveryAssessment.suppressSnackBar,
-      );
-      return false;
-    } finally {
-      _isTrackingSshBootstrapFailures = false;
-      _sawTrackedSshBootstrapFailure = false;
-    }
+    return _sendPromptWithAppServerForController(this, prompt);
   }
 
   Future<String> _ensureAppServerThread() async {
-    await _conversationSelection.hydratePersistedSelection();
-    await _ensureAppServerConnected();
-
-    final activeThreadId = _activeConversationThreadId();
-    final trackedThreadId = _normalizedThreadId(appServerClient.threadId);
-    if (activeThreadId != null && trackedThreadId == activeThreadId) {
-      _rememberContinuationThread(activeThreadId);
-      return activeThreadId;
-    }
-
-    final resumeThreadId =
-        activeThreadId ??
-        _conversationSelection.resumeThreadId(
-          ephemeralSession: _profile.ephemeralSession,
-        );
-    final session = await appServerClient.startSession(
-      model: _selectedModelOverride(),
-      reasoningEffort: _profile.reasoningEffort,
-      resumeThreadId: resumeThreadId,
-    );
-    _rememberContinuationThread(session.threadId);
-    _rememberSessionHeaderMetadata(session);
-    _applyRuntimeEvent(
-      CodexRuntimeThreadStartedEvent(
-        createdAt: DateTime.now(),
-        threadId: session.threadId,
-        providerThreadId: session.threadId,
-        rawMethod: resumeThreadId == null
-            ? 'thread/start(response)'
-            : 'thread/resume(response)',
-        threadName: session.thread?.name,
-        sourceKind: session.thread?.sourceKind,
-        agentNickname: session.thread?.agentNickname,
-        agentRole: session.thread?.agentRole,
-      ),
-    );
-    return session.threadId;
-  }
-
-  void _rememberSessionHeaderMetadata(CodexAppServerSession session) {
-    final nextMetadata = _sessionState.headerMetadata.copyWith(
-      cwd: session.cwd.trim().isEmpty ? null : session.cwd.trim(),
-      model: session.model.trim().isEmpty ? null : session.model.trim(),
-      modelProvider: session.modelProvider.trim().isEmpty
-          ? null
-          : session.modelProvider.trim(),
-      reasoningEffort:
-          session.reasoningEffort == null ||
-              session.reasoningEffort!.trim().isEmpty
-          ? null
-          : session.reasoningEffort!.trim(),
-    );
-    _applySessionState(_sessionState.copyWith(headerMetadata: nextMetadata));
-  }
-
-  Future<void> _ensureAppServerConnected() async {
-    if (appServerClient.isConnected) {
-      return;
-    }
-
-    await appServerClient.connect(profile: _profile, secrets: _secrets);
+    return _ensureChatSessionAppServerThread(this);
   }
 
   String? _selectedModelOverride() {
@@ -882,48 +624,14 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   Future<void> _stopAppServerTurn() async {
-    try {
-      final targetTimeline =
-          _sessionState.selectedTimeline ?? _sessionState.rootTimeline;
-      final turnId = targetTimeline?.activeTurn?.turnId;
-      if (targetTimeline == null || turnId == null) {
-        return;
-      }
-      await appServerClient.abortTurn(
-        threadId: targetTimeline.threadId,
-        turnId: turnId,
-      );
-    } catch (error) {
-      _reportAppServerFailure(
-        title: 'Stop failed',
-        message: 'Could not stop the active Codex turn.',
-        error: error,
-      );
-    }
+    await _stopChatSessionAppServerTurn(this);
   }
 
   Future<void> _resolveApproval(
     String requestId, {
     required bool approved,
   }) async {
-    final pendingRequest = _findPendingApprovalRequest(requestId);
-    if (pendingRequest == null) {
-      _emitSnackBar('This approval request is no longer pending.');
-      return;
-    }
-
-    try {
-      await appServerClient.resolveApproval(
-        requestId: requestId,
-        approved: approved,
-      );
-    } catch (error) {
-      _reportAppServerFailure(
-        title: approved ? 'Approval failed' : 'Denial failed',
-        message: 'Could not submit the decision for this request.',
-        error: error,
-      );
-    }
+    await _resolveChatSessionApproval(this, requestId, approved: approved);
   }
 
   CodexSessionPendingRequest? _findPendingApprovalRequest(String requestId) {
@@ -963,38 +671,6 @@ class ChatSessionController extends ChangeNotifier {
     }
 
     return null;
-  }
-
-  Future<void> _hydrateThreadMetadataIfNeeded(
-    CodexRuntimeThreadStartedEvent event,
-  ) async {
-    final threadId = event.providerThreadId.trim();
-    if (!_shouldHydrateThreadMetadata(threadId, event)) {
-      return;
-    }
-
-    _threadMetadataHydrationAttempts.add(threadId);
-    try {
-      final thread = await appServerClient.readThread(threadId: threadId);
-      if (_isDisposed || !_hasThreadMetadata(thread)) {
-        return;
-      }
-
-      _applyRuntimeEvent(
-        CodexRuntimeThreadStartedEvent(
-          createdAt: DateTime.now(),
-          threadId: thread.id,
-          providerThreadId: thread.id,
-          rawMethod: 'thread/read(response)',
-          threadName: thread.name,
-          sourceKind: thread.sourceKind,
-          agentNickname: thread.agentNickname,
-          agentRole: thread.agentRole,
-        ),
-      );
-    } catch (_) {
-      // Thread metadata hydration is best-effort only.
-    }
   }
 
   bool _shouldHydrateThreadMetadata(
@@ -1081,28 +757,15 @@ class ChatSessionController extends ChangeNotifier {
     bool suppressRuntimeError = false,
     bool suppressSnackBar = false,
   }) {
-    final now = DateTime.now();
-    _applyRuntimeEvent(
-      CodexRuntimeSessionStateChangedEvent(
-        createdAt: now,
-        state: CodexRuntimeSessionState.ready,
-        reason: message,
-        rawMethod: 'app-server/failure',
-      ),
+    _reportChatSessionAppServerFailure(
+      this,
+      title: title,
+      message: message,
+      error: error,
+      runtimeErrorMessage: runtimeErrorMessage,
+      suppressRuntimeError: suppressRuntimeError,
+      suppressSnackBar: suppressSnackBar,
     );
-    if (!suppressRuntimeError) {
-      _applyRuntimeEvent(
-        CodexRuntimeErrorEvent(
-          createdAt: now,
-          message: runtimeErrorMessage ?? '$title: $error',
-          errorClass: CodexRuntimeErrorClass.transportError,
-          rawMethod: 'app-server/failure',
-        ),
-      );
-    }
-    if (!suppressSnackBar) {
-      _emitSnackBar(message);
-    }
   }
 
   bool _isSshBootstrapFailureRuntimeEvent(CodexRuntimeEvent event) {
