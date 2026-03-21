@@ -1674,6 +1674,82 @@ void main() {
     expect(find.text('+newName();'), findsOneWidget);
   });
 
+  testWidgets(
+    'renders created, edited, and deleted file rows with distinct treatments',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: _entryCard(
+            block: CodexChangedFilesBlock(
+              id: 'diff_states_1',
+              createdAt: DateTime(2026, 3, 14, 12),
+              title: 'Changed files',
+              files: const <CodexChangedFile>[
+                CodexChangedFile(path: 'lib/new_file.dart', additions: 3),
+                CodexChangedFile(
+                  path: 'lib/edited_file.dart',
+                  additions: 2,
+                  deletions: 1,
+                ),
+                CodexChangedFile(path: 'lib/deleted_file.dart', deletions: 4),
+              ],
+              unifiedDiff:
+                  'diff --git a/lib/new_file.dart b/lib/new_file.dart\n'
+                  'new file mode 100644\n'
+                  '--- /dev/null\n'
+                  '+++ b/lib/new_file.dart\n'
+                  '@@ -0,0 +1,3 @@\n'
+                  '+first\n'
+                  '+second\n'
+                  '+third\n'
+                  'diff --git a/lib/edited_file.dart b/lib/edited_file.dart\n'
+                  '--- a/lib/edited_file.dart\n'
+                  '+++ b/lib/edited_file.dart\n'
+                  '@@ -1,2 +1,3 @@\n'
+                  ' same\n'
+                  '-old\n'
+                  '+new\n'
+                  '+extra\n'
+                  'diff --git a/lib/deleted_file.dart b/lib/deleted_file.dart\n'
+                  'deleted file mode 100644\n'
+                  '--- a/lib/deleted_file.dart\n'
+                  '+++ /dev/null\n'
+                  '@@ -1,4 +0,0 @@\n'
+                  '-gone1\n'
+                  '-gone2\n'
+                  '-gone3\n'
+                  '-gone4\n',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Created'), findsOneWidget);
+      expect(find.text('Edited'), findsOneWidget);
+      expect(find.text('Deleted'), findsOneWidget);
+
+      final createdColor = _findDecoratedContainerColorForText(
+        tester,
+        'lib/new_file.dart',
+      );
+      final editedColor = _findDecoratedContainerColorForText(
+        tester,
+        'lib/edited_file.dart',
+      );
+      final deletedColor = _findDecoratedContainerColorForText(
+        tester,
+        'lib/deleted_file.dart',
+      );
+
+      expect(createdColor, isNotNull);
+      expect(editedColor, isNotNull);
+      expect(deletedColor, isNotNull);
+      expect(createdColor, isNot(equals(editedColor)));
+      expect(deletedColor, isNot(equals(editedColor)));
+      expect(createdColor, isNot(equals(deletedColor)));
+    },
+  );
+
   testWidgets('derives file rows from diff-only payloads without git headers', (
     tester,
   ) async {

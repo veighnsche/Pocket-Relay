@@ -29,9 +29,15 @@ class ChatChangedFilesItemProjector {
               totalFiles: files.length,
             );
             final stats = _resolveFileStats(file: file, patch: patch);
+            final operationKind = _resolveOperationKind(
+              file: file,
+              patch: patch,
+            );
             return ChatChangedFileRowContract(
               id: rowId,
               displayPathLabel: _displayPathLabel(file),
+              operationKind: operationKind,
+              operationLabel: _operationLabel(operationKind),
               stats: ChatChangedFileStatsContract(
                 additions: stats.additions,
                 deletions: stats.deletions,
@@ -71,6 +77,30 @@ class ChatChangedFilesItemProjector {
       _DiffLineKind.context => ChatChangedFileDiffLineKind.context,
     };
   }
+}
+
+ChatChangedFileOperationKind _resolveOperationKind({
+  required CodexChangedFile file,
+  required _ParsedDiffPatch? patch,
+}) {
+  switch (patch?.statusLabel) {
+    case 'new file':
+      return ChatChangedFileOperationKind.created;
+    case 'deleted file':
+      return ChatChangedFileOperationKind.deleted;
+    default:
+      break;
+  }
+
+  return ChatChangedFileOperationKind.modified;
+}
+
+String _operationLabel(ChatChangedFileOperationKind kind) {
+  return switch (kind) {
+    ChatChangedFileOperationKind.created => 'Created',
+    ChatChangedFileOperationKind.modified => 'Edited',
+    ChatChangedFileOperationKind.deleted => 'Deleted',
+  };
 }
 
 List<CodexChangedFile> _displayFiles(

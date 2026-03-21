@@ -120,23 +120,62 @@ class _ChangedFileRow extends StatelessWidget {
 
   bool get _canOpenPatch => row.canOpenDiff;
 
+  (_ChangedFileVisuals visuals, Color accent) _visualsForRow() {
+    final brightness = cards.brightness;
+    final accent = switch (row.operationKind) {
+      ChatChangedFileOperationKind.created => tealAccent(brightness),
+      ChatChangedFileOperationKind.modified => amberAccent(brightness),
+      ChatChangedFileOperationKind.deleted => redAccent(brightness),
+    };
+
+    final visuals = switch (row.operationKind) {
+      ChatChangedFileOperationKind.created => const _ChangedFileVisuals(
+        icon: Icons.add_circle_outline_rounded,
+      ),
+      ChatChangedFileOperationKind.modified => const _ChangedFileVisuals(
+        icon: Icons.edit_outlined,
+      ),
+      ChatChangedFileOperationKind.deleted => const _ChangedFileVisuals(
+        icon: Icons.delete_outline_rounded,
+      ),
+    };
+
+    return (visuals, accent);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final (visuals, rowAccent) = _visualsForRow();
     final body = Container(
+      key: ValueKey<String>('changed_file_row_${row.id}'),
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: cards.tintedSurface(accent, lightAlpha: 0.08, darkAlpha: 0.14),
+        color: cards.tintedSurface(
+          rowAccent,
+          lightAlpha: 0.08,
+          darkAlpha: 0.14,
+        ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: cards.accentBorder(accent, lightAlpha: 0.32, darkAlpha: 0.42),
+          color: cards.accentBorder(
+            rowAccent,
+            lightAlpha: 0.32,
+            darkAlpha: 0.42,
+          ),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.insert_drive_file_outlined, size: 13, color: accent),
+          Icon(visuals.icon, size: 14, color: rowAccent),
           const SizedBox(width: 6),
+          _ChangedFileStatusChip(
+            label: row.operationLabel,
+            accent: rowAccent,
+            cards: cards,
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               row.displayPathLabel,
@@ -160,7 +199,7 @@ class _ChangedFileRow extends StatelessWidget {
           const SizedBox(width: 8),
           _ChangedFileActionChip(
             label: row.actionLabel,
-            accent: accent,
+            accent: rowAccent,
             cards: cards,
             isEnabled: _canOpenPatch,
           ),
@@ -178,6 +217,47 @@ class _ChangedFileRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: () => onOpenDiff!(row.diff!),
         child: body,
+      ),
+    );
+  }
+}
+
+class _ChangedFileVisuals {
+  const _ChangedFileVisuals({required this.icon});
+
+  final IconData icon;
+}
+
+class _ChangedFileStatusChip extends StatelessWidget {
+  const _ChangedFileStatusChip({
+    required this.label,
+    required this.accent,
+    required this.cards,
+  });
+
+  final String label;
+  final Color accent;
+  final ConversationCardPalette cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: cards.tintedSurface(accent, lightAlpha: 0.12, darkAlpha: 0.22),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: cards.accentBorder(accent, lightAlpha: 0.3, darkAlpha: 0.42),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: accent,
+        ),
       ),
     );
   }

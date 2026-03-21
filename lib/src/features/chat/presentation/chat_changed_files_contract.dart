@@ -1,5 +1,7 @@
 enum ChatChangedFileDiffLineKind { meta, hunk, addition, deletion, context }
 
+enum ChatChangedFileOperationKind { created, modified, deleted }
+
 class ChatChangedFileStatsContract {
   const ChatChangedFileStatsContract({
     required this.additions,
@@ -47,6 +49,8 @@ class ChatChangedFileRowContract {
   const ChatChangedFileRowContract({
     required this.id,
     required this.displayPathLabel,
+    required this.operationKind,
+    required this.operationLabel,
     required this.stats,
     required this.actionLabel,
     this.diff,
@@ -54,6 +58,8 @@ class ChatChangedFileRowContract {
 
   final String id;
   final String displayPathLabel;
+  final ChatChangedFileOperationKind operationKind;
+  final String operationLabel;
   final ChatChangedFileStatsContract stats;
   final String actionLabel;
   final ChatChangedFileDiffContract? diff;
