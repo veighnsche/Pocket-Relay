@@ -6,7 +6,9 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/worklog/domain/chat_work_log_contract.dart';
 
 part 'work_log_group_card_header.dart';
-part 'work_log_group_card_rows.dart';
+part 'work_log_group_card_rows_dispatch.dart';
+part 'work_log_group_card_rows_command.dart';
+part 'work_log_group_card_rows_tooling.dart';
 part 'work_log_group_card_shell.dart';
 
 class WorkLogGroupCard extends StatefulWidget {
