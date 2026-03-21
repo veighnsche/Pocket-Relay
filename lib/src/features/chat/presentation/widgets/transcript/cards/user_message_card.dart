@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
@@ -7,11 +9,13 @@ class UserMessageCard extends StatelessWidget {
     super.key,
     required this.block,
     this.canContinueFromHere = false,
+    this.showsDesktopContextMenu = false,
     this.onContinueFromHere,
   });
 
   final CodexUserMessageBlock block;
   final bool canContinueFromHere;
+  final bool showsDesktopContextMenu;
   final Future<void> Function(String blockId)? onContinueFromHere;
 
   @override
@@ -35,6 +39,8 @@ class UserMessageCard extends StatelessWidget {
         darkAlpha: isLocalEcho ? 0.20 : 0.28,
       ),
     );
+    final canShowContinueAction =
+        canContinueFromHere && onContinueFromHere != null;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -45,8 +51,15 @@ class UserMessageCard extends StatelessWidget {
           child: InkWell(
             key: ValueKey<String>('user_message_card_${block.id}'),
             borderRadius: BorderRadius.circular(20),
-            onLongPress: canContinueFromHere && onContinueFromHere != null
+            onLongPress: canShowContinueAction
                 ? () => onContinueFromHere!(block.id)
+                : null,
+            onSecondaryTapDown: canShowContinueAction && showsDesktopContextMenu
+                ? (details) {
+                    unawaited(
+                      _showDesktopContextMenu(context, details.globalPosition),
+                    );
+                  }
                 : null,
             child: Padding(
               padding: const EdgeInsets.only(left: 48),
@@ -57,13 +70,49 @@ class UserMessageCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   border: border,
                 ),
-                child: Text(
-                  block.text,
-                  style: TextStyle(
-                    color: cards.textPrimary,
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      block.text,
+                      style: TextStyle(
+                        color: cards.textPrimary,
+                        fontSize: 15,
+                        height: 1.35,
+                      ),
+                    ),
+                    if (canShowContinueAction) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          key: ValueKey<String>(
+                            'continue_from_here_action_${block.id}',
+                          ),
+                          onPressed: () => onContinueFromHere!(block.id),
+                          icon: const Icon(Icons.history, size: 16),
+                          label: const Text('Continue From Here'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: cards.textPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            backgroundColor: cards.accentBorder(
+                              accent,
+                              lightAlpha: 0.12,
+                              darkAlpha: 0.20,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -72,4 +121,33 @@ class UserMessageCard extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _showDesktopContextMenu(
+    BuildContext context,
+    Offset globalPosition,
+  ) async {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final selection = await showMenu<_UserMessageCardAction>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx,
+        globalPosition.dy,
+        overlay.size.width - globalPosition.dx,
+        overlay.size.height - globalPosition.dy,
+      ),
+      items: const [
+        PopupMenuItem<_UserMessageCardAction>(
+          value: _UserMessageCardAction.continueFromHere,
+          child: Text('Continue From Here'),
+        ),
+      ],
+    );
+    if (selection != _UserMessageCardAction.continueFromHere) {
+      return;
+    }
+
+    await onContinueFromHere?.call(block.id);
+  }
 }
+
+enum _UserMessageCardAction { continueFromHere }

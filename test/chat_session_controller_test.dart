@@ -347,6 +347,81 @@ void main() {
   );
 
   test(
+    'continueFromUserMessage keeps the transcript intact and reports feedback when rollback fails',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        )
+        ..rollbackThreadError = StateError('transport broke');
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      final originalUserTexts = controller.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .map((block) => block.text)
+          .toList(growable: false);
+      final originalAssistantTexts = controller.transcriptBlocks
+          .whereType<CodexTextBlock>()
+          .map((block) => block.body)
+          .toList(growable: false);
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      final selectedBlock = controller.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .firstWhere((block) => block.text == 'Restore this');
+
+      final draftText = await controller.continueFromUserMessage(
+        selectedBlock.id,
+      );
+
+      expect(draftText, isNull);
+      expect(
+        appServerClient.rollbackThreadCalls,
+        <({String threadId, int numTurns})>[
+          (threadId: 'thread_saved', numTurns: 2),
+        ],
+      );
+      expect(
+        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+          (block) => block.text,
+        ),
+        originalUserTexts,
+      );
+      expect(
+        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+          (block) => block.body,
+        ),
+        originalAssistantTexts,
+      );
+      expect(
+        await snackBarMessage,
+        'Could not rewind this conversation to the selected prompt.',
+      );
+    },
+  );
+
+  test(
     'initialize surfaces unavailable history for initial selectedThreadId without waiting for sendPrompt',
     () async {
       final appServerClient = FakeCodexAppServerClient()

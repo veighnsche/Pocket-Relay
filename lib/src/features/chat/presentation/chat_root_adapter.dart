@@ -232,8 +232,10 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
         return AlertDialog(
           title: const Text('Continue From Here'),
           content: const Text(
-            'This will discard newer conversation turns in this thread. '
-            'Local file changes are not reverted automatically.',
+            'This will discard newer conversation turns in this thread, '
+            'reload the selected prompt into the composer, and keep any local '
+            'file changes exactly as they are. Local file changes are not '
+            'reverted automatically.',
           ),
           actions: [
             TextButton(

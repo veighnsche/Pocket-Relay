@@ -8,6 +8,33 @@ for a mobile-first affordance such as long-pressing a previous user prompt.
 
 This document is an implementation reference, not a speculative product brief.
 
+## Current Status
+
+Pocket Relay now implements the real rollback-based version of this feature.
+
+Shipped behavior:
+
+- app-server `thread/rollback` support
+- controller-owned "continue from earlier prompt" intent
+- upstream-history restore after rollback succeeds
+- composer prefill from the selected earlier prompt
+- long-press trigger
+- desktop secondary-click context menu trigger
+- visible inline `Continue From Here` action on eligible prompts
+- confirmation dialog with explicit warning copy
+- success and failure path coverage
+
+Pocket Relay now matches the important upstream semantic contract:
+
+- select an earlier sent user prompt
+- compute rollback depth from that prompt position
+- send `thread/rollback`
+- restore returned upstream history
+- continue from that real earlier point
+
+Pocket Relay does not match the TUI input model literally, and it should not.
+The TUI uses `Esc` / `Esc` / `Enter`; Pocket Relay uses GUI-native triggers.
+
 ## Question Being Answered
 
 The target behavior is:
@@ -95,6 +122,29 @@ that earlier prompt and continue from there in the same thread".
 
 So for the requested behavior, `thread/rollback` is the relevant primitive.
 
+## Upstream Parity Assessment
+
+Pocket Relay is now aligned with upstream Codex on the backend-owned semantics.
+
+Parity points:
+
+- real `thread/rollback`, not local-only composer recall
+- rollback depth derived from the selected user message position
+- transcript restore from upstream returned history, not local speculative trim
+- composer prefill from the selected earlier user prompt
+- explicit warning that local file changes are not reverted
+
+Intentional non-parity points:
+
+- no TUI key-state machine such as `Esc` / `Esc`
+- Pocket Relay exposes the action through long-press, visible inline action,
+  and desktop secondary-click context menu
+- Pocket Relay excludes invalid GUI/runtime states instead of mirroring
+  transcript-overlay selection behavior one-for-one
+
+This is the correct form of parity for Pocket Relay because the repository owns
+the frontend but not the backend contract.
+
 ## Pocket Relay Current State
 
 Pocket Relay currently supports:
@@ -102,6 +152,7 @@ Pocket Relay currently supports:
 - restoring a full conversation transcript from upstream `thread/read`
 - resuming an existing thread via `thread/resume`
 - sending new user turns into the current thread
+- rewinding an existing thread via upstream `thread/rollback`
 
 Key files:
 
@@ -111,14 +162,18 @@ Key files:
 
 Pocket Relay currently does not expose:
 
-- `thread/rollback`
 - `thread/fork`
-- any transcript action on user-message cards for rewind/resume
 
-User messages are currently passive transcript surfaces rendered through:
+User messages are now interactive transcript surfaces rendered through:
 
 - `lib/src/features/chat/presentation/widgets/transcript/cards/user_message_card.dart`
 - `lib/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart`
+
+Implemented trigger surfaces:
+
+- long-press on eligible user prompts
+- visible inline `Continue From Here` action on eligible user prompts
+- desktop secondary-click context menu
 
 ## Constraint From Repo Rules
 

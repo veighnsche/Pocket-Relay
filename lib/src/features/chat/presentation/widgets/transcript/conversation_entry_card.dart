@@ -22,6 +22,7 @@ class ConversationEntryCard extends StatelessWidget {
   const ConversationEntryCard({
     super.key,
     required this.item,
+    this.showsDesktopContextMenu = false,
     this.onApproveRequest,
     this.onDenyRequest,
     this.onOpenChangedFileDiff,
@@ -32,6 +33,7 @@ class ConversationEntryCard extends StatelessWidget {
   });
 
   final ChatTranscriptItemContract item;
+  final bool showsDesktopContextMenu;
   final Future<void> Function(String requestId)? onApproveRequest;
   final Future<void> Function(String requestId)? onDenyRequest;
   final void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff;
@@ -50,6 +52,7 @@ class ConversationEntryCard extends StatelessWidget {
       final ChatUserMessageItemContract userItem => UserMessageCard(
         block: userItem.block,
         canContinueFromHere: userItem.canContinueFromHere,
+        showsDesktopContextMenu: showsDesktopContextMenu,
         onContinueFromHere: onContinueFromUserMessage,
       ),
       final ChatReasoningItemContract reasoningItem => ReasoningCard(

@@ -114,6 +114,8 @@ class _TranscriptListState extends State<TranscriptList> {
                 return ConversationEntryCard(
                   key: ValueKey<String>('transcript_${item.id}'),
                   item: item,
+                  showsDesktopContextMenu:
+                      widget.platformBehavior.isDesktopExperience,
                   onConfigure: widget.onConfigure,
                   onApproveRequest: widget.onApproveRequest,
                   onDenyRequest: widget.onDenyRequest,
@@ -151,6 +153,8 @@ class _TranscriptListState extends State<TranscriptList> {
                           child: ConversationEntryCard(
                             key: ValueKey<String>('pinned_${item.id}'),
                             item: item,
+                            showsDesktopContextMenu:
+                                widget.platformBehavior.isDesktopExperience,
                             onConfigure: widget.onConfigure,
                             onApproveRequest: widget.onApproveRequest,
                             onDenyRequest: widget.onDenyRequest,
