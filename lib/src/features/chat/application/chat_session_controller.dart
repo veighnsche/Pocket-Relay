@@ -341,30 +341,20 @@ class ChatSessionController extends ChangeNotifier {
       return null;
     }
 
-    try {
-      await _ensureAppServerConnected();
-      final thread = await appServerClient.rollbackThread(
+    final nextState = await _performHistoryRestoringThreadTransition(
+      operation: () => appServerClient.rollbackThread(
         threadId: targetThreadId,
         numTurns: numTurns,
-      );
-      if (_isDisposed) {
-        return null;
-      }
-
-      final nextState = _restoredSessionStateFromHistory(thread);
-      _clearConversationRecovery();
-      _clearHistoricalConversationRestoreState();
-      _rememberContinuationThread(thread.id);
-      _applySessionState(nextState);
-      return targetBlock.text;
-    } catch (error) {
-      _reportAppServerFailure(
-        title: 'Continue from prompt failed',
-        message: 'Could not rewind this conversation to the selected prompt.',
-        error: error,
-      );
+      ),
+      rememberContinuationThread: true,
+      failureTitle: 'Continue from prompt failed',
+      failureMessage: 'Could not rewind this conversation to the selected prompt.',
+    );
+    if (nextState == null) {
       return null;
     }
+
+    return targetBlock.text;
   }
 
   Future<bool> branchSelectedConversation() async {
@@ -383,33 +373,21 @@ class ChatSessionController extends ChangeNotifier {
       return false;
     }
 
-    try {
-      await _ensureAppServerConnected();
-      final forkedSession = await appServerClient.forkThread(
-        threadId: targetThreadId,
-        persistExtendedHistory: true,
-      );
-      final forkedThread = await appServerClient.readThreadWithTurns(
-        threadId: forkedSession.threadId,
-      );
-      if (_isDisposed) {
-        return false;
-      }
-
-      final nextState = _restoredSessionStateFromHistory(forkedThread);
-      _clearConversationRecovery();
-      _clearHistoricalConversationRestoreState();
-      _applySessionState(nextState);
-      _rememberContinuationThread(forkedThread.id);
-      return true;
-    } catch (error) {
-      _reportAppServerFailure(
-        title: 'Branch conversation failed',
-        message: 'Could not branch this conversation from Codex.',
-        error: error,
-      );
-      return false;
-    }
+    final nextState = await _performHistoryRestoringThreadTransition(
+      operation: () async {
+        final forkedSession = await appServerClient.forkThread(
+          threadId: targetThreadId,
+          persistExtendedHistory: true,
+        );
+        return appServerClient.readThreadWithTurns(
+          threadId: forkedSession.threadId,
+        );
+      },
+      rememberContinuationThread: true,
+      failureTitle: 'Branch conversation failed',
+      failureMessage: 'Could not branch this conversation from Codex.',
+    );
+    return nextState != null;
   }
 
   Future<void> prepareSelectedConversationForContinuation() async {
@@ -701,43 +679,65 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   Future<void> _restoreConversationTranscript(String threadId) async {
-    _setHistoricalConversationRestoreState(
-      ChatHistoricalConversationRestoreState(
+    await _performHistoryRestoringThreadTransition(
+      operation: () => appServerClient.readThreadWithTurns(threadId: threadId),
+      loadingRestoreState: ChatHistoricalConversationRestoreState(
         threadId: threadId,
         phase: ChatHistoricalConversationRestorePhase.loading,
       ),
+      emptyHistoryRestoreState: ChatHistoricalConversationRestoreState(
+        threadId: threadId,
+        phase: ChatHistoricalConversationRestorePhase.unavailable,
+      ),
+      failureRestoreState: ChatHistoricalConversationRestoreState(
+        threadId: threadId,
+        phase: ChatHistoricalConversationRestorePhase.failed,
+      ),
+      failureTitle: 'Conversation load failed',
+      failureMessage: 'Could not load the saved conversation transcript.',
     );
+  }
+
+  Future<CodexSessionState?> _performHistoryRestoringThreadTransition({
+    required Future<CodexAppServerThreadHistory> Function() operation,
+    required String failureTitle,
+    required String failureMessage,
+    ChatHistoricalConversationRestoreState? loadingRestoreState,
+    ChatHistoricalConversationRestoreState? emptyHistoryRestoreState,
+    ChatHistoricalConversationRestoreState? failureRestoreState,
+    bool rememberContinuationThread = false,
+  }) async {
+    if (loadingRestoreState != null) {
+      _setHistoricalConversationRestoreState(loadingRestoreState);
+    }
+
     try {
       await _ensureAppServerConnected();
-      final thread = await appServerClient.readThreadWithTurns(
-        threadId: threadId,
-      );
+      final thread = await operation();
       if (_isDisposed) {
-        return;
+        return null;
       }
 
       final nextState = _restoredSessionStateFromHistory(thread);
-
       _clearConversationRecovery();
       _historicalConversationRestoreState = nextState.transcriptBlocks.isEmpty
-          ? ChatHistoricalConversationRestoreState(
-              threadId: threadId,
-              phase: ChatHistoricalConversationRestorePhase.unavailable,
-            )
+          ? emptyHistoryRestoreState
           : null;
+      if (rememberContinuationThread) {
+        _rememberContinuationThread(thread.id);
+      }
       _applySessionState(nextState);
+      return nextState;
     } catch (error) {
-      _setHistoricalConversationRestoreState(
-        ChatHistoricalConversationRestoreState(
-          threadId: threadId,
-          phase: ChatHistoricalConversationRestorePhase.failed,
-        ),
-      );
+      if (failureRestoreState != null) {
+        _setHistoricalConversationRestoreState(failureRestoreState);
+      }
       _reportAppServerFailure(
-        title: 'Conversation load failed',
-        message: 'Could not load the saved conversation transcript.',
+        title: failureTitle,
+        message: failureMessage,
         error: error,
       );
+      return null;
     }
   }
 
