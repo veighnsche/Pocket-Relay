@@ -13,6 +13,8 @@ class ChatConversationSelectionCoordinator {
   final CodexConversationStateStore _conversationStateStore;
   String? _resumeThreadId;
   bool _suppressTrackedThreadReuse = false;
+  Future<void> _pendingPersistence = Future<void>.value();
+  int _persistenceGeneration = 0;
 
   bool get suppressTrackedThreadReuse => _suppressTrackedThreadReuse;
 
@@ -40,7 +42,7 @@ class ChatConversationSelectionCoordinator {
 
     _resumeThreadId = normalizedThreadId;
     _suppressTrackedThreadReuse = false;
-    await _persistConversationSelection(
+    await _scheduleConversationSelectionPersistence(
       activeThreadId ?? resumeThreadId(ephemeralSession: ephemeralSession),
     );
   }
@@ -68,15 +70,14 @@ class ChatConversationSelectionCoordinator {
   void clearContinuationThread({
     required bool isDisposed,
     required bool ephemeralSession,
-    required String? activeThreadId,
   }) {
     _resumeThreadId = null;
     _suppressTrackedThreadReuse = true;
-    schedulePersistConversationSelection(
-      isDisposed: isDisposed,
-      ephemeralSession: ephemeralSession,
-      activeThreadId: activeThreadId,
-    );
+    if (isDisposed) {
+      return;
+    }
+
+    unawaited(_scheduleConversationSelectionPersistence(null));
   }
 
   void schedulePersistConversationSelection({
@@ -90,7 +91,7 @@ class ChatConversationSelectionCoordinator {
 
     final selectedThreadId =
         activeThreadId ?? resumeThreadId(ephemeralSession: ephemeralSession);
-    unawaited(_persistConversationSelection(selectedThreadId));
+    unawaited(_scheduleConversationSelectionPersistence(selectedThreadId));
   }
 
   Future<void> recordConversationSelection({required String threadId}) async {
@@ -99,21 +100,35 @@ class ChatConversationSelectionCoordinator {
       return;
     }
 
-    await _persistConversationSelection(normalizedThreadId);
+    await _scheduleConversationSelectionPersistence(normalizedThreadId);
   }
 
-  Future<void> _persistConversationSelection(String? selectedThreadId) async {
-    try {
-      final currentState = await _conversationStateStore.loadState();
-      await _conversationStateStore.saveState(
-        currentState.copyWith(
-          selectedThreadId: selectedThreadId,
-          clearSelectedThreadId: selectedThreadId == null,
-        ),
-      );
-    } catch (_) {
-      // Conversation selection persistence must not break the active session.
-    }
+  Future<void> _scheduleConversationSelectionPersistence(
+    String? selectedThreadId,
+  ) {
+    final generation = ++_persistenceGeneration;
+    _pendingPersistence = _pendingPersistence.then((_) async {
+      if (generation != _persistenceGeneration) {
+        return;
+      }
+
+      try {
+        final currentState = await _conversationStateStore.loadState();
+        if (generation != _persistenceGeneration) {
+          return;
+        }
+
+        await _conversationStateStore.saveState(
+          currentState.copyWith(
+            selectedThreadId: selectedThreadId,
+            clearSelectedThreadId: selectedThreadId == null,
+          ),
+        );
+      } catch (_) {
+        // Conversation selection persistence must not break the active session.
+      }
+    });
+    return _pendingPersistence;
   }
 
   String? _normalizeThreadId(String? value) {

@@ -1040,7 +1040,6 @@ class ChatSessionController extends ChangeNotifier {
     _conversationSelection.clearContinuationThread(
       isDisposed: _isDisposed,
       ephemeralSession: _profile.ephemeralSession,
-      activeThreadId: _activeConversationThreadId(),
     );
   }
 

@@ -37,9 +37,40 @@ void main() {
       coordinator.clearContinuationThread(
         isDisposed: false,
         ephemeralSession: false,
-        activeThreadId: null,
       );
       await Future<void>.delayed(Duration.zero);
+
+      expect(store.state.normalizedSelectedThreadId, isNull);
+      expect(coordinator.resumeThreadId(ephemeralSession: false), isNull);
+    },
+  );
+
+  test(
+    'clearContinuationThread does not re-persist the previous active thread id',
+    () async {
+      final store = _DelayedConversationStateStore(
+        initialState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_old',
+        ),
+      );
+      final coordinator = ChatConversationSelectionCoordinator(
+        conversationStateStore: store,
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_old',
+        ),
+      );
+
+      coordinator.schedulePersistConversationSelection(
+        isDisposed: false,
+        ephemeralSession: false,
+        activeThreadId: 'thread_old',
+      );
+      coordinator.clearContinuationThread(
+        isDisposed: false,
+        ephemeralSession: false,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await store.flush();
 
       expect(store.state.normalizedSelectedThreadId, isNull);
       expect(coordinator.resumeThreadId(ephemeralSession: false), isNull);
@@ -62,5 +93,36 @@ class _RecordingConversationStateStore implements CodexConversationStateStore {
   @override
   Future<void> saveState(SavedConnectionConversationState nextState) async {
     state = nextState;
+  }
+}
+
+class _DelayedConversationStateStore implements CodexConversationStateStore {
+  _DelayedConversationStateStore({
+    SavedConnectionConversationState? initialState,
+  }) : state = initialState ?? const SavedConnectionConversationState();
+
+  SavedConnectionConversationState state;
+  final List<Future<void>> _pendingWrites = <Future<void>>[];
+
+  @override
+  Future<SavedConnectionConversationState> loadState() async {
+    return state;
+  }
+
+  @override
+  Future<void> saveState(SavedConnectionConversationState nextState) {
+    final write = Future<void>.microtask(() {
+      state = nextState;
+    });
+    _pendingWrites.add(write);
+    return write;
+  }
+
+  Future<void> flush() async {
+    while (_pendingWrites.isNotEmpty) {
+      final pending = List<Future<void>>.from(_pendingWrites);
+      _pendingWrites.clear();
+      await Future.wait(pending);
+    }
   }
 }

@@ -178,19 +178,19 @@ class _ConnectionWorkspaceDormantRosterContentState
       return;
     }
 
-    final payload = await _openConnectionSettings(
-      profile: ConnectionProfile.defaults(),
-      secrets: const ConnectionSecrets(),
-    );
-    if (!mounted || payload == null) {
-      return;
-    }
-
     setState(() {
       _isCreatingConnection = true;
     });
 
     try {
+      final payload = await _openConnectionSettings(
+        profile: ConnectionProfile.defaults(),
+        secrets: const ConnectionSecrets(),
+      );
+      if (!mounted || payload == null) {
+        return;
+      }
+
       await widget.workspaceController.createConnection(
         profile: payload.profile,
         secrets: payload.secrets,
@@ -210,25 +210,25 @@ class _ConnectionWorkspaceDormantRosterContentState
       return;
     }
 
-    final savedConnection = await widget.workspaceController
-        .loadSavedConnection(connectionId);
-    if (!mounted) {
-      return;
-    }
-
-    final payload = await _openConnectionSettings(
-      profile: savedConnection.profile,
-      secrets: savedConnection.secrets,
-    );
-    if (!mounted || payload == null) {
-      return;
-    }
-
     setState(() {
       _editingConnectionIds.add(connectionId);
     });
 
     try {
+      final savedConnection = await widget.workspaceController
+          .loadSavedConnection(connectionId);
+      if (!mounted) {
+        return;
+      }
+
+      final payload = await _openConnectionSettings(
+        profile: savedConnection.profile,
+        secrets: savedConnection.secrets,
+      );
+      if (!mounted || payload == null) {
+        return;
+      }
+
       await widget.workspaceController.saveDormantConnection(
         connectionId: connectionId,
         profile: payload.profile,

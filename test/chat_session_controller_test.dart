@@ -1022,6 +1022,78 @@ void main() {
   );
 
   test(
+    'startFreshConversation clears the persisted resume thread before the lane is recreated',
+    () async {
+      final firstClient = FakeCodexAppServerClient();
+      final secondClient = FakeCodexAppServerClient();
+      final conversationStateStore = _DelayedConversationHistoryStore(
+        initialState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(firstClient.close);
+      addTearDown(secondClient.close);
+
+      final firstController = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        conversationStateStore: conversationStateStore,
+        appServerClient: firstClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(firstController.dispose);
+
+      expect(await firstController.sendPrompt('First prompt'), isTrue);
+      firstClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_saved',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      firstController.startFreshConversation();
+      await Future<void>.delayed(Duration.zero);
+      await conversationStateStore.flush();
+
+      expect(conversationStateStore.state.normalizedSelectedThreadId, isNull);
+
+      final secondController = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        conversationStateStore: conversationStateStore,
+        appServerClient: secondClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(secondController.dispose);
+
+      await secondController.initialize();
+      expect(await secondController.sendPrompt('Second prompt'), isTrue);
+      expect(secondClient.startSessionRequests.single.resumeThreadId, isNull);
+    },
+  );
+
+  test(
     'clearTranscript prevents reusing a previously tracked live thread',
     () async {
       final appServerClient = FakeCodexAppServerClient();
@@ -1506,5 +1578,36 @@ class _RecordingConversationHistoryStore
   @override
   Future<void> saveState(SavedConnectionConversationState nextState) async {
     state = nextState;
+  }
+}
+
+class _DelayedConversationHistoryStore implements CodexConversationStateStore {
+  _DelayedConversationHistoryStore({
+    SavedConnectionConversationState? initialState,
+  }) : state = initialState ?? const SavedConnectionConversationState();
+
+  SavedConnectionConversationState state;
+  final List<Future<void>> _pendingWrites = <Future<void>>[];
+
+  @override
+  Future<SavedConnectionConversationState> loadState() async {
+    return state;
+  }
+
+  @override
+  Future<void> saveState(SavedConnectionConversationState nextState) {
+    final write = Future<void>.microtask(() {
+      state = nextState;
+    });
+    _pendingWrites.add(write);
+    return write;
+  }
+
+  Future<void> flush() async {
+    while (_pendingWrites.isNotEmpty) {
+      final pending = List<Future<void>>.from(_pendingWrites);
+      _pendingWrites.clear();
+      await Future.wait(pending);
+    }
   }
 }

@@ -14,6 +14,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_root_adapter.da
 import 'package:pocket_relay/src/features/chat/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
@@ -317,6 +318,71 @@ void main() {
       expect(find.byType(FlutterChatAppChrome), findsOneWidget);
       expect(find.byType(FlutterChatTranscriptRegion), findsOneWidget);
       expect(find.byType(FlutterChatComposerRegion), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'menu actions start a fresh thread and clear the transcript through the bound lane',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final laneBinding = _buildLaneBinding(
+        appServerClient: appServerClient,
+        savedProfile: _savedProfile(),
+      );
+      addTearDown(appServerClient.close);
+      addTearDown(laneBinding.dispose);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final composerField = find.byKey(const ValueKey('composer_input'));
+      await tester.enterText(composerField, 'Hello Codex');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hello Codex'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New thread'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hello Codex'), findsNothing);
+      expect(
+        find.text('The next prompt will start a fresh Codex thread.'),
+        findsOneWidget,
+      );
+      expect(
+        laneBinding.transcriptFollowHost.contract.request?.source,
+        ChatTranscriptFollowRequestSource.newThread,
+      );
+
+      await tester.enterText(composerField, 'Second transcript');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('send')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second transcript'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Clear transcript'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second transcript'), findsNothing);
+      expect(
+        laneBinding.transcriptFollowHost.contract.request?.source,
+        ChatTranscriptFollowRequestSource.clearTranscript,
+      );
+      expect(laneBinding.sessionController.transcriptBlocks, isEmpty);
     },
   );
 
