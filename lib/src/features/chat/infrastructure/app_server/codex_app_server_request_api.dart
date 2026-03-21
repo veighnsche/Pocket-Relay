@@ -380,18 +380,6 @@ class CodexAppServerRequestApi {
     return value is String ? value : null;
   }
 
-  static List<Map<String, dynamic>>? _asObjectList(Object? value) {
-    if (value is! List) {
-      return null;
-    }
-
-    final objects = value
-        .map(_asObject)
-        .whereType<Map<String, dynamic>>()
-        .toList(growable: false);
-    return objects.isEmpty ? null : objects;
-  }
-
   static CodexAppServerThreadSummary _requireThreadSummary(
     Object? value,
     String label,
