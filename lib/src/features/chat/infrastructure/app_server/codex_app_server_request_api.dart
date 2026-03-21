@@ -127,6 +127,31 @@ class CodexAppServerRequestApi {
     );
   }
 
+  Future<CodexAppServerThreadHistory> rollbackThread(
+    CodexAppServerConnection connection, {
+    required String threadId,
+    required int numTurns,
+  }) async {
+    connection.requireConnected();
+
+    final effectiveThreadId = threadId.trim();
+    if (effectiveThreadId.isEmpty) {
+      throw const CodexAppServerException('Thread id cannot be empty.');
+    }
+    if (numTurns < 1) {
+      throw const CodexAppServerException('numTurns must be >= 1.');
+    }
+
+    final response = await connection.sendRequest(
+      'thread/rollback',
+      <String, Object?>{'threadId': effectiveThreadId, 'numTurns': numTurns},
+    );
+    return _threadReadDecoder.decodeHistoryResponse(
+      response,
+      fallbackThreadId: effectiveThreadId,
+    );
+  }
+
   Future<CodexAppServerThreadListPage> listThreads(
     CodexAppServerConnection connection, {
     String? cursor,
