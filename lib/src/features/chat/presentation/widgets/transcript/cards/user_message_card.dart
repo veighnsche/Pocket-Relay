@@ -41,8 +41,6 @@ class UserMessageCard extends StatelessWidget {
       ),
     );
     final canContinueAction = canContinueFromHere && onContinueFromHere != null;
-    final hasContextActions = true;
-
     return Align(
       alignment: Alignment.centerRight,
       child: ConstrainedBox(
@@ -52,29 +50,12 @@ class UserMessageCard extends StatelessWidget {
           child: InkWell(
             key: ValueKey<String>('user_message_card_${block.id}'),
             borderRadius: BorderRadius.circular(20),
-            onLongPress: hasContextActions
-                ? () {
-                    unawaited(
-                      _showTouchActionSheet(
-                        context,
-                        canContinueAction: canContinueAction,
-                      ).then((selection) async {
-                        if (!context.mounted || selection == null) {
-                          return;
-                        }
-
-                        switch (selection) {
-                          case _UserMessageCardAction.copyPrompt:
-                            await Clipboard.setData(
-                              ClipboardData(text: block.text),
-                            );
-                          case _UserMessageCardAction.continueFromHere:
-                            await onContinueFromHere?.call(block.id);
-                        }
-                      }),
-                    );
-                  }
-                : null,
+            onLongPress: () => unawaited(
+              _showTouchContextMenu(
+                context,
+                canContinueAction: canContinueAction,
+              ),
+            ),
             onSecondaryTapDown: showsDesktopContextMenu
                 ? (details) {
                     unawaited(
@@ -116,33 +97,42 @@ class UserMessageCard extends StatelessWidget {
     BuildContext context,
     Offset globalPosition,
   ) async {
-    await _showContextActions(context, globalPosition: globalPosition);
-  }
-
-  Future<void> _showContextActions(
-    BuildContext context, {
-    required Offset globalPosition,
-  }) async {
     final canContinueAction = canContinueFromHere && onContinueFromHere != null;
-    final selection = showsDesktopContextMenu
-        ? await _showDesktopMenu(
-            context,
-            globalPosition: globalPosition,
-            canContinueAction: canContinueAction,
-          )
-        : await _showTouchActionSheet(
-            context,
-            canContinueAction: canContinueAction,
-          );
-    if (!context.mounted || selection == null) {
+    final selection = await _showDesktopMenu(
+      context,
+      globalPosition: globalPosition,
+      canContinueAction: canContinueAction,
+    );
+    if (selection == null) {
       return;
     }
 
+    await _handleSelection(selection);
+  }
+
+  Future<void> _showTouchContextMenu(
+    BuildContext context, {
+    required bool canContinueAction,
+  }) async {
+    final selection = await _showTouchActionSheet(
+      context,
+      canContinueAction: canContinueAction,
+    );
+    if (selection == null) {
+      return;
+    }
+
+    await _handleSelection(selection);
+  }
+
+  Future<void> _handleSelection(_UserMessageCardAction selection) async {
     switch (selection) {
       case _UserMessageCardAction.copyPrompt:
         await Clipboard.setData(ClipboardData(text: block.text));
+        return;
       case _UserMessageCardAction.continueFromHere:
         await onContinueFromHere?.call(block.id);
+        return;
     }
   }
 
