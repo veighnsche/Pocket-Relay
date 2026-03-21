@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'shared_preferences_async_migration.dart';
 
+part 'codex_connection_catalog_recovery_discovery.dart';
+part 'codex_connection_catalog_recovery_index.dart';
+
 /// Owns compatibility and recovery for the preferences-backed connection
 /// catalog so the repository can stay focused on steady-state CRUD.
 class CodexConnectionCatalogRecovery {
@@ -34,14 +37,17 @@ class CodexConnectionCatalogRecovery {
 
   Future<ConnectionCatalogState?> loadCatalog() async {
     final rawIndex = await _preferences.getString(catalogIndexKey);
-    final profileConnectionIds = await _discoverProfileConnectionIds();
+    final profileConnectionIds = await _discoverProfileConnectionIds(this);
 
     if (rawIndex == null || rawIndex.trim().isEmpty) {
       if (profileConnectionIds.isEmpty) {
         return null;
       }
 
-      final recoveredCatalog = await _buildCatalog(profileConnectionIds);
+      final recoveredCatalog = await _buildCatalog(
+        this,
+        profileConnectionIds,
+      );
       await persistCatalogIndex(recoveredCatalog.orderedConnectionIds);
       return recoveredCatalog;
     }
@@ -56,7 +62,7 @@ class CodexConnectionCatalogRecovery {
       ...orderedConnectionIds,
       ...extraConnectionIds,
     ];
-    final catalog = await _buildCatalog(candidateConnectionIds);
+    final catalog = await _buildCatalog(this, candidateConnectionIds);
 
     if (!listEquals(catalog.orderedConnectionIds, orderedConnectionIds)) {
       await persistCatalogIndex(catalog.orderedConnectionIds);
@@ -73,94 +79,5 @@ class CodexConnectionCatalogRecovery {
         'orderedConnectionIds': orderedConnectionIds,
       }),
     );
-  }
-
-  Future<ConnectionCatalogState> _buildCatalog(
-    List<String> candidateConnectionIds,
-  ) async {
-    if (candidateConnectionIds.isEmpty) {
-      return const ConnectionCatalogState.empty();
-    }
-
-    final profileValues = await _preferences.getAll(
-      allowList: candidateConnectionIds.map(_profileKeyForConnection).toSet(),
-    );
-    final orderedConnectionIds = <String>[];
-    final connectionsById = <String, SavedConnectionSummary>{};
-
-    for (final connectionId in candidateConnectionIds) {
-      final rawProfile = profileValues[_profileKeyForConnection(connectionId)];
-      if (rawProfile is! String || rawProfile.trim().isEmpty) {
-        continue;
-      }
-
-      orderedConnectionIds.add(connectionId);
-      final profile = ConnectionProfile.fromJson(
-        jsonDecode(rawProfile) as Map<String, dynamic>,
-      );
-      connectionsById[connectionId] = SavedConnectionSummary(
-        id: connectionId,
-        profile: profile,
-      );
-    }
-
-    return ConnectionCatalogState(
-      orderedConnectionIds: orderedConnectionIds,
-      connectionsById: connectionsById,
-    );
-  }
-
-  Future<List<String>> _discoverProfileConnectionIds() async {
-    final keys = await _preferences.getKeys();
-    final connectionIds = <String>[];
-
-    for (final key in keys) {
-      if (!key.startsWith(profileKeyPrefix) ||
-          !key.endsWith(profileKeySuffix)) {
-        continue;
-      }
-
-      final connectionId = key.substring(
-        profileKeyPrefix.length,
-        key.length - profileKeySuffix.length,
-      );
-      final normalizedConnectionId = connectionId.trim();
-      if (normalizedConnectionId.isEmpty) {
-        continue;
-      }
-      connectionIds.add(normalizedConnectionId);
-    }
-
-    connectionIds.sort();
-    return connectionIds;
-  }
-
-  List<String> _decodeCatalogIndex(String rawIndex) {
-    final decoded = jsonDecode(rawIndex);
-    if (decoded is! Map<String, dynamic>) {
-      return const <String>[];
-    }
-
-    final rawOrderedConnectionIds = decoded['orderedConnectionIds'];
-    if (rawOrderedConnectionIds is! List) {
-      return const <String>[];
-    }
-
-    final orderedConnectionIds = <String>[];
-    for (final value in rawOrderedConnectionIds) {
-      if (value is! String) {
-        continue;
-      }
-      final normalizedConnectionId = value.trim();
-      if (normalizedConnectionId.isEmpty ||
-          orderedConnectionIds.contains(normalizedConnectionId)) {
-        continue;
-      }
-      orderedConnectionIds.add(normalizedConnectionId);
-    }
-    return orderedConnectionIds;
-  }
-  String _profileKeyForConnection(String connectionId) {
-    return '$profileKeyPrefix$connectionId$profileKeySuffix';
   }
 }
