@@ -1036,7 +1036,7 @@ void main() {
       final entry = item.entries.single as ChatHeadReadWorkLogEntryContract;
 
       expect(entry.lineCount, 40);
-      expect(entry.fileName, '019_codebase-handoff.md');
+      expect(entry.fileName, '021_codebase-handoff.md');
       expect(entry.summaryLabel, 'Reading first 40 lines');
     });
 
