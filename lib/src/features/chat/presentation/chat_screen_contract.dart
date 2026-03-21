@@ -15,6 +15,11 @@ enum ChatConversationRecoveryActionId {
   openAlternateSession,
 }
 
+enum ChatHistoricalConversationRestoreActionId {
+  retryRestore,
+  startFreshConversation,
+}
+
 class ChatConversationRecoveryActionContract {
   const ChatConversationRecoveryActionContract({
     required this.id,
@@ -37,6 +42,32 @@ class ChatConversationRecoveryNoticeContract {
   final String title;
   final String message;
   final List<ChatConversationRecoveryActionContract> actions;
+}
+
+class ChatHistoricalConversationRestoreActionContract {
+  const ChatHistoricalConversationRestoreActionContract({
+    required this.id,
+    required this.label,
+    this.isPrimary = false,
+  });
+
+  final ChatHistoricalConversationRestoreActionId id;
+  final String label;
+  final bool isPrimary;
+}
+
+class ChatHistoricalConversationRestoreNoticeContract {
+  const ChatHistoricalConversationRestoreNoticeContract({
+    required this.title,
+    required this.message,
+    required this.isLoading,
+    this.actions = const <ChatHistoricalConversationRestoreActionContract>[],
+  });
+
+  final String title;
+  final String message;
+  final bool isLoading;
+  final List<ChatHistoricalConversationRestoreActionContract> actions;
 }
 
 class ChatScreenActionContract {
@@ -155,6 +186,7 @@ class ChatScreenContract {
     required this.composer,
     required this.connectionSettings,
     this.conversationRecoveryNotice,
+    this.historicalConversationRestoreNotice,
     this.turnIndicator,
   });
 
@@ -167,6 +199,8 @@ class ChatScreenContract {
   final ChatComposerContract composer;
   final ChatConnectionSettingsLaunchContract connectionSettings;
   final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
+  final ChatHistoricalConversationRestoreNoticeContract?
+  historicalConversationRestoreNotice;
   final ChatTurnIndicatorContract? turnIndicator;
 
   List<ChatScreenActionContract> get toolbarActions => actions

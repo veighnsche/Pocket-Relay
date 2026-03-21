@@ -248,16 +248,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         nextBinding.dispose();
         return;
       }
-      await nextBinding.sessionController.selectConversationForResume(
-        normalizedThreadId,
-      );
-      if (_isDisposed) {
-        nextBinding.dispose();
-        return;
-      }
-
       _liveBindingsByConnectionId[normalizedConnectionId] = nextBinding;
-      previousBinding.dispose();
       _applyState(
         _state.copyWith(
           selectedConnectionId: normalizedConnectionId,
@@ -274,6 +265,13 @@ class ConnectionWorkspaceController extends ChangeNotifier {
               ),
         ),
       );
+      previousBinding.dispose();
+      await nextBinding.sessionController.selectConversationForResume(
+        normalizedThreadId,
+      );
+      if (_isDisposed) {
+        return;
+      }
       return;
     }
 
@@ -341,16 +339,6 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       binding.dispose();
       return;
     }
-    if (resumeThreadId case final normalizedThreadId?) {
-      await binding.sessionController.selectConversationForResume(
-        normalizedThreadId,
-      );
-      if (_isDisposed) {
-        binding.dispose();
-        return;
-      }
-    }
-
     _liveBindingsByConnectionId[connectionId] = binding;
     final nextLiveConnectionIds = _orderLiveConnectionIds(
       _liveBindingsByConnectionId.keys,
@@ -368,6 +356,14 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         ),
       ),
     );
+    if (resumeThreadId case final normalizedThreadId?) {
+      await binding.sessionController.selectConversationForResume(
+        normalizedThreadId,
+      );
+      if (_isDisposed) {
+        return;
+      }
+    }
   }
 
   void selectConnection(String connectionId) {

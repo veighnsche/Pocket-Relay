@@ -98,12 +98,14 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Object? connectError;
   Object? startSessionError;
   Object? sendUserMessageError;
+  Object? readThreadWithTurnsError;
   String? startSessionModel;
   String? startSessionReasoningEffort;
   String? startSessionCwd;
   int disconnectCalls = 0;
   String? connectedThreadId;
   Completer<void>? sendUserMessageGate;
+  Completer<void>? readThreadWithTurnsGate;
   final Map<String, CodexAppServerThreadSummary> threadsById =
       <String, CodexAppServerThreadSummary>{};
   final Map<String, CodexAppServerThreadHistory> threadHistoriesById =
@@ -198,16 +200,34 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     final configuredHistory = threadHistoriesById[threadId];
     if (configuredHistory != null) {
       readThreadCalls.add(threadId);
+      if (readThreadWithTurnsGate case final gate?) {
+        await gate.future;
+      }
+      if (readThreadWithTurnsError != null) {
+        throw readThreadWithTurnsError!;
+      }
       return configuredHistory;
     }
 
     final configuredThread = threadsById[threadId];
     if (configuredThread is CodexAppServerThreadHistory) {
       readThreadCalls.add(threadId);
+      if (readThreadWithTurnsGate case final gate?) {
+        await gate.future;
+      }
+      if (readThreadWithTurnsError != null) {
+        throw readThreadWithTurnsError!;
+      }
       return configuredThread;
     }
 
     final summary = await readThread(threadId: threadId);
+    if (readThreadWithTurnsGate case final gate?) {
+      await gate.future;
+    }
+    if (readThreadWithTurnsError != null) {
+      throw readThreadWithTurnsError!;
+    }
     return CodexAppServerThreadHistory(
       id: summary.id,
       preview: summary.preview,

@@ -130,10 +130,14 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     return FlutterChatComposerRegion(
       platformBehavior: widget.platformPolicy.behavior,
       conversationRecoveryNotice: screen.conversationRecoveryNotice,
+      historicalConversationRestoreNotice:
+          screen.historicalConversationRestoreNotice,
       composer: screen.composer,
       onComposerDraftChanged: widget.laneBinding.composerDraftHost.updateText,
       onSendPrompt: _sendPrompt,
       onConversationRecoveryAction: _handleConversationRecoveryAction,
+      onHistoricalConversationRestoreAction:
+          _handleHistoricalConversationRestoreAction,
     );
   }
 
@@ -147,6 +151,8 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       secrets: sessionController.secrets,
       sessionState: sessionController.sessionState,
       conversationRecoveryState: sessionController.conversationRecoveryState,
+      historicalConversationRestoreState:
+          sessionController.historicalConversationRestoreState,
       composerDraft: laneBinding.composerDraftHost.draft,
       transcriptFollow: laneBinding.transcriptFollowHost.contract,
       preferredConnectionMode: _preferredEmptyStateConnectionMode,
@@ -237,6 +243,20 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       case ChatConversationRecoveryActionId.openAlternateSession:
         widget.laneBinding.sessionController
             .openConversationRecoveryAlternateSession();
+    }
+  }
+
+  void _handleHistoricalConversationRestoreAction(
+    ChatHistoricalConversationRestoreActionId action,
+  ) {
+    switch (action) {
+      case ChatHistoricalConversationRestoreActionId.retryRestore:
+        unawaited(
+          widget.laneBinding.sessionController
+              .retryHistoricalConversationRestore(),
+        );
+      case ChatHistoricalConversationRestoreActionId.startFreshConversation:
+        _startFreshConversation();
     }
   }
 

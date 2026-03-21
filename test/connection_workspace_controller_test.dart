@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/workspace/models/connection_workspace_state.dart';
@@ -604,6 +607,101 @@ void main() {
           'conn_primary',
         )).normalizedSelectedThreadId,
         'thread_resumed',
+      );
+    },
+  );
+
+  test(
+    'resumeConversation activates the replacement lane before transcript restore completes',
+    () async {
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+        ],
+      );
+      final historyStore = MemoryCodexConnectionConversationHistoryStore();
+      final restoreGate = Completer<void>();
+      final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
+        'conn_primary': <FakeCodexAppServerClient>[],
+      };
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        connectionConversationStateStore: historyStore,
+        laneBindingFactory:
+            ({
+              required connectionId,
+              required connection,
+              required conversationState,
+            }) {
+              final appServerClient = FakeCodexAppServerClient()
+                ..threadHistoriesById['thread_resumed'] =
+                    _savedConversationThread(threadId: 'thread_resumed');
+              if (clientsByConnectionId[connectionId]!.isNotEmpty) {
+                appServerClient.readThreadWithTurnsGate = restoreGate;
+              }
+              clientsByConnectionId[connectionId]!.add(appServerClient);
+              return ConnectionLaneBinding(
+                connectionId: connectionId,
+                profileStore: ConnectionScopedProfileStore(
+                  connectionId: connectionId,
+                  connectionRepository: repository,
+                ),
+                conversationStateStore: ConnectionScopedConversationStateStore(
+                  connectionId: connectionId,
+                  conversationStateStore: historyStore,
+                ),
+                appServerClient: appServerClient,
+                initialSavedProfile: SavedProfile(
+                  profile: connection.profile,
+                  secrets: connection.secrets,
+                ),
+                initialConversationState: conversationState,
+                ownsAppServerClient: false,
+              );
+            },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClientLists(clientsByConnectionId);
+      });
+
+      await controller.initialize();
+      final firstBinding = controller.bindingForConnectionId('conn_primary');
+
+      final resumeFuture = controller.resumeConversation(
+        connectionId: 'conn_primary',
+        threadId: 'thread_resumed',
+      );
+      for (var attempt = 0; attempt < 20; attempt += 1) {
+        if (clientsByConnectionId['conn_primary']!.length >= 2) {
+          break;
+        }
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(clientsByConnectionId['conn_primary']!, hasLength(2));
+      final nextBinding = controller.bindingForConnectionId('conn_primary');
+      expect(nextBinding, isNotNull);
+      expect(nextBinding, isNot(same(firstBinding)));
+      expect(controller.selectedLaneBinding, same(nextBinding));
+      expect(
+        nextBinding!
+            .sessionController
+            .historicalConversationRestoreState
+            ?.phase,
+        ChatHistoricalConversationRestorePhase.loading,
+      );
+
+      restoreGate.complete();
+      await resumeFuture;
+
+      expect(
+        nextBinding.sessionController.historicalConversationRestoreState,
+        isNull,
       );
     },
   );

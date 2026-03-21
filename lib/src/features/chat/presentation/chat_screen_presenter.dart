@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_lane_header_projector.dart';
@@ -24,6 +25,7 @@ class ChatScreenPresenter {
     required ConnectionSecrets secrets,
     required CodexSessionState sessionState,
     required ChatConversationRecoveryState? conversationRecoveryState,
+    ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     required ChatComposerDraft composerDraft,
     required ChatTranscriptFollowContract transcriptFollow,
     ConnectionMode? preferredConnectionMode,
@@ -36,11 +38,16 @@ class ChatScreenPresenter {
       conversationRecoveryState,
       timelineSummaries: timelineSummaries,
     );
+    final historicalConversationRestoreNotice =
+        _historicalConversationRestoreNotice(
+          historicalConversationRestoreState,
+        );
     final canSend =
         isConfigured &&
         !isLoading &&
         !isBusy &&
-        conversationRecoveryNotice == null;
+        conversationRecoveryNotice == null &&
+        historicalConversationRestoreNotice == null;
     final header = _headerProjector.project(
       profile: profile,
       metadata: sessionState.headerMetadata,
@@ -94,6 +101,7 @@ class ChatScreenPresenter {
         initialSecrets: secrets,
       ),
       conversationRecoveryNotice: conversationRecoveryNotice,
+      historicalConversationRestoreNotice: historicalConversationRestoreNotice,
       turnIndicator: switch (sessionState.activeTurn?.timer) {
         final timer? when timer.isRunning => ChatTurnIndicatorContract(
           timer: timer,
@@ -203,6 +211,63 @@ class ChatScreenPresenter {
               'but the remote session returned "${recoveryState.actualThreadId ?? 'unknown'}". '
               'Sending is blocked because that would attach your draft to a different conversation.',
           actions: actions,
+        ),
+    };
+  }
+
+  ChatHistoricalConversationRestoreNoticeContract?
+  _historicalConversationRestoreNotice(
+    ChatHistoricalConversationRestoreState? restoreState,
+  ) {
+    if (restoreState == null) {
+      return null;
+    }
+
+    return switch (restoreState.phase) {
+      ChatHistoricalConversationRestorePhase.loading =>
+        const ChatHistoricalConversationRestoreNoticeContract(
+          title: 'Loading saved conversation',
+          message:
+              'Pocket Relay is restoring this transcript from Codex before the lane can continue.',
+          isLoading: true,
+        ),
+      ChatHistoricalConversationRestorePhase.unavailable =>
+        const ChatHistoricalConversationRestoreNoticeContract(
+          title: 'Transcript history unavailable',
+          message:
+              'Codex returned this conversation identity, but not enough transcript content to show what the conversation was about here.',
+          isLoading: false,
+          actions: <ChatHistoricalConversationRestoreActionContract>[
+            ChatHistoricalConversationRestoreActionContract(
+              id: ChatHistoricalConversationRestoreActionId.retryRestore,
+              label: 'Retry load',
+              isPrimary: true,
+            ),
+            ChatHistoricalConversationRestoreActionContract(
+              id: ChatHistoricalConversationRestoreActionId
+                  .startFreshConversation,
+              label: 'Start new conversation',
+            ),
+          ],
+        ),
+      ChatHistoricalConversationRestorePhase.failed =>
+        const ChatHistoricalConversationRestoreNoticeContract(
+          title: 'Could not restore this conversation',
+          message:
+              'Pocket Relay could not load the saved transcript from Codex. Retry the load or start a fresh conversation instead.',
+          isLoading: false,
+          actions: <ChatHistoricalConversationRestoreActionContract>[
+            ChatHistoricalConversationRestoreActionContract(
+              id: ChatHistoricalConversationRestoreActionId.retryRestore,
+              label: 'Retry load',
+              isPrimary: true,
+            ),
+            ChatHistoricalConversationRestoreActionContract(
+              id: ChatHistoricalConversationRestoreActionId
+                  .startFreshConversation,
+              label: 'Start new conversation',
+            ),
+          ],
         ),
     };
   }

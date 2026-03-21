@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
@@ -185,6 +186,42 @@ void main() {
           'Pocket Relay expected thread "thread_old", but the remote session returned "thread_new". Sending is blocked because that would attach your draft to a different conversation.',
         );
         expect(contract.composer.isSendActionEnabled, isFalse);
+      },
+    );
+
+    test(
+      'disables send and exposes retry actions when historical transcript restore is unavailable',
+      () {
+        final contract = presenter.present(
+          isLoading: false,
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          sessionState: CodexSessionState.initial(),
+          conversationRecoveryState: null,
+          historicalConversationRestoreState:
+              const ChatHistoricalConversationRestoreState(
+                threadId: 'thread_saved',
+                phase: ChatHistoricalConversationRestorePhase.unavailable,
+              ),
+          composerDraft: const ChatComposerDraft(text: 'Keep draft'),
+          transcriptFollow: _defaultTranscriptFollowContract,
+        );
+
+        expect(contract.composer.draftText, 'Keep draft');
+        expect(contract.composer.isSendActionEnabled, isFalse);
+        expect(
+          contract.historicalConversationRestoreNotice?.title,
+          'Transcript history unavailable',
+        );
+        expect(
+          contract.historicalConversationRestoreNotice?.actions.map(
+            (action) => action.id,
+          ),
+          <ChatHistoricalConversationRestoreActionId>[
+            ChatHistoricalConversationRestoreActionId.retryRestore,
+            ChatHistoricalConversationRestoreActionId.startFreshConversation,
+          ],
+        );
       },
     );
 

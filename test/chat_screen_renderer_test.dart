@@ -216,12 +216,14 @@ void main() {
           body: FlutterChatComposerRegion(
             platformBehavior: PocketPlatformBehavior.resolve(),
             conversationRecoveryNotice: null,
+            historicalConversationRestoreNotice: null,
             composer: _screenContract().composer,
             onComposerDraftChanged: draftValues.add,
             onSendPrompt: () async {
               sendCalls += 1;
             },
             onConversationRecoveryAction: (_) {},
+            onHistoricalConversationRestoreAction: (_) {},
           ),
         ),
       ),
@@ -233,6 +235,51 @@ void main() {
 
     expect(draftValues, <String>['Plan phase 6']);
     expect(sendCalls, 1);
+  });
+
+  testWidgets('renders historical restore actions through composer region', (
+    tester,
+  ) async {
+    final actions = <ChatHistoricalConversationRestoreActionId>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildPocketTheme(Brightness.light),
+        home: Scaffold(
+          body: FlutterChatComposerRegion(
+            platformBehavior: PocketPlatformBehavior.resolve(),
+            conversationRecoveryNotice: null,
+            historicalConversationRestoreNotice:
+                const ChatHistoricalConversationRestoreNoticeContract(
+                  title: 'Transcript history unavailable',
+                  message: 'Codex did not return enough transcript content.',
+                  isLoading: false,
+                  actions: <ChatHistoricalConversationRestoreActionContract>[
+                    ChatHistoricalConversationRestoreActionContract(
+                      id: ChatHistoricalConversationRestoreActionId
+                          .retryRestore,
+                      label: 'Retry load',
+                      isPrimary: true,
+                    ),
+                  ],
+                ),
+            composer: _screenContract().composer,
+            onComposerDraftChanged: (_) {},
+            onSendPrompt: () async {},
+            onConversationRecoveryAction: (_) {},
+            onHistoricalConversationRestoreAction: actions.add,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Transcript history unavailable'), findsOneWidget);
+    await tester.tap(find.text('Retry load'));
+    await tester.pump();
+
+    expect(actions, <ChatHistoricalConversationRestoreActionId>[
+      ChatHistoricalConversationRestoreActionId.retryRestore,
+    ]);
   });
 
   testWidgets('renders stop beside the elapsed badge and forwards the action', (
