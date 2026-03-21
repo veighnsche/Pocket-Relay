@@ -26,37 +26,36 @@ class WidgetbookFixtures {
       '3. Render only presentation-focused surfaces in isolation.';
 
   static const String proposedPlanMarkdown =
-      '# Widgetbook Coverage Expansion\n\n'
+      '# Workspace Update Plan\n\n'
       '## Summary\n\n'
-      'Expose the card family designers review during transcript QA.\n\n'
+      'Stabilize the active workspace and improve the transcript interaction flow.\n\n'
       '## Scope\n\n'
-      '1. Add isolated stories for approval, plan, file-change, and work-log states.\n'
-      '2. Use deterministic fixtures with realistic copy.\n'
-      '3. Keep runtime ownership outside the catalog.\n\n'
+      '1. Tighten lane selection and preserve the current active session.\n'
+      '2. Reduce duplicate transcript chrome in execution-heavy states.\n'
+      '3. Keep runtime ownership outside the presentation layer.\n\n'
       '## Acceptance Criteria\n\n'
-      '- Designers can compare light and dark themes.\n'
-      '- Long content demonstrates truncation and expansion behavior.\n'
-      '- Stories are grouped by product language rather than raw class names.';
+      '- Active session context stays visible while work is running.\n'
+      '- Execution details remain readable in dense turns.\n'
+      '- Long content still supports truncation and expansion.';
 
   static const String longProposedPlanMarkdown =
-      '# Desktop Transcript Review Pass\n\n'
+      '# Runtime Surface Cleanup\n\n'
       '## Summary\n\n'
-      'Normalize the card shell and expose the transcript states that cause design churn during implementation review.\n\n'
+      'Reduce visual duplication and keep runtime state visible while the assistant is still working.\n\n'
       '## Workstreams\n\n'
-      '1. Foundations\n'
-      '- Promote shared panel, badge, and meta-card primitives into core ownership.\n'
-      '- Reuse a consistent radius and spacing scale across transcript surfaces.\n\n'
-      '2. Transcript Cards\n'
-      '- Add approval-request previews with resolved and unresolved states.\n'
-      '- Add changed-file rows that show create, modify, and delete actions.\n'
-      '- Add work-log previews with command, search, and git variants.\n'
-      '- Add SSH trust states for first-connect host verification.\n\n'
-      '3. Design Review\n'
-      '- Provide long markdown to exercise collapse behavior.\n'
-      '- Keep realistic labels, filenames, and summaries.\n'
-      '- Avoid playground-only knobs that do not map to product decisions.\n\n'
+      '1. Navigation\n'
+      '- Preserve the active lane while workspace state refreshes.\n'
+      '- Keep saved connections distinct from currently running sessions.\n\n'
+      '2. Transcript\n'
+      '- Show approval and input-required states without obscuring consequence.\n'
+      '- Keep file changes and work log output readable during long turns.\n'
+      '- Preserve SSH trust and failure context while recovery actions are available.\n\n'
+      '3. Reliability\n'
+      '- Keep long content expandable without losing the initial summary.\n'
+      '- Avoid duplicate status signals for the same runtime meaning.\n'
+      '- Keep action-required states visually consistent.\n\n'
       '## Notes\n\n'
-      'The catalog should act as a review artifact, not just a developer sandbox. That means every granular story needs a stable narrative and fixture set that represents a real product state rather than arbitrary lorem ipsum.';
+      'This plan focuses on the runtime surfaces users actually see during a dense session, not on internal implementation abstractions.';
 
   static const PocketPlatformBehavior mobileBehavior = PocketPlatformBehavior(
     experience: PocketPlatformExperience.mobile,
@@ -177,7 +176,7 @@ class WidgetbookFixtures {
       requestType: CodexCanonicalRequestType.applyPatchApproval,
       title: 'Approve file edits',
       body:
-          'Codex wants to update the shared transcript card frame and add Widgetbook stories for granular designer review.',
+          'Codex wants to update the workspace transcript shell and apply the pending file edits.',
       isResolved: isResolved,
       resolutionLabel: isResolved ? 'approved' : null,
     );
@@ -189,9 +188,9 @@ class WidgetbookFixtures {
   }) {
     return PendingUserInputContract(
       requestId: 'user_input_review_scope',
-      title: 'Need designer review input',
+      title: 'Need user input',
       body:
-          'Choose the transcript surfaces that need visual comparison in this pass and provide any review notes that should ship with the story set.',
+          'Choose which transcript surface to inspect next and add any notes before continuing.',
       isResolved: resolved,
       isSubmitting: submitting,
       isSubmitEnabled: !resolved,
@@ -206,29 +205,29 @@ class WidgetbookFixtures {
         PendingUserInputFieldContract(
           id: 'surface',
           header: 'Surface',
-          prompt: 'Pick the highest-risk transcript surface for visual QA.',
-          inputLabel: 'Surface to review',
+          prompt: 'Pick the next transcript surface to inspect.',
+          inputLabel: 'Surface',
           value: 'Approval Request',
           options: <PendingUserInputOptionContract>[
             PendingUserInputOptionContract(
               label: 'Approval Request',
-              description: 'Review call-to-action hierarchy',
+              description: 'Inspect the blocked-action state',
             ),
             PendingUserInputOptionContract(
               label: 'Changed Files',
-              description: 'Review dense list readability',
+              description: 'Inspect file-change output',
             ),
             PendingUserInputOptionContract(
               label: 'Work Log',
-              description: 'Review scanability in command-heavy states',
+              description: 'Inspect command activity output',
             ),
           ],
         ),
         PendingUserInputFieldContract(
           id: 'notes',
-          header: 'Review Notes',
-          prompt: 'Capture any readability or hierarchy concerns.',
-          inputLabel: 'Designer notes',
+          header: 'Notes',
+          prompt: 'Add any notes before continuing.',
+          inputLabel: 'Notes',
           value:
               'Badge contrast is working well. The changed-file action chips still feel too visually competitive.',
           minLines: 3,
@@ -243,18 +242,18 @@ class WidgetbookFixtures {
       id: 'plan_update',
       createdAt: timestamp,
       explanation:
-          'Reordered the implementation around designer-visible surfaces so the next slice improves reviewability instead of only internal structure.',
+          'Reordered the next steps so the active runtime surfaces are stabilized before expanding secondary states.',
       steps: <CodexRuntimePlanStep>[
         CodexRuntimePlanStep(
-          step: 'Expand the fixture layer with deterministic product states',
+          step: 'Tighten active runtime transcript states',
           status: CodexRuntimePlanStepStatus.completed,
         ),
         CodexRuntimePlanStep(
-          step: 'Add transcript card stories for designer-facing review states',
+          step: 'Normalize action-required transcript surfaces',
           status: CodexRuntimePlanStepStatus.inProgress,
         ),
         CodexRuntimePlanStep(
-          step: 'Backfill visual regression coverage for key transcript cards',
+          step: 'Backfill visual regression coverage for key runtime states',
           status: CodexRuntimePlanStepStatus.pending,
         ),
       ],

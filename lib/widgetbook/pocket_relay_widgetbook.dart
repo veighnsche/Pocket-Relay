@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/widgetbook/story_catalog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:widgetbook/widgetbook.dart' as wb;
+import 'package:widgetbook/src/fields/field_codec.dart';
 import 'package:widgetbook/src/layout/desktop_layout.dart';
 import 'package:widgetbook/src/navigation/widgets/navigation_panel.dart';
 import 'package:widgetbook/src/routing/app_route_config.dart';
@@ -20,25 +22,39 @@ class PocketRelayWidgetbook extends StatefulWidget {
 }
 
 class _PocketRelayWidgetbookState extends State<PocketRelayWidgetbook> {
-  late final wb.WidgetbookState state;
-  late final _PocketRelayAppRouter router;
+  static const _themePreferenceKey = 'widgetbook.selected_theme';
+  static const _themeGroupName = 'theme';
+  static const _themeFieldName = 'name';
+
+  wb.WidgetbookState? state;
+  _PocketRelayAppRouter? router;
+  bool _isReady = false;
 
   @override
   void initState() {
     super.initState();
-    state = wb.WidgetbookState(
+    _initializeWidgetbook();
+  }
+
+  Future<void> _initializeWidgetbook() async {
+    final initialUri = await _resolveInitialUri();
+    if (!mounted) {
+      return;
+    }
+
+    final resolvedState = wb.WidgetbookState(
       appBuilder: wb.materialAppBuilder,
       addons: _addons,
       root: wb.WidgetbookRoot(children: buildPocketRelayWidgetbookCatalog()),
       home: const _PocketRelayWidgetbookHome(),
       header: const _PocketRelayWidgetbookHeader(),
     );
-    router = _PocketRelayAppRouter(
-      state: state,
-      uri: Uri.base.fragment.isNotEmpty
-          ? Uri.parse(Uri.base.fragment)
-          : Uri.parse('/'),
-    );
+    resolvedState.addListener(_persistThemeSelection);
+    setState(() {
+      state = resolvedState;
+      router = _PocketRelayAppRouter(state: resolvedState, uri: initialUri);
+      _isReady = true;
+    });
   }
 
   List<wb.WidgetbookAddon> get _addons => <wb.WidgetbookAddon>[
@@ -63,16 +79,92 @@ class _PocketRelayWidgetbookState extends State<PocketRelayWidgetbook> {
     wb.TextScaleAddon(initialScale: 1.0, min: 0.8, max: 1.4, divisions: 3),
   ];
 
+  Future<Uri> _resolveInitialUri() async {
+    final baseUri = Uri.base.fragment.isNotEmpty
+        ? Uri.parse(Uri.base.fragment)
+        : Uri.parse('/');
+    final routeTheme = baseUri.queryParameters[_themeGroupName];
+    if (routeTheme != null && routeTheme.isNotEmpty) {
+      return baseUri;
+    }
+
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final savedTheme = preferences.getString(_themePreferenceKey);
+      if (savedTheme == null || savedTheme.isEmpty) {
+        return baseUri;
+      }
+
+      return baseUri.replace(
+        queryParameters: <String, String>{
+          ...baseUri.queryParameters,
+          _themeGroupName: FieldCodec.encodeQueryGroup(<String, String>{
+            _themeFieldName: savedTheme,
+          }),
+        },
+      );
+    } catch (_) {
+      // Persistence should not block Widgetbook startup.
+      return baseUri;
+    }
+  }
+
+  Future<void> _persistThemeSelection() async {
+    final currentState = state;
+    if (!_isReady || currentState == null) {
+      return;
+    }
+
+    final encodedTheme = currentState.queryParams[_themeGroupName];
+    if (encodedTheme == null || encodedTheme.isEmpty) {
+      return;
+    }
+
+    final group = FieldCodec.decodeQueryGroup(encodedTheme);
+    final selectedTheme = group[_themeFieldName];
+    if (selectedTheme == null || selectedTheme.isEmpty) {
+      return;
+    }
+
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_themePreferenceKey, selectedTheme);
+    } catch (_) {
+      // Ignore persistence failures and keep the in-memory selection.
+    }
+  }
+
+  @override
+  void dispose() {
+    state?.removeListener(_persistThemeSelection);
+    state?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentState = state;
+    final currentRouter = router;
+
+    if (currentState == null || currentRouter == null) {
+      return MaterialApp(
+        title: 'Pocket Relay Widgetbook',
+        themeMode: ThemeMode.system,
+        theme: _buildWidgetbookShellTheme(Brightness.light),
+        darkTheme: _buildWidgetbookShellTheme(Brightness.dark),
+        debugShowCheckedModeBanner: false,
+        home: const SizedBox.shrink(),
+      );
+    }
+
     return wb.WidgetbookScope(
-      state: state,
+      state: currentState,
       child: MaterialApp.router(
         title: 'Pocket Relay Widgetbook',
         themeMode: ThemeMode.system,
         theme: _buildWidgetbookShellTheme(Brightness.light),
         darkTheme: _buildWidgetbookShellTheme(Brightness.dark),
-        routerConfig: router,
+        routerConfig: currentRouter,
         debugShowCheckedModeBanner: false,
       ),
     );

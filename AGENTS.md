@@ -1,113 +1,128 @@
 # AGENTS.md
 
-This file defines repo-level working rules for future agents. These rules are
-not limited to one screen, one feature, or one incident.
+Repo rules for future agents.
 
-## 1. Requirements are contracts
+## 1. Optimize for downstream cost, not local speed
+
+- Do not optimize for the fastest local implementation if it increases future
+  unwind cost.
+- The correct optimization target is reducing downstream churn, rework, token
+  waste, time waste, and cleanup cost.
+- A quick patch that creates future deletion or migration work is a bad patch.
+- If the correct implementation is larger, do that work first instead of
+  externalizing the cost into later turns.
+
+## 2. Requirements are contracts
 
 - Treat user requirements as product constraints, not suggestions.
-- If the user asks for something to be standalone, separate, generic, minimal,
-  or not tied to another surface, make that true in structure, not only in
-  appearance.
 - Do not satisfy a semantic requirement with a cosmetic imitation.
-- If the user gives an example, infer the intended behavior first. Do not apply
-  an example literally when the surrounding request makes the intent clear.
+- If the user asks for standalone, generic, minimal, or independent behavior,
+  make that true in structure and ownership.
+- If there are multiple plausible interpretations, stop and state the
+  ambiguity before building the wrong one.
 
-## 2. Prefer correct ownership over small diffs
+## 3. Ownership is the first design decision
 
-- Do not optimize for the smallest patch when the request requires a new
-  ownership boundary.
-- If a behavior belongs in state, reducer/application logic, domain models, or
-  a dedicated component, put it there instead of attaching it to the nearest
-  existing widget or code path.
-- Avoid piggybacking unrelated behavior onto an existing host component just
-  because it is already on screen.
-- A change is not "simpler" if it creates hidden coupling that will have to be
-  unwound later.
+- Put behavior where it actually belongs.
+- If something is a real app surface, reusable primitive, runtime mapping, or
+  product state, it belongs in app-owned code under `lib/src/...`.
+- Do not place real product or presentation logic in preview code, test-only
+  glue, or the nearest convenient widget.
+- Do not optimize for small diffs when the request requires a new ownership
+  boundary.
 
-## 3. No compromise-by-default
+## 4. Pocket Relay does not own the backend
 
-- Do not silently choose a partial solution, shortcut, or temporary heuristic.
-- If the correct implementation is larger than the quickest patch, say that
-  before coding.
-- Only ship a compromise when it is explicitly described as a compromise and
-  explicitly accepted.
-- Never present an approximation as if it fully satisfies the requirement.
+- Pocket Relay is a frontend over a backend/protocol we do not control.
+- Frontend code must adapt to backend reality, not invent alternate product
+  states.
+- For backend-owned flows, work in this order:
+  1. reference behavior
+  2. backend/app-server contract
+  3. Pocket Relay runtime mapping
+  4. Flutter presentation
+- If a state, label, or flow is not traceable to backend reality, runtime
+  state, existing app behavior, or an approved doc, it must not appear as
+  product truth.
 
-## 4. Build generic solutions when the problem is generic
+## 5. No speculative product surface area
 
-- If the user is asking for a reusable behavior or a general rule, do not solve
-  it in a one-off way.
-- Prefer first-class models, dedicated seams, and reusable components over
-  case-specific branching.
-- Do not hardcode behavior into one screen, one card, one event type, or one
-  styling path when the requirement obviously applies more broadly.
-- Generic should mean broadly applicable and maintainable, not abstract for its
-  own sake.
+- Do not invent product states, labels, summaries, UX categories, or review
+  artifacts because they seem useful.
+- A widget configuration is not automatically a real end-user state.
+- Widget capability is not product truth.
+- Fixtures must represent real runtime/app situations, not internal dev
+  narratives or design-review theater.
+- If the reference is incomplete, stay literal and conservative. Do not fill
+  gaps with speculation.
 
-## 5. Scope discipline
+## 6. Widgetbook is downstream only
 
-- Change what was requested, no less and no more.
-- Do not reinterpret a precise request into a broader redesign unless the user
-  asked for that redesign.
-- Do not leave unrelated cleanup mixed into the same change unless it is
-  required to keep the code correct.
-- If a request appears small but is structurally significant, explain that
-  plainly instead of hiding the complexity behind a shortcut.
+- `lib/widgetbook/` is preview infrastructure, not a shadow component library,
+  not a shadow design system, and not a shadow product spec.
+- Widgetbook may register, frame, and preview real app-owned surfaces.
+- Widgetbook must not own fake boards, scenes, wrappers, pseudo-components, or
+  product structure the app itself does not own.
+- If something would still need to exist without Widgetbook, it belongs in
+  `lib/src/...`, not `lib/widgetbook/...`.
+- Do not add review chrome that changes what is being reviewed.
 
-## 6. Make dependencies explicit
+## 7. Use literal naming
 
-- Prefer explicit data flow and explicit ownership.
-- If a surface depends on another component, that dependency should be real and
-  easy to explain.
-- If something must exist independently, it must not rely on another unrelated
-  component for its lifecycle, rendering, or visibility.
-- Avoid "latest eligible thing", "nearest existing thing", or similar implicit
-  attachment rules unless they are genuinely part of the product behavior.
+- Story names, fixture names, docs, and labels must describe literal runtime
+  states unless an interpretation has been explicitly approved.
+- Do not rename real states into cleaner or more “designed” sounding names.
+- Do not invent labels like `Settled Summary`, `Collapsed Draft`, or similar
+  implied product states.
 
-## 7. Verify behavior, not just output text
+## 8. Show the real end-user surface
 
-- Add tests that prove placement, ownership, lifecycle, and update behavior,
+- Do not show component abstractions when the real need is an end-user page,
+  end-user flow, or backend-driven runtime state.
+- Do not wrap real surfaces in extra demo chrome that alters padding,
+  hierarchy, density, or behavior.
+- If the user asks for consolidated pages, build consolidated pages from real
+  app-owned widgets and real runtime states.
+
+## 9. Verify the real behavior
+
+- Add tests that prove ownership, lifecycle, placement, and update behavior,
   not only text presence.
-- When moving behavior between layers, add coverage that the old host no longer
-  owns it.
-- Verify the actual runtime path for stateful or streamed behavior; do not rely
-  only on static inspection.
+- Verify runtime paths for stateful or streamed behavior; do not rely only on
+  static inspection.
 - Use the smallest test scope that proves the requirement, then run broader
-  verification when the change affects shared infrastructure.
+  verification when shared infrastructure changed.
+- Use hot reload only for local rendering changes. Use hot restart or a fresh
+  run when startup wiring, runtime state, reducers, controllers, or lifecycle
+  changed.
 
-## 8. State, lifecycle, and runtime changes need the right refresh
+## 10. Cut wrong work early
 
-- Use hot reload only for local widget rendering changes.
-- Use hot restart or a fresh run when state shape, startup behavior, app
-  wiring, transport behavior, or session lifecycle changed.
-- Do not assume stale in-memory UI proves the code is still wrong.
-- Do not assume a reload is sufficient when the change affects reducer or
-  controller behavior.
+- If speculative churn is discovered, stop expanding immediately.
+- Do a keep/move/delete audit before any new feature work.
+- Delete the wrong layer instead of renaming or cosmetically justifying it.
+- Do not layer new work on top of a speculative foundation to avoid admitting
+  churn.
 
-## 9. Communication rules
+## 11. Communication
 
-- Be direct about tradeoffs, risks, and uncertainty.
-- If there are two plausible interpretations, stop and state the ambiguity
-  before building the wrong one.
-- If a shortcut caused churn, say so directly and then correct it.
+- Be direct about tradeoffs, uncertainty, and mistakes.
+- If a shortcut caused churn, say so directly and correct it.
 - Do not defend a bad tradeoff after the problem is clear.
+- Do not claim something is implemented if it is only approximated.
 
-## 10. Definition of done
+## 12. Definition of done
 
-- The implementation matches the requested behavior, not just a nearby version
-  of it.
+- The implementation matches the requested behavior.
 - The ownership model is coherent.
-- The verification matches the risk of the change.
+- The solution reduces future churn instead of deferring it.
+- The verification matches the risk.
 - The final explanation accurately describes what is truly implemented.
 
-## 11. Docs chronology and naming
+## 13. Docs naming
 
 - Files under `docs/` must use a three-digit chronological prefix followed by
-  `_`, for example `000_example-plan.md`.
-- The numeric prefix is ordered by document creation chronology, earliest first.
-- When adding a new doc to `docs/`, assign the next available number instead of
-  inserting it into the middle of the sequence unless the user explicitly asks
-  for a full renumbering pass.
-- When renaming or referencing docs, preserve and use the prefixed filenames in
-  links and cross-document references.
+  `_`.
+- Assign the next available number when adding a new doc unless the user
+  explicitly asks for renumbering.
+- Preserve prefixed filenames in links and references.
