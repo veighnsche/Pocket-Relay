@@ -69,6 +69,10 @@ class CodexAppServerRequestApi {
       cwd: _asString(payload['cwd']) ?? effectiveCwd,
       model: _asString(payload['model']) ?? '',
       modelProvider: _asString(payload['modelProvider']) ?? '',
+      reasoningEffort:
+          _asString(payload['reasoningEffort']) ??
+          _asString(payload['reasoning_effort']) ??
+          _asString(payload['effort']),
       thread: thread,
       approvalPolicy: payload['approvalPolicy'],
       sandbox: payload['sandbox'],
@@ -122,10 +126,7 @@ class CodexAppServerRequestApi {
       params['limit'] = limit;
     }
 
-    final response = await connection.sendRequest(
-      'thread/list',
-      params,
-    );
+    final response = await connection.sendRequest('thread/list', params);
     final payload = _requireObject(response, 'thread/list response');
     final data = payload['data'];
     if (data is! List) {

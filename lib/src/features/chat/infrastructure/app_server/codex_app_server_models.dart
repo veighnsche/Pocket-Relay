@@ -207,6 +207,7 @@ class CodexAppServerSession {
     required this.cwd,
     required this.model,
     required this.modelProvider,
+    this.reasoningEffort,
     this.thread,
     this.approvalPolicy,
     this.sandbox,
@@ -216,6 +217,7 @@ class CodexAppServerSession {
   final String cwd;
   final String model;
   final String modelProvider;
+  final String? reasoningEffort;
   final CodexAppServerThread? thread;
   final Object? approvalPolicy;
   final Object? sandbox;

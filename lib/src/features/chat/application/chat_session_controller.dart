@@ -560,6 +560,7 @@ class ChatSessionController extends ChangeNotifier {
       resumeThreadId: resumeThreadId,
     );
     _rememberContinuationThread(session.threadId);
+    _rememberSessionHeaderMetadata(session);
     _applyRuntimeEvent(
       CodexRuntimeThreadStartedEvent(
         createdAt: DateTime.now(),
@@ -575,6 +576,22 @@ class ChatSessionController extends ChangeNotifier {
       ),
     );
     return session.threadId;
+  }
+
+  void _rememberSessionHeaderMetadata(CodexAppServerSession session) {
+    final nextMetadata = _sessionState.headerMetadata.copyWith(
+      cwd: session.cwd.trim().isEmpty ? null : session.cwd.trim(),
+      model: session.model.trim().isEmpty ? null : session.model.trim(),
+      modelProvider: session.modelProvider.trim().isEmpty
+          ? null
+          : session.modelProvider.trim(),
+      reasoningEffort:
+          session.reasoningEffort == null ||
+              session.reasoningEffort!.trim().isEmpty
+          ? null
+          : session.reasoningEffort!.trim(),
+    );
+    _applySessionState(_sessionState.copyWith(headerMetadata: nextMetadata));
   }
 
   Future<void> _ensureAppServerConnected() async {
@@ -1043,9 +1060,7 @@ class ChatSessionController extends ChangeNotifier {
     return value is String ? value : null;
   }
 
-  Future<void> _recordConversationSelection({
-    required String threadId,
-  }) async {
+  Future<void> _recordConversationSelection({required String threadId}) async {
     final normalizedThreadId = _normalizedThreadId(threadId);
     if (normalizedThreadId == null) {
       return;
@@ -1053,9 +1068,7 @@ class ChatSessionController extends ChangeNotifier {
     try {
       final currentState = await conversationStateStore.loadState();
       await conversationStateStore.saveState(
-        currentState.copyWith(
-          selectedThreadId: normalizedThreadId,
-        ),
+        currentState.copyWith(selectedThreadId: normalizedThreadId),
       );
     } catch (_) {
       // Conversation selection persistence must not break the active session.

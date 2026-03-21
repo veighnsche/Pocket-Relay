@@ -136,12 +136,13 @@ class TranscriptReducer {
           fallbackThreadId: normalizedState.threadId,
           createdAt: event.createdAt,
         );
-        return normalizedState
+        final nextState = normalizedState
             .copyWith(connectionStatus: CodexRuntimeSessionState.running)
             .copyWithProjectedTranscript(
               threadId: event.threadId ?? normalizedState.threadId,
               activeTurn: nextActiveTurn,
             );
+        return _withUpdatedHeaderMetadataForTurnStarted(nextState, event);
       case CodexRuntimeTurnCompletedEvent():
         return _policy.applyTurnCompleted(normalizedState, event);
       case CodexRuntimeTurnAbortedEvent():
@@ -417,6 +418,7 @@ class TranscriptReducer {
           existingTimeline.pendingLocalUserMessageBlockIds,
       localUserMessageProviderBindings:
           existingTimeline.localUserMessageProviderBindings,
+      headerMetadata: state.headerMetadata,
     );
     final reducedProjectedState = reducer(projectedState);
     final nextTimelines = <String, CodexTimelineState>{
@@ -445,6 +447,7 @@ class TranscriptReducer {
       connectionStatus: reducedProjectedState.connectionStatus,
       timelinesByThreadId: nextTimelines,
       requestOwnerById: _rebuildRequestOwnerById(nextTimelines),
+      headerMetadata: reducedProjectedState.headerMetadata,
     );
   }
 
@@ -486,7 +489,50 @@ class TranscriptReducer {
       timelinesByThreadId: timelinesByThreadId,
       threadRegistry: threadRegistry,
       requestOwnerById: _rebuildRequestOwnerById(timelinesByThreadId),
+      headerMetadata: state.headerMetadata,
     );
+  }
+
+  CodexSessionState _withUpdatedHeaderMetadataForTurnStarted(
+    CodexSessionState state,
+    CodexRuntimeTurnStartedEvent event,
+  ) {
+    if (!_shouldUpdateHeaderMetadataForThread(state, event.threadId)) {
+      return state;
+    }
+
+    final nextModel = event.model?.trim();
+    final nextEffort = event.effort?.trim();
+    if ((nextModel == null || nextModel.isEmpty) &&
+        (nextEffort == null || nextEffort.isEmpty)) {
+      return state;
+    }
+
+    return state.copyWith(
+      headerMetadata: state.headerMetadata.copyWith(
+        model: nextModel == null || nextModel.isEmpty ? null : nextModel,
+        reasoningEffort: nextEffort == null || nextEffort.isEmpty
+            ? null
+            : nextEffort,
+      ),
+    );
+  }
+
+  bool _shouldUpdateHeaderMetadataForThread(
+    CodexSessionState state,
+    String? threadId,
+  ) {
+    final normalizedThreadId = threadId?.trim();
+    if (normalizedThreadId == null || normalizedThreadId.isEmpty) {
+      return state.rootThreadId == null;
+    }
+
+    final rootThreadId = state.rootThreadId?.trim();
+    if (rootThreadId == null || rootThreadId.isEmpty) {
+      return true;
+    }
+
+    return normalizedThreadId == rootThreadId;
   }
 
   CodexSessionState _applyCollaborationMetadata(

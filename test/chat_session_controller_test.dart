@@ -39,6 +39,8 @@ void main() {
     expect(appServerClient.sentMessages, <String>['Hello controller']);
     expect(controller.transcriptBlocks.length, 1);
     expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+    expect(controller.sessionState.headerMetadata.cwd, '/workspace');
+    expect(controller.sessionState.headerMetadata.model, 'gpt-5.3-codex');
     final messageBlock =
         controller.transcriptBlocks.first as CodexUserMessageBlock;
     expect(messageBlock.text, 'Hello controller');
@@ -103,38 +105,35 @@ void main() {
     },
   );
 
-  test(
-    'sendPrompt records selected thread id by thread id',
-    () async {
-      final appServerClient = FakeCodexAppServerClient();
-      final historyStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_123',
-        ),
-      );
-      addTearDown(appServerClient.close);
+  test('sendPrompt records selected thread id by thread id', () async {
+    final appServerClient = FakeCodexAppServerClient();
+    final historyStore = _RecordingConversationHistoryStore(
+      initialState: const SavedConnectionConversationState(
+        selectedThreadId: 'thread_123',
+      ),
+    );
+    addTearDown(appServerClient.close);
 
-      final controller = ChatSessionController(
-        profileStore: MemoryCodexProfileStore(
-          initialValue: SavedProfile(
-            profile: _configuredProfile(),
-            secrets: const ConnectionSecrets(password: 'secret'),
-          ),
-        ),
-        conversationStateStore: historyStore,
-        appServerClient: appServerClient,
-        initialSavedProfile: SavedProfile(
+    final controller = ChatSessionController(
+      profileStore: MemoryCodexProfileStore(
+        initialValue: SavedProfile(
           profile: _configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
         ),
-      );
-      addTearDown(controller.dispose);
+      ),
+      conversationStateStore: historyStore,
+      appServerClient: appServerClient,
+      initialSavedProfile: SavedProfile(
+        profile: _configuredProfile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      ),
+    );
+    addTearDown(controller.dispose);
 
-      expect(await controller.sendPrompt('Second prompt'), isTrue);
+    expect(await controller.sendPrompt('Second prompt'), isTrue);
 
-      expect(historyStore.state.normalizedSelectedThreadId, 'thread_123');
-    },
-  );
+    expect(historyStore.state.normalizedSelectedThreadId, 'thread_123');
+  });
 
   test(
     'sendPrompt forwards profile model and reasoning effort overrides',
@@ -172,6 +171,52 @@ void main() {
         appServerClient.sentTurns.single.effort,
         CodexReasoningEffort.high,
       );
+    },
+  );
+
+  test(
+    'turn started notifications update live header effort for the root lane',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..startSessionModel = 'gpt-5.4';
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('Observe live effort'), isTrue);
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{
+              'id': 'turn_1',
+              'status': 'running',
+              'model': 'gpt-5.4',
+              'effort': 'high',
+            },
+          },
+        ),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.sessionState.headerMetadata.model, 'gpt-5.4');
+      expect(controller.sessionState.headerMetadata.reasoningEffort, 'high');
     },
   );
 
@@ -931,7 +976,8 @@ ConnectionProfile _configuredProfile() {
   );
 }
 
-class _RecordingConversationHistoryStore implements CodexConversationStateStore {
+class _RecordingConversationHistoryStore
+    implements CodexConversationStateStore {
   _RecordingConversationHistoryStore({
     SavedConnectionConversationState? initialState,
   }) : state = initialState ?? const SavedConnectionConversationState();

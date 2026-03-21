@@ -98,6 +98,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Object? connectError;
   Object? startSessionError;
   Object? sendUserMessageError;
+  String? startSessionModel;
+  String? startSessionReasoningEffort;
+  String? startSessionCwd;
   int disconnectCalls = 0;
   String? connectedThreadId;
   Completer<void>? sendUserMessageGate;
@@ -158,9 +161,10 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     _threadId = resumeThreadId ?? 'thread_123';
     return CodexAppServerSession(
       threadId: _threadId!,
-      cwd: cwd ?? '/workspace',
-      model: model ?? 'gpt-5.3-codex',
+      cwd: startSessionCwd ?? cwd ?? '/workspace',
+      model: startSessionModel ?? model ?? 'gpt-5.3-codex',
       modelProvider: 'openai',
+      reasoningEffort: startSessionReasoningEffort,
       thread: CodexAppServerThread(id: _threadId!, sourceKind: 'app-server'),
     );
   }
@@ -176,9 +180,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   }
 
   @override
-  Future<CodexAppServerThread> readThreadWithTurns({
-    required String threadId,
-  }) {
+  Future<CodexAppServerThread> readThreadWithTurns({required String threadId}) {
     return readThread(threadId: threadId);
   }
 

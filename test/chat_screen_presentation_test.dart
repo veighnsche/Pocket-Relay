@@ -46,8 +46,8 @@ void main() {
           transcriptFollow: _defaultTranscriptFollowContract,
         );
 
-        expect(contract.header.title, 'Pocket Relay');
-        expect(contract.header.subtitle, 'Dev Box · devbox.local');
+        expect(contract.header.title, 'workspace');
+        expect(contract.header.subtitle, 'Waiting for Codex session');
         expect(
           contract.toolbarActions.map((action) => action.id),
           <ChatScreenActionId>[ChatScreenActionId.openSettings],
@@ -69,6 +69,33 @@ void main() {
         );
       },
     );
+
+    test('uses live Codex header metadata for the lane title and subtitle', () {
+      final sessionState = CodexSessionState.initial().copyWith(
+        headerMetadata: const CodexSessionHeaderMetadata(
+          cwd: r'C:\Users\vince\Projects\InfraServer',
+          model: 'gpt-5.4',
+          reasoningEffort: 'high',
+        ),
+      );
+
+      final contract = presenter.present(
+        isLoading: false,
+        profile: _configuredProfile().copyWith(
+          workspaceDir: '/workspace/fallback_project',
+          model: 'gpt-5.4-mini',
+          reasoningEffort: CodexReasoningEffort.low,
+        ),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        sessionState: sessionState,
+        conversationRecoveryState: null,
+        composerDraft: const ChatComposerDraft(),
+        transcriptFollow: _defaultTranscriptFollowContract,
+      );
+
+      expect(contract.header.title, 'InfraServer');
+      expect(contract.header.subtitle, 'gpt-5.4 · high effort');
+    });
 
     test(
       'keeps the composer editable and surfaces turn status when the session is busy',

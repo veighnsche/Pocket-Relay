@@ -37,6 +37,11 @@ class ChatScreenPresenter {
         !isLoading &&
         !isBusy &&
         conversationRecoveryNotice == null;
+    final header = _header(
+      profile: profile,
+      sessionState: sessionState,
+      isConfigured: isConfigured,
+    );
     final displayConnectionMode =
         preferredConnectionMode ?? profile.connectionMode;
     final connectionSettingsProfile =
@@ -46,15 +51,7 @@ class ChatScreenPresenter {
 
     return ChatScreenContract(
       isLoading: isLoading,
-      header: ChatHeaderContract(
-        title: 'Pocket Relay',
-        subtitle: isConfigured
-            ? switch (profile.connectionMode) {
-                ConnectionMode.remote => '${profile.label} · ${profile.host}',
-                ConnectionMode.local => '${profile.label} · local Codex',
-              }
-            : 'Configure Codex',
-      ),
+      header: header,
       actions: <ChatScreenActionContract>[
         ChatScreenActionContract(
           id: ChatScreenActionId.openSettings,
@@ -100,6 +97,83 @@ class ChatScreenPresenter {
         _ => null,
       },
     );
+  }
+
+  ChatHeaderContract _header({
+    required ConnectionProfile profile,
+    required CodexSessionState sessionState,
+    required bool isConfigured,
+  }) {
+    final title = _workspaceProjectTitle(
+      sessionState.headerMetadata.cwd,
+      fallbackPath: profile.workspaceDir,
+    );
+    final subtitle = _sessionSubtitle(
+      sessionState: sessionState,
+      isConfigured: isConfigured,
+    );
+    return ChatHeaderContract(title: title, subtitle: subtitle);
+  }
+
+  String _workspaceProjectTitle(
+    String? liveCwd, {
+    required String fallbackPath,
+  }) {
+    final projectName =
+        _projectNameFromPath(liveCwd) ?? _projectNameFromPath(fallbackPath);
+    if (projectName != null) {
+      return projectName;
+    }
+    return 'Codex';
+  }
+
+  String _sessionSubtitle({
+    required CodexSessionState sessionState,
+    required bool isConfigured,
+  }) {
+    final model = sessionState.headerMetadata.model?.trim();
+    final effort = sessionState.headerMetadata.reasoningEffort?.trim();
+    if (model != null && model.isNotEmpty) {
+      final normalizedEffort = _formatReasoningEffort(effort);
+      if (normalizedEffort == null) {
+        return model;
+      }
+      return '$model · $normalizedEffort';
+    }
+    if (!isConfigured) {
+      return 'Configure Codex';
+    }
+    return 'Waiting for Codex session';
+  }
+
+  String? _projectNameFromPath(String? path) {
+    final normalized = path?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    final trimmed = normalized.replaceAll(RegExp(r'[\\/]+$'), '');
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final parts = trimmed.split(RegExp(r'[\\/]'));
+    final candidate = parts.isEmpty ? trimmed : parts.last.trim();
+    return candidate.isEmpty ? null : candidate;
+  }
+
+  String? _formatReasoningEffort(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return switch (normalized) {
+      'none' => 'no effort',
+      'minimal' => 'minimal effort',
+      'low' => 'low effort',
+      'medium' => 'medium effort',
+      'high' => 'high effort',
+      'xhigh' => 'xhigh effort',
+      _ => normalized,
+    };
   }
 
   List<ChatTimelineSummaryContract> _timelineSummaries(

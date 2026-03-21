@@ -12,7 +12,9 @@ void main() {
   testWidgets('sends prompts through app-server and renders assistant output', (
     tester,
   ) async {
-    final appServerClient = FakeCodexAppServerClient();
+    final appServerClient = FakeCodexAppServerClient()
+      ..startSessionCwd = '/Users/vince/Projects/Pocket-Relay'
+      ..startSessionModel = 'gpt-5.4';
     addTearDown(appServerClient.close);
 
     await tester.pumpWidget(_buildCatalogApp(appServerClient: appServerClient));
@@ -30,7 +32,23 @@ void main() {
     expect(appServerClient.sentMessages, <String>['Hello Codex']);
     expect(find.text('Hello Codex'), findsOneWidget);
     expect(tester.widget<TextField>(composerField).controller?.text, isEmpty);
+    expect(find.text('Pocket-Relay'), findsOneWidget);
+    expect(find.text('gpt-5.4'), findsOneWidget);
 
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/started',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turn': <String, Object?>{
+            'id': 'turn_1',
+            'status': 'running',
+            'model': 'gpt-5.4',
+            'effort': 'high',
+          },
+        },
+      ),
+    );
     appServerClient.emit(
       const CodexAppServerNotificationEvent(
         method: 'item/started',

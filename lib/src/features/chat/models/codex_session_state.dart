@@ -305,6 +305,42 @@ class CodexTimelineState {
   }
 }
 
+class CodexSessionHeaderMetadata {
+  const CodexSessionHeaderMetadata({
+    this.cwd,
+    this.model,
+    this.modelProvider,
+    this.reasoningEffort,
+  });
+
+  final String? cwd;
+  final String? model;
+  final String? modelProvider;
+  final String? reasoningEffort;
+
+  CodexSessionHeaderMetadata copyWith({
+    String? cwd,
+    bool clearCwd = false,
+    String? model,
+    bool clearModel = false,
+    String? modelProvider,
+    bool clearModelProvider = false,
+    String? reasoningEffort,
+    bool clearReasoningEffort = false,
+  }) {
+    return CodexSessionHeaderMetadata(
+      cwd: clearCwd ? null : (cwd ?? this.cwd),
+      model: clearModel ? null : (model ?? this.model),
+      modelProvider: clearModelProvider
+          ? null
+          : (modelProvider ?? this.modelProvider),
+      reasoningEffort: clearReasoningEffort
+          ? null
+          : (reasoningEffort ?? this.reasoningEffort),
+    );
+  }
+}
+
 class CodexSessionState {
   const CodexSessionState({
     this.connectionStatus = CodexRuntimeSessionState.stopped,
@@ -318,6 +354,7 @@ class CodexSessionState {
     this.sessionBlocks = const <CodexUiBlock>[],
     this.sessionPendingLocalUserMessageBlockIds = const <String>[],
     this.sessionLocalUserMessageProviderBindings = const <String, String>{},
+    this.headerMetadata = const CodexSessionHeaderMetadata(),
   });
 
   factory CodexSessionState.initial() {
@@ -332,6 +369,8 @@ class CodexSessionState {
     List<String> pendingLocalUserMessageBlockIds = const <String>[],
     Map<String, String> localUserMessageProviderBindings =
         const <String, String>{},
+    CodexSessionHeaderMetadata headerMetadata =
+        const CodexSessionHeaderMetadata(),
   }) {
     return CodexSessionState(
       connectionStatus: connectionStatus,
@@ -340,6 +379,7 @@ class CodexSessionState {
       sessionBlocks: blocks,
       sessionPendingLocalUserMessageBlockIds: pendingLocalUserMessageBlockIds,
       sessionLocalUserMessageProviderBindings: localUserMessageProviderBindings,
+      headerMetadata: headerMetadata,
     );
   }
 
@@ -355,6 +395,7 @@ class CodexSessionState {
   final List<CodexUiBlock> sessionBlocks;
   final List<String> sessionPendingLocalUserMessageBlockIds;
   final Map<String, String> sessionLocalUserMessageProviderBindings;
+  final CodexSessionHeaderMetadata headerMetadata;
 
   String? get currentThreadId =>
       selectedThreadId ?? rootThreadId ?? sessionThreadId;
@@ -472,6 +513,7 @@ class CodexSessionState {
     bool clearSessionPendingLocalUserMessageBlockIds = false,
     Map<String, String>? sessionLocalUserMessageProviderBindings,
     bool clearSessionLocalUserMessageProviderBindings = false,
+    CodexSessionHeaderMetadata? headerMetadata,
   }) {
     return CodexSessionState(
       connectionStatus: connectionStatus ?? this.connectionStatus,
@@ -507,6 +549,7 @@ class CodexSessionState {
           ? const <String, String>{}
           : (sessionLocalUserMessageProviderBindings ??
                 this.sessionLocalUserMessageProviderBindings),
+      headerMetadata: headerMetadata ?? this.headerMetadata,
     );
   }
 }
