@@ -36,7 +36,7 @@ Widget _storyCard({
   double maxWidth = 860,
   AlignmentGeometry alignment = Alignment.centerLeft,
 }) {
-  return Padding(
+  return SingleChildScrollView(
     padding: const EdgeInsets.all(24),
     child: Align(
       alignment: alignment,
@@ -49,19 +49,15 @@ Widget _storyCard({
 }
 
 Widget _storyFill({required Widget child, double? maxWidth}) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.maxHeight - 48,
-            maxWidth: maxWidth ?? constraints.maxWidth,
-          ),
-          child: child,
-        ),
-      );
-    },
+  return SingleChildScrollView(
+    padding: const EdgeInsets.all(24),
+    child: Align(
+      alignment: Alignment.topLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth ?? double.infinity),
+        child: child,
+      ),
+    ),
   );
 }
 
