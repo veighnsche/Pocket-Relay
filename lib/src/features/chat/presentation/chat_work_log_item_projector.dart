@@ -2,6 +2,13 @@ import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_work_log_contract.dart';
 
+typedef _EntryClassifier =
+    ChatWorkLogEntryContract? Function(
+      ChatWorkLogItemProjector projector,
+      CodexWorkLogEntry entry,
+      String normalizedTitle,
+    );
+
 class ChatWorkLogItemProjector {
   const ChatWorkLogItemProjector();
 
@@ -38,87 +45,11 @@ class ChatWorkLogItemProjector {
 
   ChatWorkLogEntryContract _projectEntry(CodexWorkLogEntry entry) {
     final normalizedTitle = _normalizeCompactToolLabel(entry.title);
-    final mcpToolCall = entry.entryKind == CodexWorkLogEntryKind.mcpToolCall
-        ? _projectMcpToolCall(entry)
-        : null;
-    final webSearch =
-        mcpToolCall == null &&
-            entry.entryKind == CodexWorkLogEntryKind.webSearch
-        ? _projectWebSearch(entry)
-        : null;
-    final commandWait =
-        mcpToolCall == null &&
-            webSearch == null &&
-            entry.entryKind == CodexWorkLogEntryKind.commandExecution
-        ? _projectCommandWait(entry, normalizedTitle: normalizedTitle)
-        : null;
-    final readCommand =
-        mcpToolCall == null &&
-            webSearch == null &&
-            commandWait == null &&
-            entry.entryKind == CodexWorkLogEntryKind.commandExecution
-        ? _tryParseReadCommand(normalizedTitle)
-        : null;
-    final gitCommand =
-        mcpToolCall == null &&
-            webSearch == null &&
-            commandWait == null &&
-            readCommand == null &&
-            entry.entryKind == CodexWorkLogEntryKind.commandExecution
-        ? _tryParseGitCommand(normalizedTitle)
-        : null;
-    final searchCommand =
-        mcpToolCall == null &&
-            webSearch == null &&
-            commandWait == null &&
-            readCommand == null &&
-            gitCommand == null &&
-            entry.entryKind == CodexWorkLogEntryKind.commandExecution
-        ? _tryParseContentSearchCommand(normalizedTitle)
-        : null;
-    final commandExecution =
-        mcpToolCall == null &&
-            webSearch == null &&
-            commandWait == null &&
-            readCommand == null &&
-            gitCommand == null &&
-            searchCommand == null &&
-            entry.entryKind == CodexWorkLogEntryKind.commandExecution
-        ? _projectCommandExecution(entry, normalizedTitle: normalizedTitle)
-        : null;
-
-    if (mcpToolCall != null) {
-      return mcpToolCall;
-    }
-    if (webSearch != null) {
-      return webSearch;
-    }
-    if (commandWait != null) {
-      return commandWait;
-    }
-    if (readCommand != null) {
-      return _projectReadCommand(
-        readCommand: readCommand,
-        entry: entry,
-        normalizedTitle: normalizedTitle,
-      );
-    }
-    if (gitCommand != null) {
-      return _projectGitCommand(
-        gitCommand: gitCommand,
-        entry: entry,
-        normalizedTitle: normalizedTitle,
-      );
-    }
-    if (searchCommand != null) {
-      return _projectSearchCommand(
-        searchCommand: searchCommand,
-        entry: entry,
-        normalizedTitle: normalizedTitle,
-      );
-    }
-    if (commandExecution != null) {
-      return commandExecution;
+    for (final classifier in _entryClassifiers) {
+      final projected = classifier(this, entry, normalizedTitle);
+      if (projected != null) {
+        return projected;
+      }
     }
 
     return ChatGenericWorkLogEntryContract(
@@ -131,6 +62,65 @@ class ChatWorkLogItemProjector {
       exitCode: entry.exitCode,
     );
   }
+
+  static final List<_EntryClassifier> _entryClassifiers = <_EntryClassifier>[
+    (projector, entry, normalizedTitle) =>
+        entry.entryKind == CodexWorkLogEntryKind.mcpToolCall
+        ? projector._projectMcpToolCall(entry)
+        : null,
+    (projector, entry, normalizedTitle) =>
+        entry.entryKind == CodexWorkLogEntryKind.webSearch
+        ? projector._projectWebSearch(entry)
+        : null,
+    (projector, entry, normalizedTitle) =>
+        entry.entryKind == CodexWorkLogEntryKind.commandExecution
+        ? projector._projectCommandWait(entry, normalizedTitle: normalizedTitle)
+        : null,
+    (projector, entry, normalizedTitle) => switch (
+      entry.entryKind == CodexWorkLogEntryKind.commandExecution
+          ? projector._tryParseReadCommand(normalizedTitle)
+          : null
+    ) {
+      final _ParsedReadCommand readCommand => projector._projectReadCommand(
+        readCommand: readCommand,
+        entry: entry,
+        normalizedTitle: normalizedTitle,
+      ),
+      _ => null,
+    },
+    (projector, entry, normalizedTitle) => switch (
+      entry.entryKind == CodexWorkLogEntryKind.commandExecution
+          ? projector._tryParseGitCommand(normalizedTitle)
+          : null
+    ) {
+      final _ParsedGitCommand gitCommand => projector._projectGitCommand(
+        gitCommand: gitCommand,
+        entry: entry,
+        normalizedTitle: normalizedTitle,
+      ),
+      _ => null,
+    },
+    (projector, entry, normalizedTitle) => switch (
+      entry.entryKind == CodexWorkLogEntryKind.commandExecution
+          ? projector._tryParseContentSearchCommand(normalizedTitle)
+          : null
+    ) {
+      final _ParsedContentSearchCommand searchCommand =>
+        projector._projectSearchCommand(
+          searchCommand: searchCommand,
+          entry: entry,
+          normalizedTitle: normalizedTitle,
+        ),
+      _ => null,
+    },
+    (projector, entry, normalizedTitle) =>
+        entry.entryKind == CodexWorkLogEntryKind.commandExecution
+        ? projector._projectCommandExecution(
+            entry,
+            normalizedTitle: normalizedTitle,
+          )
+        : null,
+  ];
 
   ChatCommandWaitWorkLogEntryContract? _projectCommandWait(
     CodexWorkLogEntry entry, {
