@@ -2,9 +2,15 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 
 import 'codex_app_server_connection.dart';
 import 'codex_app_server_models.dart';
+import 'codex_app_server_thread_read_decoder.dart';
 
 class CodexAppServerRequestApi {
-  const CodexAppServerRequestApi();
+  const CodexAppServerRequestApi({
+    CodexAppServerThreadReadDecoder threadReadDecoder =
+        const CodexAppServerThreadReadDecoder(),
+  }) : _threadReadDecoder = threadReadDecoder;
+
+  final CodexAppServerThreadReadDecoder _threadReadDecoder;
 
   Future<CodexAppServerSession> startSession(
     CodexAppServerConnection connection, {
@@ -98,17 +104,10 @@ class CodexAppServerRequestApi {
         'includeTurns': includeTurns,
       },
     );
-    final payload = _requireObject(response, 'thread/read response');
-    final thread = _asThread(
-      payload['thread'],
+    return _threadReadDecoder.decodeResponse(
+      response,
       fallbackThreadId: effectiveThreadId,
     );
-    if (thread == null) {
-      throw const CodexAppServerException(
-        'thread/read response did not include a thread object.',
-      );
-    }
-    return thread;
   }
 
   Future<CodexAppServerThreadListPage> listThreads(

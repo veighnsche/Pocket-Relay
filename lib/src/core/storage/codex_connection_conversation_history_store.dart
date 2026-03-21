@@ -4,6 +4,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'shared_preferences_async_migration.dart';
 
+/// Legacy naming aside, this file is not the home for authoritative historical
+/// conversation data.
+///
+/// Pocket Relay only persists narrow connection-scoped lane state here,
+/// currently `selectedThreadId`.
+///
+/// Pocket Relay may own other live session/runtime state elsewhere, but
+/// historical conversation lists and historical transcript content belong to
+/// Codex and must be read from Codex when needed.
+
 class SavedConversationThread {
   const SavedConversationThread({
     required this.threadId,
@@ -70,10 +80,10 @@ class SavedConversationThread {
 }
 
 class SavedConnectionConversationState {
-  const SavedConnectionConversationState({
-    this.selectedThreadId,
-  });
+  const SavedConnectionConversationState({this.selectedThreadId});
 
+  /// The app may remember which upstream thread should be resumed, but it must
+  /// not persist its own historical transcript archive.
   final String? selectedThreadId;
 
   String? get normalizedSelectedThreadId {
@@ -96,9 +106,7 @@ class SavedConnectionConversationState {
   }
 
   Map<String, Object?> toJson() {
-    return <String, Object?>{
-      'selectedThreadId': normalizedSelectedThreadId,
-    };
+    return <String, Object?>{'selectedThreadId': normalizedSelectedThreadId};
   }
 
   factory SavedConnectionConversationState.fromJson(Map<String, dynamic> json) {
@@ -117,6 +125,10 @@ abstract interface class CodexConversationStateStore {
 }
 
 abstract interface class CodexConnectionConversationStateStore {
+  /// Loads connection-scoped lane state only.
+  ///
+  /// This store must not become a source of truth for historical conversation
+  /// lists or historical transcript content.
   Future<SavedConnectionConversationState> loadState(String connectionId);
 
   Future<void> saveState(
@@ -179,6 +191,8 @@ class SecureCodexConnectionConversationHistoryStore
     String connectionId,
     SavedConnectionConversationState state,
   ) async {
+    // Persist only lightweight lane state. Historical transcript content must
+    // remain upstream in Codex because most work may happen outside this app.
     final normalizedConnectionId = _normalizeConnectionId(connectionId);
     final preferences = _resolvedPreferences;
     if (preferences == null) {
@@ -240,9 +254,7 @@ class SecureCodexConnectionConversationHistoryStore
     }
 
     final selectedThreadId = _decodeLegacySelectedThreadId(rawHandoff);
-    return SavedConnectionConversationState(
-      selectedThreadId: selectedThreadId,
-    );
+    return SavedConnectionConversationState(selectedThreadId: selectedThreadId);
   }
 
   String? _decodeLegacySelectedThreadId(String rawHandoff) {
@@ -308,17 +320,17 @@ class MemoryCodexConnectionConversationHistoryStore
     implements CodexConnectionConversationStateStore {
   MemoryCodexConnectionConversationHistoryStore({
     Map<String, SavedConnectionConversationState>? initialStates,
-  }) : _statesByConnectionId = (initialStates ??
-               const <String, SavedConnectionConversationState>{})
-           .map(
-               (key, value) =>
-                   MapEntry<String, SavedConnectionConversationState>(
-                     key,
-                     SavedConnectionConversationState(
-                       selectedThreadId: value.selectedThreadId,
+  }) : _statesByConnectionId =
+           (initialStates ?? const <String, SavedConnectionConversationState>{})
+               .map(
+                 (key, value) =>
+                     MapEntry<String, SavedConnectionConversationState>(
+                       key,
+                       SavedConnectionConversationState(
+                         selectedThreadId: value.selectedThreadId,
+                       ),
                      ),
-                   ),
-             );
+               );
 
   final Map<String, SavedConnectionConversationState> _statesByConnectionId;
 

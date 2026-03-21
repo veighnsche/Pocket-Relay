@@ -104,6 +104,9 @@ For remote connections, this historical source must be reached through SSH.
 
 - Live runtime state for the active lane.
 - In-memory transcript/runtime presentation state.
+- Live conversation descriptors and app-local metadata for the active lane,
+  when those support the current UX without claiming to be the authoritative
+  historical record.
 - Temporary UI state such as selection, modal visibility, loading flags, and
   reconnect flow state.
 
@@ -137,6 +140,28 @@ If Codex history cannot be reached, the UI must show an honest loading or error
 state. It must not silently substitute a locally persisted subset and present it
 as authoritative history.
 
+Historical transcript content must also come from Codex.
+
+That means:
+
+- resuming a historical conversation must read the upstream thread history
+- the app must not invent a separate persisted transcript archive
+- the app must not treat a local transcript cache as the historical truth
+
+This is not optional.
+
+Pocket Relay is not where most Codex work happens.
+
+Users can create and continue the real conversation history:
+
+- on another computer
+- in another terminal
+- directly in Codex
+- outside Pocket Relay entirely
+
+Because of that, a Pocket Relay-owned local transcript history would not merely
+be incomplete. It would be the wrong architecture.
+
 ## What Local State Is Still Allowed
 
 Only narrow live-lane state is allowed locally.
@@ -144,8 +169,9 @@ Only narrow live-lane state is allowed locally.
 Allowed:
 
 - active runtime session state
+- live conversation descriptors or metadata for the active lane
 - selected live thread for the currently running lane
-- transcript rendering state
+- in-memory transcript rendering state for the currently loaded lane
 - draft state
 - viewport state
 
@@ -153,6 +179,9 @@ Not allowed:
 
 - a Pocket Relay-owned persisted catalog of all historical conversations
 - a local substitute for Codex workspace history
+- a Pocket Relay-owned persisted archive of historical transcript content
+- any design that assumes Pocket Relay can reconstruct authoritative history
+  without reading it from Codex
 
 ## Consequences For Current Code
 
@@ -195,3 +224,10 @@ For historical conversations, Codex is the only source of truth.
 
 Pocket Relay may display that truth and act on it.
 Pocket Relay may not replace it.
+
+That rule applies to both:
+
+- historical conversation discovery
+- historical transcript content
+
+Pocket Relay will not own its own persisted historical transcript store.

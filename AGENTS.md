@@ -111,3 +111,23 @@ not limited to one screen, one feature, or one incident.
   for a full renumbering pass.
 - When renaming or referencing docs, preserve and use the prefixed filenames in
   links and cross-document references.
+
+## 12. Codex history is upstream truth
+
+- Pocket Relay must not own a persisted local history or transcript archive.
+- Historical conversation discovery must come from Codex, not from app-local
+  persistence.
+- Historical transcript restoration must come from Codex thread history, not
+  from a Pocket Relay-maintained cache.
+- Pocket Relay may still own local live session state, live conversation
+  descriptors, drafts, and other runtime/UI metadata for the active lane, as
+  long as that state does not claim to be authoritative historical truth.
+- Do not propose, design, or implement a Pocket Relay-owned local transcript
+  history store as the primary solution for cross-device resume or historical
+  conversation restoration.
+- Local persistence is limited to narrow lane state such as `selectedThreadId`,
+  drafts, and other UI/runtime state that does not claim to be the historical
+  source of truth.
+- If historical conversation content is missing on screen, investigate the real
+  upstream `thread/read` payload and the restore mapper first. Do not paper
+  over missing upstream history with a local substitute.

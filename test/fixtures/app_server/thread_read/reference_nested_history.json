@@ -1,0 +1,50 @@
+{
+  "thread": {
+    "id": "thread_nested",
+    "preview": "Restore this",
+    "ephemeral": false,
+    "modelProvider": "openai",
+    "createdAt": 1710000000,
+    "updatedAt": 1710000060,
+    "path": "/workspace/.codex/threads/thread_nested.json",
+    "cwd": "/workspace",
+    "promptCount": 1,
+    "name": "Saved thread",
+    "source": {
+      "kind": "app-server"
+    },
+    "status": "completed",
+    "agentNickname": "builder",
+    "agentRole": "worker",
+    "turns": [
+      {
+        "id": "turn_saved",
+        "status": "completed",
+        "items": [
+          {
+            "id": "item_user",
+            "type": "userMessage",
+            "status": "completed",
+            "content": [
+              {
+                "type": "text",
+                "text": "Restore this"
+              }
+            ]
+          },
+          {
+            "id": "item_agent",
+            "type": "agentMessage",
+            "status": "completed",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Restored answer"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

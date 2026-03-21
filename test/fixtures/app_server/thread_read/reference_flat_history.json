@@ -1,0 +1,42 @@
+{
+  "threadId": "thread_flat",
+  "preview": "Restore this",
+  "cwd": "/workspace",
+  "createdAt": 1710000000,
+  "updatedAt": 1710000060,
+  "modelProvider": "openai",
+  "name": "Saved thread",
+  "source": {
+    "kind": "app-server"
+  },
+  "turns": [
+    {
+      "id": "turn_saved",
+      "status": "completed",
+      "items": [
+        {
+          "id": "item_user",
+          "type": "userMessage",
+          "status": "completed",
+          "content": [
+            {
+              "type": "text",
+              "text": "Restore this"
+            }
+          ]
+        },
+        {
+          "id": "item_agent",
+          "type": "agentMessage",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "Restored answer"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

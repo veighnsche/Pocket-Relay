@@ -39,6 +39,17 @@ explicitly changes them:
 If a simplification would change behavior, it is not an acceptable refactor
 under this plan.
 
+Historical conversation truth is also non-negotiable.
+
+- Pocket Relay will not own a persisted local history or transcript archive
+- historical conversation discovery must come from Codex
+- historical transcript restoration must come from Codex thread history
+- Pocket Relay may still own local live lane/session state, including live
+  conversation descriptors and runtime metadata that do not claim to be the
+  authoritative historical record
+- local persistence may only remember narrow lane state such as
+  `selectedThreadId`
+
 ## Already Completed
 
 The first simplification slice is done.
@@ -190,6 +201,8 @@ Current reality:
 - local steady-state persistence is mostly `selectedThreadId`
 - authoritative history rows come from Codex through the workspace history
   repository
+- authoritative historical transcript content must also come from Codex, not
+  Pocket Relay persistence
 
 But the store file still contains:
 

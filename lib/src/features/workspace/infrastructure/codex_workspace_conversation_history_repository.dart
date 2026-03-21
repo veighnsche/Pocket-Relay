@@ -5,6 +5,10 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
 
 abstract interface class CodexWorkspaceConversationHistoryRepository {
+  /// Loads authoritative conversation history from Codex.
+  ///
+  /// Pocket Relay must not replace this with an app-owned local history store,
+  /// because users can create and continue conversations outside this app.
   Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
@@ -28,6 +32,8 @@ class CodexAppServerConversationHistoryRepository
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) async {
+    // Conversation discovery comes from Codex itself. The app only displays the
+    // upstream truth; it does not maintain its own historical catalog.
     final workspaceDir = profile.workspaceDir.trim();
     if (workspaceDir.isEmpty) {
       return const <CodexWorkspaceConversationSummary>[];
@@ -42,7 +48,8 @@ class CodexAppServerConversationHistoryRepository
           workspaceDir: workspaceDir,
           threadCwd: thread.cwd,
           caseInsensitivePaths:
-              profile.connectionMode == ConnectionMode.local && Platform.isWindows,
+              profile.connectionMode == ConnectionMode.local &&
+              Platform.isWindows,
         ),
       );
 
@@ -122,10 +129,7 @@ class CodexAppServerConversationHistoryRepository
     return normalizedThreadCwd.startsWith('$normalizedWorkspace/');
   }
 
-  static String _normalizePath(
-    String path, {
-    required bool caseInsensitive,
-  }) {
+  static String _normalizePath(String path, {required bool caseInsensitive}) {
     var normalized = path.trim().replaceAll('\\', '/');
     while (normalized.endsWith('/') && normalized.length > 1) {
       normalized = normalized.substring(0, normalized.length - 1);
