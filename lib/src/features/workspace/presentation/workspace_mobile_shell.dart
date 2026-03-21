@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';

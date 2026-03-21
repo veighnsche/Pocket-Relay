@@ -5,8 +5,8 @@ import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 
 class ConnectionSettingsSheetSurface extends StatelessWidget {
   const ConnectionSettingsSheetSurface({

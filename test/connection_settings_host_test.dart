@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
 
 void main() {
   testWidgets(

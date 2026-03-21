@@ -408,7 +408,7 @@ class WidgetbookFixtures {
       ChatChangedFileRowContract(
         id: 'changed_file_3',
         file: filePresentation(
-          'lib/src/features/settings/presentation/connection_sheet.dart',
+          'lib/src/features/connection_settings/presentation/connection_sheet.dart',
         ),
         operationKind: ChatChangedFileOperationKind.modified,
         operationLabel: 'Edited',

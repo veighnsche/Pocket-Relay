@@ -18,7 +18,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 

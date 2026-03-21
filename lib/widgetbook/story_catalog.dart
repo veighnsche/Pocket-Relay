@@ -34,8 +34,8 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/cards/user_message_card.dart';
 import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/work_log_group_card.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/conversation_card_palette.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
 import 'package:pocket_relay/widgetbook/support/fake_codex_app_server_client.dart';
 import 'package:pocket_relay/widgetbook/support/widgetbook_fixtures.dart';
 import 'package:widgetbook/widgetbook.dart';

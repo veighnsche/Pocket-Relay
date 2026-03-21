@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 
 class ConnectionSettingsPresenter {
   const ConnectionSettingsPresenter();

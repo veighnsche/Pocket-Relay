@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
-import 'package:pocket_relay/src/features/settings/presentation/connection_settings_sheet_surface.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_sheet_surface.dart';
 
 class ConnectionSheet extends StatelessWidget {
   const ConnectionSheet({

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 
-import 'connection_settings_contract.dart';
+import '../domain/connection_settings_contract.dart';
 import 'connection_settings_host.dart';
 import 'connection_sheet.dart';
 
