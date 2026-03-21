@@ -1,40 +1,80 @@
+// ignore_for_file: implementation_imports, invalid_use_of_internal_member
+
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/widgetbook/story_catalog.dart';
-import 'package:widgetbook/widgetbook.dart';
+import 'package:widgetbook/widgetbook.dart' as wb;
+import 'package:widgetbook/src/layout/desktop_layout.dart';
+import 'package:widgetbook/src/navigation/widgets/navigation_panel.dart';
+import 'package:widgetbook/src/routing/app_route_config.dart';
+import 'package:widgetbook/src/routing/app_route_parser.dart';
+import 'package:widgetbook/src/settings/mobile_settings_panel.dart';
+import 'package:widgetbook/src/widgetbook_theme.dart' as wb_shell;
+import 'package:widgetbook/src/workbench/workbench.dart';
 
-class PocketRelayWidgetbook extends StatelessWidget {
+class PocketRelayWidgetbook extends StatefulWidget {
   const PocketRelayWidgetbook({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Widgetbook.material(
-      directories: buildPocketRelayWidgetbookCatalog(),
-      addons: <WidgetbookAddon>[
-        MaterialThemeAddon(
-          themes: <WidgetbookTheme<ThemeData>>[
-            WidgetbookTheme<ThemeData>(
-              name: 'Pocket Light',
-              data: buildPocketTheme(Brightness.light),
-            ),
-            WidgetbookTheme<ThemeData>(
-              name: 'Pocket Dark',
-              data: buildPocketTheme(Brightness.dark),
-            ),
-          ],
-        ),
-        ViewportAddon(<ViewportData>[
-          Viewports.none,
-          IosViewports.iPhone13,
-          MacosViewports.desktop,
-          MacosViewports.macbookPro,
-        ]),
-        TextScaleAddon(initialScale: 1.0, min: 0.8, max: 1.4, divisions: 3),
-      ],
-      lightTheme: _buildWidgetbookShellTheme(Brightness.light),
-      darkTheme: _buildWidgetbookShellTheme(Brightness.dark),
+  State<PocketRelayWidgetbook> createState() => _PocketRelayWidgetbookState();
+}
+
+class _PocketRelayWidgetbookState extends State<PocketRelayWidgetbook> {
+  late final wb.WidgetbookState state;
+  late final _PocketRelayAppRouter router;
+
+  @override
+  void initState() {
+    super.initState();
+    state = wb.WidgetbookState(
+      appBuilder: wb.materialAppBuilder,
+      addons: _addons,
+      root: wb.WidgetbookRoot(children: buildPocketRelayWidgetbookCatalog()),
       home: const _PocketRelayWidgetbookHome(),
       header: const _PocketRelayWidgetbookHeader(),
+    );
+    router = _PocketRelayAppRouter(
+      state: state,
+      uri: Uri.base.fragment.isNotEmpty
+          ? Uri.parse(Uri.base.fragment)
+          : Uri.parse('/'),
+    );
+  }
+
+  List<wb.WidgetbookAddon> get _addons => <wb.WidgetbookAddon>[
+    wb.MaterialThemeAddon(
+      themes: <wb.WidgetbookTheme<ThemeData>>[
+        wb.WidgetbookTheme<ThemeData>(
+          name: 'Pocket Light',
+          data: buildPocketTheme(Brightness.light),
+        ),
+        wb.WidgetbookTheme<ThemeData>(
+          name: 'Pocket Dark',
+          data: buildPocketTheme(Brightness.dark),
+        ),
+      ],
+    ),
+    wb.ViewportAddon(<wb.ViewportData>[
+      wb.Viewports.none,
+      wb.IosViewports.iPhone13,
+      wb.MacosViewports.desktop,
+      wb.MacosViewports.macbookPro,
+    ]),
+    wb.TextScaleAddon(initialScale: 1.0, min: 0.8, max: 1.4, divisions: 3),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return wb.WidgetbookScope(
+      state: state,
+      child: MaterialApp.router(
+        title: 'Pocket Relay Widgetbook',
+        themeMode: ThemeMode.system,
+        theme: _buildWidgetbookShellTheme(Brightness.light),
+        darkTheme: _buildWidgetbookShellTheme(Brightness.dark),
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }
@@ -43,10 +83,11 @@ ThemeData _buildWidgetbookShellTheme(Brightness brightness) {
   final base = buildPocketTheme(brightness);
   final palette = base.extension<PocketPalette>()!;
   final isDark = brightness == Brightness.dark;
+  final solidSurface = palette.surface;
 
   return base.copyWith(
     colorScheme: base.colorScheme.copyWith(
-      surface: palette.surface,
+      surface: solidSurface,
       onSurface: isDark ? const Color(0xFFF4F2ED) : const Color(0xFF1C1917),
       surfaceContainerHighest: isDark
           ? const Color(0xFF2B2924)
@@ -55,11 +96,11 @@ ThemeData _buildWidgetbookShellTheme(Brightness brightness) {
       primary: isDark ? const Color(0xFF7DD3FC) : const Color(0xFF0F766E),
       secondary: isDark ? const Color(0xFFC4B5FD) : const Color(0xFF7C3AED),
     ),
-    canvasColor: palette.surface,
+    canvasColor: solidSurface,
     scaffoldBackgroundColor: palette.backgroundBottom,
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: palette.surface,
-      modalBackgroundColor: palette.surface,
+      backgroundColor: solidSurface,
+      modalBackgroundColor: solidSurface,
       surfaceTintColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -67,12 +108,12 @@ ThemeData _buildWidgetbookShellTheme(Brightness brightness) {
       clipBehavior: Clip.antiAlias,
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: palette.surface,
+      backgroundColor: solidSurface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
     ),
     cardTheme: CardThemeData(
-      color: palette.surface,
+      color: solidSurface,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
@@ -98,7 +139,7 @@ ThemeData _buildWidgetbookShellTheme(Brightness brightness) {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
     ),
     bottomNavigationBarTheme: BottomNavigationBarThemeData(
-      backgroundColor: palette.surface,
+      backgroundColor: solidSurface,
       selectedItemColor: isDark
           ? const Color(0xFF7DD3FC)
           : const Color(0xFF0F766E),
@@ -108,6 +149,199 @@ ThemeData _buildWidgetbookShellTheme(Brightness brightness) {
       type: BottomNavigationBarType.fixed,
     ),
   );
+}
+
+class _PocketRelayAppRouter extends RouterConfig<AppRouteConfig> {
+  _PocketRelayAppRouter({required wb.WidgetbookState state, required Uri uri})
+    : super(
+        routeInformationParser: AppRouteParser(),
+        routeInformationProvider: PlatformRouteInformationProvider(
+          initialRouteInformation: RouteInformation(uri: uri),
+        ),
+        routerDelegate: _PocketRelayRouterDelegate(uri: uri, state: state),
+      );
+}
+
+class _PocketRelayRouterDelegate extends RouterDelegate<AppRouteConfig>
+    with ChangeNotifier, PopNavigatorRouterDelegateMixin<AppRouteConfig> {
+  _PocketRelayRouterDelegate({required this.uri, required this.state})
+    : _navigatorKey = GlobalKey<NavigatorState>(),
+      _configuration = AppRouteConfig(uri: uri);
+
+  final Uri uri;
+  final wb.WidgetbookState state;
+  final GlobalKey<NavigatorState> _navigatorKey;
+  AppRouteConfig _configuration;
+
+  @override
+  AppRouteConfig? get currentConfiguration => _configuration;
+
+  @override
+  GlobalKey<NavigatorState>? get navigatorKey => _navigatorKey;
+
+  @override
+  Future<void> setNewRoutePath(AppRouteConfig configuration) async {
+    _configuration = configuration;
+    state.updateFromRouteConfig(configuration);
+    notifyListeners();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return wb_shell.WidgetbookTheme(
+      data: theme,
+      child: Navigator(
+        key: navigatorKey,
+        onDidRemovePage: (_) => {},
+        pages: <Page<dynamic>>[
+          MaterialPage<dynamic>(
+            child: _configuration.previewMode
+                ? const Workbench()
+                : _PocketRelayResponsiveLayout(
+                    key: ValueKey<AppRouteConfig>(_configuration),
+                    child: const Workbench(),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PocketRelayResponsiveLayout extends StatelessWidget {
+  const _PocketRelayResponsiveLayout({super.key, required this.child});
+
+  final Widget child;
+
+  Widget _buildNavigation(BuildContext context, bool isMobile) {
+    final state = wb.WidgetbookState.of(context);
+    return NavigationPanel(
+      initialPath: state.path,
+      root: state.root,
+      header: state.header,
+      onNodeSelected: (node) {
+        wb.WidgetbookState.of(context).updatePath(node.path);
+        if (isMobile) {
+          Navigator.pop(context);
+        }
+      },
+    );
+  }
+
+  List<Widget> _buildAddons(BuildContext context) {
+    final state = wb.WidgetbookState.of(context);
+    return state.effectiveAddons
+            ?.map((addon) => addon.buildFields(context))
+            .toList() ??
+        const <Widget>[];
+  }
+
+  List<Widget> _buildKnobs(BuildContext context) {
+    final state = wb.WidgetbookState.of(context);
+    return state.knobs.values.map((knob) => knob.buildFields(context)).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = wb.WidgetbookState.of(context);
+    final isEmbedded = state.panels != null;
+    final isMobile = MediaQuery.of(context).size.width < 840;
+
+    return isMobile && !isEmbedded
+        ? _PocketRelayMobileLayout(
+            navigationBuilder: (context) => _buildNavigation(context, true),
+            addonsBuilder: _buildAddons,
+            knobsBuilder: _buildKnobs,
+            workbench: child,
+          )
+        : DesktopLayout(
+            navigationBuilder: (context) => _buildNavigation(context, false),
+            addonsBuilder: _buildAddons,
+            knobsBuilder: _buildKnobs,
+            workbench: child,
+          );
+  }
+}
+
+class _PocketRelayMobileLayout extends StatelessWidget {
+  const _PocketRelayMobileLayout({
+    required this.navigationBuilder,
+    required this.addonsBuilder,
+    required this.knobsBuilder,
+    required this.workbench,
+  });
+
+  final Widget Function(BuildContext context) navigationBuilder;
+  final List<Widget> Function(BuildContext context) addonsBuilder;
+  final List<Widget> Function(BuildContext context) knobsBuilder;
+  final Widget workbench;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(child: workbench),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            label: 'Navigation',
+            icon: Icon(Icons.list_outlined),
+          ),
+          BottomNavigationBarItem(
+            label: 'Addons',
+            icon: Icon(Icons.dashboard_customize_outlined),
+          ),
+          BottomNavigationBarItem(
+            label: 'Knobs',
+            icon: Icon(Icons.tune_outlined),
+          ),
+        ],
+        onTap: (index) => _showPanel(context, index),
+      ),
+    );
+  }
+
+  Future<void> _showPanel(BuildContext context, int index) {
+    final Widget panel = switch (index) {
+      0 => navigationBuilder(context),
+      1 => MobileSettingsPanel(name: 'Addons', builder: addonsBuilder),
+      _ => MobileSettingsPanel(name: 'Knobs', builder: knobsBuilder),
+    };
+
+    final height = MediaQuery.of(context).size.height * 0.92;
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).bottomSheetTheme.modalBackgroundColor,
+      builder: (context) {
+        return SizedBox(
+          height: height,
+          child: Material(
+            color: Theme.of(context).bottomSheetTheme.modalBackgroundColor,
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(child: panel),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _PocketRelayWidgetbookHeader extends StatelessWidget {
@@ -162,7 +396,7 @@ class _PocketRelayWidgetbookHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = WidgetbookState.of(context);
+    final state = wb.WidgetbookState.of(context);
     final counts =
         '${state.root.componentsCount} components · ${state.root.useCasesCount} use cases';
 
