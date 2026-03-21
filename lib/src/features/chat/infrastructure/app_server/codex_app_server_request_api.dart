@@ -54,7 +54,7 @@ class CodexAppServerRequestApi {
     final response = await connection.sendRequest(method, params);
 
     final payload = _requireObject(response, '$method response');
-    final thread = _requireThread(payload['thread'], '$method response');
+    final thread = _requireThreadSummary(payload['thread'], '$method response');
     final threadId = thread.id;
 
     if (effectiveResumeThreadId != null &&
@@ -85,10 +85,9 @@ class CodexAppServerRequestApi {
     );
   }
 
-  Future<CodexAppServerThread> readThread(
+  Future<CodexAppServerThreadSummary> readThread(
     CodexAppServerConnection connection, {
     required String threadId,
-    bool includeTurns = false,
   }) async {
     connection.requireConnected();
 
@@ -99,12 +98,30 @@ class CodexAppServerRequestApi {
 
     final response = await connection.sendRequest(
       'thread/read',
-      <String, Object?>{
-        'threadId': effectiveThreadId,
-        'includeTurns': includeTurns,
-      },
+      <String, Object?>{'threadId': effectiveThreadId, 'includeTurns': false},
     );
-    return _threadReadDecoder.decodeResponse(
+    return _threadReadDecoder.decodeSummaryResponse(
+      response,
+      fallbackThreadId: effectiveThreadId,
+    );
+  }
+
+  Future<CodexAppServerThreadHistory> readThreadWithTurns(
+    CodexAppServerConnection connection, {
+    required String threadId,
+  }) async {
+    connection.requireConnected();
+
+    final effectiveThreadId = threadId.trim();
+    if (effectiveThreadId.isEmpty) {
+      throw const CodexAppServerException('Thread id cannot be empty.');
+    }
+
+    final response = await connection.sendRequest(
+      'thread/read',
+      <String, Object?>{'threadId': effectiveThreadId, 'includeTurns': true},
+    );
+    return _threadReadDecoder.decodeHistoryResponse(
       response,
       fallbackThreadId: effectiveThreadId,
     );
@@ -136,8 +153,8 @@ class CodexAppServerRequestApi {
 
     return CodexAppServerThreadListPage(
       threads: data
-          .map(_asThread)
-          .whereType<CodexAppServerThread>()
+          .map(_asThreadSummary)
+          .whereType<CodexAppServerThreadSummary>()
           .toList(growable: false),
       nextCursor: _asString(payload['nextCursor']),
     );
@@ -375,15 +392,18 @@ class CodexAppServerRequestApi {
     return objects.isEmpty ? null : objects;
   }
 
-  static CodexAppServerThread _requireThread(Object? value, String label) {
-    final thread = _asThread(value);
+  static CodexAppServerThreadSummary _requireThreadSummary(
+    Object? value,
+    String label,
+  ) {
+    final thread = _asThreadSummary(value);
     if (thread == null) {
       throw CodexAppServerException('$label did not include a thread object.');
     }
     return thread;
   }
 
-  static CodexAppServerThread? _asThread(
+  static CodexAppServerThreadSummary? _asThreadSummary(
     Object? value, {
     Object? fallbackThreadId,
   }) {
@@ -394,7 +414,7 @@ class CodexAppServerRequestApi {
       return null;
     }
 
-    return CodexAppServerThread(
+    return CodexAppServerThreadSummary(
       id: threadId,
       preview: _asString(thread?['preview']) ?? '',
       ephemeral: thread?['ephemeral'] as bool? ?? false,
@@ -410,7 +430,6 @@ class CodexAppServerRequestApi {
       sourceKind: _sourceKind(thread?['source']),
       agentNickname: _asString(thread?['agentNickname']),
       agentRole: _asString(thread?['agentRole']),
-      turns: _asObjectList(thread?['turns']) ?? const <Map<String, dynamic>>[],
     );
   }
 

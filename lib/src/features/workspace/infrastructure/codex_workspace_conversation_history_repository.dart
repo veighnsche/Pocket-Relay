@@ -93,10 +93,10 @@ class CodexAppServerConversationHistoryRepository
     }
   }
 
-  Future<List<CodexAppServerThread>> _loadAllThreads(
+  Future<List<CodexAppServerThreadSummary>> _loadAllThreads(
     CodexAppServerClient client,
   ) async {
-    final threads = <CodexAppServerThread>[];
+    final threads = <CodexAppServerThreadSummary>[];
     String? cursor;
     do {
       final page = await client.listThreads(cursor: cursor, limit: pageSize);

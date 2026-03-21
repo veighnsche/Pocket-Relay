@@ -756,35 +756,69 @@ Future<void> _closeClients(
   }
 }
 
-CodexAppServerThread _savedConversationThread({required String threadId}) {
-  return CodexAppServerThread(
+CodexAppServerThreadHistory _savedConversationThread({
+  required String threadId,
+}) {
+  return CodexAppServerThreadHistory(
     id: threadId,
     name: 'Saved conversation',
     sourceKind: 'app-server',
-    turns: const <Map<String, dynamic>>[
-      <String, Object?>{
-        'id': 'turn_saved',
-        'status': 'completed',
-        'items': <Object>[
-          <String, Object?>{
-            'id': 'item_user',
-            'type': 'user_message',
-            'status': 'completed',
-            'content': <Object>[
-              <String, Object?>{'text': 'Restore this'},
-            ],
-          },
-          <String, Object?>{
-            'id': 'item_assistant',
-            'type': 'agent_message',
-            'status': 'completed',
-            'content': <Object>[
-              <String, Object?>{'text': 'Restored answer'},
-            ],
-          },
+    turns: const <CodexAppServerHistoryTurn>[
+      CodexAppServerHistoryTurn(
+        id: 'turn_saved',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_user',
+            type: 'user_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+          ),
+          CodexAppServerHistoryItem(
+            id: 'item_assistant',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ),
         ],
-      },
-    ].cast<Map<String, dynamic>>(),
+        raw: <String, dynamic>{
+          'id': 'turn_saved',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+            <String, Object?>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ],
+        },
+      ),
+    ],
   );
 }
 

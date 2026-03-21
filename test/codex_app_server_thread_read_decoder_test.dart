@@ -8,7 +8,7 @@ void main() {
   const decoder = CodexAppServerThreadReadDecoder();
 
   test('decodes nested thread/read history fixture', () {
-    final thread = decoder.decodeResponse(
+    final thread = decoder.decodeHistoryResponse(
       _loadFixture(
         'test/fixtures/app_server/thread_read/reference_nested_history.json',
       ),
@@ -26,12 +26,12 @@ void main() {
     expect(thread.agentRole, 'worker');
     expect(thread.promptCount, 1);
     expect(thread.turns, hasLength(1));
-    expect(thread.turns.single['id'], 'turn_saved');
-    expect(thread.turns.single['items'], hasLength(2));
+    expect(thread.turns.single.id, 'turn_saved');
+    expect(thread.turns.single.items, hasLength(2));
   });
 
   test('decodes flat thread/read history fixture', () {
-    final thread = decoder.decodeResponse(
+    final thread = decoder.decodeHistoryResponse(
       _loadFixture(
         'test/fixtures/app_server/thread_read/reference_flat_history.json',
       ),
@@ -46,8 +46,8 @@ void main() {
     expect(thread.sourceKind, 'app-server');
     expect(thread.promptCount, 1);
     expect(thread.turns, hasLength(1));
-    expect(thread.turns.single['id'], 'turn_saved');
-    expect(thread.turns.single['items'], hasLength(2));
+    expect(thread.turns.single.id, 'turn_saved');
+    expect(thread.turns.single.items, hasLength(2));
   });
 }
 

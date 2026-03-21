@@ -1,6 +1,8 @@
 part of 'runtime_event_mapper.dart';
 
-List<CodexRuntimeEvent> _mapRuntimeThreadHistory(CodexAppServerThread thread) {
+List<CodexRuntimeEvent> _mapRuntimeThreadHistory(
+  CodexAppServerThreadHistory thread,
+) {
   final fallbackCreatedAt =
       thread.createdAt ?? thread.updatedAt ?? DateTime.now();
   final events = <CodexRuntimeEvent>[
@@ -17,35 +19,28 @@ List<CodexRuntimeEvent> _mapRuntimeThreadHistory(CodexAppServerThread thread) {
   ];
 
   for (final turn in thread.turns) {
-    final turnId = _asString(turn['id']);
-    if (turnId == null || turnId.isEmpty) {
-      continue;
-    }
-
-    final threadId = _asString(turn['threadId']) ?? thread.id;
-    final turnCreatedAt = _eventTimestamp(turn, fallback: fallbackCreatedAt);
+    final threadId = turn.threadId ?? thread.id;
+    final turnCreatedAt = _eventTimestamp(
+      turn.raw,
+      fallback: fallbackCreatedAt,
+    );
     events.add(
       CodexRuntimeTurnStartedEvent(
         createdAt: turnCreatedAt,
         threadId: threadId,
-        turnId: turnId,
+        turnId: turn.id,
         rawMethod: 'thread/read(turn)',
-        rawPayload: turn,
-        model: _asString(turn['model']),
-        effort:
-            _asString(turn['effort']) ??
-            _asString(turn['reasoningEffort']) ??
-            _asString(turn['reasoning_effort']),
+        rawPayload: turn.raw,
+        model: turn.model,
+        effort: turn.effort,
       ),
     );
 
-    final items =
-        _asObjectList(turn['items']) ?? const <Map<String, dynamic>>[];
-    for (final item in items) {
+    for (final item in turn.items) {
       final event = _mapHistoricalItemLifecycleEvent(
-        item,
+        item.raw,
         threadId: threadId,
-        turnId: turnId,
+        turnId: turn.id,
         fallbackCreatedAt: turnCreatedAt,
       );
       if (event != null) {
@@ -53,20 +48,19 @@ List<CodexRuntimeEvent> _mapRuntimeThreadHistory(CodexAppServerThread thread) {
       }
     }
 
-    final turnError = _asObject(turn['error']);
     events.add(
       CodexRuntimeTurnCompletedEvent(
-        createdAt: _eventTimestamp(turn, fallback: turnCreatedAt),
+        createdAt: _eventTimestamp(turn.raw, fallback: turnCreatedAt),
         threadId: threadId,
-        turnId: turnId,
+        turnId: turn.id,
         rawMethod: 'thread/read(turn)',
-        rawPayload: turn,
-        state: _turnState(_asString(turn['status'])),
-        stopReason: _asString(turn['stopReason']),
-        usage: _toTurnUsage(_asObject(turn['usage'])),
-        modelUsage: _asObject(turn['modelUsage']),
-        totalCostUsd: _asDouble(turn['totalCostUsd']),
-        errorMessage: _asString(turnError?['message']),
+        rawPayload: turn.raw,
+        state: _turnState(turn.status),
+        stopReason: turn.stopReason,
+        usage: _toTurnUsage(turn.usage),
+        modelUsage: turn.modelUsage,
+        totalCostUsd: turn.totalCostUsd,
+        errorMessage: _asString(turn.error?['message']),
       ),
     );
   }

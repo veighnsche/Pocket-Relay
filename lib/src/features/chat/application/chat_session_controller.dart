@@ -778,7 +778,7 @@ class ChatSessionController extends ChangeNotifier {
     );
   }
 
-  bool _hasThreadMetadata(CodexAppServerThread thread) {
+  bool _hasThreadMetadata(CodexAppServerThreadSummary thread) {
     return _hasThreadMetadataValues(
       threadName: thread.name,
       agentNickname: thread.agentNickname,

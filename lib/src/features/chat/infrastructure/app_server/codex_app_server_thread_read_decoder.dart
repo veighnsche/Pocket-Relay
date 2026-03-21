@@ -14,7 +14,7 @@ import 'codex_app_server_models.dart';
 class CodexAppServerThreadReadDecoder {
   const CodexAppServerThreadReadDecoder();
 
-  CodexAppServerThread decodeResponse(
+  CodexAppServerThreadSummary decodeSummaryResponse(
     Object? response, {
     required String fallbackThreadId,
   }) {
@@ -28,7 +28,24 @@ class CodexAppServerThreadReadDecoder {
         'thread/read response did not include a thread object.',
       );
     }
-    return _decodeThread(rawThread, fallbackThreadId: fallbackThreadId);
+    return _decodeSummary(rawThread, fallbackThreadId: fallbackThreadId);
+  }
+
+  CodexAppServerThreadHistory decodeHistoryResponse(
+    Object? response, {
+    required String fallbackThreadId,
+  }) {
+    final payload = _requireObject(response, 'thread/read response');
+    final rawThread = _extractThreadPayload(
+      payload,
+      fallbackThreadId: fallbackThreadId,
+    );
+    if (rawThread == null) {
+      throw const CodexAppServerException(
+        'thread/read response did not include a thread object.',
+      );
+    }
+    return _decodeHistory(rawThread, fallbackThreadId: fallbackThreadId);
   }
 
   Map<String, dynamic>? _extractThreadPayload(
@@ -71,7 +88,7 @@ class CodexAppServerThreadReadDecoder {
         payload.containsKey('name');
   }
 
-  CodexAppServerThread _decodeThread(
+  CodexAppServerThreadSummary _decodeSummary(
     Map<String, dynamic> thread, {
     required String fallbackThreadId,
   }) {
@@ -86,7 +103,7 @@ class CodexAppServerThreadReadDecoder {
       );
     }
 
-    return CodexAppServerThread(
+    return CodexAppServerThreadSummary(
       id: threadId,
       preview: _asString(thread['preview']) ?? '',
       ephemeral: thread['ephemeral'] as bool? ?? false,
@@ -102,7 +119,81 @@ class CodexAppServerThreadReadDecoder {
       sourceKind: _sourceKind(thread['source']),
       agentNickname: _asString(thread['agentNickname']),
       agentRole: _asString(thread['agentRole']),
-      turns: _asObjectList(thread['turns']) ?? const <Map<String, dynamic>>[],
+    );
+  }
+
+  CodexAppServerThreadHistory _decodeHistory(
+    Map<String, dynamic> thread, {
+    required String fallbackThreadId,
+  }) {
+    final summary = _decodeSummary(thread, fallbackThreadId: fallbackThreadId);
+    final turns =
+        _asObjectList(thread['turns'])
+            ?.map(_decodeHistoryTurn)
+            .whereType<CodexAppServerHistoryTurn>()
+            .toList(growable: false) ??
+        const <CodexAppServerHistoryTurn>[];
+    return CodexAppServerThreadHistory(
+      id: summary.id,
+      preview: summary.preview,
+      ephemeral: summary.ephemeral,
+      modelProvider: summary.modelProvider,
+      createdAt: summary.createdAt,
+      updatedAt: summary.updatedAt,
+      path: summary.path,
+      cwd: summary.cwd,
+      promptCount: summary.promptCount,
+      name: summary.name,
+      sourceKind: summary.sourceKind,
+      agentNickname: summary.agentNickname,
+      agentRole: summary.agentRole,
+      turns: turns,
+    );
+  }
+
+  CodexAppServerHistoryTurn? _decodeHistoryTurn(Map<String, dynamic> turn) {
+    final turnId = _asString(turn['id']);
+    if (turnId == null || turnId.isEmpty) {
+      return null;
+    }
+
+    final items =
+        _asObjectList(turn['items'])
+            ?.map(_decodeHistoryItem)
+            .whereType<CodexAppServerHistoryItem>()
+            .toList(growable: false) ??
+        const <CodexAppServerHistoryItem>[];
+
+    return CodexAppServerHistoryTurn(
+      id: turnId,
+      threadId: _asString(turn['threadId']),
+      status: _asString(turn['status']),
+      model: _asString(turn['model']),
+      effort:
+          _asString(turn['effort']) ??
+          _asString(turn['reasoningEffort']) ??
+          _asString(turn['reasoning_effort']),
+      stopReason: _asString(turn['stopReason']),
+      usage: _asObject(turn['usage']),
+      modelUsage: _asObject(turn['modelUsage']),
+      totalCostUsd: _asDouble(turn['totalCostUsd']),
+      error: _asObject(turn['error']),
+      items: items,
+      raw: Map<String, dynamic>.from(turn),
+    );
+  }
+
+  CodexAppServerHistoryItem? _decodeHistoryItem(Map<String, dynamic> item) {
+    final itemId = _asString(item['id']);
+    if (itemId == null || itemId.isEmpty) {
+      return null;
+    }
+
+    return CodexAppServerHistoryItem(
+      id: itemId,
+      type: _asString(item['type']),
+      status: _asString(item['status']),
+      raw: Map<String, dynamic>.from(item),
     );
   }
 
@@ -139,6 +230,10 @@ class CodexAppServerThreadReadDecoder {
 
   int? _asInt(Object? value) {
     return value is num ? value.toInt() : null;
+  }
+
+  double? _asDouble(Object? value) {
+    return value is num ? value.toDouble() : null;
   }
 
   String? _sourceKind(Object? raw) {

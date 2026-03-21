@@ -285,7 +285,7 @@ void main() {
 
       expect(thread.id, 'thread_saved');
       expect(thread.turns, hasLength(1));
-      expect(thread.turns.single['id'], 'turn_saved');
+      expect(thread.turns.single.id, 'turn_saved');
       expect(thread.promptCount, 1);
 
       await client.disconnect();
@@ -351,7 +351,7 @@ void main() {
 
       expect(thread.id, 'thread_saved');
       expect(thread.turns, hasLength(1));
-      expect(thread.turns.single['id'], 'turn_saved');
+      expect(thread.turns.single.id, 'turn_saved');
       expect(thread.promptCount, 1);
 
       await client.disconnect();

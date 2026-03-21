@@ -159,8 +159,8 @@ class CodexAppServerSshRemoteProcessStartedEvent extends CodexAppServerEvent {
   final String command;
 }
 
-class CodexAppServerThread {
-  const CodexAppServerThread({
+class CodexAppServerThreadSummary {
+  const CodexAppServerThreadSummary({
     required this.id,
     this.preview = '',
     this.ephemeral = false,
@@ -174,7 +174,6 @@ class CodexAppServerThread {
     this.sourceKind,
     this.agentNickname,
     this.agentRole,
-    this.turns = const <Map<String, dynamic>>[],
   });
 
   final String id;
@@ -190,7 +189,71 @@ class CodexAppServerThread {
   final String? sourceKind;
   final String? agentNickname;
   final String? agentRole;
-  final List<Map<String, dynamic>> turns;
+}
+
+class CodexAppServerHistoryItem {
+  const CodexAppServerHistoryItem({
+    required this.id,
+    this.type,
+    this.status,
+    required this.raw,
+  });
+
+  final String id;
+  final String? type;
+  final String? status;
+  final Map<String, dynamic> raw;
+}
+
+class CodexAppServerHistoryTurn {
+  const CodexAppServerHistoryTurn({
+    required this.id,
+    this.threadId,
+    this.status,
+    this.model,
+    this.effort,
+    this.stopReason,
+    this.usage,
+    this.modelUsage,
+    this.totalCostUsd,
+    this.error,
+    this.items = const <CodexAppServerHistoryItem>[],
+    required this.raw,
+  });
+
+  final String id;
+  final String? threadId;
+  final String? status;
+  final String? model;
+  final String? effort;
+  final String? stopReason;
+  final Map<String, dynamic>? usage;
+  final Map<String, dynamic>? modelUsage;
+  final double? totalCostUsd;
+  final Map<String, dynamic>? error;
+  final List<CodexAppServerHistoryItem> items;
+  final Map<String, dynamic> raw;
+}
+
+class CodexAppServerThreadHistory extends CodexAppServerThreadSummary {
+  const CodexAppServerThreadHistory({
+    required super.id,
+    super.preview = '',
+    super.ephemeral = false,
+    super.modelProvider = '',
+    super.createdAt,
+    super.updatedAt,
+    super.path,
+    super.cwd,
+    super.promptCount,
+    super.name,
+    super.sourceKind,
+    super.agentNickname,
+    super.agentRole,
+    this.turns = const <CodexAppServerHistoryTurn>[],
+  });
+
+  final List<CodexAppServerHistoryTurn> turns;
 }
 
 class CodexAppServerThreadListPage {
@@ -199,7 +262,7 @@ class CodexAppServerThreadListPage {
     required this.nextCursor,
   });
 
-  final List<CodexAppServerThread> threads;
+  final List<CodexAppServerThreadSummary> threads;
   final String? nextCursor;
 }
 
@@ -220,7 +283,7 @@ class CodexAppServerSession {
   final String model;
   final String modelProvider;
   final String? reasoningEffort;
-  final CodexAppServerThread? thread;
+  final CodexAppServerThreadSummary? thread;
   final Object? approvalPolicy;
   final Object? sandbox;
 }

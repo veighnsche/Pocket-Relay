@@ -10,22 +10,22 @@ void main() {
     'loads Codex threads for the workspace, filters descendants, and excludes zero-prompt threads',
     () async {
       final client = FakeCodexAppServerClient()
-        ..listedThreads.addAll(<CodexAppServerThread>[
-          CodexAppServerThread(
+        ..listedThreads.addAll(<CodexAppServerThreadSummary>[
+          CodexAppServerThreadSummary(
             id: 'thread_root',
             preview: 'Root prompt',
             cwd: '/workspace',
             createdAt: DateTime(2026, 3, 20, 10),
             updatedAt: DateTime(2026, 3, 20, 12),
           ),
-          CodexAppServerThread(
+          CodexAppServerThreadSummary(
             id: 'thread_child',
             preview: 'Child prompt',
             cwd: '/workspace/subdir',
             createdAt: DateTime(2026, 3, 20, 9),
             updatedAt: DateTime(2026, 3, 20, 13),
           ),
-          CodexAppServerThread(
+          CodexAppServerThreadSummary(
             id: 'thread_other',
             preview: 'Other prompt',
             cwd: '/elsewhere',
@@ -33,8 +33,8 @@ void main() {
             updatedAt: DateTime(2026, 3, 20, 14),
           ),
         ])
-        ..threadsById.addAll(<String, CodexAppServerThread>{
-          'thread_root': CodexAppServerThread(
+        ..threadHistoriesById.addAll(<String, CodexAppServerThreadHistory>{
+          'thread_root': CodexAppServerThreadHistory(
             id: 'thread_root',
             preview: 'Root prompt',
             cwd: '/workspace',
@@ -42,7 +42,7 @@ void main() {
             updatedAt: DateTime(2026, 3, 20, 12),
             promptCount: 2,
           ),
-          'thread_child': CodexAppServerThread(
+          'thread_child': CodexAppServerThreadHistory(
             id: 'thread_child',
             preview: 'Child prompt',
             cwd: '/workspace/subdir',
@@ -50,7 +50,7 @@ void main() {
             updatedAt: DateTime(2026, 3, 20, 13),
             promptCount: 0,
           ),
-          'thread_other': CodexAppServerThread(
+          'thread_other': CodexAppServerThreadHistory(
             id: 'thread_other',
             preview: 'Other prompt',
             cwd: '/elsewhere',
@@ -86,15 +86,15 @@ void main() {
 
   test('sorts workspace conversations by last activity descending', () async {
     final client = FakeCodexAppServerClient()
-      ..listedThreads.addAll(<CodexAppServerThread>[
-        CodexAppServerThread(
+      ..listedThreads.addAll(<CodexAppServerThreadSummary>[
+        CodexAppServerThreadSummary(
           id: 'thread_old',
           preview: 'Older prompt',
           cwd: '/workspace',
           createdAt: DateTime(2026, 3, 20, 9),
           updatedAt: DateTime(2026, 3, 20, 10),
         ),
-        CodexAppServerThread(
+        CodexAppServerThreadSummary(
           id: 'thread_new',
           preview: 'Newer prompt',
           cwd: '/workspace',
@@ -102,8 +102,8 @@ void main() {
           updatedAt: DateTime(2026, 3, 20, 15),
         ),
       ])
-      ..threadsById.addAll(<String, CodexAppServerThread>{
-        'thread_old': CodexAppServerThread(
+      ..threadHistoriesById.addAll(<String, CodexAppServerThreadHistory>{
+        'thread_old': CodexAppServerThreadHistory(
           id: 'thread_old',
           preview: 'Older prompt',
           cwd: '/workspace',
@@ -111,7 +111,7 @@ void main() {
           updatedAt: DateTime(2026, 3, 20, 10),
           promptCount: 1,
         ),
-        'thread_new': CodexAppServerThread(
+        'thread_new': CodexAppServerThreadHistory(
           id: 'thread_new',
           preview: 'Newer prompt',
           cwd: '/workspace',

@@ -41,7 +41,7 @@ class CodexRuntimeEventMapper {
     }
   }
 
-  List<CodexRuntimeEvent> mapThreadHistory(CodexAppServerThread thread) {
+  List<CodexRuntimeEvent> mapThreadHistory(CodexAppServerThreadHistory thread) {
     return _mapRuntimeThreadHistory(thread);
   }
 }
