@@ -6,6 +6,8 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 
 import '../domain/connection_workspace_state.dart';
 
+part 'connection_workspace_controller_lifecycle.dart';
+
 typedef ConnectionLaneBindingFactory =
     ConnectionLaneBinding Function({
       required String connectionId,
@@ -184,35 +186,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       return;
     }
 
-    final previousBinding = _liveBindingsByConnectionId[normalizedConnectionId];
-    if (previousBinding == null) {
-      return;
-    }
-
-    final nextBinding = await _loadLaneBinding(normalizedConnectionId);
-    if (_isDisposed) {
-      nextBinding.dispose();
-      return;
-    }
-
-    _liveBindingsByConnectionId[normalizedConnectionId] = nextBinding;
-    previousBinding.dispose();
-    _applyState(
-      _state.copyWith(
-        reconnectRequiredConnectionIds: _sanitizeReconnectRequiredConnectionIds(
-          catalog: _state.catalog,
-          liveConnectionIds: _state.liveConnectionIds,
-          reconnectRequiredConnectionIds: <String>{
-            for (final connectionId in _state.reconnectRequiredConnectionIds)
-              if (connectionId != normalizedConnectionId) connectionId,
-          },
-        ),
-      ),
-    );
-    await nextBinding.initializeSession();
-    if (_isDisposed) {
-      return;
-    }
+    await _reconnectWorkspaceConnection(this, normalizedConnectionId);
   }
 
   Future<void> resumeConversation({
@@ -240,44 +214,8 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       nextConversationState,
     );
 
-    if (_state.isConnectionLive(normalizedConnectionId)) {
-      final previousBinding =
-          _liveBindingsByConnectionId[normalizedConnectionId];
-      if (previousBinding == null) {
-        return;
-      }
-
-      final nextBinding = await _loadLaneBinding(normalizedConnectionId);
-      if (_isDisposed) {
-        nextBinding.dispose();
-        return;
-      }
-      _liveBindingsByConnectionId[normalizedConnectionId] = nextBinding;
-      _applyState(
-        _state.copyWith(
-          selectedConnectionId: normalizedConnectionId,
-          viewport: ConnectionWorkspaceViewport.liveLane,
-          reconnectRequiredConnectionIds:
-              _sanitizeReconnectRequiredConnectionIds(
-                catalog: _state.catalog,
-                liveConnectionIds: _state.liveConnectionIds,
-                reconnectRequiredConnectionIds: <String>{
-                  for (final connectionId
-                      in _state.reconnectRequiredConnectionIds)
-                    if (connectionId != normalizedConnectionId) connectionId,
-                },
-              ),
-        ),
-      );
-      previousBinding.dispose();
-      await nextBinding.activatePersistedConversation();
-      if (_isDisposed) {
-        return;
-      }
-      return;
-    }
-
-    await _instantiateConnection(
+    await _resumeWorkspaceConversation(
+      this,
       normalizedConnectionId,
       activatePersistedConversation: true,
     );
@@ -294,24 +232,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       );
     }
 
-    await _connectionConversationStateStore.deleteState(normalizedConnectionId);
-    await _connectionRepository.deleteConnection(normalizedConnectionId);
-    final nextCatalog = await _connectionRepository.loadCatalog();
-    if (_isDisposed) {
-      return;
-    }
-
-    _applyState(
-      _state.copyWith(
-        isLoading: false,
-        catalog: nextCatalog,
-        reconnectRequiredConnectionIds: _sanitizeReconnectRequiredConnectionIds(
-          catalog: nextCatalog,
-          liveConnectionIds: _state.liveConnectionIds,
-          reconnectRequiredConnectionIds: _state.reconnectRequiredConnectionIds,
-        ),
-      ),
-    );
+    await _deleteDormantWorkspaceConnection(this, normalizedConnectionId);
   }
 
   Future<void> instantiateConnection(String connectionId) async {
@@ -331,34 +252,11 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     String connectionId, {
     bool activatePersistedConversation = false,
   }) async {
-    final binding = await _loadLaneBinding(connectionId);
-    if (_isDisposed) {
-      binding.dispose();
-      return;
-    }
-    _liveBindingsByConnectionId[connectionId] = binding;
-    final nextLiveConnectionIds = _orderLiveConnectionIds(
-      _liveBindingsByConnectionId.keys,
+    await _instantiateWorkspaceConnection(
+      this,
+      connectionId,
+      activatePersistedConversation: activatePersistedConversation,
     );
-    _applyState(
-      _state.copyWith(
-        isLoading: false,
-        liveConnectionIds: nextLiveConnectionIds,
-        selectedConnectionId: connectionId,
-        viewport: ConnectionWorkspaceViewport.liveLane,
-        reconnectRequiredConnectionIds: _sanitizeReconnectRequiredConnectionIds(
-          catalog: _state.catalog,
-          liveConnectionIds: nextLiveConnectionIds,
-          reconnectRequiredConnectionIds: _state.reconnectRequiredConnectionIds,
-        ),
-      ),
-    );
-    if (activatePersistedConversation) {
-      await binding.activatePersistedConversation();
-      if (_isDisposed) {
-        return;
-      }
-    }
   }
 
   void selectConnection(String connectionId) {
@@ -447,46 +345,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   }
 
   Future<void> _initializeOnce() async {
-    final catalog = await _connectionRepository.loadCatalog();
-    if (catalog.isEmpty) {
-      _applyState(
-        const ConnectionWorkspaceState(
-          isLoading: false,
-          catalog: ConnectionCatalogState.empty(),
-          liveConnectionIds: <String>[],
-          selectedConnectionId: null,
-          viewport: ConnectionWorkspaceViewport.dormantRoster,
-          reconnectRequiredConnectionIds: <String>{},
-        ),
-      );
-      return;
-    }
-
-    final firstConnectionId = catalog.orderedConnectionIds.first;
-    final firstBinding = await _loadLaneBinding(firstConnectionId);
-    if (_isDisposed) {
-      firstBinding.dispose();
-      return;
-    }
-
-    _liveBindingsByConnectionId[firstConnectionId] = firstBinding;
-    _applyState(
-      ConnectionWorkspaceState(
-        isLoading: false,
-        catalog: catalog,
-        liveConnectionIds: <String>[firstConnectionId],
-        selectedConnectionId: firstConnectionId,
-        viewport: ConnectionWorkspaceViewport.liveLane,
-        reconnectRequiredConnectionIds: const <String>{},
-      ),
-    );
-  }
-
-  Future<ConnectionLaneBinding> _loadLaneBinding(String connectionId) async {
-    return _laneBindingFactory(
-      connectionId: connectionId,
-      connection: await _connectionRepository.loadConnection(connectionId),
-    );
+    await _initializeWorkspaceController(this);
   }
 
   List<String> _orderLiveConnectionIds(Iterable<String> connectionIds) {
