@@ -36,6 +36,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
         })
       >[];
   final List<String> readThreadCalls = <String>[];
+  final List<({String threadId, int numTurns})> rollbackThreadCalls =
+      <({String threadId, int numTurns})>[];
   final List<({String? cursor, int? limit})> listThreadCalls =
       <({String? cursor, int? limit})>[];
   final List<String> sentMessages = <String>[];
@@ -99,6 +101,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Object? startSessionError;
   Object? sendUserMessageError;
   Object? readThreadWithTurnsError;
+  Object? rollbackThreadError;
   String? startSessionModel;
   String? startSessionReasoningEffort;
   String? startSessionCwd;
@@ -106,6 +109,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   String? connectedThreadId;
   Completer<void>? sendUserMessageGate;
   Completer<void>? readThreadWithTurnsGate;
+  Completer<void>? rollbackThreadGate;
   final Map<String, CodexAppServerThreadSummary> threadsById =
       <String, CodexAppServerThreadSummary>{};
   final Map<String, CodexAppServerThreadHistory> threadHistoriesById =
@@ -243,6 +247,27 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       agentNickname: summary.agentNickname,
       agentRole: summary.agentRole,
     );
+  }
+
+  @override
+  Future<CodexAppServerThreadHistory> rollbackThread({
+    required String threadId,
+    required int numTurns,
+  }) async {
+    rollbackThreadCalls.add((threadId: threadId, numTurns: numTurns));
+    if (rollbackThreadGate case final gate?) {
+      await gate.future;
+    }
+    if (rollbackThreadError != null) {
+      throw rollbackThreadError!;
+    }
+
+    final configuredHistory = threadHistoriesById[threadId];
+    if (configuredHistory != null) {
+      return configuredHistory;
+    }
+
+    return CodexAppServerThreadHistory(id: threadId, sourceKind: 'app-server');
   }
 
   @override

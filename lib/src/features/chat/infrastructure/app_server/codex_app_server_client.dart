@@ -75,6 +75,18 @@ class CodexAppServerClient {
     return _requestApi.readThreadWithTurns(_connection, threadId: threadId);
   }
 
+  Future<CodexAppServerThreadHistory> rollbackThread({
+    required String threadId,
+    required int numTurns,
+  }) async {
+    _ensureNotDisposed();
+    return _requestApi.rollbackThread(
+      _connection,
+      threadId: threadId,
+      numTurns: numTurns,
+    );
+  }
+
   Future<CodexAppServerThreadListPage> listThreads({
     String? cursor,
     int? limit,

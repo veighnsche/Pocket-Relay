@@ -123,6 +123,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       onOpenChangedFileDiff: _requestChangedFileDiff,
       onSubmitUserInput: sessionController.submitUserInput,
       onSaveHostFingerprint: sessionController.saveObservedHostFingerprint,
+      onContinueFromUserMessage: _continueFromUserMessage,
     );
   }
 
@@ -218,6 +219,50 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
 
   Future<void> _stopActiveTurn() async {
     await widget.laneBinding.sessionController.stopActiveTurn();
+  }
+
+  Future<void> _continueFromUserMessage(String blockId) async {
+    if (!mounted) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Continue From Here'),
+          content: const Text(
+            'This will discard newer conversation turns in this thread. '
+            'Local file changes are not reverted automatically.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final laneBinding = widget.laneBinding;
+    final draftText = await laneBinding.sessionController
+        .continueFromUserMessage(blockId);
+    if (!mounted || laneBinding != widget.laneBinding || draftText == null) {
+      return;
+    }
+
+    laneBinding.composerDraftHost.updateText(draftText);
+    laneBinding.transcriptFollowHost.requestFollow(
+      source: ChatTranscriptFollowRequestSource.clearTranscript,
+    );
   }
 
   void _startFreshConversation() {

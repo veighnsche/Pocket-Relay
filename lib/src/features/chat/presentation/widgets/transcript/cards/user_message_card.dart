@@ -3,9 +3,16 @@ import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 
 class UserMessageCard extends StatelessWidget {
-  const UserMessageCard({super.key, required this.block});
+  const UserMessageCard({
+    super.key,
+    required this.block,
+    this.canContinueFromHere = false,
+    this.onContinueFromHere,
+  });
 
   final CodexUserMessageBlock block;
+  final bool canContinueFromHere;
+  final Future<void> Function(String blockId)? onContinueFromHere;
 
   @override
   Widget build(BuildContext context) {
@@ -33,20 +40,32 @@ class UserMessageCard extends StatelessWidget {
       alignment: Alignment.centerRight,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540),
-        child: Container(
-          margin: const EdgeInsets.only(left: 48),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
-          decoration: BoxDecoration(
-            color: background,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: ValueKey<String>('user_message_card_${block.id}'),
             borderRadius: BorderRadius.circular(20),
-            border: border,
-          ),
-          child: SelectableText(
-            block.text,
-            style: TextStyle(
-              color: cards.textPrimary,
-              fontSize: 15,
-              height: 1.35,
+            onLongPress: canContinueFromHere && onContinueFromHere != null
+                ? () => onContinueFromHere!(block.id)
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 48),
+              child: Ink(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(20),
+                  border: border,
+                ),
+                child: Text(
+                  block.text,
+                  style: TextStyle(
+                    color: cards.textPrimary,
+                    fontSize: 15,
+                    height: 1.35,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

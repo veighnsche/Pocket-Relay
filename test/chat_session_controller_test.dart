@@ -172,15 +172,16 @@ void main() {
       expect(appServerClient.connectCalls, 1);
       expect(appServerClient.readThreadCalls, <String>['thread_saved']);
       expect(
-        controller.transcriptBlocks
-            .whereType<CodexUserMessageBlock>()
-            .single
-            .text,
-        'Restore this',
+        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+          (block) => block.text,
+        ),
+        contains('Restore this'),
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().single.body,
-        'Restored answer',
+        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+          (block) => block.body,
+        ),
+        contains('Restored answer'),
       );
       expect(controller.sessionState.rootThreadId, 'thread_saved');
       expect(controller.historicalConversationRestoreState, isNull);
@@ -231,6 +232,117 @@ void main() {
         model: null,
         effort: null,
       ));
+    },
+  );
+
+  test(
+    'continueFromUserMessage rolls back the active conversation and returns the selected prompt text',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      expect(
+        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+          (b) => b.text,
+        ),
+        <String>['Restore this', 'Second prompt'],
+      );
+
+      appServerClient.threadHistoriesById['thread_saved'] =
+          _rewoundConversationThread(threadId: 'thread_saved');
+
+      final selectedBlock = controller.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .firstWhere((block) => block.text == 'Restore this');
+
+      final draftText = await controller.continueFromUserMessage(
+        selectedBlock.id,
+      );
+
+      expect(draftText, 'Restore this');
+      expect(
+        appServerClient.rollbackThreadCalls,
+        <({String threadId, int numTurns})>[
+          (threadId: 'thread_saved', numTurns: 2),
+        ],
+      );
+      expect(
+        controller.transcriptBlocks.whereType<CodexUserMessageBlock>(),
+        isEmpty,
+      );
+      expect(
+        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+          (b) => b.body,
+        ),
+        <String>['Earlier answer only'],
+      );
+      expect(controller.sessionState.rootThreadId, 'thread_saved');
+      expect(controller.historicalConversationRestoreState, isNull);
+    },
+  );
+
+  test(
+    'continueFromUserMessage refuses to rewind while a turn is active',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      expect(await controller.sendPrompt('Keep running'), isTrue);
+
+      final selectedBlock = controller.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .firstWhere((block) => block.text == 'Restore this');
+
+      final draftText = await controller.continueFromUserMessage(
+        selectedBlock.id,
+      );
+
+      expect(draftText, isNull);
+      expect(appServerClient.rollbackThreadCalls, isEmpty);
     },
   );
 
@@ -370,15 +482,16 @@ void main() {
       expect(appServerClient.connectCalls, 1);
       expect(appServerClient.readThreadCalls, <String>['thread_saved']);
       expect(
-        controller.transcriptBlocks
-            .whereType<CodexUserMessageBlock>()
-            .single
-            .text,
-        'Restore this',
+        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+          (block) => block.text,
+        ),
+        contains('Restore this'),
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().single.body,
-        'Restored answer',
+        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+          (block) => block.body,
+        ),
+        contains('Restored answer'),
       );
       expect(controller.sessionState.rootThreadId, 'thread_saved');
     },
@@ -1553,6 +1666,105 @@ CodexAppServerThreadHistory _savedConversationThread({
               'status': 'completed',
               'content': <Object>[
                 <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ],
+        },
+      ),
+      CodexAppServerHistoryTurn(
+        id: 'turn_second',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_user_second',
+            type: 'user_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_user_second',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second prompt'},
+              ],
+            },
+          ),
+          CodexAppServerHistoryItem(
+            id: 'item_assistant_second',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant_second',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second answer'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_second',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_user_second',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second prompt'},
+              ],
+            },
+            <String, Object?>{
+              'id': 'item_assistant_second',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second answer'},
+              ],
+            },
+          ],
+        },
+      ),
+    ],
+  );
+}
+
+CodexAppServerThreadHistory _rewoundConversationThread({
+  required String threadId,
+}) {
+  return CodexAppServerThreadHistory(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <CodexAppServerHistoryTurn>[
+      CodexAppServerHistoryTurn(
+        id: 'turn_before_restore_this',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_assistant_earlier',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant_earlier',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Earlier answer only'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_before_restore_this',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_assistant_earlier',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Earlier answer only'},
               ],
             },
           ],

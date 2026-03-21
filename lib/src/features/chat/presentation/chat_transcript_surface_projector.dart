@@ -23,8 +23,17 @@ class ChatTranscriptSurfaceProjector {
     required CodexSessionState sessionState,
     ConnectionMode? emptyStateConnectionMode,
   }) {
+    final canContinueFromHere =
+        sessionState.rootThreadId != null &&
+        sessionState.currentThreadId == sessionState.rootThreadId &&
+        !sessionState.isBusy;
     final mainItems = sessionState.transcriptBlocks
-        .map(_itemProjector.project)
+        .map(
+          (block) => _itemProjector.project(
+            block,
+            canContinueFromHere: canContinueFromHere,
+          ),
+        )
         .toList(growable: false);
     final pendingRequestPlacement = _pendingRequestPlacementProjector.project(
       pendingApprovalRequests: sessionState.pendingApprovalRequests,

@@ -322,6 +322,66 @@ void main() {
   );
 
   testWidgets(
+    'long-pressing a saved user message can continue from that prompt after rollback',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final laneBinding = ConnectionLaneBinding(
+        connectionId: 'conn_primary',
+        profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        conversationStateStore: const DiscardingCodexConversationStateStore(),
+        appServerClient: appServerClient,
+        initialSavedProfile: _savedProfile(),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(appServerClient.close);
+      addTearDown(laneBinding.dispose);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restore this'), findsOneWidget);
+
+      appServerClient.threadHistoriesById['thread_saved'] =
+          _rewoundConversationThread(threadId: 'thread_saved');
+
+      await tester.longPress(find.text('Restore this'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Continue From Here'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      expect(
+        appServerClient.rollbackThreadCalls,
+        <({String threadId, int numTurns})>[
+          (threadId: 'thread_saved', numTurns: 2),
+        ],
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('composer_input')))
+            .controller
+            ?.text,
+        'Restore this',
+      );
+      expect(find.text('Restore this'), findsOneWidget);
+      expect(find.text('Earlier answer only'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'menu actions start a fresh thread and clear the transcript through the bound lane',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
@@ -602,6 +662,171 @@ SavedProfile _savedProfile({
   return SavedProfile(
     profile: profile ?? _configuredProfile(),
     secrets: secrets,
+  );
+}
+
+CodexAppServerThreadHistory _savedConversationThread({
+  required String threadId,
+}) {
+  return CodexAppServerThreadHistory(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <CodexAppServerHistoryTurn>[
+      CodexAppServerHistoryTurn(
+        id: 'turn_saved',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_user',
+            type: 'user_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+          ),
+          CodexAppServerHistoryItem(
+            id: 'item_assistant',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_saved',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+            <String, Object?>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ],
+        },
+      ),
+      CodexAppServerHistoryTurn(
+        id: 'turn_second',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_user_second',
+            type: 'user_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_user_second',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second prompt'},
+              ],
+            },
+          ),
+          CodexAppServerHistoryItem(
+            id: 'item_assistant_second',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant_second',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second answer'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_second',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_user_second',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second prompt'},
+              ],
+            },
+            <String, Object?>{
+              'id': 'item_assistant_second',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Second answer'},
+              ],
+            },
+          ],
+        },
+      ),
+    ],
+  );
+}
+
+CodexAppServerThreadHistory _rewoundConversationThread({
+  required String threadId,
+}) {
+  return CodexAppServerThreadHistory(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <CodexAppServerHistoryTurn>[
+      CodexAppServerHistoryTurn(
+        id: 'turn_before_restore_this',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_assistant_earlier',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant_earlier',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Earlier answer only'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_before_restore_this',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_assistant_earlier',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Earlier answer only'},
+              ],
+            },
+          ],
+        },
+      ),
+    ],
   );
 }
 

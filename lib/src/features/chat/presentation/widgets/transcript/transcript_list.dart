@@ -23,6 +23,7 @@ class TranscriptList extends StatefulWidget {
     this.onDenyRequest,
     this.onSubmitUserInput,
     this.onSaveHostFingerprint,
+    this.onContinueFromUserMessage,
   });
 
   final ChatTranscriptSurfaceContract surface;
@@ -41,6 +42,7 @@ class TranscriptList extends StatefulWidget {
   )?
   onSubmitUserInput;
   final Future<void> Function(String blockId)? onSaveHostFingerprint;
+  final Future<void> Function(String blockId)? onContinueFromUserMessage;
 
   @override
   State<TranscriptList> createState() => _TranscriptListState();
@@ -118,6 +120,7 @@ class _TranscriptListState extends State<TranscriptList> {
                   onOpenChangedFileDiff: widget.onOpenChangedFileDiff,
                   onSubmitUserInput: widget.onSubmitUserInput,
                   onSaveHostFingerprint: widget.onSaveHostFingerprint,
+                  onContinueFromUserMessage: widget.onContinueFromUserMessage,
                 );
               },
               separatorBuilder: (context, index) => const SizedBox(height: 8),
@@ -154,6 +157,8 @@ class _TranscriptListState extends State<TranscriptList> {
                             onOpenChangedFileDiff: widget.onOpenChangedFileDiff,
                             onSubmitUserInput: widget.onSubmitUserInput,
                             onSaveHostFingerprint: widget.onSaveHostFingerprint,
+                            onContinueFromUserMessage:
+                                widget.onContinueFromUserMessage,
                           ),
                         );
                       })

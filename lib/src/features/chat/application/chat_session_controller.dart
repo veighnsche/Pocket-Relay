@@ -300,6 +300,72 @@ class ChatSessionController extends ChangeNotifier {
     await _restoreConversationTranscript(threadId);
   }
 
+  Future<String?> continueFromUserMessage(String blockId) async {
+    final normalizedBlockId = blockId.trim();
+    if (normalizedBlockId.isEmpty) {
+      return null;
+    }
+    if (_historicalConversationRestoreState != null) {
+      _emitSnackBar('Wait for transcript restore before continuing from here.');
+      return null;
+    }
+    if (_sessionState.activeTurn != null || _sessionState.isBusy) {
+      _emitSnackBar('Stop the active turn before continuing from here.');
+      return null;
+    }
+
+    final targetThreadId = _activeConversationThreadId();
+    if (targetThreadId == null) {
+      _emitSnackBar('This conversation cannot continue from that prompt yet.');
+      return null;
+    }
+
+    final timeline = _sessionState.timelineForThread(targetThreadId);
+    final transcriptBlocks =
+        timeline?.transcriptBlocks ?? _sessionState.transcriptBlocks;
+    final userMessages = transcriptBlocks
+        .whereType<CodexUserMessageBlock>()
+        .toList(growable: false);
+    final targetIndex = userMessages.indexWhere(
+      (block) => block.id == normalizedBlockId,
+    );
+    if (targetIndex < 0) {
+      _emitSnackBar('That prompt is no longer available for continuation.');
+      return null;
+    }
+
+    final targetBlock = userMessages[targetIndex];
+    final numTurns = userMessages.length - targetIndex;
+    if (numTurns < 1) {
+      return null;
+    }
+
+    try {
+      await _ensureAppServerConnected();
+      final thread = await appServerClient.rollbackThread(
+        threadId: targetThreadId,
+        numTurns: numTurns,
+      );
+      if (_isDisposed) {
+        return null;
+      }
+
+      final nextState = _restoredSessionStateFromHistory(thread);
+      _clearConversationRecovery();
+      _clearHistoricalConversationRestoreState();
+      _rememberContinuationThread(thread.id);
+      _applySessionState(nextState);
+      return targetBlock.text;
+    } catch (error) {
+      _reportAppServerFailure(
+        title: 'Continue from prompt failed',
+        message: 'Could not rewind this conversation to the selected prompt.',
+        error: error,
+      );
+      return null;
+    }
+  }
+
   Future<void> prepareSelectedConversationForContinuation() async {
     if (_historicalConversationRestoreState != null) {
       return;
@@ -602,11 +668,7 @@ class ChatSessionController extends ChangeNotifier {
         return;
       }
 
-      final historicalConversation = _historicalConversationNormalizer
-          .normalize(thread);
-      final nextState = _historicalConversationRestorer.restore(
-        historicalConversation,
-      );
+      final nextState = _restoredSessionStateFromHistory(thread);
 
       _clearConversationRecovery();
       _historicalConversationRestoreState = nextState.transcriptBlocks.isEmpty
@@ -629,6 +691,15 @@ class ChatSessionController extends ChangeNotifier {
         error: error,
       );
     }
+  }
+
+  CodexSessionState _restoredSessionStateFromHistory(
+    CodexAppServerThreadHistory thread,
+  ) {
+    final historicalConversation = _historicalConversationNormalizer.normalize(
+      thread,
+    );
+    return _historicalConversationRestorer.restore(historicalConversation);
   }
 
   Future<bool> _sendPromptWithAppServer(String prompt) async {

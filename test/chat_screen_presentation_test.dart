@@ -549,6 +549,97 @@ void main() {
         });
       },
     );
+
+    test(
+      'marks sent root-thread user messages as rewindable when the session is idle',
+      () {
+        final userBlock = CodexUserMessageBlock(
+          id: 'user_1',
+          createdAt: DateTime(2026, 3, 15, 12),
+          text: 'Restore this',
+          deliveryState: CodexUserMessageDeliveryState.sent,
+        );
+        final sessionState = CodexSessionState.initial().copyWith(
+          rootThreadId: 'thread_root',
+          sessionThreadId: 'thread_root',
+          sessionBlocks: <CodexUiBlock>[userBlock],
+        );
+
+        final surface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: sessionState,
+        );
+
+        final userItem =
+            surface.mainItems.single as ChatUserMessageItemContract;
+        expect(userItem.block, same(userBlock));
+        expect(userItem.canContinueFromHere, isTrue);
+      },
+    );
+
+    test(
+      'does not mark user messages as rewindable while the session is busy, on child timelines, or for local echo prompts',
+      () {
+        final userBlock = CodexUserMessageBlock(
+          id: 'user_1',
+          createdAt: DateTime(2026, 3, 15, 12),
+          text: 'Restore this',
+          deliveryState: CodexUserMessageDeliveryState.sent,
+        );
+        final childUserBlock = userBlock.copyWith();
+        final localEchoBlock = userBlock.copyWith(
+          deliveryState: CodexUserMessageDeliveryState.localEcho,
+        );
+
+        final busySurface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: CodexSessionState.initial().copyWith(
+            connectionStatus: CodexRuntimeSessionState.running,
+            rootThreadId: 'thread_root',
+            sessionThreadId: 'thread_root',
+            sessionBlocks: <CodexUiBlock>[userBlock],
+          ),
+        );
+        final childTimelineSurface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: CodexSessionState.initial().copyWith(
+            rootThreadId: 'thread_root',
+            selectedThreadId: 'thread_child',
+            timelinesByThreadId: <String, CodexTimelineState>{
+              'thread_root': const CodexTimelineState(threadId: 'thread_root'),
+              'thread_child': CodexTimelineState(
+                threadId: 'thread_child',
+                blocks: <CodexUiBlock>[childUserBlock],
+              ),
+            },
+          ),
+        );
+        final localEchoSurface = projector.project(
+          profile: _configuredProfile(),
+          sessionState: CodexSessionState.initial().copyWith(
+            rootThreadId: 'thread_root',
+            sessionThreadId: 'thread_root',
+            sessionBlocks: <CodexUiBlock>[localEchoBlock],
+          ),
+        );
+
+        expect(
+          (busySurface.mainItems.single as ChatUserMessageItemContract)
+              .canContinueFromHere,
+          isFalse,
+        );
+        expect(
+          (childTimelineSurface.mainItems.single as ChatUserMessageItemContract)
+              .canContinueFromHere,
+          isFalse,
+        );
+        expect(
+          (localEchoSurface.mainItems.single as ChatUserMessageItemContract)
+              .canContinueFromHere,
+          isFalse,
+        );
+      },
+    );
   });
 
   group('ChatRequestProjector', () {
@@ -839,7 +930,6 @@ void main() {
         expect(entry.activityLabel, 'Running command');
       },
     );
-
     test(
       'projects empty-stdin terminal interactions into command wait entries',
       () {
@@ -1012,7 +1102,7 @@ void main() {
       final entry = item.entries.single as ChatHeadReadWorkLogEntryContract;
 
       expect(entry.lineCount, 40);
-      expect(entry.fileName, '019_codebase-handoff.md');
+      expect(entry.fileName, '021_codebase-handoff.md');
       expect(entry.summaryLabel, 'Reading first 40 lines');
     });
 

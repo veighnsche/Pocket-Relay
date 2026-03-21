@@ -10,9 +10,13 @@ sealed class ChatTranscriptItemContract {
 }
 
 final class ChatUserMessageItemContract extends ChatTranscriptItemContract {
-  const ChatUserMessageItemContract({required this.block});
+  const ChatUserMessageItemContract({
+    required this.block,
+    this.canContinueFromHere = false,
+  });
 
   final CodexUserMessageBlock block;
+  final bool canContinueFromHere;
 
   @override
   String get id => block.id;

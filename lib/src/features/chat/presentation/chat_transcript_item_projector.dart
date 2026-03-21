@@ -20,10 +20,16 @@ class ChatTranscriptItemProjector {
   final ChatRequestProjector _requestProjector;
   final ChatWorkLogItemProjector _workLogItemProjector;
 
-  ChatTranscriptItemContract project(CodexUiBlock block) {
+  ChatTranscriptItemContract project(
+    CodexUiBlock block, {
+    bool canContinueFromHere = false,
+  }) {
     return switch (block) {
       final CodexUserMessageBlock userBlock => ChatUserMessageItemContract(
         block: userBlock,
+        canContinueFromHere:
+            canContinueFromHere &&
+            userBlock.deliveryState == CodexUserMessageDeliveryState.sent,
       ),
       final CodexTextBlock textBlock
           when textBlock.kind == CodexUiBlockKind.reasoning =>
