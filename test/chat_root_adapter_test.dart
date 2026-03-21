@@ -403,7 +403,7 @@ void main() {
   );
 
   testWidgets(
-    'eligible saved prompts show a visible continue from here action',
+    'eligible saved prompts expose continue from here through the touch action sheet',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
@@ -433,15 +433,37 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.longPress(find.text('Restore this'));
+      await tester.pumpAndSettle();
+
       expect(
-        find.widgetWithText(TextButton, 'Continue From Here'),
-        findsNWidgets(2),
+        tester
+            .widget<ListTile>(
+              find.widgetWithText(ListTile, 'Continue From Here'),
+            )
+            .enabled,
+        isTrue,
+      );
+
+      await tester.tap(find.text('Copy Prompt'));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.text('Second prompt'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<ListTile>(
+              find.widgetWithText(ListTile, 'Continue From Here'),
+            )
+            .enabled,
+        isTrue,
       );
     },
   );
 
   testWidgets(
-    'visible continue from here action rewinds from the selected prompt',
+    'continue from here can rewind from a later saved prompt',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
@@ -472,11 +494,11 @@ void main() {
       await tester.pumpAndSettle();
 
       appServerClient.threadHistoriesById['thread_saved'] =
-          _rewoundConversationThread(threadId: 'thread_saved');
+          _partiallyRewoundConversationThread(threadId: 'thread_saved');
 
-      await tester.tap(
-        find.widgetWithText(TextButton, 'Continue From Here').first,
-      );
+      await tester.longPress(find.text('Second prompt'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue From Here'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
@@ -486,7 +508,7 @@ void main() {
       expect(
         appServerClient.rollbackThreadCalls,
         <({String threadId, int numTurns})>[
-          (threadId: 'thread_saved', numTurns: 2),
+          (threadId: 'thread_saved', numTurns: 1),
         ],
       );
       expect(
@@ -494,9 +516,12 @@ void main() {
             .widget<TextField>(find.byKey(const ValueKey('composer_input')))
             .controller
             ?.text,
-        'Restore this',
+        'Second prompt',
       );
-      expect(find.text('Earlier answer only'), findsOneWidget);
+      expect(find.text('Restore this'), findsOneWidget);
+      expect(find.text('Restored answer'), findsOneWidget);
+      expect(find.text('Second prompt'), findsOneWidget);
+      expect(find.text('Second answer'), findsNothing);
     },
   );
 
@@ -776,12 +801,13 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: const DiscardingCodexConversationStateStore(),
+        conversationStateStore: _RecordingConversationStateStore(
+          initialState: const SavedConnectionConversationState(
+            selectedThreadId: 'thread_saved',
+          ),
+        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
-        initialConversationState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
@@ -1193,6 +1219,72 @@ CodexAppServerThreadHistory _rewoundConversationThread({
               'status': 'completed',
               'content': <Object>[
                 <String, Object?>{'text': 'Earlier answer only'},
+              ],
+            },
+          ],
+        },
+      ),
+    ],
+  );
+}
+
+CodexAppServerThreadHistory _partiallyRewoundConversationThread({
+  required String threadId,
+}) {
+  return CodexAppServerThreadHistory(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <CodexAppServerHistoryTurn>[
+      CodexAppServerHistoryTurn(
+        id: 'turn_saved',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_user',
+            type: 'user_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+          ),
+          CodexAppServerHistoryItem(
+            id: 'item_assistant',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_saved',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+            <String, Object?>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
               ],
             },
           ],
