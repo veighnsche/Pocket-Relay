@@ -659,6 +659,63 @@ void main() {
     },
   );
 
+  testWidgets(
+    'menu actions can branch the active conversation through the lane',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        )
+        ..forkThreadId = 'thread_forked'
+        ..threadHistoriesById['thread_forked'] = _savedConversationThread(
+          threadId: 'thread_forked',
+        );
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final laneBinding = ConnectionLaneBinding(
+        connectionId: 'conn_primary',
+        profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        conversationStateStore: const DiscardingCodexConversationStateStore(),
+        appServerClient: appServerClient,
+        initialSavedProfile: _savedProfile(),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(appServerClient.close);
+      addTearDown(laneBinding.dispose);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Branch conversation'));
+      await tester.pumpAndSettle();
+
+      expect(appServerClient.forkThreadRequests.single, (
+        threadId: 'thread_saved',
+        path: null,
+        cwd: null,
+        model: null,
+        modelProvider: null,
+        ephemeral: null,
+        persistExtendedHistory: true,
+      ));
+      expect(
+        laneBinding.sessionController.sessionState.rootThreadId,
+        'thread_forked',
+      );
+      expect(find.text('Restore this'), findsOneWidget);
+      expect(find.text('Second prompt'), findsOneWidget);
+    },
+  );
+
   testWidgets('clears adapter-owned draft state when dependencies rebind', (
     tester,
   ) async {

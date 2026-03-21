@@ -194,6 +194,8 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     switch (action) {
       case ChatScreenActionId.newThread:
         _startFreshConversation();
+      case ChatScreenActionId.branchConversation:
+        unawaited(_branchConversation());
       case ChatScreenActionId.clearTranscript:
         _clearTranscript();
       case ChatScreenActionId.openSettings:
@@ -272,6 +274,15 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       source: ChatTranscriptFollowRequestSource.newThread,
     );
     widget.laneBinding.sessionController.startFreshConversation();
+  }
+
+  Future<void> _branchConversation() async {
+    final branched = await widget.laneBinding.sessionController
+        .branchSelectedConversation();
+    if (!branched) {
+      return;
+    }
+    widget.laneBinding.transcriptFollowHost.reset();
   }
 
   void _clearTranscript() {

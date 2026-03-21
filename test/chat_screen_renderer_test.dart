@@ -55,10 +55,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('New thread'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byType(PopupMenuButton<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Branch conversation'));
+    await tester.pumpAndSettle();
 
     expect(actions, <ChatScreenActionId>[
       ChatScreenActionId.openSettings,
       ChatScreenActionId.newThread,
+      ChatScreenActionId.branchConversation,
     ]);
   });
 
@@ -92,6 +97,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('New thread'), findsOneWidget);
+    expect(find.text('Branch conversation'), findsOneWidget);
     expect(find.text('Saved connections'), findsOneWidget);
 
     await tester.tap(find.text('Saved connections'));
@@ -344,6 +350,11 @@ ChatScreenContract _screenContract({
       ChatScreenActionContract(
         id: ChatScreenActionId.newThread,
         label: 'New thread',
+        placement: ChatScreenActionPlacement.menu,
+      ),
+      ChatScreenActionContract(
+        id: ChatScreenActionId.branchConversation,
+        label: 'Branch conversation',
         placement: ChatScreenActionPlacement.menu,
       ),
     ],

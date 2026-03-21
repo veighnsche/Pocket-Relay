@@ -41,6 +41,13 @@ class ChatScreenPresenter {
         _historicalConversationRestoreNotice(
           historicalConversationRestoreState,
         );
+    final canBranchConversation =
+        hasWorkspaceScope &&
+        !isLoading &&
+        sessionState.currentThreadId?.trim().isNotEmpty == true &&
+        !sessionState.isBusy &&
+        conversationRecoveryNotice == null &&
+        historicalConversationRestoreNotice == null;
     final canSend =
         isConfigured &&
         !isLoading &&
@@ -74,6 +81,12 @@ class ChatScreenPresenter {
           label: 'New thread',
           placement: ChatScreenActionPlacement.menu,
           isEnabled: hasWorkspaceScope,
+        ),
+        ChatScreenActionContract(
+          id: ChatScreenActionId.branchConversation,
+          label: 'Branch conversation',
+          placement: ChatScreenActionPlacement.menu,
+          isEnabled: canBranchConversation,
         ),
         ChatScreenActionContract(
           id: ChatScreenActionId.clearTranscript,

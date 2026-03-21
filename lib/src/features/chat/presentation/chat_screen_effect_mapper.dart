@@ -16,7 +16,9 @@ class ChatScreenEffectMapper {
       ChatScreenActionId.openSettings => ChatOpenConnectionSettingsEffect(
         payload: screen.connectionSettings,
       ),
-      ChatScreenActionId.newThread || ChatScreenActionId.clearTranscript => null,
+      ChatScreenActionId.newThread ||
+      ChatScreenActionId.branchConversation ||
+      ChatScreenActionId.clearTranscript => null,
     };
   }
 }

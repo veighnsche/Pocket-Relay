@@ -57,6 +57,7 @@ void main() {
           contract.menuActions.map((action) => action.id),
           <ChatScreenActionId>[
             ChatScreenActionId.newThread,
+            ChatScreenActionId.branchConversation,
             ChatScreenActionId.clearTranscript,
           ],
         );
@@ -787,6 +788,27 @@ void main() {
         isA<ChatUserInputRequestContract>(),
       );
     });
+
+    test(
+      'disables branch conversation when no current thread is available',
+      () {
+        const presenter = ChatScreenPresenter();
+        final contract = presenter.present(
+          isLoading: false,
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          sessionState: CodexSessionState.initial(),
+          conversationRecoveryState: null,
+          composerDraft: const ChatComposerDraft(),
+          transcriptFollow: _defaultTranscriptFollowContract,
+        );
+
+        final branchAction = contract.menuActions.firstWhere(
+          (action) => action.id == ChatScreenActionId.branchConversation,
+        );
+        expect(branchAction.isEnabled, isFalse);
+      },
+    );
 
     test(
       'keeps insertion order when requests share the same createdAt timestamp',

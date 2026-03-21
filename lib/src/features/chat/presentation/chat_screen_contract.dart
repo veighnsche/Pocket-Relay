@@ -4,7 +4,12 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 
-enum ChatScreenActionId { openSettings, newThread, clearTranscript }
+enum ChatScreenActionId {
+  openSettings,
+  newThread,
+  branchConversation,
+  clearTranscript,
+}
 
 enum ChatScreenActionPlacement { toolbar, menu }
 

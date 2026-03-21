@@ -366,6 +366,51 @@ class ChatSessionController extends ChangeNotifier {
     }
   }
 
+  Future<bool> branchSelectedConversation() async {
+    if (_historicalConversationRestoreState != null) {
+      _emitSnackBar('Wait for transcript restore before branching.');
+      return false;
+    }
+    if (_sessionState.activeTurn != null || _sessionState.isBusy) {
+      _emitSnackBar('Stop the active turn before branching this conversation.');
+      return false;
+    }
+
+    final targetThreadId = _selectedConversationThreadId();
+    if (targetThreadId == null) {
+      _emitSnackBar('This conversation cannot be branched yet.');
+      return false;
+    }
+
+    try {
+      await _ensureAppServerConnected();
+      final forkedSession = await appServerClient.forkThread(
+        threadId: targetThreadId,
+        persistExtendedHistory: true,
+      );
+      final forkedThread = await appServerClient.readThreadWithTurns(
+        threadId: forkedSession.threadId,
+      );
+      if (_isDisposed) {
+        return false;
+      }
+
+      final nextState = _restoredSessionStateFromHistory(forkedThread);
+      _clearConversationRecovery();
+      _clearHistoricalConversationRestoreState();
+      _applySessionState(nextState);
+      _rememberContinuationThread(forkedThread.id);
+      return true;
+    } catch (error) {
+      _reportAppServerFailure(
+        title: 'Branch conversation failed',
+        message: 'Could not branch this conversation from Codex.',
+        error: error,
+      );
+      return false;
+    }
+  }
+
   Future<void> prepareSelectedConversationForContinuation() async {
     if (_historicalConversationRestoreState != null) {
       return;
@@ -1080,6 +1125,16 @@ class ChatSessionController extends ChangeNotifier {
     }
 
     return _normalizedThreadId(_sessionState.rootThreadId);
+  }
+
+  String? _selectedConversationThreadId() {
+    if (_profile.ephemeralSession) {
+      return null;
+    }
+
+    return _normalizedThreadId(
+      _sessionState.currentThreadId ?? _sessionState.rootThreadId,
+    );
   }
 
   String? _resumeConversationThreadId() {
