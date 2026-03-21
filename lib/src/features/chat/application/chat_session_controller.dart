@@ -8,6 +8,7 @@ import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_conversation_selection_coordinator.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_conversation_recovery_policy.dart';
+import 'package:pocket_relay/src/features/chat/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/application/codex_historical_conversation_normalizer.dart';
 import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
@@ -30,10 +31,14 @@ class ChatSessionController extends ChangeNotifier {
     CodexRuntimeEventMapper? runtimeEventMapper,
     CodexHistoricalConversationNormalizer historicalConversationNormalizer =
         const CodexHistoricalConversationNormalizer(),
+    ChatHistoricalConversationRestorer? historicalConversationRestorer,
     bool? supportsLocalConnectionMode,
   }) : _sessionReducer = reducer,
        _runtimeEventMapper = runtimeEventMapper ?? CodexRuntimeEventMapper(),
        _historicalConversationNormalizer = historicalConversationNormalizer,
+       _historicalConversationRestorer =
+           historicalConversationRestorer ??
+           ChatHistoricalConversationRestorer(reducer: reducer),
        _conversationSelection = ChatConversationSelectionCoordinator(
          conversationStateStore: conversationStateStore,
          initialConversationState: initialConversationState,
@@ -57,6 +62,7 @@ class ChatSessionController extends ChangeNotifier {
   final TranscriptReducer _sessionReducer;
   final CodexRuntimeEventMapper _runtimeEventMapper;
   final CodexHistoricalConversationNormalizer _historicalConversationNormalizer;
+  final ChatHistoricalConversationRestorer _historicalConversationRestorer;
   final ChatConversationSelectionCoordinator _conversationSelection;
   final ChatConversationRecoveryPolicy _conversationRecoveryPolicy =
       const ChatConversationRecoveryPolicy();
@@ -505,14 +511,9 @@ class ChatSessionController extends ChangeNotifier {
 
       final historicalConversation = _historicalConversationNormalizer
           .normalize(thread);
-      var nextState = CodexSessionState.transcript(
-        connectionStatus: CodexRuntimeSessionState.ready,
-      );
-      for (final event in _runtimeEventMapper.mapHistoricalConversation(
+      final nextState = _historicalConversationRestorer.restore(
         historicalConversation,
-      )) {
-        nextState = _sessionReducer.reduceRuntimeEvent(nextState, event);
-      }
+      );
 
       _clearConversationRecovery();
       _applySessionState(nextState);

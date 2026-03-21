@@ -1,4 +1,3 @@
-import 'package:pocket_relay/src/features/chat/application/codex_historical_conversation.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_json_rpc_codec.dart';
@@ -6,7 +5,6 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_j
 part 'runtime_event_mapper_transport_mapper.dart';
 part 'runtime_event_mapper_notification_mapper.dart';
 part 'runtime_event_mapper_request_mapper.dart';
-part 'runtime_event_mapper_history_mapper.dart';
 part 'runtime_event_mapper_support.dart';
 
 class CodexRuntimeEventMapper {
@@ -40,12 +38,6 @@ class CodexRuntimeEventMapper {
         }
         throw StateError('Unhandled app-server event: $event');
     }
-  }
-
-  List<CodexRuntimeEvent> mapHistoricalConversation(
-    CodexHistoricalConversation conversation,
-  ) {
-    return _mapRuntimeHistoricalConversation(conversation);
   }
 }
 
