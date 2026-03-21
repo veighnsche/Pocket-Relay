@@ -14,7 +14,6 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_effect_m
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_presenter.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 
 class ChatRootAdapter extends StatefulWidget {
   const ChatRootAdapter({

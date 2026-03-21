@@ -286,7 +286,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   ) {
     return DropdownButtonFormField<CodexReasoningEffort?>(
       key: const ValueKey<String>('connection_settings_reasoning_effort'),
-      value: section.selectedReasoningEffort,
+      initialValue: section.selectedReasoningEffort,
       decoration: const InputDecoration(
         labelText: 'Reasoning effort',
         helperText: 'Applied to new sessions and each new turn.',

@@ -8,7 +8,6 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_chrome_menu_act
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_app_chrome.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_screen_shell.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/transcript_list.dart';
 
