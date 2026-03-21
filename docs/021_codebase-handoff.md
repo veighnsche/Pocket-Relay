@@ -313,8 +313,8 @@ If a future task is non-trivial, read these before making structural changes:
 
 Other useful context:
 
-- `docs/local-codex-connection-migration-plan.md`
-- `docs/codex-app-server-emission-parity.md`
+- `docs/019_local-codex-connection-migration-plan.md`
+- `docs/018_codex-app-server-emission-parity.md`
 
 There is also a local reference checkout under `.reference/` that these docs
 use when comparing Pocket Relay behavior against upstream Codex or other

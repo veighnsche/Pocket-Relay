@@ -22,7 +22,7 @@ rules.
 It should be used together with
 [033_designer-redesign-brief.md](/Users/vince/Projects/Pocket-Relay/docs/033_designer-redesign-brief.md)
 and
-[035_invisible-product-details-audit.md](/Users/vince/Projects/Pocket-Relay/docs/035_invisible-product-details-audit.md).
+[040_invisible-product-details-audit.md](/Users/vince/Projects/Pocket-Relay/docs/040_invisible-product-details-audit.md).
 
 ## Scope
 

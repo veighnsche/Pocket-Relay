@@ -20,7 +20,7 @@ Reference code paths that drove this plan:
 - `.reference/codex/codex-rs/app-server/README.md`
 
 The full app-server emission-by-emission audit now lives in
-`docs/codex-app-server-emission-parity.md`.
+`docs/018_codex-app-server-emission-parity.md`.
 
 ## What “Parity” Should Mean Here
 

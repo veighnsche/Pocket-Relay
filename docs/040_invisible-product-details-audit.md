@@ -19,7 +19,7 @@ It should be read alongside
 [032_visual-component-inventory.md](/Users/vince/Projects/Pocket-Relay/docs/032_visual-component-inventory.md),
 [033_designer-redesign-brief.md](/Users/vince/Projects/Pocket-Relay/docs/033_designer-redesign-brief.md),
 and
-[034_atomic-design-system-audit.md](/Users/vince/Projects/Pocket-Relay/docs/034_atomic-design-system-audit.md).
+[038_atomic-design-system-audit.md](/Users/vince/Projects/Pocket-Relay/docs/038_atomic-design-system-audit.md).
 
 Those documents explain that the current UI is too noisy and not yet grounded
 in a true design system.

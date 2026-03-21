@@ -7,9 +7,9 @@ Completed follow-up implementation and verification.
 This document narrows the remaining historical-transcript work after PR 7.
 
 The broader architecture plan in
-`docs/032_codex_history_transcript_restoration_upgrade_plan.md` remains
+`docs/034_codex_history_transcript_restoration_upgrade_plan.md` remains
 correct. The `thread/read` contract capture work in
-`docs/033_thread-read-contract-phase-0.md` is also complete.
+`docs/035_thread-read-contract-phase-0.md` is also complete.
 
 The restore gap documented here is now closed.
 
@@ -102,7 +102,7 @@ But it does not reliably do the product-critical part:
 ## Why This Was Not Done
 
 This gap meant the repo still failed the definition of done already stated in
-`docs/032_codex_history_transcript_restoration_upgrade_plan.md`.
+`docs/034_codex_history_transcript_restoration_upgrade_plan.md`.
 
 That plan says the work is done only when restoring a historical conversation
 either:

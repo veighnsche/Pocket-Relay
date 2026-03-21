@@ -13,7 +13,7 @@ Its job is to:
 
 This document complements:
 
-- `docs/021_concurrent-connections-architecture-plan.md`
+- `docs/023_concurrent-connections-architecture-plan.md`
 
 ## Phase 1 Goal
 

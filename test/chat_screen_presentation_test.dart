@@ -934,7 +934,7 @@ void main() {
             id: 'entry_head',
             createdAt: DateTime(2026, 3, 15, 12),
             entryKind: CodexWorkLogEntryKind.commandExecution,
-            title: 'head -n 40 docs/019_codebase-handoff.md',
+            title: 'head -n 40 docs/021_codebase-handoff.md',
           ),
         ],
       );
@@ -959,7 +959,7 @@ void main() {
               id: 'entry_head_compact',
               createdAt: DateTime(2026, 3, 15, 12),
               entryKind: CodexWorkLogEntryKind.commandExecution,
-              title: 'head -n40 docs/019_codebase-handoff.md',
+              title: 'head -n40 docs/021_codebase-handoff.md',
             ),
           ],
         );

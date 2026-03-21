@@ -16,7 +16,7 @@ Follow-on cleanup planning for the remaining application-layer hotspots lives in
 `docs/003_post-phase-6-application-plan.md`.
 
 Desktop-local `codex app-server` transport planning now lives in
-`docs/local-codex-connection-migration-plan.md`.
+`docs/019_local-codex-connection-migration-plan.md`.
 
 ## Refactor Goals
 

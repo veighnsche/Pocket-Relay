@@ -16,7 +16,7 @@ Recent commits in order:
 - `a76fe6c` `Make command work logs first-class`
 - `88079ed` `Harden command read work logs`
 
-`docs/018_self-handoff.md` and `docs/019_codebase-handoff.md` were part of
+`docs/020_self-handoff.md` and `docs/021_codebase-handoff.md` were part of
 this same run of work and already contain more repo-wide context.
 
 ## 2. Platform Policy Refactor

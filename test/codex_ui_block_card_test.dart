@@ -1156,7 +1156,7 @@ void main() {
                   id: 'entry_head',
                   createdAt: DateTime(2026, 3, 14, 12, 0, 1),
                   entryKind: CodexWorkLogEntryKind.commandExecution,
-                  title: 'head -n 40 docs/019_codebase-handoff.md',
+                  title: 'head -n 40 docs/021_codebase-handoff.md',
                 ),
                 CodexWorkLogEntry(
                   id: 'entry_tail',
@@ -1193,7 +1193,7 @@ void main() {
 
       expect(find.text('cat README.md'), findsNothing);
       expect(
-        find.text('head -n 40 docs/019_codebase-handoff.md'),
+        find.text('head -n 40 docs/021_codebase-handoff.md'),
         findsNothing,
       );
       expect(find.text('tail -20 logs/output.txt'), findsNothing);

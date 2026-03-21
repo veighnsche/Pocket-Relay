@@ -68,8 +68,8 @@ What is also true today:
 
 Relevant docs:
 
-- [037_codex-tui-flutter-widget-parity-gaps.md](/Users/vince/Projects/Pocket-Relay/docs/037_codex-tui-flutter-widget-parity-gaps.md)
-- [038_current-visual-style-audit.md](/Users/vince/Projects/Pocket-Relay/docs/038_current-visual-style-audit.md)
+- [042_codex-tui-flutter-widget-parity-gaps.md](/Users/vince/Projects/Pocket-Relay/docs/042_codex-tui-flutter-widget-parity-gaps.md)
+- [044_current-visual-style-audit.md](/Users/vince/Projects/Pocket-Relay/docs/044_current-visual-style-audit.md)
 
 ## Architecture
 
@@ -116,7 +116,7 @@ Not the reverse.
 
 If you need the exact parity gap inventory, start with:
 
-- [037_codex-tui-flutter-widget-parity-gaps.md](/Users/vince/Projects/Pocket-Relay/docs/037_codex-tui-flutter-widget-parity-gaps.md)
+- [042_codex-tui-flutter-widget-parity-gaps.md](/Users/vince/Projects/Pocket-Relay/docs/042_codex-tui-flutter-widget-parity-gaps.md)
 
 ## Running The App
 
@@ -238,7 +238,7 @@ professional enough.
 
 That assessment is recorded in:
 
-- [038_current-visual-style-audit.md](/Users/vince/Projects/Pocket-Relay/docs/038_current-visual-style-audit.md)
+- [044_current-visual-style-audit.md](/Users/vince/Projects/Pocket-Relay/docs/044_current-visual-style-audit.md)
 
 ## Testing
 

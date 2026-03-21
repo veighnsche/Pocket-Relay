@@ -585,7 +585,7 @@ The safest order is:
 - migrate singleton profile data into one catalog entry
 - add keyed handoff store
 - implement this slice as a separate 4-slice Phase 2 rollout described in
-  `docs/023_concurrent-connections-phase-2-upgrade-path.md`
+  `docs/025_concurrent-connections-phase-2-upgrade-path.md`
 
 ### Slice 2: Extract lane-local ownership
 
@@ -610,7 +610,7 @@ The safest order is:
 - keep dormant edit and reconnect semantics for Slice 5
 
 Detailed Phase 4 component and primitive guidance lives in
-`docs/024_phase-4-ui-primitives-and-upgrade-path.md`.
+`docs/026_phase-4-ui-primitives-and-upgrade-path.md`.
 
 ### Slice 5: Retarget settings flow
 
@@ -619,7 +619,7 @@ Detailed Phase 4 component and primitive guidance lives in
 - dormant edits stay immediate
 
 Detailed Phase 5 upgrade guidance lives in
-`docs/025_phase-5-settings-retargeting-upgrade-path.md`.
+`docs/027_phase-5-settings-retargeting-upgrade-path.md`.
 
 ### Slice 6: Hardening and cleanup
 
