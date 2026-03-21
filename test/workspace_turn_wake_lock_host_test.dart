@@ -132,7 +132,7 @@ void main() {
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationStateStore? historyStore,
+  MemoryCodexConnectionConversationStateStore? conversationStateStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -151,17 +151,16 @@ ConnectionWorkspaceController _buildWorkspaceController({
             ),
         ],
       );
-  final seededHistoryStore =
-      historyStore ?? MemoryCodexConnectionConversationStateStore();
+  final resolvedConversationStateStore =
+      conversationStateStore ?? MemoryCodexConnectionConversationStateStore();
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionConversationStateStore: seededHistoryStore,
+    connectionConversationStateStore: resolvedConversationStateStore,
     laneBindingFactory:
         ({
           required connectionId,
           required connection,
-          required conversationState,
         }) {
           final appServerClient = clientsById[connectionId]!;
           return ConnectionLaneBinding(
@@ -172,14 +171,13 @@ ConnectionWorkspaceController _buildWorkspaceController({
             ),
             conversationStateStore: ConnectionScopedConversationStateStore(
               connectionId: connectionId,
-              conversationStateStore: seededHistoryStore,
+              conversationStateStore: resolvedConversationStateStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(
               profile: connection.profile,
               secrets: connection.secrets,
             ),
-            initialConversationState: conversationState,
             ownsAppServerClient: false,
           );
         },
