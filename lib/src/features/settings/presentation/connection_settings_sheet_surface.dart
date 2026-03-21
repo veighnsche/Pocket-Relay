@@ -244,10 +244,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        Text(contract.title, style: _titleStyle(context)),
-        const SizedBox(height: 8),
-        Text(contract.description, style: _descriptionStyle(context)),
       ],
     );
   }
@@ -259,6 +255,10 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(contract.title, style: _titleStyle(context)),
+        const SizedBox(height: 8),
+        Text(contract.description, style: _descriptionStyle(context)),
+        const SizedBox(height: 20),
         _buildSection(
           context,
           title: contract.profileSection.title,

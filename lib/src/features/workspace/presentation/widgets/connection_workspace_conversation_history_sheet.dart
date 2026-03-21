@@ -22,84 +22,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     return ModalSheetScaffold(
       header: _buildStickyHeader(context, cards),
       bodyIsScrollable: false,
-      body: FutureBuilder<List<CodexWorkspaceConversationSummary>>(
-        future: future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(strokeWidth: 2.4),
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return _ConversationHistoryMessage(
-              title: 'Could not load conversations',
-              body: '${snapshot.error}',
-            );
-          }
-
-          final conversations = snapshot.data ?? const [];
-          if (conversations.isEmpty) {
-            return const _ConversationHistoryMessage(
-              title: 'No matching conversations',
-              body: 'No workspace conversations are available yet.',
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 18),
-            itemCount: conversations.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final conversation = conversations[index];
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: cards.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: cards.neutralBorder),
-                ),
-                child: ListTile(
-                  key: ValueKey<String>(
-                    'workspace_conversation_${conversation.normalizedThreadId}',
-                  ),
-                  onTap: () => onResumeConversation(conversation),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  title: Text(
-                    conversation.trimmedPreview.isEmpty
-                        ? conversation.normalizedThreadId
-                        : conversation.trimmedPreview,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: cards.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      _subtitleFor(conversation),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: cards.textMuted),
-                    ),
-                  ),
-                  trailing: Icon(
-                    Icons.play_arrow_rounded,
-                    color: cards.textMuted,
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+      body: _buildBody(context, cards),
     );
   }
 
@@ -123,41 +46,130 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     BuildContext context,
     ConversationCardPalette cards,
   ) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        const Expanded(child: SizedBox()),
         const ModalSheetDragHandle(),
-        const SizedBox(height: 18),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Pick a saved conversation to resume in this lane.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
               tooltip: 'Close conversation history',
               onPressed: () => Navigator.of(context).pop(),
               icon: Icon(Icons.close, color: cards.textMuted),
             ),
-          ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ConversationCardPalette cards) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Pick a saved conversation to resume in this lane.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<CodexWorkspaceConversationSummary>>(
+            future: future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(strokeWidth: 2.4),
+                  ),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return _ConversationHistoryMessage(
+                  title: 'Could not load conversations',
+                  body: '${snapshot.error}',
+                );
+              }
+
+              final conversations = snapshot.data ?? const [];
+              if (conversations.isEmpty) {
+                return const _ConversationHistoryMessage(
+                  title: 'No matching conversations',
+                  body: 'No workspace conversations are available yet.',
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 18),
+                itemCount: conversations.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final conversation = conversations[index];
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: cards.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: cards.neutralBorder),
+                    ),
+                    child: ListTile(
+                      key: ValueKey<String>(
+                        'workspace_conversation_${conversation.normalizedThreadId}',
+                      ),
+                      onTap: () => onResumeConversation(conversation),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      title: Text(
+                        conversation.trimmedPreview.isEmpty
+                            ? conversation.normalizedThreadId
+                            : conversation.trimmedPreview,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: cards.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _subtitleFor(conversation),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: cards.textMuted),
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.play_arrow_rounded,
+                        color: cards.textMuted,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ],
     );
