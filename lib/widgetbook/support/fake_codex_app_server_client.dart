@@ -58,20 +58,37 @@ class WidgetbookFakeCodexAppServerClient extends CodexAppServerClient {
       model: model ?? 'gpt-5.4',
       modelProvider: 'openai',
       reasoningEffort: reasoningEffort?.name,
-      thread: CodexAppServerThread(id: _threadId!, sourceKind: 'app-server'),
+      thread: _threadSummary(_threadId!),
     );
   }
 
   @override
-  Future<CodexAppServerThread> readThread({required String threadId}) async {
-    return CodexAppServerThread(id: threadId, sourceKind: 'app-server');
+  Future<CodexAppServerThreadSummary> readThread({
+    required String threadId,
+  }) async {
+    return _threadSummary(threadId);
   }
 
   @override
-  Future<CodexAppServerThread> readThreadWithTurns({
+  Future<CodexAppServerThreadHistory> readThreadWithTurns({
     required String threadId,
   }) async {
-    return readThread(threadId: threadId);
+    final summary = await readThread(threadId: threadId);
+    return CodexAppServerThreadHistory(
+      id: summary.id,
+      preview: summary.preview,
+      ephemeral: summary.ephemeral,
+      modelProvider: summary.modelProvider,
+      createdAt: summary.createdAt,
+      updatedAt: summary.updatedAt,
+      path: summary.path,
+      cwd: summary.cwd,
+      promptCount: summary.promptCount,
+      name: summary.name,
+      sourceKind: summary.sourceKind,
+      agentNickname: summary.agentNickname,
+      agentRole: summary.agentRole,
+    );
   }
 
   @override
@@ -80,7 +97,7 @@ class WidgetbookFakeCodexAppServerClient extends CodexAppServerClient {
     int? limit,
   }) async {
     return const CodexAppServerThreadListPage(
-      threads: <CodexAppServerThread>[],
+      threads: <CodexAppServerThreadSummary>[],
       nextCursor: null,
     );
   }
@@ -107,5 +124,9 @@ class WidgetbookFakeCodexAppServerClient extends CodexAppServerClient {
   Future<void> dispose() async {
     await disconnect();
     await _eventsController.close();
+  }
+
+  CodexAppServerThreadSummary _threadSummary(String threadId) {
+    return CodexAppServerThreadSummary(id: threadId, sourceKind: 'app-server');
   }
 }
