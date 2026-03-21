@@ -3,6 +3,8 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
+import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/workspace/models/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
@@ -476,6 +478,8 @@ void main() {
               required conversationState,
             }) {
               final appServerClient = FakeCodexAppServerClient();
+              appServerClient.threadsById['thread_resumed'] =
+                  _savedConversationThread(threadId: 'thread_resumed');
               clientsByConnectionId[connectionId]!.add(appServerClient);
               return ConnectionLaneBinding(
                 connectionId: connectionId,
@@ -521,6 +525,13 @@ void main() {
       );
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
       expect(clientsByConnectionId['conn_primary']!.last.disconnectCalls, 0);
+      expect(
+        nextBinding!.sessionController.transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .single
+            .body,
+        'Restored answer',
+      );
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
     },
@@ -705,6 +716,38 @@ ConnectionProfile _profile(String label, String host) {
     label: label,
     host: host,
     username: 'vince',
+  );
+}
+
+CodexAppServerThread _savedConversationThread({required String threadId}) {
+  return CodexAppServerThread(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <Map<String, dynamic>>[
+      <String, Object?>{
+        'id': 'turn_saved',
+        'status': 'completed',
+        'items': <Object>[
+          <String, Object?>{
+            'id': 'item_user',
+            'type': 'user_message',
+            'status': 'completed',
+            'content': <Object>[
+              <String, Object?>{'text': 'Restore this'},
+            ],
+          },
+          <String, Object?>{
+            'id': 'item_assistant',
+            'type': 'agent_message',
+            'status': 'completed',
+            'content': <Object>[
+              <String, Object?>{'text': 'Restored answer'},
+            ],
+          },
+        ],
+      },
+    ].cast<Map<String, dynamic>>(),
   );
 }
 

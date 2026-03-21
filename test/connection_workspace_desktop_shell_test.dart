@@ -6,6 +6,8 @@ import 'package:pocket_relay/src/core/storage/codex_connection_conversation_hist
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
@@ -283,6 +285,8 @@ void main() {
     'desktop conversation history row resumes the selected Codex thread',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadsById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
       final conversationStateStore =
           MemoryCodexConnectionConversationHistoryStore();
       final controller = _buildWorkspaceController(
@@ -333,6 +337,13 @@ void main() {
       expect(clientsById['conn_primary']?.disconnectCalls, 1);
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
+      expect(
+        controller.selectedLaneBinding!.sessionController.transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .single
+            .body,
+        'Restored answer',
+      );
     },
   );
 
@@ -743,6 +754,38 @@ Future<void> _closeClients(
   for (final client in clientsById.values) {
     await client.close();
   }
+}
+
+CodexAppServerThread _savedConversationThread({required String threadId}) {
+  return CodexAppServerThread(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <Map<String, dynamic>>[
+      <String, Object?>{
+        'id': 'turn_saved',
+        'status': 'completed',
+        'items': <Object>[
+          <String, Object?>{
+            'id': 'item_user',
+            'type': 'user_message',
+            'status': 'completed',
+            'content': <Object>[
+              <String, Object?>{'text': 'Restore this'},
+            ],
+          },
+          <String, Object?>{
+            'id': 'item_assistant',
+            'type': 'agent_message',
+            'status': 'completed',
+            'content': <Object>[
+              <String, Object?>{'text': 'Restored answer'},
+            ],
+          },
+        ],
+      },
+    ].cast<Map<String, dynamic>>(),
+  );
 }
 
 class FakeCodexWorkspaceConversationHistoryRepository

@@ -364,6 +364,18 @@ class CodexAppServerRequestApi {
     return value is String ? value : null;
   }
 
+  static List<Map<String, dynamic>>? _asObjectList(Object? value) {
+    if (value is! List) {
+      return null;
+    }
+
+    final objects = value
+        .map(_asObject)
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+    return objects.isEmpty ? null : objects;
+  }
+
   static CodexAppServerThread _requireThread(Object? value, String label) {
     final thread = _asThread(value);
     if (thread == null) {
@@ -392,11 +404,14 @@ class CodexAppServerRequestApi {
       updatedAt: _parseUnixTimestamp(thread?['updatedAt']),
       path: _asString(thread?['path']),
       cwd: _asString(thread?['cwd']),
-      promptCount: _countUserPromptItems(thread?['turns']),
+      promptCount:
+          _asInt(thread?['promptCount']) ??
+          _countUserPromptItems(thread?['turns']),
       name: _asString(thread?['name']),
       sourceKind: _sourceKind(thread?['source']),
       agentNickname: _asString(thread?['agentNickname']),
       agentRole: _asString(thread?['agentRole']),
+      turns: _asObjectList(thread?['turns']) ?? const <Map<String, dynamic>>[],
     );
   }
 
@@ -437,6 +452,10 @@ class CodexAppServerRequestApi {
       }
     }
     return count;
+  }
+
+  static int? _asInt(Object? value) {
+    return value is num ? value.toInt() : null;
   }
 
   static String _approvalPolicyFor(ConnectionProfile profile) {

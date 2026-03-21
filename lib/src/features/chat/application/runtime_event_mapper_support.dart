@@ -11,6 +11,19 @@ List<dynamic>? _asList(Object? value) {
   return value is List ? List<dynamic>.from(value) : null;
 }
 
+List<Map<String, dynamic>>? _asObjectList(Object? value) {
+  final list = _asList(value);
+  if (list == null) {
+    return null;
+  }
+
+  final objects = list
+      .map(_asObject)
+      .whereType<Map<String, dynamic>>()
+      .toList(growable: false);
+  return objects.isEmpty ? null : objects;
+}
+
 String? _asString(Object? value) {
   return value is String ? value : null;
 }
@@ -21,6 +34,19 @@ int? _asInt(Object? value) {
 
 double? _asDouble(Object? value) {
   return value is num ? value.toDouble() : null;
+}
+
+DateTime _eventTimestamp(
+  Map<String, dynamic> payload, {
+  required DateTime fallback,
+}) {
+  return _parseUnixTimestamp(
+        payload['createdAt'] ??
+            payload['updatedAt'] ??
+            payload['completedAt'] ??
+            payload['timestamp'],
+      ) ??
+      fallback;
 }
 
 String? _stringFromCandidates(List<Object?> candidates) {
@@ -413,6 +439,16 @@ CodexRuntimeContentStreamKind _streamKindFromMethod(String method) {
       CodexRuntimeContentStreamKind.fileChangeOutput,
     _ => CodexRuntimeContentStreamKind.unknown,
   };
+}
+
+DateTime? _parseUnixTimestamp(Object? raw) {
+  if (raw is! num) {
+    return null;
+  }
+  return DateTime.fromMillisecondsSinceEpoch(
+    raw.toInt() * 1000,
+    isUtc: true,
+  ).toLocal();
 }
 
 CodexRuntimeTurnUsage? _toTurnUsage(Map<String, dynamic>? usage) {

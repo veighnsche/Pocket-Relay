@@ -269,6 +269,7 @@ class ChatSessionController extends ChangeNotifier {
       ephemeralSession: _profile.ephemeralSession,
       activeThreadId: _activeConversationThreadId(),
     );
+    await _restoreConversationTranscript(threadId.trim());
   }
 
   Future<void> approveRequest(String requestId) {
@@ -484,6 +485,34 @@ class ChatSessionController extends ChangeNotifier {
     );
     if (event is CodexRuntimeThreadStartedEvent) {
       unawaited(_hydrateThreadMetadataIfNeeded(event));
+    }
+  }
+
+  Future<void> _restoreConversationTranscript(String threadId) async {
+    try {
+      await _ensureAppServerConnected();
+      final thread = await appServerClient.readThreadWithTurns(
+        threadId: threadId,
+      );
+      if (_isDisposed) {
+        return;
+      }
+
+      var nextState = CodexSessionState.transcript(
+        connectionStatus: CodexRuntimeSessionState.ready,
+      );
+      for (final event in _runtimeEventMapper.mapThreadHistory(thread)) {
+        nextState = _sessionReducer.reduceRuntimeEvent(nextState, event);
+      }
+
+      _clearConversationRecovery();
+      _applySessionState(nextState);
+    } catch (error) {
+      _reportAppServerFailure(
+        title: 'Conversation load failed',
+        message: 'Could not load the saved conversation transcript.',
+        error: error,
+      );
     }
   }
 

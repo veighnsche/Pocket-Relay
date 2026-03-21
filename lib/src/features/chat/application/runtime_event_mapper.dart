@@ -5,6 +5,7 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_j
 part 'runtime_event_mapper_transport_mapper.dart';
 part 'runtime_event_mapper_notification_mapper.dart';
 part 'runtime_event_mapper_request_mapper.dart';
+part 'runtime_event_mapper_history_mapper.dart';
 part 'runtime_event_mapper_support.dart';
 
 class CodexRuntimeEventMapper {
@@ -38,6 +39,10 @@ class CodexRuntimeEventMapper {
         }
         throw StateError('Unhandled app-server event: $event');
     }
+  }
+
+  List<CodexRuntimeEvent> mapThreadHistory(CodexAppServerThread thread) {
+    return _mapRuntimeThreadHistory(thread);
   }
 }
 

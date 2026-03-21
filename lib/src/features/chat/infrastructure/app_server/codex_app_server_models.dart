@@ -174,6 +174,7 @@ class CodexAppServerThread {
     this.sourceKind,
     this.agentNickname,
     this.agentRole,
+    this.turns = const <Map<String, dynamic>>[],
   });
 
   final String id;
@@ -189,6 +190,7 @@ class CodexAppServerThread {
   final String? sourceKind;
   final String? agentNickname;
   final String? agentRole;
+  final List<Map<String, dynamic>> turns;
 }
 
 class CodexAppServerThreadListPage {

@@ -228,6 +228,71 @@ void main() {
   });
 
   test(
+    'readThreadWithTurns preserves historical turns from thread/read',
+    () async {
+      late _FakeCodexAppServerProcess process;
+      process = _FakeCodexAppServerProcess(
+        onClientMessage: (message) {
+          switch (message['method']) {
+            case 'initialize':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'userAgent': 'codex-app-server-test',
+                },
+              });
+            case 'thread/read':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'thread': <String, Object?>{
+                    'id': 'thread_saved',
+                    'turns': <Object>[
+                      <String, Object?>{
+                        'id': 'turn_saved',
+                        'status': 'completed',
+                        'items': <Object>[
+                          <String, Object?>{
+                            'id': 'item_user',
+                            'type': 'userMessage',
+                            'status': 'completed',
+                            'content': <Object>[
+                              <String, Object?>{'text': 'Restore this'},
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              });
+          }
+        },
+      );
+
+      final client = CodexAppServerClient(
+        processLauncher:
+            ({required profile, required secrets, required emitEvent}) async =>
+                process,
+      );
+
+      await client.connect(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      );
+
+      final thread = await client.readThreadWithTurns(threadId: 'thread_saved');
+
+      expect(thread.id, 'thread_saved');
+      expect(thread.turns, hasLength(1));
+      expect(thread.turns.single['id'], 'turn_saved');
+      expect(thread.promptCount, 1);
+
+      await client.disconnect();
+    },
+  );
+
+  test(
     'startSession uses thread/resume params without ephemeral field',
     () async {
       late _FakeCodexAppServerProcess process;
