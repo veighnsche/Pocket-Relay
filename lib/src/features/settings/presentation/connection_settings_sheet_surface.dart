@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
@@ -90,14 +93,11 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     required String title,
     required Widget child,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: context.pocketPalette.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: context.pocketPalette.surfaceBorder),
-      ),
+    return PocketPanelSurface(
+      backgroundColor: context.pocketPalette.surface,
+      borderColor: context.pocketPalette.surfaceBorder,
+      padding: PocketSpacing.panelPadding,
+      radius: PocketRadii.xxl,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,7 +105,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             title,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: PocketSpacing.lg),
           child,
         ],
       ),

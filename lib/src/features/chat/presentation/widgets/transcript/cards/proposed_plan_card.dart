@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/markdown_style_factory.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/transcript_chips.dart';
 
 class ProposedPlanCard extends StatefulWidget {
   const ProposedPlanCard({super.key, required this.block});
@@ -38,86 +40,74 @@ class _ProposedPlanCardState extends State<ProposedPlanCard> {
         ? displayedMarkdown
         : _buildCollapsedPlanPreview(widget.block.markdown, maxVisibleLines: 8);
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 700),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
-        decoration: BoxDecoration(
-          color: cards.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cards.accentBorder(accent)),
-          boxShadow: [
-            BoxShadow(
-              color: cards.shadow.withValues(alpha: cards.isDark ? 0.18 : 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.description_outlined, size: 16, color: accent),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                      letterSpacing: 0.2,
-                    ),
+    return PocketTranscriptFrame(
+      shadowColor: cards.shadow,
+      shadowOpacity: cards.isDark ? 0.18 : 0.06,
+      backgroundColor: cards.surface,
+      borderColor: cards.accentBorder(accent),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.description_outlined, size: 16, color: accent),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                if (widget.block.isStreaming)
-                  const InlinePulseChip(label: 'drafting'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Stack(
-              children: [
-                MarkdownBody(
-                  data: displayedText.trim().isEmpty
-                      ? '_Waiting for plan…_'
-                      : displayedText,
-                  selectable: true,
-                  styleSheet: markdownStyle,
-                ),
-                if (canCollapse && !_expanded)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: IgnorePointer(
-                      child: Container(
-                        height: 36,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: <Color>[
-                              cards.surface.withValues(alpha: 0),
-                              cards.surface,
-                            ],
-                          ),
+              ),
+              if (widget.block.isStreaming)
+                const InlinePulseChip(label: 'drafting'),
+            ],
+          ),
+          const SizedBox(height: PocketSpacing.sm),
+          Stack(
+            children: [
+              MarkdownBody(
+                data: displayedText.trim().isEmpty
+                    ? '_Waiting for plan…_'
+                    : displayedText,
+                selectable: true,
+                styleSheet: markdownStyle,
+              ),
+              if (canCollapse && !_expanded)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: <Color>[
+                            cards.surface.withValues(alpha: 0),
+                            cards.surface,
+                          ],
                         ),
                       ),
                     ),
                   ),
-              ],
-            ),
-            if (canCollapse) ...[
-              const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: () => setState(() => _expanded = !_expanded),
-                child: Text(_expanded ? 'Collapse plan' : 'Expand plan'),
-              ),
+                ),
             ],
+          ),
+          if (canCollapse) ...[
+            const SizedBox(height: PocketSpacing.sm),
+            OutlinedButton(
+              onPressed: () => setState(() => _expanded = !_expanded),
+              child: Text(_expanded ? 'Collapse plan' : 'Expand plan'),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

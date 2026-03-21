@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 
-class MetaCard extends StatelessWidget {
-  const MetaCard({
+class PocketMetaCard extends StatelessWidget {
+  const PocketMetaCard({
     super.key,
     required this.title,
     required this.body,
@@ -18,15 +22,19 @@ class MetaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = ConversationCardPalette.of(context);
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 700),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
-        decoration: BoxDecoration(
-          color: cards.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: cards.accentBorder(accent)),
+      child: PocketPanelSurface(
+        padding: const EdgeInsets.fromLTRB(
+          PocketSpacing.md,
+          PocketSpacing.sm,
+          PocketSpacing.md,
+          11,
         ),
+        radius: PocketRadii.md,
+        backgroundColor: cards.surface,
+        borderColor: cards.accentBorder(accent),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -34,7 +42,7 @@ class MetaCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 1),
               child: Icon(icon, color: accent, size: 15),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: PocketSpacing.xs),
             Expanded(
               child: SelectableText.rich(
                 TextSpan(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/ssh/ssh_card_frame.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/transcript_chips.dart';
 
 class SshUnpinnedHostKeyCard extends StatelessWidget {
   const SshUnpinnedHostKeyCard({

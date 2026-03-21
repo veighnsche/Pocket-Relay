@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 
 class ChatEmptyStateBody extends StatelessWidget {
   const ChatEmptyStateBody({
@@ -146,20 +149,17 @@ class ChatEmptyStateBody extends StatelessWidget {
   Widget _buildMaterialCard(BuildContext context, Widget content) {
     final palette = context.pocketPalette;
 
-    return Container(
-      padding: EdgeInsets.zero,
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: palette.surfaceBorder),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            palette.surface,
-            palette.subtleSurface.withValues(alpha: 0.55),
-          ],
-        ),
+    return PocketPanelSurface(
+      backgroundColor: palette.surface,
+      borderColor: palette.surfaceBorder,
+      radius: PocketRadii.hero,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: <Color>[
+          palette.surface,
+          palette.subtleSurface.withValues(alpha: 0.55),
+        ],
       ),
       child: content,
     );
@@ -229,12 +229,10 @@ class ChatEmptyStateBody extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: border),
-        ),
+      child: PocketPanelSurface(
+        backgroundColor: background,
+        borderColor: border,
+        radius: PocketRadii.xl,
         child: Column(
           children: items.indexed
               .map((entry) {
@@ -243,7 +241,7 @@ class ChatEmptyStateBody extends StatelessWidget {
                 return Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: PocketSpacing.panelPadding,
                       child: _EmptyStateDetailRow(item: item),
                     ),
                     if (index != items.length - 1)
@@ -270,7 +268,7 @@ class ChatEmptyStateBody extends StatelessWidget {
       height: desktop ? 76 : 64,
       decoration: BoxDecoration(
         color: palette.subtleSurface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: PocketRadii.circular(22),
       ),
       child: Icon(
         desktop ? Icons.laptop_mac_rounded : Icons.phone_android,
@@ -458,11 +456,11 @@ class _DesktopRouteCard extends StatelessWidget {
     final card = DecoratedBox(
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: PocketRadii.circular(PocketRadii.lg),
         border: Border.all(color: border),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: PocketSpacing.panelPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -487,7 +485,7 @@ class _DesktopRouteCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: PocketSpacing.xs),
             Text(
               subtitle,
               style: TextStyle(fontSize: 14, height: 1.45, color: bodyColor),

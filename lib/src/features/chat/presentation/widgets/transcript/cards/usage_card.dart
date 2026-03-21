@@ -329,10 +329,7 @@ UsageSection _normalizeUsageSection(UsageSection section) {
   final reasoning = section.metricIntValue('reasoning') ?? 0;
 
   final hasTokenBreakdown =
-      input != null ||
-      output != null ||
-      cached > 0 ||
-      reasoning > 0;
+      input != null || output != null || cached > 0 || reasoning > 0;
   if (!hasTokenBreakdown) {
     return section;
   }
@@ -347,7 +344,9 @@ UsageSection _normalizeUsageSection(UsageSection section) {
       ? (reasoning > 0 ? reasoning : null)
       : (reasoning > 0 ? reasoning : 0);
   final blendedTotal =
-      (normalizedInput ?? 0) + (normalizedOutput ?? 0) + (normalizedReasoning ?? 0);
+      (normalizedInput ?? 0) +
+      (normalizedOutput ?? 0) +
+      (normalizedReasoning ?? 0);
 
   final normalizedMetrics = <UsageMetric>[
     if (normalizedInput != null)

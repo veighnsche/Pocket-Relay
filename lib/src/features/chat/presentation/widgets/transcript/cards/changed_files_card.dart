@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/transcript_chips.dart';
 
 class ChangedFilesCard extends StatelessWidget {
   const ChangedFilesCard({super.key, required this.item, this.onOpenDiff});
@@ -18,88 +21,76 @@ class ChangedFilesCard extends StatelessWidget {
     final fileCountLabel =
         '${item.fileCount} ${item.fileCount == 1 ? 'file' : 'files'}';
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 700),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
-        decoration: BoxDecoration(
-          color: cards.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cards.accentBorder(accent)),
-          boxShadow: [
-            BoxShadow(
-              color: cards.shadow.withValues(alpha: cards.isDark ? 0.18 : 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.drive_file_rename_outline, size: 16, color: accent),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    item.title,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-                if (item.isRunning) const InlinePulseChip(label: 'updating'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Text(
-                  fileCountLabel,
+    return PocketTranscriptFrame(
+      shadowColor: cards.shadow,
+      shadowOpacity: cards.isDark ? 0.18 : 0.06,
+      backgroundColor: cards.surface,
+      borderColor: cards.accentBorder(accent),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.drive_file_rename_outline, size: 16, color: accent),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  item.title,
                   style: TextStyle(
-                    color: cards.textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
+                    color: accent,
                     letterSpacing: 0.2,
                   ),
                 ),
-                if (item.hasHeaderStats) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    '+${item.headerStats.additions} -${item.headerStats.deletions}',
-                    style: TextStyle(color: cards.textSecondary, fontSize: 12),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (item.rows.isEmpty)
-              Text(
-                'Waiting for changed files…',
-                style: TextStyle(color: cards.textMuted),
-              )
-            else
-              Column(
-                children: item.rows
-                    .map(
-                      (row) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: _ChangedFileRow(
-                          row: row,
-                          accent: accent,
-                          cards: cards,
-                          onOpenDiff: onOpenDiff,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
               ),
-          ],
-        ),
+              if (item.isRunning) const InlinePulseChip(label: 'updating'),
+            ],
+          ),
+          const SizedBox(height: PocketSpacing.sm),
+          Row(
+            children: [
+              Text(
+                fileCountLabel,
+                style: TextStyle(
+                  color: cards.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              if (item.hasHeaderStats) ...[
+                const SizedBox(width: PocketSpacing.xs),
+                Text(
+                  '+${item.headerStats.additions} -${item.headerStats.deletions}',
+                  style: TextStyle(color: cards.textSecondary, fontSize: 12),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: PocketSpacing.xs),
+          if (item.rows.isEmpty)
+            Text(
+              'Waiting for changed files…',
+              style: TextStyle(color: cards.textMuted),
+            )
+          else
+            Column(
+              children: item.rows
+                  .map(
+                    (row) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: _ChangedFileRow(
+                        row: row,
+                        accent: accent,
+                        cards: cards,
+                        onOpenDiff: onOpenDiff,
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+        ],
       ),
     );
   }
@@ -149,14 +140,17 @@ class _ChangedFileRow extends StatelessWidget {
     final body = Container(
       key: ValueKey<String>('changed_file_row_${row.id}'),
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: PocketSpacing.sm,
+        vertical: PocketSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: cards.tintedSurface(
           rowAccent,
           lightAlpha: 0.08,
           darkAlpha: 0.14,
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: PocketRadii.circular(PocketRadii.sm),
         border: Border.all(
           color: cards.accentBorder(
             rowAccent,
@@ -175,7 +169,7 @@ class _ChangedFileRow extends StatelessWidget {
             accent: rowAccent,
             cards: cards,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: PocketSpacing.xs),
           Expanded(
             child: Text(
               row.displayPathLabel,
@@ -190,13 +184,13 @@ class _ChangedFileRow extends StatelessWidget {
             ),
           ),
           if (row.stats.hasChanges) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: PocketSpacing.xs),
             Text(
               '+${row.stats.additions} -${row.stats.deletions}',
               style: TextStyle(fontSize: 11, color: cards.textMuted),
             ),
           ],
-          const SizedBox(width: 8),
+          const SizedBox(width: PocketSpacing.xs),
           _ChangedFileActionChip(
             label: row.actionLabel,
             accent: rowAccent,
@@ -214,7 +208,7 @@ class _ChangedFileRow extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: PocketRadii.circular(PocketRadii.sm),
         onTap: () => onOpenDiff!(row.diff!),
         child: body,
       ),

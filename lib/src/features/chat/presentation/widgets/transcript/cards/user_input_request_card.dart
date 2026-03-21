@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
-import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/transcript_chips.dart';
 
 class UserInputRequestCard extends StatefulWidget {
   const UserInputRequestCard({
@@ -92,56 +94,56 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
     final canSubmit =
         widget.contract.isSubmitEnabled && widget.onSubmit != null;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 680),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
-        decoration: BoxDecoration(
-          color: cards.tintedSurface(accent, lightAlpha: 0.06, darkAlpha: 0.14),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cards.accentBorder(accent)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.fact_check_outlined, size: 16, color: accent),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.contract.title,
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+    return PocketTranscriptFrame(
+      maxWidth: 680,
+      shadowColor: cards.shadow,
+      boxShadow: const <BoxShadow>[],
+      backgroundColor: cards.tintedSurface(
+        accent,
+        lightAlpha: 0.06,
+        darkAlpha: 0.14,
+      ),
+      borderColor: cards.accentBorder(accent),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.fact_check_outlined, size: 16, color: accent),
+              const SizedBox(width: PocketSpacing.xs),
+              Expanded(
+                child: Text(
+                  widget.contract.title,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (widget.contract.statusBadgeLabel case final badgeLabel?)
-                  TranscriptBadge(label: badgeLabel, color: accent),
-              ],
-            ),
-            if (widget.contract.body.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              SelectableText(
-                widget.contract.body,
-                style: TextStyle(
-                  color: cards.textSecondary,
-                  fontSize: 13,
-                  height: 1.32,
-                ),
               ),
+              if (widget.contract.statusBadgeLabel case final badgeLabel?)
+                TranscriptBadge(label: badgeLabel, color: accent),
             ],
-            const SizedBox(height: 12),
-            ..._buildFields(),
-            const SizedBox(height: 10),
-            FilledButton(
-              onPressed: canSubmit ? widget.onSubmit : null,
-              child: Text(widget.contract.submitLabel),
+          ),
+          if (widget.contract.body.trim().isNotEmpty) ...[
+            const SizedBox(height: PocketSpacing.xs),
+            SelectableText(
+              widget.contract.body,
+              style: TextStyle(
+                color: cards.textSecondary,
+                fontSize: 13,
+                height: 1.32,
+              ),
             ),
           ],
-        ),
+          const SizedBox(height: PocketSpacing.md),
+          ..._buildFields(),
+          const SizedBox(height: PocketSpacing.sm),
+          FilledButton(
+            onPressed: canSubmit ? widget.onSubmit : null,
+            child: Text(widget.contract.submitLabel),
+          ),
+        ],
       ),
     );
   }
@@ -153,7 +155,7 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
         .map((field) {
           final controller = _controllers[field.id]!;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.only(bottom: PocketSpacing.sm),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -166,7 +168,7 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
                       fontSize: 12.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: PocketSpacing.xxs),
                 ],
                 if (field.prompt case final prompt?) ...[
                   Text(
@@ -181,8 +183,8 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
                 if (field.options.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: PocketSpacing.xs,
+                    runSpacing: PocketSpacing.xs,
                     children: field.options
                         .map(
                           (option) => ActionChip(
@@ -196,7 +198,7 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
                         .toList(growable: false),
                   ),
                 ],
-                const SizedBox(height: 8),
+                const SizedBox(height: PocketSpacing.xs),
                 TextField(
                   key: ValueKey<String>('pending_user_input_${field.id}'),
                   controller: controller,

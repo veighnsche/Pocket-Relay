@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 
 @immutable
 class PocketPalette extends ThemeExtension<PocketPalette> {
@@ -130,15 +131,15 @@ ThemeData buildPocketTheme(Brightness brightness) {
       filled: true,
       fillColor: palette.inputFill,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: PocketRadii.circular(PocketRadii.lg),
         borderSide: BorderSide(color: palette.surfaceBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: PocketRadii.circular(PocketRadii.lg),
         borderSide: BorderSide(color: palette.surfaceBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: PocketRadii.circular(PocketRadii.lg),
         borderSide: BorderSide(color: scheme.primary, width: 1.5),
       ),
     ),

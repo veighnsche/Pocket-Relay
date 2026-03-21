@@ -91,6 +91,57 @@ desktop:
 
 alias run-desktop := desktop
 
+# Run Widgetbook on the host desktop target.
+[no-exit-message]
+[script]
+widgetbook:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{ justfile_directory() }}"
+
+    case "$(uname -s)" in
+      Darwin)
+        exec flutter run -d macos -t lib/widgetbook/main.dart
+        ;;
+      Linux)
+        exec flutter run -d linux -t lib/widgetbook/main.dart
+        ;;
+      *)
+        echo "Unsupported host for 'just widgetbook'. Use 'flutter run -t lib/widgetbook/main.dart' with an explicit device." >&2
+        exit 1
+        ;;
+    esac
+
+alias wb := widgetbook
+
+# Boot the standard iPhone 15 simulator if needed and run Widgetbook on it.
+[no-exit-message]
+[script]
+widgetbook-ios:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{ justfile_directory() }}"
+
+    device_line="$(xcrun simctl list devices available | rg -F "{{ios_simulator}} (" | head -n 1)"
+    if [ -z "$device_line" ]; then
+      echo "No available iOS simulator matched '{{ios_simulator}}'." >&2
+      exit 1
+    fi
+
+    device="$(printf '%s\n' "$device_line" | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')"
+
+    booted="$(xcrun simctl list devices | rg -F '{{ios_simulator}}' | rg 'Booted' || true)"
+    if [ -z "$booted" ]; then
+      open -a Simulator
+      xcrun simctl boot "$device" >/dev/null 2>&1 || true
+    fi
+
+    exec flutter run -d "$device" -t lib/widgetbook/main.dart
+
+alias wb-ios := widgetbook-ios
+
 # Generate launcher icons from icon.png.
 [no-exit-message]
 [script]
