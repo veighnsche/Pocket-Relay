@@ -102,6 +102,7 @@ class ChatSessionController extends ChangeNotifier {
 
   Future<void> _initializeOnce() async {
     if (!_isLoading) {
+      await _persistInitialConversationSelectionIfNeeded();
       await _restoreInitialConversationIfNeeded();
       return;
     }
@@ -115,7 +116,19 @@ class ChatSessionController extends ChangeNotifier {
     _secrets = savedProfile.secrets;
     _isLoading = false;
     notifyListeners();
+    await _persistInitialConversationSelectionIfNeeded();
     await _restoreInitialConversationIfNeeded();
+  }
+
+  Future<void> _persistInitialConversationSelectionIfNeeded() async {
+    final threadId = _resumeConversationThreadId();
+    if (threadId == null) {
+      return;
+    }
+
+    await _conversationSelection.recordConversationSelection(
+      threadId: threadId,
+    );
   }
 
   Future<void> saveObservedHostFingerprint(String blockId) async {

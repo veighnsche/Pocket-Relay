@@ -2390,6 +2390,15 @@ Color? _findDecoratedContainerColorForText(WidgetTester tester, String text) {
     }
   }
 
+  for (final ink in tester.widgetList<Ink>(
+    find.ancestor(of: find.text(text), matching: find.byType(Ink)),
+  )) {
+    final decoration = ink.decoration;
+    if (decoration is BoxDecoration && decoration.color != null) {
+      return decoration.color;
+    }
+  }
+
   for (final container in tester.widgetList<Container>(
     find.ancestor(of: find.text(text), matching: find.byType(Container)),
   )) {

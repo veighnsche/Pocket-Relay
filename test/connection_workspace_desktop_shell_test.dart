@@ -55,7 +55,7 @@ void main() {
   });
 
   testWidgets(
-    'desktop shell starts fresh instead of auto-restoring a persisted selectedThreadId',
+    'desktop shell restores a persisted selectedThreadId into the live lane',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
@@ -81,17 +81,21 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Restored answer'), findsNothing);
-      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(find.text('Restored answer'), findsOneWidget);
+      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
+        'thread_saved',
+      ]);
       expect(
-        await conversationStateStore.loadState('conn_primary'),
-        const SavedConnectionConversationState(),
+        (await conversationStateStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_saved',
       );
     },
   );
 
   testWidgets(
-    'desktop shell does not surface unavailable-history chrome for a conversation the user did not explicitly resume',
+    'desktop shell surfaces unavailable-history chrome for a persisted selectedThreadId with no transcript',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
@@ -122,12 +126,16 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Transcript history unavailable'), findsNothing);
-      expect(find.text('Retry load'), findsNothing);
-      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(find.text('Transcript history unavailable'), findsOneWidget);
+      expect(find.text('Retry load'), findsOneWidget);
+      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
+        'thread_empty',
+      ]);
       expect(
-        await conversationStateStore.loadState('conn_primary'),
-        const SavedConnectionConversationState(),
+        (await conversationStateStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_empty',
       );
     },
   );

@@ -210,9 +210,70 @@ void main() {
   );
 
   testWidgets(
-    'startup ignores a persisted saved conversation until the user explicitly resumes one',
+    'startup restores a persisted saved conversation before sending',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_old'] = const CodexAppServerThreadHistory(
+          id: 'thread_old',
+          name: 'Saved conversation',
+          sourceKind: 'app-server',
+          turns: <CodexAppServerHistoryTurn>[
+            CodexAppServerHistoryTurn(
+              id: 'turn_saved',
+              status: 'completed',
+              items: <CodexAppServerHistoryItem>[
+                CodexAppServerHistoryItem(
+                  id: 'item_user',
+                  type: 'user_message',
+                  status: 'completed',
+                  raw: <String, dynamic>{
+                    'id': 'item_user',
+                    'type': 'user_message',
+                    'status': 'completed',
+                    'content': <Object>[
+                      <String, Object?>{'text': 'Restore this'},
+                    ],
+                  },
+                ),
+                CodexAppServerHistoryItem(
+                  id: 'item_assistant',
+                  type: 'agent_message',
+                  status: 'completed',
+                  raw: <String, dynamic>{
+                    'id': 'item_assistant',
+                    'type': 'agent_message',
+                    'status': 'completed',
+                    'content': <Object>[
+                      <String, Object?>{'text': 'Restored answer'},
+                    ],
+                  },
+                ),
+              ],
+              raw: <String, dynamic>{
+                'id': 'turn_saved',
+                'status': 'completed',
+                'items': <Object>[
+                  <String, Object?>{
+                    'id': 'item_user',
+                    'type': 'user_message',
+                    'status': 'completed',
+                    'content': <Object>[
+                      <String, Object?>{'text': 'Restore this'},
+                    ],
+                  },
+                  <String, Object?>{
+                    'id': 'item_assistant',
+                    'type': 'agent_message',
+                    'status': 'completed',
+                    'content': <Object>[
+                      <String, Object?>{'text': 'Restored answer'},
+                    ],
+                  },
+                ],
+              },
+            ),
+          ],
+        );
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
@@ -230,6 +291,7 @@ void main() {
       );
 
       await _pumpAppReady(tester);
+      expect(find.text('Restored answer'), findsOneWidget);
 
       final composerField = find.byKey(const ValueKey('composer_input'));
       await tester.enterText(composerField, 'Start fresh from this lane');
@@ -241,7 +303,7 @@ void main() {
       expect(appServerClient.startSessionCalls, 1);
       expect(
         appServerClient.startSessionRequests.single.resumeThreadId,
-        isNull,
+        'thread_old',
       );
       expect(appServerClient.sentMessages, <String>[
         'Start fresh from this lane',

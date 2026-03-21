@@ -305,8 +305,12 @@ Map<String, FakeCodexAppServerClient> _buildClientsById([
 ]) {
   return <String, FakeCodexAppServerClient>{
     firstConnectionId: FakeCodexAppServerClient(),
-    if (secondConnectionId != null)
-      secondConnectionId: FakeCodexAppServerClient(),
+    ...?switch (secondConnectionId) {
+      final id? => <String, FakeCodexAppServerClient>{
+        id: FakeCodexAppServerClient(),
+      },
+      null => null,
+    },
   };
 }
 

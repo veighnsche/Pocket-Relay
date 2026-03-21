@@ -60,7 +60,7 @@ void main() {
   });
 
   test(
-    'initialization opens the first live lane fresh instead of auto-resuming persisted history',
+    'initialization restores persisted historical transcript into the first live lane',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
@@ -87,21 +87,36 @@ void main() {
 
       await binding!.sessionController.initialize();
 
-      expect(clientsById['conn_primary']?.connectCalls, 0);
-      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
-      expect(binding.sessionController.transcriptBlocks, isEmpty);
-      expect(binding.sessionController.sessionState.rootThreadId, isNull);
+      expect(clientsById['conn_primary']?.connectCalls, 1);
+      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
+        'thread_saved',
+      ]);
       expect(
-        await historyStore.loadState('conn_primary'),
-        const SavedConnectionConversationState(),
+        binding.sessionController.transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .single
+            .body,
+        'Restored answer',
+      );
+      expect(
+        binding.sessionController.sessionState.rootThreadId,
+        'thread_saved',
+      );
+      expect(
+        (await historyStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_saved',
       );
     },
   );
 
   test(
-    'instantiating a dormant connection selects it without affecting existing live lanes',
+    'instantiating a dormant connection restores its persisted historical transcript',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_secondary']!.threadHistoriesById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
       final historyStore = MemoryCodexConnectionConversationStateStore(
         initialStates: <String, SavedConnectionConversationState>{
           'conn_secondary': const SavedConnectionConversationState(
@@ -135,17 +150,28 @@ void main() {
         same(firstBinding),
       );
       expect(controller.bindingForConnectionId('conn_secondary'), isNotNull);
-      expect(clientsById['conn_secondary']?.readThreadCalls, isEmpty);
+      await controller
+          .bindingForConnectionId('conn_secondary')!
+          .sessionController
+          .initialize();
+      expect(clientsById['conn_secondary']?.readThreadCalls, <String>[
+        'thread_saved',
+      ]);
       expect(
         controller
             .bindingForConnectionId('conn_secondary')
             ?.sessionController
-            .transcriptBlocks,
-        isEmpty,
+            .transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .single
+            .body,
+        'Restored answer',
       );
       expect(
-        await historyStore.loadState('conn_secondary'),
-        const SavedConnectionConversationState(),
+        (await historyStore.loadState(
+          'conn_secondary',
+        )).normalizedSelectedThreadId,
+        'thread_saved',
       );
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
     },
@@ -1014,14 +1040,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
         ],
       );
   final seededHistoryStore =
-      historyStore ??
-      MemoryCodexConnectionConversationStateStore(
-        initialStates: <String, SavedConnectionConversationState>{
-          'conn_secondary': const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        },
-      );
+      historyStore ?? MemoryCodexConnectionConversationStateStore();
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
