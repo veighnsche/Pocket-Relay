@@ -15,6 +15,7 @@ import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_f
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/session_status_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/turn_boundary_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/user_input_result_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
@@ -79,35 +80,75 @@ void main() {
     expect(codeStyle?.color, const Color(0xFFE7F3F4));
   });
 
-  testWidgets('renders status blocks as flat transcript annotations', (
+  testWidgets(
+    'renders context-compaction blocks as dedicated transcript surfaces',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: _entryCard(
+            block: CodexStatusBlock(
+              id: 'status_1',
+              createdAt: DateTime(2026, 3, 14, 12),
+              title: 'Context compacted',
+              body: 'Older transcript context was compacted upstream.',
+              statusKind: CodexStatusBlockKind.compaction,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(ContextCompactedCard), findsOneWidget);
+      expect(find.text('Context compacted'), findsOneWidget);
+      expect(
+        find.text('Older transcript context was compacted upstream.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('renders review status blocks as dedicated transcript surfaces', (
     tester,
   ) async {
     await tester.pumpWidget(
       _buildTestApp(
         child: _entryCard(
           block: CodexStatusBlock(
-            id: 'status_1',
+            id: 'status_review_1',
             createdAt: DateTime(2026, 3, 14, 12),
-            title: 'Context compacted',
-            body: 'Older transcript context was compacted upstream.',
-            statusKind: CodexStatusBlockKind.compaction,
+            title: 'Review started',
+            body: 'Checking the patch set',
+            statusKind: CodexStatusBlockKind.review,
           ),
         ),
       ),
     );
 
-    expect(find.text('Context compacted'), findsOneWidget);
-    expect(
-      find.text('Older transcript context was compacted upstream.'),
-      findsOneWidget,
-    );
-    expect(
-      _findDecoratedContainerColorForText(
-        tester,
-        'Older transcript context was compacted upstream.',
+    expect(find.byType(ReviewStatusCard), findsOneWidget);
+    expect(find.text('Review started'), findsOneWidget);
+    expect(find.text('Checking the patch set'), findsOneWidget);
+  });
+
+  testWidgets('renders session info blocks as dedicated transcript surfaces', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexStatusBlock(
+            id: 'status_info_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'New thread',
+            body: 'Resume the previous task.',
+            statusKind: CodexStatusBlockKind.info,
+            isTranscriptSignal: true,
+          ),
+        ),
       ),
-      isNull,
     );
+
+    expect(find.byType(SessionInfoCard), findsOneWidget);
+    expect(find.text('New thread'), findsOneWidget);
+    expect(find.text('Resume the previous task.'), findsOneWidget);
   });
 
   testWidgets('renders error blocks as flat transcript annotations', (

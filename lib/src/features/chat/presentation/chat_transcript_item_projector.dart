@@ -57,9 +57,7 @@ class ChatTranscriptItemProjector {
       final CodexSshTranscriptBlock sshBlock => ChatSshItemContract(
         block: sshBlock,
       ),
-      final CodexStatusBlock statusBlock => ChatStatusItemContract(
-        block: statusBlock,
-      ),
+      final CodexStatusBlock statusBlock => _projectStatusItem(statusBlock),
       final CodexErrorBlock errorBlock => ChatErrorItemContract(
         block: errorBlock,
       ),
@@ -77,6 +75,18 @@ class ChatTranscriptItemProjector {
         ChatApprovalRequestItemContract(request: approvalRequest),
       final ChatUserInputRequestContract userInputRequest =>
         ChatUserInputRequestItemContract(request: userInputRequest),
+    };
+  }
+
+  ChatTranscriptItemContract _projectStatusItem(CodexStatusBlock block) {
+    return switch (block.statusKind) {
+      CodexStatusBlockKind.review => ChatReviewStatusItemContract(block: block),
+      CodexStatusBlockKind.compaction => ChatContextCompactedItemContract(
+        block: block,
+      ),
+      CodexStatusBlockKind.info => ChatSessionInfoItemContract(block: block),
+      CodexStatusBlockKind.warning ||
+      CodexStatusBlockKind.auth => ChatStatusItemContract(block: block),
     };
   }
 }

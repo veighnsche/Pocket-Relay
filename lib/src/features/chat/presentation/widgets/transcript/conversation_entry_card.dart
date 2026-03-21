@@ -11,6 +11,7 @@ import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/c
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/plan_update_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/proposed_plan_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/reasoning_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/session_status_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/ssh/ssh_card_host.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/status_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/tool_activity_card.dart';
@@ -106,6 +107,14 @@ class ConversationEntryCard extends StatelessWidget {
         block: sshItem.block,
         onSaveFingerprint: onSaveHostFingerprint,
         onOpenConnectionSettings: onConfigure,
+      ),
+      final ChatReviewStatusItemContract reviewItem => ReviewStatusCard(
+        block: reviewItem.block,
+      ),
+      final ChatContextCompactedItemContract compactionItem =>
+        ContextCompactedCard(block: compactionItem.block),
+      final ChatSessionInfoItemContract sessionInfoItem => SessionInfoCard(
+        block: sessionInfoItem.block,
       ),
       final ChatStatusItemContract statusItem => StatusCard(
         block: statusItem.block,

@@ -992,6 +992,66 @@ void main() {
       },
     );
 
+    test('projects review status blocks into dedicated review items', () {
+      final item = projector.project(
+        CodexStatusBlock(
+          id: 'status_review',
+          createdAt: DateTime(2026, 3, 15, 12),
+          title: 'Review started',
+          body: 'Checking the patch set',
+          statusKind: CodexStatusBlockKind.review,
+        ),
+      );
+
+      expect(item, isA<ChatReviewStatusItemContract>());
+    });
+
+    test(
+      'projects compaction status blocks into dedicated context-compacted items',
+      () {
+        final item = projector.project(
+          CodexStatusBlock(
+            id: 'status_compaction',
+            createdAt: DateTime(2026, 3, 15, 12),
+            title: 'Context compacted',
+            body: 'Codex compacted the current thread context.',
+            statusKind: CodexStatusBlockKind.compaction,
+          ),
+        );
+
+        expect(item, isA<ChatContextCompactedItemContract>());
+      },
+    );
+
+    test('projects info status blocks into dedicated session-info items', () {
+      final item = projector.project(
+        CodexStatusBlock(
+          id: 'status_info',
+          createdAt: DateTime(2026, 3, 15, 12),
+          title: 'New thread',
+          body: 'Resume the previous task.',
+          statusKind: CodexStatusBlockKind.info,
+          isTranscriptSignal: true,
+        ),
+      );
+
+      expect(item, isA<ChatSessionInfoItemContract>());
+    });
+
+    test('keeps warning status blocks on the generic status surface', () {
+      final item = projector.project(
+        CodexStatusBlock(
+          id: 'status_warning',
+          createdAt: DateTime(2026, 3, 15, 12),
+          title: 'Warning',
+          body: 'The command exceeded the preferred timeout.',
+          statusKind: CodexStatusBlockKind.warning,
+        ),
+      );
+
+      expect(item, isA<ChatStatusItemContract>());
+    });
+
     test('projects sed -ne read commands into read work-log entries', () {
       final groupBlock = CodexWorkLogGroupBlock(
         id: 'worklog_sed_ne',
