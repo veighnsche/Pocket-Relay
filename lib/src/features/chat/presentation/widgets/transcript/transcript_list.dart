@@ -105,6 +105,7 @@ class _TranscriptListState extends State<TranscriptList> {
             onNotification: _handleTranscriptScrollNotification,
             child: ListView.separated(
               controller: _scrollController,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
               itemBuilder: (context, index) {
                 final item = widget.surface.mainItems[index];
@@ -130,6 +131,8 @@ class _TranscriptListState extends State<TranscriptList> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 220),
               child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 child: Column(
                   children: widget.surface.pinnedItems.indexed
                       .map((entry) {

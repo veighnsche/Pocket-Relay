@@ -197,6 +197,52 @@ void main() {
     );
     expect(sendSize, const Size(36, 36));
   });
+
+  testWidgets('tapping outside the composer input dismisses focus', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildComposerApp(
+        contract: _composerContract(),
+        includeOutsideTapTarget: true,
+      ),
+    );
+
+    final fieldFinder = find.byType(TextField);
+
+    await tester.tap(fieldFinder);
+    await tester.pump();
+
+    expect(_editableTextFocusNode(tester).hasFocus, isTrue);
+
+    await tester.tapAt(const Offset(24, 24));
+    await tester.pump();
+
+    expect(_editableTextFocusNode(tester).hasFocus, isFalse);
+  });
+
+  testWidgets('send dismisses composer focus on mobile', (tester) async {
+    await tester.pumpWidget(
+      _buildComposerApp(
+        platform: TargetPlatform.android,
+        contract: _composerContract(),
+      ),
+    );
+
+    final fieldFinder = find.byType(TextField);
+
+    await tester.tap(fieldFinder);
+    await tester.pump();
+    await tester.enterText(fieldFinder, 'Mobile draft');
+    await tester.pump();
+
+    expect(_editableTextFocusNode(tester).hasFocus, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('send')));
+    await tester.pump();
+
+    expect(_editableTextFocusNode(tester).hasFocus, isFalse);
+  });
 }
 
 Widget _buildComposerApp({
@@ -204,15 +250,29 @@ Widget _buildComposerApp({
   TargetPlatform platform = TargetPlatform.android,
   ValueChanged<String>? onChanged,
   Future<void> Function()? onSend,
+  bool includeOutsideTapTarget = false,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(Brightness.light).copyWith(platform: platform),
     home: Scaffold(
-      body: ChatComposer(
-        platformBehavior: PocketPlatformBehavior.resolve(platform: platform),
-        contract: contract,
-        onChanged: onChanged ?? (_) {},
-        onSend: onSend ?? () async {},
+      body: Column(
+        children: [
+          if (includeOutsideTapTarget)
+            const Expanded(
+              child: SizedBox(
+                key: ValueKey('outside_tap_target'),
+                width: double.infinity,
+              ),
+            ),
+          ChatComposer(
+            platformBehavior: PocketPlatformBehavior.resolve(
+              platform: platform,
+            ),
+            contract: contract,
+            onChanged: onChanged ?? (_) {},
+            onSend: onSend ?? () async {},
+          ),
+        ],
       ),
     ),
   );

@@ -97,6 +97,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
               minLines: 1,
               maxLines: 6,
               textInputAction: TextInputAction.newline,
+              onTapOutside: (_) => _dismissKeyboard(),
               onChanged: _handleChanged,
               decoration: InputDecoration(
                 hintText: widget.contract.placeholder,
@@ -114,7 +115,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
             height: 36,
             child: IconButton.filled(
               key: const ValueKey('send'),
-              onPressed: _isSendActionEnabled ? widget.onSend : null,
+              onPressed: _isSendActionEnabled ? _handleSendTriggered : null,
               padding: EdgeInsets.zero,
               icon: const Icon(Icons.arrow_upward_rounded, size: 18),
             ),
@@ -157,7 +158,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
               return null;
             }
 
-            unawaited(widget.onSend());
+            unawaited(_handleSendTriggered());
             return null;
           },
         ),
@@ -198,6 +199,15 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   void _handleChanged(String value) {
     setState(() {});
     widget.onChanged(value);
+  }
+
+  Future<void> _handleSendTriggered() async {
+    _dismissKeyboard();
+    await widget.onSend();
+  }
+
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   void _insertTextAtSelection(String insertedText) {
