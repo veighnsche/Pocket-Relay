@@ -472,6 +472,104 @@ void main() {
   );
 
   test(
+    'reconnectConnection rehydrates the saved transcript selection on the recreated lane',
+    () async {
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: _profile('Secondary Box', 'secondary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+      );
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore(
+            initialStates: <String, SavedConnectionConversationState>{
+              'conn_primary': const SavedConnectionConversationState(
+                selectedThreadId: 'thread_saved',
+              ),
+            },
+          );
+      final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
+        'conn_primary': <FakeCodexAppServerClient>[],
+        'conn_secondary': <FakeCodexAppServerClient>[],
+      };
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        connectionConversationStateStore: conversationStateStore,
+        laneBindingFactory:
+            ({
+              required connectionId,
+              required connection,
+              required conversationState,
+            }) {
+              final appServerClient = FakeCodexAppServerClient()
+                ..threadHistoriesById['thread_saved'] =
+                    _savedConversationThread(threadId: 'thread_saved');
+              clientsByConnectionId[connectionId]!.add(appServerClient);
+              return ConnectionLaneBinding(
+                connectionId: connectionId,
+                profileStore: ConnectionScopedProfileStore(
+                  connectionId: connectionId,
+                  connectionRepository: repository,
+                ),
+                conversationStateStore: ConnectionScopedConversationStateStore(
+                  connectionId: connectionId,
+                  conversationStateStore: conversationStateStore,
+                ),
+                appServerClient: appServerClient,
+                initialSavedProfile: SavedProfile(
+                  profile: connection.profile,
+                  secrets: connection.secrets,
+                ),
+                initialConversationState: conversationState,
+                ownsAppServerClient: false,
+              );
+            },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClientLists(clientsByConnectionId);
+      });
+
+      await controller.initialize();
+      await controller.saveLiveConnectionEdits(
+        connectionId: 'conn_primary',
+        profile: _profile('Primary Renamed', 'primary.changed'),
+        secrets: const ConnectionSecrets(password: 'updated-secret'),
+      );
+
+      await controller.reconnectConnection('conn_primary');
+
+      final nextBinding = controller.bindingForConnectionId('conn_primary');
+      expect(nextBinding, isNotNull);
+      expect(clientsByConnectionId['conn_primary'], hasLength(2));
+      expect(
+        clientsByConnectionId['conn_primary']!.last.readThreadCalls,
+        <String>['thread_saved'],
+      );
+      expect(
+        nextBinding!.sessionController.transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .single
+            .body,
+        'Restored answer',
+      );
+      expect(
+        nextBinding.sessionController.sessionState.rootThreadId,
+        'thread_saved',
+      );
+      expect(controller.state.requiresReconnect('conn_primary'), isFalse);
+    },
+  );
+
+  test(
     'deleteDormantConnection removes the saved definition and handoff',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -578,6 +676,10 @@ void main() {
       );
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
       expect(clientsByConnectionId['conn_primary']!.last.disconnectCalls, 0);
+      expect(
+        clientsByConnectionId['conn_primary']!.last.readThreadCalls,
+        <String>['thread_resumed'],
+      );
       expect(
         nextBinding!.sessionController.transcriptBlocks
             .whereType<CodexTextBlock>()
@@ -749,6 +851,10 @@ void main() {
       restoreGate.complete();
       await resumeFuture;
 
+      expect(
+        clientsByConnectionId['conn_primary']!.last.readThreadCalls,
+        <String>['thread_resumed'],
+      );
       expect(
         nextBinding.sessionController.historicalConversationRestoreState,
         isNull,

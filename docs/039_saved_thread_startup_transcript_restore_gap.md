@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted follow-up gap report and implementation plan.
+Completed follow-up implementation and verification.
 
 This document narrows the remaining historical-transcript work after PR 7.
 
@@ -10,6 +10,18 @@ The broader architecture plan in
 `docs/032_codex_history_transcript_restoration_upgrade_plan.md` remains
 correct. The `thread/read` contract capture work in
 `docs/033_thread-read-contract-phase-0.md` is also complete.
+
+The restore gap documented here is now closed.
+
+Implemented result:
+
+- `ChatSessionController.initialize()` now restores persisted
+  `selectedThreadId` history on startup instead of waiting for the next
+  `sendPrompt()`
+- recreated lanes now reuse the same initialization-owned historical restore
+  rule during resume and reconnect flows
+- focused controller and widget tests now cover startup restore, unavailable
+  upstream history, reconnect rehydration, and live-lane replacement restore
 
 What is not complete is the product behavior for one critical restore path:
 

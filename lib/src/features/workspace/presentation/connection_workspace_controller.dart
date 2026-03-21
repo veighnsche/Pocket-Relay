@@ -210,6 +210,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         ),
       ),
     );
+    await nextBinding.sessionController.initialize();
+    if (_isDisposed) {
+      return;
+    }
   }
 
   Future<void> resumeConversation({
@@ -266,9 +270,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         ),
       );
       previousBinding.dispose();
-      await nextBinding.sessionController.selectConversationForResume(
-        normalizedThreadId,
-      );
+      await nextBinding.sessionController.initialize();
       if (_isDisposed) {
         return;
       }
@@ -357,9 +359,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       ),
     );
     if (resumeThreadId case final normalizedThreadId?) {
-      await binding.sessionController.selectConversationForResume(
-        normalizedThreadId,
-      );
+      await binding.sessionController.initialize();
       if (_isDisposed) {
         return;
       }

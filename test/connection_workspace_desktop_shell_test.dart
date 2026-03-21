@@ -55,6 +55,80 @@ void main() {
   });
 
   testWidgets(
+    'desktop shell shows the restored historical transcript on startup when selectedThreadId is persisted',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore(
+            initialStates: <String, SavedConnectionConversationState>{
+              'conn_primary': const SavedConnectionConversationState(
+                selectedThreadId: 'thread_saved',
+              ),
+            },
+          );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        conversationStateStore: conversationStateStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restored answer'), findsOneWidget);
+      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
+        'thread_saved',
+      ]);
+    },
+  );
+
+  testWidgets(
+    'desktop shell shows the honest unavailable-history notice on startup when Codex returns no usable turns',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
+          const CodexAppServerThreadHistory(
+            id: 'thread_empty',
+            name: 'Empty conversation',
+            sourceKind: 'app-server',
+            turns: <CodexAppServerHistoryTurn>[],
+          );
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore(
+            initialStates: <String, SavedConnectionConversationState>{
+              'conn_primary': const SavedConnectionConversationState(
+                selectedThreadId: 'thread_empty',
+              ),
+            },
+          );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        conversationStateStore: conversationStateStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Transcript history unavailable'), findsOneWidget);
+      expect(find.text('Retry load'), findsOneWidget);
+      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
+        'thread_empty',
+      ]);
+    },
+  );
+
+  testWidgets(
     'macOS sidebar can collapse into a thin rail and still open saved connections',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
