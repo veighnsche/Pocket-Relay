@@ -52,7 +52,8 @@ Future<void> _instantiateWorkspaceConnection(
     return;
   }
   controller._liveBindingsByConnectionId[connectionId] = binding;
-  final nextLiveConnectionIds = controller._orderLiveConnectionIds(
+  final nextLiveConnectionIds = _orderWorkspaceLiveConnectionIds(
+    controller,
     controller._liveBindingsByConnectionId.keys,
   );
   controller._applyState(
@@ -61,13 +62,12 @@ Future<void> _instantiateWorkspaceConnection(
       liveConnectionIds: nextLiveConnectionIds,
       selectedConnectionId: connectionId,
       viewport: ConnectionWorkspaceViewport.liveLane,
-      reconnectRequiredConnectionIds: controller
-          ._sanitizeReconnectRequiredConnectionIds(
-            catalog: controller._state.catalog,
-            liveConnectionIds: nextLiveConnectionIds,
-            reconnectRequiredConnectionIds:
-                controller._state.reconnectRequiredConnectionIds,
-          ),
+      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+        catalog: controller._state.catalog,
+        liveConnectionIds: nextLiveConnectionIds,
+        reconnectRequiredConnectionIds:
+            controller._state.reconnectRequiredConnectionIds,
+      ),
     ),
   );
   if (activatePersistedConversation) {
@@ -97,17 +97,15 @@ Future<void> _reconnectWorkspaceConnection(
   previousBinding.dispose();
   controller._applyState(
     controller._state.copyWith(
-      reconnectRequiredConnectionIds: controller
-          ._sanitizeReconnectRequiredConnectionIds(
-            catalog: controller._state.catalog,
-            liveConnectionIds: controller._state.liveConnectionIds,
-            reconnectRequiredConnectionIds: <String>{
-              for (final reconnectConnectionId
-                  in controller._state.reconnectRequiredConnectionIds)
-                if (reconnectConnectionId != connectionId)
-                  reconnectConnectionId,
-            },
-          ),
+      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+        catalog: controller._state.catalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        reconnectRequiredConnectionIds: <String>{
+          for (final reconnectConnectionId
+              in controller._state.reconnectRequiredConnectionIds)
+            if (reconnectConnectionId != connectionId) reconnectConnectionId,
+        },
+      ),
     ),
   );
   await nextBinding.initializeSession();
@@ -138,17 +136,15 @@ Future<void> _resumeWorkspaceConversation(
       controller._state.copyWith(
         selectedConnectionId: connectionId,
         viewport: ConnectionWorkspaceViewport.liveLane,
-        reconnectRequiredConnectionIds: controller
-            ._sanitizeReconnectRequiredConnectionIds(
-              catalog: controller._state.catalog,
-              liveConnectionIds: controller._state.liveConnectionIds,
-              reconnectRequiredConnectionIds: <String>{
-                for (final reconnectConnectionId
-                    in controller._state.reconnectRequiredConnectionIds)
-                  if (reconnectConnectionId != connectionId)
-                    reconnectConnectionId,
-              },
-            ),
+        reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+          catalog: controller._state.catalog,
+          liveConnectionIds: controller._state.liveConnectionIds,
+          reconnectRequiredConnectionIds: <String>{
+            for (final reconnectConnectionId
+                in controller._state.reconnectRequiredConnectionIds)
+              if (reconnectConnectionId != connectionId) reconnectConnectionId,
+          },
+        ),
       ),
     );
     previousBinding.dispose();
@@ -178,13 +174,12 @@ Future<void> _deleteDormantWorkspaceConnection(
     controller._state.copyWith(
       isLoading: false,
       catalog: nextCatalog,
-      reconnectRequiredConnectionIds: controller
-          ._sanitizeReconnectRequiredConnectionIds(
-            catalog: nextCatalog,
-            liveConnectionIds: controller._state.liveConnectionIds,
-            reconnectRequiredConnectionIds:
-                controller._state.reconnectRequiredConnectionIds,
-          ),
+      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        reconnectRequiredConnectionIds:
+            controller._state.reconnectRequiredConnectionIds,
+      ),
     ),
   );
 }
