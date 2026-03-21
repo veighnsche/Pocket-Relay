@@ -55,7 +55,7 @@ void main() {
   });
 
   testWidgets(
-    'desktop shell shows the restored historical transcript on startup when selectedThreadId is persisted',
+    'desktop shell starts fresh instead of auto-restoring a persisted selectedThreadId',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
@@ -81,15 +81,17 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Restored answer'), findsOneWidget);
-      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
-        'thread_saved',
-      ]);
+      expect(find.text('Restored answer'), findsNothing);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(
+        await conversationStateStore.loadState('conn_primary'),
+        const SavedConnectionConversationState(),
+      );
     },
   );
 
   testWidgets(
-    'desktop shell shows the honest unavailable-history notice on startup when Codex returns no usable turns',
+    'desktop shell does not surface unavailable-history chrome for a conversation the user did not explicitly resume',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
@@ -120,11 +122,13 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Transcript history unavailable'), findsOneWidget);
-      expect(find.text('Retry load'), findsOneWidget);
-      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
-        'thread_empty',
-      ]);
+      expect(find.text('Transcript history unavailable'), findsNothing);
+      expect(find.text('Retry load'), findsNothing);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(
+        await conversationStateStore.loadState('conn_primary'),
+        const SavedConnectionConversationState(),
+      );
     },
   );
 
@@ -418,6 +422,81 @@ void main() {
             .body,
         'Restored answer',
       );
+    },
+  );
+
+  testWidgets(
+    'desktop conversation history resume primes the lane so the next send stays on that conversation',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          conversationHistoryRepository:
+              FakeCodexWorkspaceConversationHistoryRepository(
+                conversations: <CodexWorkspaceConversationSummary>[
+                  CodexWorkspaceConversationSummary(
+                    threadId: 'thread_saved',
+                    preview: 'Saved backend thread',
+                    cwd: '/workspace',
+                    promptCount: 3,
+                    firstPromptAt: DateTime(2026, 3, 20, 9),
+                    lastActivityAt: DateTime(2026, 3, 20, 11),
+                  ),
+                ],
+              ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Conversation history'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('workspace_conversation_thread_saved')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(clientsById['conn_primary']!.startSessionCalls, 1);
+      expect(
+        clientsById['conn_primary']!.startSessionRequests.single.resumeThreadId,
+        'thread_saved',
+      );
+
+      expect(
+        await controller.selectedLaneBinding!.sessionController.sendPrompt(
+          'Continue this thread',
+        ),
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      expect(clientsById['conn_primary']!.startSessionCalls, 1);
+      expect(clientsById['conn_primary']!.sentTurns, <
+        ({
+          String threadId,
+          String text,
+          String? model,
+          CodexReasoningEffort? effort,
+        })
+      >[
+        (
+          threadId: 'thread_saved',
+          text: 'Continue this thread',
+          model: null,
+          effort: null,
+        ),
+      ]);
     },
   );
 

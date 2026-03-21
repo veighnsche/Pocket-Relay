@@ -300,6 +300,38 @@ class ChatSessionController extends ChangeNotifier {
     await _restoreConversationTranscript(threadId);
   }
 
+  Future<void> prepareSelectedConversationForContinuation() async {
+    if (_historicalConversationRestoreState != null) {
+      return;
+    }
+
+    final targetThreadId =
+        _activeConversationThreadId() ?? _resumeConversationThreadId();
+    if (targetThreadId == null) {
+      return;
+    }
+
+    final trackedThreadId = _normalizedThreadId(appServerClient.threadId);
+    if (appServerClient.isConnected && trackedThreadId == targetThreadId) {
+      return;
+    }
+
+    try {
+      await _ensureAppServerThread();
+      _clearConversationRecovery();
+    } catch (error) {
+      final recoveryAssessment = _conversationRecoveryPolicy.assessSendFailure(
+        error: error,
+        sessionState: _sessionState,
+        sessionLabel: _sessionLabel(),
+        preferredAlternateThreadId: appServerClient.threadId,
+      );
+      if (recoveryAssessment.recoveryState != null) {
+        _setConversationRecovery(recoveryAssessment.recoveryState!);
+      }
+    }
+  }
+
   Future<void> approveRequest(String requestId) {
     return _resolveApproval(requestId, approved: true);
   }
@@ -666,14 +698,17 @@ class ChatSessionController extends ChangeNotifier {
     await _ensureAppServerConnected();
 
     final activeThreadId = _activeConversationThreadId();
-    if (activeThreadId != null) {
+    final trackedThreadId = _normalizedThreadId(appServerClient.threadId);
+    if (activeThreadId != null && trackedThreadId == activeThreadId) {
       _rememberContinuationThread(activeThreadId);
       return activeThreadId;
     }
 
-    final resumeThreadId = _conversationSelection.resumeThreadId(
-      ephemeralSession: _profile.ephemeralSession,
-    );
+    final resumeThreadId =
+        activeThreadId ??
+        _conversationSelection.resumeThreadId(
+          ephemeralSession: _profile.ephemeralSession,
+        );
     final session = await appServerClient.startSession(
       model: _selectedModelOverride(),
       reasoningEffort: _profile.reasoningEffort,

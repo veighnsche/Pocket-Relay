@@ -188,6 +188,53 @@ void main() {
   );
 
   test(
+    'sendPrompt resumes the startup-restored conversation before sending',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+
+      expect(
+        await controller.sendPrompt('Continue restored startup lane'),
+        isTrue,
+      );
+      expect(appServerClient.startSessionCalls, 1);
+      expect(
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        'thread_saved',
+      );
+      expect(appServerClient.sentTurns.single, (
+        threadId: 'thread_saved',
+        text: 'Continue restored startup lane',
+        model: null,
+        effort: null,
+      ));
+    },
+  );
+
+  test(
     'initialize surfaces unavailable history for initial selectedThreadId without waiting for sendPrompt',
     () async {
       final appServerClient = FakeCodexAppServerClient()
@@ -334,6 +381,59 @@ void main() {
         'Restored answer',
       );
       expect(controller.sessionState.rootThreadId, 'thread_saved');
+    },
+  );
+
+  test(
+    'sendPrompt resumes the restored conversation after selectConversationForResume',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.selectConversationForResume('thread_saved');
+
+      expect(
+        await controller.sendPrompt('Continue restored conversation'),
+        isTrue,
+      );
+      expect(appServerClient.startSessionCalls, 1);
+      expect(
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        'thread_saved',
+      );
+      expect(appServerClient.sentTurns, <
+        ({
+          String threadId,
+          String text,
+          String? model,
+          CodexReasoningEffort? effort,
+        })
+      >[
+        (
+          threadId: 'thread_saved',
+          text: 'Continue restored conversation',
+          model: null,
+          effort: null,
+        ),
+      ]);
     },
   );
 
@@ -667,6 +767,57 @@ void main() {
         'First prompt',
         'Second prompt',
       ]);
+    },
+  );
+
+  test(
+    'sendPrompt resumes the root thread after the transport drops the tracked thread',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      await appServerClient.disconnect();
+
+      expect(await controller.sendPrompt('Resume after reconnect'), isTrue);
+      expect(appServerClient.connectCalls, 2);
+      expect(appServerClient.startSessionCalls, 2);
+      expect(
+        appServerClient.startSessionRequests.last.resumeThreadId,
+        'thread_123',
+      );
+      expect(appServerClient.sentTurns.last, (
+        threadId: 'thread_123',
+        text: 'Resume after reconnect',
+        model: null,
+        effort: null,
+      ));
     },
   );
 
