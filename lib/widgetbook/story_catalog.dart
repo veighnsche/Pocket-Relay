@@ -14,6 +14,7 @@ import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/assistant_message_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
@@ -236,6 +237,48 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
         WidgetbookFolder(
           name: 'Transcript',
           children: <WidgetbookNode>[
+            WidgetbookComponent(
+              name: 'Transcript Lane',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Desktop Filled Lane',
+                  builder: (_) {
+                    final screen = WidgetbookFixtures.denseTranscriptLaneScreen();
+                    return FlutterChatScreenRenderer(
+                      screen: screen,
+                      appChrome: FlutterChatAppChrome(
+                        screen: screen,
+                        onScreenAction: (_) {},
+                      ),
+                      transcriptRegion: FlutterChatTranscriptRegion(
+                        screen: screen,
+                        platformBehavior: WidgetbookFixtures.desktopBehavior,
+                        onScreenAction: (_) {},
+                        onSelectTimeline: (_) {},
+                        onSelectConnectionMode: (_) {},
+                        onAutoFollowEligibilityChanged: (_) {},
+                        onOpenChangedFileDiff: (_) {},
+                        onApproveRequest: (_) async {},
+                        onDenyRequest: (_) async {},
+                        onSubmitUserInput: (_, answers) async {},
+                        onSaveHostFingerprint: (_) async {},
+                      ),
+                      composerRegion: FlutterChatComposerRegion(
+                        platformBehavior: WidgetbookFixtures.desktopBehavior,
+                        conversationRecoveryNotice: null,
+                        historicalConversationRestoreNotice: null,
+                        composer: screen.composer,
+                        onComposerDraftChanged: (_) {},
+                        onSendPrompt: () async {},
+                        onConversationRecoveryAction: (_) {},
+                        onHistoricalConversationRestoreAction: (_) {},
+                      ),
+                      onStopActiveTurn: () async {},
+                    );
+                  },
+                ),
+              ],
+            ),
             WidgetbookComponent(
               name: 'Assistant Message',
               useCases: <WidgetbookUseCase>[

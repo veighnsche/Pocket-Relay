@@ -4,9 +4,12 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_request_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_work_log_contract.dart';
 
@@ -559,6 +562,83 @@ class WidgetbookFixtures {
       command: 'cd /workspace/Pocket-Relay && pocket-relay app-server --stdio',
       message:
           'The workspace directory could not be found on the remote host. Review the saved workspace path.',
+    );
+  }
+
+  static ChatTranscriptSurfaceContract denseTranscriptSurface() {
+    return ChatTranscriptSurfaceContract(
+      isConfigured: true,
+      mainItems: <ChatTranscriptItemContract>[
+        ChatUserMessageItemContract(block: userMessage()),
+        ChatReasoningItemContract(block: reasoningBlock(isRunning: true)),
+        ChatPlanUpdateItemContract(block: planUpdateBlock()),
+        ChatWorkLogGroupItemContract(id: 'lane_work_log', entries: workLogGroupItem().entries),
+        ChatChangedFilesItemContract(
+          id: 'lane_changed_files',
+          title: changedFilesItem().title,
+          isRunning: false,
+          headerStats: changedFilesItem().headerStats,
+          rows: changedFilesItem().rows,
+        ),
+        ChatAssistantMessageItemContract(
+          block: assistantMessage(
+            body:
+                'I found the regression in the preview wrappers and removed the extra story-owned framing from the lane surfaces.',
+          ),
+        ),
+        ChatSshItemContract(block: sshRemoteLaunchFailedBlock()),
+        ChatStatusItemContract(block: statusBlock()),
+        ChatUsageItemContract(block: usageBlock()),
+        ChatTurnBoundaryItemContract(block: turnBoundaryBlock()),
+      ],
+      pinnedItems: const <ChatTranscriptItemContract>[],
+      pendingRequestPlacement: ChatPendingRequestPlacementContract(
+        visibleApprovalRequest: null,
+        visibleUserInputRequest: null,
+      ),
+      activePendingUserInputRequestIds: const <String>{},
+    );
+  }
+
+  static ChatScreenContract denseTranscriptLaneScreen({
+    PocketPlatformBehavior platformBehavior = desktopBehavior,
+  }) {
+    return ChatScreenContract(
+      isLoading: false,
+      header: const ChatHeaderContract(
+        title: 'Pocket Relay',
+        subtitle: 'Developer Box · relay-dev.internal',
+      ),
+      actions: const <ChatScreenActionContract>[
+        ChatScreenActionContract(
+          id: ChatScreenActionId.openSettings,
+          label: 'Connection settings',
+          placement: ChatScreenActionPlacement.toolbar,
+          tooltip: 'Connection settings',
+          icon: ChatScreenActionIcon.settings,
+        ),
+        ChatScreenActionContract(
+          id: ChatScreenActionId.newThread,
+          label: 'New thread',
+          placement: ChatScreenActionPlacement.menu,
+        ),
+      ],
+      transcriptSurface: denseTranscriptSurface(),
+      transcriptFollow: const ChatTranscriptFollowContract(
+        isAutoFollowEnabled: true,
+        resumeDistance: 72,
+      ),
+      composer: ChatComposerContract(
+        draftText: platformBehavior.usesDesktopKeyboardSubmit
+            ? 'Summarize the lane and call out the highest-risk state.'
+            : '',
+        isSendActionEnabled: true,
+        placeholder: 'Message Pocket Relay',
+      ),
+      connectionSettings: ChatConnectionSettingsLaunchContract(
+        initialProfile: remoteProfile,
+        initialSecrets: passwordSecrets,
+      ),
     );
   }
 }
