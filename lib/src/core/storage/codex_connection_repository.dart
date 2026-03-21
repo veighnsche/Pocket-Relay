@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'shared_preferences_async_migration.dart';
+import 'codex_connection_catalog_recovery.dart';
 
 typedef ConnectionIdGenerator = String Function();
 
@@ -135,13 +134,21 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
   final FlutterSecureStorage _secureStorage;
   final SharedPreferencesAsync _preferences;
   final ConnectionIdGenerator _connectionIdGenerator;
-  Future<void>? _preferencesReady;
+  late final CodexConnectionCatalogRecovery _catalogRecovery =
+      CodexConnectionCatalogRecovery(
+        preferences: _preferences,
+        catalogIndexKey: _catalogIndexKey,
+        catalogSchemaVersion: _catalogSchemaVersion,
+        preferencesMigrationKey: _catalogPreferencesMigrationKey,
+        profileKeyPrefix: _profileKeyPrefix,
+        profileKeySuffix: _profileKeySuffix,
+      );
 
   @override
   Future<ConnectionCatalogState> loadCatalog() async {
-    await _ensurePreferencesReady();
+    await _catalogRecovery.ensurePreferencesReady();
 
-    final seededCatalog = await _loadCatalogFromPreferences();
+    final seededCatalog = await _catalogRecovery.loadCatalog();
     if (seededCatalog case final existingCatalog?
         when existingCatalog.isNotEmpty) {
       return existingCatalog;
@@ -165,7 +172,9 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
 
     await _persistConnectionProfile(seededConnection);
     await _persistConnectionSecrets(seededConnection);
-    await _persistCatalogIndex(nextCatalog.orderedConnectionIds);
+    await _catalogRecovery.persistCatalogIndex(
+      nextCatalog.orderedConnectionIds,
+    );
     return nextCatalog;
   }
 
@@ -223,7 +232,9 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
 
     await _persistConnectionProfile(normalizedConnection);
     await _persistConnectionSecrets(normalizedConnection);
-    await _persistCatalogIndex(nextCatalog.orderedConnectionIds);
+    await _catalogRecovery.persistCatalogIndex(
+      nextCatalog.orderedConnectionIds,
+    );
   }
 
   @override
@@ -246,162 +257,8 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
 
     await _deleteConnectionPreferences(normalizedConnectionId);
     await _deleteConnectionSecrets(normalizedConnectionId);
-    await _persistCatalogIndex(nextCatalog.orderedConnectionIds);
-  }
-
-  Future<void> _ensurePreferencesReady() {
-    return _preferencesReady ??= ensureSharedPreferencesAsyncReady(
-      migrationCompletedKey: _catalogPreferencesMigrationKey,
-    );
-  }
-
-  Future<ConnectionCatalogState?> _loadCatalogFromPreferences() async {
-    final rawIndex = await _preferences.getString(_catalogIndexKey);
-    final profileConnectionIds = await _discoverProfileConnectionIds();
-
-    if (rawIndex == null || rawIndex.trim().isEmpty) {
-      if (profileConnectionIds.isEmpty) {
-        return null;
-      }
-
-      final recoveredCatalog = await _buildCatalog(profileConnectionIds);
-      await _persistCatalogIndex(recoveredCatalog.orderedConnectionIds);
-      return recoveredCatalog;
-    }
-
-    final orderedConnectionIds = _decodeCatalogIndex(rawIndex);
-    final extraConnectionIds =
-        profileConnectionIds
-            .where((id) => !orderedConnectionIds.contains(id))
-            .toList(growable: false)
-          ..sort();
-    final candidateConnectionIds = <String>[
-      ...orderedConnectionIds,
-      ...extraConnectionIds,
-    ];
-    final catalog = await _buildCatalog(candidateConnectionIds);
-
-    if (!listEquals(catalog.orderedConnectionIds, orderedConnectionIds)) {
-      await _persistCatalogIndex(catalog.orderedConnectionIds);
-    }
-
-    return catalog;
-  }
-
-  Future<ConnectionCatalogState> _buildCatalog(
-    List<String> candidateConnectionIds,
-  ) async {
-    if (candidateConnectionIds.isEmpty) {
-      return const ConnectionCatalogState.empty();
-    }
-
-    final profileValues = await _preferences.getAll(
-      allowList: candidateConnectionIds.map(_profileKeyForConnection).toSet(),
-    );
-    final orderedConnectionIds = <String>[];
-    final connectionsById = <String, SavedConnectionSummary>{};
-
-    for (final connectionId in candidateConnectionIds) {
-      final rawProfile = profileValues[_profileKeyForConnection(connectionId)];
-      if (rawProfile is! String || rawProfile.trim().isEmpty) {
-        continue;
-      }
-
-      orderedConnectionIds.add(connectionId);
-      final profile = _normalizeLegacySeededProfile(
-        ConnectionProfile.fromJson(
-          jsonDecode(rawProfile) as Map<String, dynamic>,
-        ),
-      );
-      connectionsById[connectionId] = SavedConnectionSummary(
-        id: connectionId,
-        profile: profile,
-      );
-    }
-
-    return ConnectionCatalogState(
-      orderedConnectionIds: orderedConnectionIds,
-      connectionsById: connectionsById,
-    );
-  }
-
-  Future<List<String>> _discoverProfileConnectionIds() async {
-    final keys = await _preferences.getKeys();
-    final connectionIds = <String>[];
-
-    for (final key in keys) {
-      if (!key.startsWith(_profileKeyPrefix) ||
-          !key.endsWith(_profileKeySuffix)) {
-        continue;
-      }
-
-      final connectionId = key.substring(
-        _profileKeyPrefix.length,
-        key.length - _profileKeySuffix.length,
-      );
-      final normalizedConnectionId = connectionId.trim();
-      if (normalizedConnectionId.isEmpty) {
-        continue;
-      }
-      connectionIds.add(normalizedConnectionId);
-    }
-
-    connectionIds.sort();
-    return connectionIds;
-  }
-
-  List<String> _decodeCatalogIndex(String rawIndex) {
-    final decoded = jsonDecode(rawIndex);
-    if (decoded is! Map<String, dynamic>) {
-      return const <String>[];
-    }
-
-    final rawOrderedConnectionIds = decoded['orderedConnectionIds'];
-    if (rawOrderedConnectionIds is! List) {
-      return const <String>[];
-    }
-
-    final orderedConnectionIds = <String>[];
-    for (final value in rawOrderedConnectionIds) {
-      if (value is! String) {
-        continue;
-      }
-      final normalizedConnectionId = value.trim();
-      if (normalizedConnectionId.isEmpty ||
-          orderedConnectionIds.contains(normalizedConnectionId)) {
-        continue;
-      }
-      orderedConnectionIds.add(normalizedConnectionId);
-    }
-    return orderedConnectionIds;
-  }
-
-  ConnectionProfile _normalizeLegacySeededProfile(ConnectionProfile profile) {
-    final trimmedWorkspaceDir = profile.workspaceDir.trim();
-    if (!ConnectionProfile.legacyWorkspaceDirPlaceholders.contains(
-      trimmedWorkspaceDir,
-    )) {
-      return profile;
-    }
-
-    final defaults = ConnectionProfile.defaults();
-    final legacySeededProfile = defaults.copyWith(
-      workspaceDir: trimmedWorkspaceDir,
-    );
-    if (profile != legacySeededProfile) {
-      return profile;
-    }
-
-    return defaults;
-  }
-
-  Future<void> _persistCatalogIndex(List<String> orderedConnectionIds) async {
-    await _preferences.setString(
-      _catalogIndexKey,
-      jsonEncode(<String, Object?>{
-        'schemaVersion': _catalogSchemaVersion,
-        'orderedConnectionIds': orderedConnectionIds,
-      }),
+    await _catalogRecovery.persistCatalogIndex(
+      nextCatalog.orderedConnectionIds,
     );
   }
 
