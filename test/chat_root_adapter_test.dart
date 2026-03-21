@@ -360,8 +360,8 @@ void main() {
       await tester.longPress(find.text('Restore this'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Continue From Here'), findsOneWidget);
-      await tester.tap(find.text('Continue'));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pumpAndSettle();
 
       expect(
@@ -378,6 +378,102 @@ void main() {
         'Restore this',
       );
       expect(find.text('Restore this'), findsOneWidget);
+      expect(find.text('Earlier answer only'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'eligible saved prompts show a visible continue from here action',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final laneBinding = ConnectionLaneBinding(
+        connectionId: 'conn_primary',
+        profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        conversationStateStore: const DiscardingCodexConversationStateStore(),
+        appServerClient: appServerClient,
+        initialSavedProfile: _savedProfile(),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(appServerClient.close);
+      addTearDown(laneBinding.dispose);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(TextButton, 'Continue From Here'),
+        findsNWidgets(2),
+      );
+    },
+  );
+
+  testWidgets(
+    'visible continue from here action rewinds from the selected prompt',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final laneBinding = ConnectionLaneBinding(
+        connectionId: 'conn_primary',
+        profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        conversationStateStore: const DiscardingCodexConversationStateStore(),
+        appServerClient: appServerClient,
+        initialSavedProfile: _savedProfile(),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(appServerClient.close);
+      addTearDown(laneBinding.dispose);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      appServerClient.threadHistoriesById['thread_saved'] =
+          _rewoundConversationThread(threadId: 'thread_saved');
+
+      await tester.tap(
+        find.widgetWithText(TextButton, 'Continue From Here').first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.pumpAndSettle();
+
+      expect(
+        appServerClient.rollbackThreadCalls,
+        <({String threadId, int numTurns})>[
+          (threadId: 'thread_saved', numTurns: 2),
+        ],
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('composer_input')))
+            .controller
+            ?.text,
+        'Restore this',
+      );
       expect(find.text('Earlier answer only'), findsOneWidget);
     },
   );
@@ -416,8 +512,8 @@ void main() {
       await tester.longPress(find.text('Restore this'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Continue From Here'), findsOneWidget);
-      await tester.tap(find.text('Continue'));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pumpAndSettle();
 
       expect(
@@ -442,6 +538,50 @@ void main() {
         overlayDelegate.transientFeedbackMessages.single,
         'Could not rewind this conversation to the selected prompt.',
       );
+    },
+  );
+
+  testWidgets(
+    'busy conversations do not show the visible continue from here action',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final laneBinding = ConnectionLaneBinding(
+        connectionId: 'conn_primary',
+        profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
+        conversationStateStore: const DiscardingCodexConversationStateStore(),
+        appServerClient: appServerClient,
+        initialSavedProfile: _savedProfile(),
+        initialConversationState: const SavedConnectionConversationState(
+          selectedThreadId: 'thread_saved',
+        ),
+      );
+      addTearDown(appServerClient.close);
+      addTearDown(laneBinding.dispose);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        await laneBinding.sessionController.sendPrompt('Keep running'),
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(TextButton, 'Continue From Here'),
+        findsNothing,
+      );
+      expect(find.text('Keep running'), findsOneWidget);
     },
   );
 
@@ -491,12 +631,12 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
-      expect(find.text('Continue From Here'), findsOneWidget);
+      expect(find.text('Continue From Here'), findsAtLeastNWidgets(3));
       await tester.tap(find.text('Continue From Here').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Continue From Here'), findsOneWidget);
-      await tester.tap(find.text('Continue'));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pumpAndSettle();
 
       expect(

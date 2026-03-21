@@ -70,13 +70,49 @@ class UserMessageCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   border: border,
                 ),
-                child: Text(
-                  block.text,
-                  style: TextStyle(
-                    color: cards.textPrimary,
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      block.text,
+                      style: TextStyle(
+                        color: cards.textPrimary,
+                        fontSize: 15,
+                        height: 1.35,
+                      ),
+                    ),
+                    if (canShowContinueAction) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          key: ValueKey<String>(
+                            'continue_from_here_action_${block.id}',
+                          ),
+                          onPressed: () => onContinueFromHere!(block.id),
+                          icon: const Icon(Icons.history, size: 16),
+                          label: const Text('Continue From Here'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: cards.textPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            backgroundColor: cards.accentBorder(
+                              accent,
+                              lightAlpha: 0.12,
+                              darkAlpha: 0.20,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
