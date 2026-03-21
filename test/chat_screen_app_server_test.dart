@@ -210,16 +210,9 @@ void main() {
   );
 
   testWidgets(
-    'shows an explicit thread-mismatch recovery notice when resume returns a different conversation',
+    'startup ignores a persisted saved conversation until the user explicitly resumes one',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient()
-        ..startSessionError = const CodexAppServerException(
-          'thread/resume returned a different thread id than requested.',
-          data: <String, Object?>{
-            'expectedThreadId': 'thread_old',
-            'actualThreadId': 'thread_new',
-          },
-        );
+      final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
@@ -239,19 +232,20 @@ void main() {
       await _pumpAppReady(tester);
 
       final composerField = find.byKey(const ValueKey('composer_input'));
-      await tester.enterText(composerField, 'Resume the old work');
+      await tester.enterText(composerField, 'Start fresh from this lane');
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Conversation identity changed.'), findsOneWidget);
-      expect(find.textContaining('"thread_old"'), findsWidgets);
-      expect(find.textContaining('"thread_new"'), findsWidgets);
+      expect(find.text('Conversation identity changed.'), findsNothing);
+      expect(appServerClient.startSessionCalls, 1);
       expect(
-        tester.widget<TextField>(composerField).controller?.text,
-        'Resume the old work',
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        isNull,
       );
-      expect(appServerClient.sentMessages, isEmpty);
+      expect(appServerClient.sentMessages, <String>[
+        'Start fresh from this lane',
+      ]);
     },
   );
 
@@ -955,53 +949,50 @@ void main() {
     expect(find.textContaining('/usr/bin/zsh -lc'), findsNothing);
   });
 
-  testWidgets(
-    'renders plain command executions as dedicated work-log rows',
-    (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
-      addTearDown(appServerClient.close);
+  testWidgets('renders plain command executions as dedicated work-log rows', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
 
-      await tester.pumpWidget(
-        _buildCatalogApp(appServerClient: appServerClient),
-      );
+    await tester.pumpWidget(_buildCatalogApp(appServerClient: appServerClient));
 
-      await _pumpAppReady(tester);
+    await _pumpAppReady(tester);
 
-      appServerClient.emit(
-        const CodexAppServerNotificationEvent(
-          method: 'item/started',
-          params: <String, Object?>{
-            'threadId': 'thread_123',
-            'turnId': 'turn_1',
-            'item': <String, Object?>{
-              'id': 'item_cmd_plain_1',
-              'type': 'commandExecution',
-              'status': 'inProgress',
-              'command': 'pwd',
-            },
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/started',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_1',
+          'item': <String, Object?>{
+            'id': 'item_cmd_plain_1',
+            'type': 'commandExecution',
+            'status': 'inProgress',
+            'command': 'pwd',
           },
-        ),
-      );
-      appServerClient.emit(
-        const CodexAppServerNotificationEvent(
-          method: 'item/commandExecution/outputDelta',
-          params: <String, Object?>{
-            'threadId': 'thread_123',
-            'turnId': 'turn_1',
-            'itemId': 'item_cmd_plain_1',
-            'delta': '/repo',
-          },
-        ),
-      );
+        },
+      ),
+    );
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/commandExecution/outputDelta',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_1',
+          'itemId': 'item_cmd_plain_1',
+          'delta': '/repo',
+        },
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(find.text('Work log'), findsOneWidget);
-      expect(find.text('Running command'), findsOneWidget);
-      expect(find.text('pwd'), findsOneWidget);
-      expect(find.text('/repo'), findsOneWidget);
-    },
-  );
+    expect(find.text('Work log'), findsOneWidget);
+    expect(find.text('Running command'), findsOneWidget);
+    expect(find.text('pwd'), findsOneWidget);
+    expect(find.text('/repo'), findsOneWidget);
+  });
 
   testWidgets('renders MCP tool calls as structured work-log rows', (
     tester,

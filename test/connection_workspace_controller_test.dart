@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/core/storage/codex_connection_conversation_stat
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/models/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/connection_lane_binding.dart';
@@ -59,7 +60,7 @@ void main() {
   });
 
   test(
-    'initialization hydrates the first live lane transcript from persisted selectedThreadId',
+    'initialization opens the first live lane fresh instead of auto-resuming persisted history',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
@@ -86,24 +87,13 @@ void main() {
 
       await binding!.sessionController.initialize();
 
-      expect(clientsById['conn_primary']?.connectCalls, 1);
-      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
-        'thread_saved',
-      ]);
+      expect(clientsById['conn_primary']?.connectCalls, 0);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(binding.sessionController.transcriptBlocks, isEmpty);
+      expect(binding.sessionController.sessionState.rootThreadId, isNull);
       expect(
-        binding.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
-            .single
-            .body,
-        'Restored answer',
-      );
-      expect(
-        binding.sessionController.sessionState.rootThreadId,
-        'thread_saved',
-      );
-      expect(
-        binding.sessionController.historicalConversationRestoreState,
-        isNull,
+        await historyStore.loadState('conn_primary'),
+        const SavedConnectionConversationState(),
       );
     },
   );
@@ -112,7 +102,17 @@ void main() {
     'instantiating a dormant connection selects it without affecting existing live lanes',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-      final controller = _buildWorkspaceController(clientsById: clientsById);
+      final historyStore = MemoryCodexConnectionConversationStateStore(
+        initialStates: <String, SavedConnectionConversationState>{
+          'conn_secondary': const SavedConnectionConversationState(
+            selectedThreadId: 'thread_saved',
+          ),
+        },
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        historyStore: historyStore,
+      );
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -135,6 +135,18 @@ void main() {
         same(firstBinding),
       );
       expect(controller.bindingForConnectionId('conn_secondary'), isNotNull);
+      expect(clientsById['conn_secondary']?.readThreadCalls, isEmpty);
+      expect(
+        controller
+            .bindingForConnectionId('conn_secondary')
+            ?.sessionController
+            .transcriptBlocks,
+        isEmpty,
+      );
+      expect(
+        await historyStore.loadState('conn_secondary'),
+        const SavedConnectionConversationState(),
+      );
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
     },
   );
@@ -472,7 +484,7 @@ void main() {
   );
 
   test(
-    'reconnectConnection rehydrates the saved transcript selection on the recreated lane',
+    'reconnectConnection preserves an explicitly resumed transcript selection on the recreated lane',
     () async {
       final repository = MemoryCodexConnectionRepository(
         initialConnections: <SavedConnection>[
@@ -489,13 +501,7 @@ void main() {
         ],
       );
       final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore(
-            initialStates: <String, SavedConnectionConversationState>{
-              'conn_primary': const SavedConnectionConversationState(
-                selectedThreadId: 'thread_saved',
-              ),
-            },
-          );
+          MemoryCodexConnectionConversationStateStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
@@ -539,6 +545,10 @@ void main() {
       });
 
       await controller.initialize();
+      await controller.resumeConversation(
+        connectionId: 'conn_primary',
+        threadId: 'thread_saved',
+      );
       await controller.saveLiveConnectionEdits(
         connectionId: 'conn_primary',
         profile: _profile('Primary Renamed', 'primary.changed'),
@@ -549,7 +559,7 @@ void main() {
 
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
-      expect(clientsByConnectionId['conn_primary'], hasLength(2));
+      expect(clientsByConnectionId['conn_primary'], hasLength(3));
       expect(
         clientsByConnectionId['conn_primary']!.last.readThreadCalls,
         <String>['thread_saved'],
@@ -680,6 +690,15 @@ void main() {
         clientsByConnectionId['conn_primary']!.last.readThreadCalls,
         <String>['thread_resumed'],
       );
+      expect(clientsByConnectionId['conn_primary']!.last.startSessionCalls, 1);
+      expect(
+        clientsByConnectionId['conn_primary']!
+            .last
+            .startSessionRequests
+            .single
+            .resumeThreadId,
+        'thread_resumed',
+      );
       expect(
         nextBinding!.sessionController.transcriptBlocks
             .whereType<CodexTextBlock>()
@@ -689,6 +708,77 @@ void main() {
       );
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
+    },
+  );
+
+  test(
+    'resumeConversation surfaces an unavailable historical thread before the user sends',
+    () async {
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+        ],
+      );
+      final historyStore = MemoryCodexConnectionConversationStateStore();
+      final client = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_missing'] = _savedConversationThread(
+          threadId: 'thread_missing',
+        )
+        ..startSessionError = const CodexAppServerException(
+          'thread/resume failed: thread not found',
+        );
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        connectionConversationStateStore: historyStore,
+        laneBindingFactory:
+            ({
+              required connectionId,
+              required connection,
+              required conversationState,
+            }) {
+              return ConnectionLaneBinding(
+                connectionId: connectionId,
+                profileStore: ConnectionScopedProfileStore(
+                  connectionId: connectionId,
+                  connectionRepository: repository,
+                ),
+                conversationStateStore: ConnectionScopedConversationStateStore(
+                  connectionId: connectionId,
+                  conversationStateStore: historyStore,
+                ),
+                appServerClient: client,
+                initialSavedProfile: SavedProfile(
+                  profile: connection.profile,
+                  secrets: connection.secrets,
+                ),
+                initialConversationState: conversationState,
+                ownsAppServerClient: false,
+              );
+            },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.close();
+      });
+
+      await controller.initialize();
+      await controller.resumeConversation(
+        connectionId: 'conn_primary',
+        threadId: 'thread_missing',
+      );
+
+      expect(
+        controller
+            .selectedLaneBinding!
+            .sessionController
+            .conversationRecoveryState
+            ?.reason,
+        ChatConversationRecoveryReason.missingRemoteConversation,
+      );
     },
   );
 

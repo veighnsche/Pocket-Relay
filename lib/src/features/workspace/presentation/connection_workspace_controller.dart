@@ -274,6 +274,11 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       if (_isDisposed) {
         return;
       }
+      await nextBinding.sessionController
+          .prepareSelectedConversationForContinuation();
+      if (_isDisposed) {
+        return;
+      }
       return;
     }
 
@@ -333,10 +338,12 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     SavedConnectionConversationState? conversationStateOverride,
     String? resumeThreadId,
   }) async {
-    final binding = await _loadLaneBinding(
-      connectionId,
-      conversationStateOverride: conversationStateOverride,
-    );
+    final binding = await (conversationStateOverride == null
+        ? _loadFreshLaneBinding(connectionId)
+        : _loadLaneBinding(
+            connectionId,
+            conversationStateOverride: conversationStateOverride,
+          ));
     if (_isDisposed) {
       binding.dispose();
       return;
@@ -360,6 +367,11 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
     if (resumeThreadId != null) {
       await binding.sessionController.initialize();
+      if (_isDisposed) {
+        return;
+      }
+      await binding.sessionController
+          .prepareSelectedConversationForContinuation();
       if (_isDisposed) {
         return;
       }
@@ -468,7 +480,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     }
 
     final firstConnectionId = catalog.orderedConnectionIds.first;
-    final firstBinding = await _loadLaneBinding(firstConnectionId);
+    final firstBinding = await _loadFreshLaneBinding(firstConnectionId);
     if (_isDisposed) {
       firstBinding.dispose();
       return;
@@ -500,6 +512,16 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       connectionId: connectionId,
       connection: await connectionFuture,
       conversationState: conversationState,
+    );
+  }
+
+  Future<ConnectionLaneBinding> _loadFreshLaneBinding(
+    String connectionId,
+  ) async {
+    await _connectionConversationStateStore.deleteState(connectionId);
+    return _loadLaneBinding(
+      connectionId,
+      conversationStateOverride: const SavedConnectionConversationState(),
     );
   }
 
