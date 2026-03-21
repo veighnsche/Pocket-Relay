@@ -485,6 +485,135 @@ void main() {
   );
 
   test(
+    'forkThread sends thread/fork and tracks the forked thread returned by the app server',
+    () async {
+      late _FakeCodexAppServerProcess process;
+      process = _FakeCodexAppServerProcess(
+        onClientMessage: (message) {
+          switch (message['method']) {
+            case 'initialize':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'userAgent': 'codex-app-server-test',
+                },
+              });
+            case 'thread/fork':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'thread': <String, Object?>{
+                    'id': 'thread_forked',
+                    'path': '/workspace/.codex/threads/thread_forked.jsonl',
+                    'cwd': '/workspace',
+                    'source': 'app-server',
+                  },
+                  'cwd': '/workspace',
+                  'model': 'gpt-5.4',
+                  'modelProvider': 'openai',
+                  'approvalPolicy': 'on-request',
+                  'sandbox': <String, Object?>{'type': 'workspace-write'},
+                },
+              });
+          }
+        },
+      );
+
+      final client = CodexAppServerClient(
+        processLauncher:
+            ({required profile, required secrets, required emitEvent}) async =>
+                process,
+      );
+
+      await client.connect(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      );
+
+      final session = await client.forkThread(
+        threadId: 'thread_saved',
+        path: '/workspace/.codex/threads/thread_saved.jsonl',
+        cwd: '/workspace',
+        model: 'gpt-5.4',
+        modelProvider: 'openai',
+        persistExtendedHistory: true,
+      );
+
+      expect(session.threadId, 'thread_forked');
+      expect(session.thread?.id, 'thread_forked');
+      expect(
+        session.thread?.path,
+        '/workspace/.codex/threads/thread_forked.jsonl',
+      );
+      expect(client.threadId, 'thread_forked');
+
+      final forkRequest = process.writtenMessages.firstWhere(
+        (message) => message['method'] == 'thread/fork',
+      );
+      expect(forkRequest['params'], <String, Object?>{
+        'threadId': 'thread_saved',
+        'path': '/workspace/.codex/threads/thread_saved.jsonl',
+        'cwd': '/workspace',
+        'model': 'gpt-5.4',
+        'modelProvider': 'openai',
+        'approvalPolicy': 'on-request',
+        'sandbox': 'workspace-write',
+        'ephemeral': false,
+        'persistExtendedHistory': true,
+      });
+
+      await client.disconnect();
+    },
+  );
+
+  test(
+    'forkThread rejects empty thread ids before sending a request',
+    () async {
+      late _FakeCodexAppServerProcess process;
+      process = _FakeCodexAppServerProcess(
+        onClientMessage: (message) {
+          if (message['method'] == 'initialize') {
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{'userAgent': 'codex-app-server-test'},
+            });
+          }
+        },
+      );
+
+      final client = CodexAppServerClient(
+        processLauncher:
+            ({required profile, required secrets, required emitEvent}) async =>
+                process,
+      );
+
+      await client.connect(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      );
+
+      await expectLater(
+        client.forkThread(threadId: '   '),
+        throwsA(
+          isA<CodexAppServerException>().having(
+            (error) => error.message,
+            'message',
+            'Thread id cannot be empty.',
+          ),
+        ),
+      );
+      expect(
+        process.writtenMessages.where(
+          (message) => message['method'] == 'thread/fork',
+        ),
+        isEmpty,
+      );
+
+      await client.disconnect();
+    },
+  );
+
+  test(
     'startSession uses thread/resume params without ephemeral field',
     () async {
       late _FakeCodexAppServerProcess process;

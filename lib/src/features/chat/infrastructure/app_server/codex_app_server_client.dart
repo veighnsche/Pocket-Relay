@@ -87,6 +87,28 @@ class CodexAppServerClient {
     );
   }
 
+  Future<CodexAppServerSession> forkThread({
+    required String threadId,
+    String? path,
+    String? cwd,
+    String? model,
+    String? modelProvider,
+    bool? ephemeral,
+    bool persistExtendedHistory = false,
+  }) async {
+    _ensureNotDisposed();
+    return _requestApi.forkThread(
+      _connection,
+      threadId: threadId,
+      path: path,
+      cwd: cwd,
+      model: model,
+      modelProvider: modelProvider,
+      ephemeral: ephemeral,
+      persistExtendedHistory: persistExtendedHistory,
+    );
+  }
+
   Future<CodexAppServerThreadListPage> listThreads({
     String? cursor,
     int? limit,

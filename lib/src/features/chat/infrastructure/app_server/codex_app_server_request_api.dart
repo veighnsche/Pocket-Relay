@@ -152,6 +152,68 @@ class CodexAppServerRequestApi {
     );
   }
 
+  Future<CodexAppServerSession> forkThread(
+    CodexAppServerConnection connection, {
+    required String threadId,
+    String? path,
+    String? cwd,
+    String? model,
+    String? modelProvider,
+    bool? ephemeral,
+    bool persistExtendedHistory = false,
+  }) async {
+    final profile = connection.requireProfile();
+    connection.requireConnected();
+
+    final effectiveThreadId = threadId.trim();
+    if (effectiveThreadId.isEmpty) {
+      throw const CodexAppServerException('Thread id cannot be empty.');
+    }
+
+    final normalizedPath = path?.trim();
+    final normalizedCwd = cwd?.trim();
+    final params = <String, Object?>{
+      'threadId': effectiveThreadId,
+      if (normalizedPath != null && normalizedPath.isNotEmpty)
+        'path': normalizedPath,
+      if (normalizedCwd != null && normalizedCwd.isNotEmpty)
+        'cwd': normalizedCwd,
+      if (model != null && model.trim().isNotEmpty) 'model': model.trim(),
+      if (modelProvider != null && modelProvider.trim().isNotEmpty)
+        'modelProvider': modelProvider.trim(),
+      'approvalPolicy': _approvalPolicyFor(profile),
+      'sandbox': _sandboxFor(profile),
+      'ephemeral': ephemeral ?? profile.ephemeralSession,
+      'persistExtendedHistory': persistExtendedHistory,
+    };
+
+    final response = await connection.sendRequest('thread/fork', params);
+    final payload = _requireObject(response, 'thread/fork response');
+    final thread = _threadReadDecoder.decodeSummaryResponse(
+      payload,
+      fallbackThreadId: effectiveThreadId,
+    );
+    final forkedThreadId = thread.id;
+    connection.setTrackedThread(forkedThreadId);
+
+    return CodexAppServerSession(
+      threadId: forkedThreadId,
+      cwd: _asString(payload['cwd']) ?? normalizedCwd ?? profile.workspaceDir,
+      model: _asString(payload['model']) ?? model?.trim() ?? '',
+      modelProvider:
+          _asString(payload['modelProvider']) ??
+          modelProvider?.trim() ??
+          thread.modelProvider,
+      reasoningEffort:
+          _asString(payload['reasoningEffort']) ??
+          _asString(payload['reasoning_effort']) ??
+          _asString(payload['effort']),
+      thread: thread,
+      approvalPolicy: payload['approvalPolicy'],
+      sandbox: payload['sandbox'],
+    );
+  }
+
   Future<CodexAppServerThreadListPage> listThreads(
     CodexAppServerConnection connection, {
     String? cursor,

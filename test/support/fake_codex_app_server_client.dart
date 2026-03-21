@@ -20,6 +20,29 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   int startSessionCalls = 0;
   final List<
     ({
+      String threadId,
+      String? path,
+      String? cwd,
+      String? model,
+      String? modelProvider,
+      bool? ephemeral,
+      bool persistExtendedHistory,
+    })
+  >
+  forkThreadRequests =
+      <
+        ({
+          String threadId,
+          String? path,
+          String? cwd,
+          String? model,
+          String? modelProvider,
+          bool? ephemeral,
+          bool persistExtendedHistory,
+        })
+      >[];
+  final List<
+    ({
       String? cwd,
       String? model,
       CodexReasoningEffort? reasoningEffort,
@@ -99,10 +122,12 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       <CodexAppServerEvent>[];
   Object? connectError;
   Object? startSessionError;
+  Object? forkThreadError;
   Object? sendUserMessageError;
   Object? readThreadWithTurnsError;
   Object? rollbackThreadError;
   String? startSessionModel;
+  String? forkThreadId;
   String? startSessionReasoningEffort;
   String? startSessionCwd;
   int disconnectCalls = 0;
@@ -178,6 +203,45 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
         id: _threadId!,
         sourceKind: 'app-server',
       ),
+    );
+  }
+
+  @override
+  Future<CodexAppServerSession> forkThread({
+    required String threadId,
+    String? path,
+    String? cwd,
+    String? model,
+    String? modelProvider,
+    bool? ephemeral,
+    bool persistExtendedHistory = false,
+  }) async {
+    if (forkThreadError != null) {
+      throw forkThreadError!;
+    }
+    forkThreadRequests.add((
+      threadId: threadId,
+      path: path,
+      cwd: cwd,
+      model: model,
+      modelProvider: modelProvider,
+      ephemeral: ephemeral,
+      persistExtendedHistory: persistExtendedHistory,
+    ));
+    _threadId = forkThreadId ?? '${threadId}_fork';
+    return CodexAppServerSession(
+      threadId: _threadId!,
+      cwd: cwd ?? '/workspace',
+      model: model ?? 'gpt-5.3-codex',
+      modelProvider: modelProvider ?? 'openai',
+      thread: CodexAppServerThreadSummary(
+        id: _threadId!,
+        path: path,
+        cwd: cwd,
+        sourceKind: 'app-server',
+      ),
+      approvalPolicy: 'on-request',
+      sandbox: const <String, Object?>{'type': 'workspace-write'},
     );
   }
 
