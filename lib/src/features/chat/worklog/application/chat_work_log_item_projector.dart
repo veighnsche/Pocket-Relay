@@ -5,6 +5,9 @@ import 'package:pocket_relay/src/features/chat/worklog/domain/chat_work_log_cont
 part 'chat_work_log_item_projector_classifier.dart';
 part 'chat_work_log_item_projector_parser.dart';
 part 'chat_work_log_item_projector_parser_git.dart';
+part 'chat_work_log_item_projector_parser_git_history.dart';
+part 'chat_work_log_item_projector_parser_git_mutation.dart';
+part 'chat_work_log_item_projector_parser_git_support.dart';
 part 'chat_work_log_item_projector_parser_read.dart';
 part 'chat_work_log_item_projector_parser_search.dart';
 part 'chat_work_log_item_projector_parser_shell.dart';
