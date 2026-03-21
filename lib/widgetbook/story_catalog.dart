@@ -3,15 +3,27 @@ import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
+import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_meta_card.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/empty_state.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/assistant_message_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/error_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/plan_update_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/proposed_plan_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/reasoning_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/ssh/ssh_unpinned_host_key_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/status_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/user_message_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/work_log_group_card.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_sheet.dart';
 import 'package:pocket_relay/widgetbook/support/fake_codex_app_server_client.dart';
@@ -22,10 +34,117 @@ import 'package:widgetbook/widgetbook.dart';
 List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
   return <WidgetbookNode>[
     WidgetbookCategory(
+      name: 'Foundations',
+      children: <WidgetbookNode>[
+        WidgetbookFolder(
+          name: 'Primitives',
+          children: <WidgetbookNode>[
+            WidgetbookComponent(
+              name: 'Badges',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Status Set',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      maxWidth: 720,
+                      child: Wrap(
+                        spacing: PocketSpacing.sm,
+                        runSpacing: PocketSpacing.sm,
+                        children: <Widget>[
+                          PocketTintBadge(
+                            label: 'designer review',
+                            color: blueAccent(Brightness.light),
+                          ),
+                          PocketTintBadge(
+                            label: 'running',
+                            color: tealAccent(Brightness.light),
+                          ),
+                          PocketTintBadge(
+                            label: 'warning',
+                            color: amberAccent(Brightness.light),
+                          ),
+                          const PocketSolidBadge(
+                            label: 'ready',
+                            color: Color(0xFF1D4ED8),
+                          ),
+                          const PocketSolidBadge(
+                            label: 'blocked',
+                            color: Color(0xFFB91C1C),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Meta Card',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Informational',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: PocketMetaCard(
+                        title: 'Review checkpoint',
+                        body:
+                            'The transcript surface now shares one visual shell across designer-facing card states.',
+                        accent: blueAccent(Brightness.light),
+                        icon: Icons.info_outline,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Panel Surface',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Default Panel',
+                  builder: (context) {
+                    final cards = ConversationCardPalette.of(context);
+                    final accent = blueAccent(Theme.of(context).brightness);
+                    return WidgetbookStoryFrame.card(
+                      maxWidth: 760,
+                      child: PocketPanelSurface(
+                        padding: const EdgeInsets.all(PocketSpacing.md),
+                        radius: PocketRadii.lg,
+                        backgroundColor: cards.surface,
+                        borderColor: cards.accentBorder(accent),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Shared panel shell',
+                              style: TextStyle(
+                                color: cards.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: PocketSpacing.xs),
+                            Text(
+                              'Use this surface for reusable transcript and settings panels before introducing feature-local container recipes.',
+                              style: TextStyle(color: cards.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+    WidgetbookCategory(
       name: 'Chat',
       children: <WidgetbookNode>[
         WidgetbookFolder(
-          name: 'Cards',
+          name: 'Transcript Cards',
           children: <WidgetbookNode>[
             WidgetbookComponent(
               name: 'Assistant Message',
@@ -121,6 +240,150 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                   builder: (context) {
                     return WidgetbookStoryFrame.card(
                       child: ErrorCard(block: WidgetbookFixtures.errorBlock()),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Approval Request',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Needs Approval',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: ApprovalRequestCard(
+                        request: WidgetbookFixtures.approvalRequest(),
+                        onApprove: (_) async {},
+                        onDeny: (_) async {},
+                      ),
+                    );
+                  },
+                ),
+                WidgetbookUseCase(
+                  name: 'Resolved',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: ApprovalRequestCard(
+                        request: WidgetbookFixtures.approvalRequest(
+                          isResolved: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Plan Update',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Execution Status',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: PlanUpdateCard(
+                        block: WidgetbookFixtures.planUpdateBlock(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Proposed Plan',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Collapsed Draft',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: ProposedPlanCard(
+                        block: WidgetbookFixtures.proposedPlanBlock(
+                          isStreaming: true,
+                          isLong: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                WidgetbookUseCase(
+                  name: 'Settled Summary',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: ProposedPlanCard(
+                        block: WidgetbookFixtures.proposedPlanBlock(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Changed Files',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Settled Review',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: ChangedFilesCard(
+                        item: WidgetbookFixtures.changedFilesItem(),
+                      ),
+                    );
+                  },
+                ),
+                WidgetbookUseCase(
+                  name: 'Running Update',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: ChangedFilesCard(
+                        item: WidgetbookFixtures.changedFilesItem(
+                          isRunning: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'Work Log',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Mixed Activity',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: WorkLogGroupCard(
+                        item: WidgetbookFixtures.workLogGroupItem(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            WidgetbookComponent(
+              name: 'SSH Host Trust',
+              useCases: <WidgetbookUseCase>[
+                WidgetbookUseCase(
+                  name: 'Unpinned',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: SshUnpinnedHostKeyCard(
+                        block: WidgetbookFixtures.sshUnpinnedHostKey(),
+                        onSaveFingerprint: (_) async {},
+                        onOpenConnectionSettings: () {},
+                      ),
+                    );
+                  },
+                ),
+                WidgetbookUseCase(
+                  name: 'Saved',
+                  builder: (_) {
+                    return WidgetbookStoryFrame.card(
+                      child: SshUnpinnedHostKeyCard(
+                        block: WidgetbookFixtures.sshUnpinnedHostKey(
+                          isSaved: true,
+                        ),
+                        onOpenConnectionSettings: () {},
+                      ),
                     );
                   },
                 ),
