@@ -612,10 +612,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Workspace'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Workspace'), findsNothing);
     expect(find.text('Project'), findsNothing);
-    final textField = tester.widget<TextField>(find.byType(TextField));
-    expect(textField.controller?.text, '/workspace/mobile');
   });
 
   testWidgets(

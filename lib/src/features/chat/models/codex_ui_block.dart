@@ -484,12 +484,22 @@ final class CodexStatusBlock extends CodexUiBlock {
     required super.createdAt,
     required this.title,
     required this.body,
+    this.statusKind = CodexStatusBlockKind.info,
     this.isTranscriptSignal = false,
   }) : super(kind: CodexUiBlockKind.status);
 
   final String title;
   final String body;
+  final CodexStatusBlockKind statusKind;
   final bool isTranscriptSignal;
+}
+
+enum CodexStatusBlockKind {
+  info,
+  warning,
+  review,
+  compaction,
+  auth,
 }
 
 final class CodexErrorBlock extends CodexUiBlock {

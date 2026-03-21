@@ -10,11 +10,43 @@ class StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final presentation = _presentationFor(
+      Theme.of(context).brightness,
+      block.statusKind,
+    );
     return PocketMetaCard(
       title: block.title,
       body: block.body,
-      accent: tealAccent(Theme.of(context).brightness),
-      icon: Icons.info_outline,
+      accent: presentation.$1,
+      icon: presentation.$2,
     );
+  }
+
+  (Color, IconData) _presentationFor(
+    Brightness brightness,
+    CodexStatusBlockKind kind,
+  ) {
+    return switch (kind) {
+      CodexStatusBlockKind.warning => (
+        amberAccent(brightness),
+        Icons.warning_amber_rounded,
+      ),
+      CodexStatusBlockKind.review => (
+        purpleAccent(brightness),
+        Icons.rate_review_outlined,
+      ),
+      CodexStatusBlockKind.compaction => (
+        blueAccent(brightness),
+        Icons.compress_outlined,
+      ),
+      CodexStatusBlockKind.auth => (
+        pinkAccent(brightness),
+        Icons.lock_reset_outlined,
+      ),
+      CodexStatusBlockKind.info => (
+        tealAccent(brightness),
+        Icons.info_outline,
+      ),
+    };
   }
 }

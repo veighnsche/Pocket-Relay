@@ -648,8 +648,16 @@ void main() {
       'Checking the patch set',
     );
     expect(
+      (state.transcriptBlocks.first as CodexStatusBlock).statusKind,
+      CodexStatusBlockKind.review,
+    );
+    expect(
       (state.transcriptBlocks.last as CodexStatusBlock).body,
       'Codex compacted the current thread context.',
+    );
+    expect(
+      (state.transcriptBlocks.last as CodexStatusBlock).statusKind,
+      CodexStatusBlockKind.compaction,
     );
   });
 
@@ -781,6 +789,49 @@ void main() {
         state.transcriptBlocks.single as CodexApprovalRequestBlock;
     expect(resolvedBlock.title, 'File change approval resolved');
     expect(resolvedBlock.isResolved, isTrue);
+    expect(resolvedBlock.resolutionLabel, 'resolved');
+    expect(resolvedBlock.body, contains('Write files'));
+  });
+
+  test('derives approval decision labels from resolved approval payloads', () {
+    final reducer = TranscriptReducer();
+    var state = CodexSessionState.initial();
+    final now = DateTime(2026, 3, 14, 12);
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeRequestOpenedEvent(
+        createdAt: now,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        requestId: 'i:99',
+        requestType: CodexCanonicalRequestType.fileChangeApproval,
+        detail: 'Write files',
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeRequestResolvedEvent(
+        createdAt: now.add(const Duration(milliseconds: 10)),
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'item_123',
+        requestId: 'i:99',
+        requestType: CodexCanonicalRequestType.fileChangeApproval,
+        resolution: const <String, Object?>{'approved': true},
+      ),
+    );
+
+    final resolvedBlock =
+        state.transcriptBlocks.single as CodexApprovalRequestBlock;
+    expect(resolvedBlock.title, 'File change approval approved');
+    expect(resolvedBlock.resolutionLabel, 'approved');
+    expect(
+      resolvedBlock.body,
+      contains('Codex received approval for this request.'),
+    );
   });
 
   test('freezes a running assistant artifact when an approval opens', () {
@@ -870,7 +921,7 @@ void main() {
     final submittedBlock =
         state.transcriptBlocks.single as CodexUserInputRequestBlock;
     expect(submittedBlock.title, 'Input submitted');
-    expect(submittedBlock.body, contains('Vince'));
+    expect(submittedBlock.body, 'Name: Vince');
     expect(submittedBlock.isResolved, isTrue);
   });
 
@@ -1438,6 +1489,10 @@ void main() {
     expect(state.blocks, hasLength(2));
     expect(state.blocks.first, isA<CodexStatusBlock>());
     expect(state.blocks.last, isA<CodexErrorBlock>());
+    expect(
+      (state.blocks.first as CodexStatusBlock).statusKind,
+      CodexStatusBlockKind.warning,
+    );
   });
 
   test('deduplicates repeated unpinned host key prompts', () {

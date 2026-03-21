@@ -269,6 +269,7 @@ class TranscriptTurnArtifactBuilder {
           createdAt: item.createdAt,
           title: title,
           body: item.body,
+          statusKind: _blockFactory.statusKindForItemType(item.itemType),
         ),
       ),
       CodexUiBlockKind.error => CodexTurnBlockArtifact(

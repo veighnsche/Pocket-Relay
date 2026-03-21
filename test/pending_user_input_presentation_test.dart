@@ -137,7 +137,7 @@ void main() {
       });
     });
 
-    test('derives resolved read-only state from the request contract', () {
+    test('derives compact resolved state from the request contract', () {
       final request = ChatUserInputRequestContract(
         id: 'input_4',
         createdAt: DateTime(2026, 3, 15, 12),
@@ -164,14 +164,11 @@ void main() {
         request: request,
         formState: formState,
       );
-      final field = contract.fields.single;
 
       expect(contract.isResolved, isTrue);
       expect(contract.statusBadgeLabel, 'submitted');
       expect(contract.isSubmitEnabled, isFalse);
-      expect(field.isReadOnly, isTrue);
-      expect(field.isSecret, isTrue);
-      expect(field.value, 'Vince');
+      expect(contract.fields, isEmpty);
     });
 
     test('disables submit while the request is submitting', () {

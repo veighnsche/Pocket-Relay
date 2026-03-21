@@ -138,11 +138,13 @@ class _UserInputRequestCardState extends State<UserInputRequestCard> {
           ],
           const SizedBox(height: PocketSpacing.md),
           ..._buildFields(),
-          const SizedBox(height: PocketSpacing.sm),
-          FilledButton(
-            onPressed: canSubmit ? widget.onSubmit : null,
-            child: Text(widget.contract.submitLabel),
-          ),
+          if (!widget.contract.isResolved) ...[
+            const SizedBox(height: PocketSpacing.sm),
+            FilledButton(
+              onPressed: canSubmit ? widget.onSubmit : null,
+              child: Text(widget.contract.submitLabel),
+            ),
+          ],
         ],
       ),
     );

@@ -98,14 +98,23 @@ class TranscriptRequestPolicy {
     }..remove(requestId);
     final hasBlockingRequestsRemaining =
         nextApprovalRequests.isNotEmpty || nextInputRequests.isNotEmpty;
+    final pendingApproval = state.activeTurn?.pendingApprovalRequests[requestId];
+    final decisionLabel = _resolutionLabel(
+      event.resolution,
+      fallback: 'resolved',
+    );
 
     final resolvedBlock = _resolvedRequestBlock(
       id: 'request_$requestId',
       createdAt: event.createdAt,
       requestId: requestId,
       requestType: event.requestType,
-      title: '${codexRequestTitle(event.requestType)} resolved',
-      body: 'Codex received a response for this request.',
+      title: '${codexRequestTitle(event.requestType)} $decisionLabel',
+      body: _resolvedApprovalBody(
+        pendingDetail: pendingApproval?.detail,
+        decisionLabel: decisionLabel,
+      ),
+      resolutionLabel: decisionLabel,
     );
     final nextState = state.copyWithProjectedTranscript(
       activeTurn: _activeTurnAfterRequestResolved(
@@ -187,14 +196,21 @@ class TranscriptRequestPolicy {
     final hasBlockingRequestsRemaining =
         state.activeTurn?.pendingApprovalRequests.isNotEmpty == true ||
         nextInputRequests.isNotEmpty;
+    final pendingRequest = state.activeTurn?.pendingUserInputRequests[requestId];
     final resolvedBlock = CodexUserInputRequestBlock(
       id: 'request_$requestId',
       createdAt: event.createdAt,
       requestId: requestId,
       requestType: CodexCanonicalRequestType.toolUserInput,
       title: 'Input submitted',
-      body: codexAnswersSummary(event.answers),
+      body: codexAnswersSummaryFromQuestions(
+        questions:
+            pendingRequest?.questions ?? const <CodexRuntimeUserInputQuestion>[],
+        answers: event.answers,
+      ),
       isResolved: true,
+      questions:
+          pendingRequest?.questions ?? const <CodexRuntimeUserInputQuestion>[],
       answers: event.answers,
     );
     final nextState = state.copyWithProjectedTranscript(
@@ -224,6 +240,7 @@ class TranscriptRequestPolicy {
     required CodexCanonicalRequestType requestType,
     required String title,
     required String body,
+    String? resolutionLabel,
   }) {
     final isUserInput =
         requestType == CodexCanonicalRequestType.toolUserInput ||
@@ -248,8 +265,61 @@ class TranscriptRequestPolicy {
       title: title,
       body: body,
       isResolved: true,
-      resolutionLabel: 'resolved',
+      resolutionLabel: resolutionLabel,
     );
+  }
+
+  String _resolvedApprovalBody({
+    required String? pendingDetail,
+    required String decisionLabel,
+  }) {
+    final decisionSentence = switch (decisionLabel) {
+      'approved' => 'Codex received approval for this request.',
+      'denied' => 'Codex was denied approval for this request.',
+      _ => 'Codex received a response for this request.',
+    };
+    final detail = pendingDetail?.trim();
+    if (detail == null || detail.isEmpty) {
+      return decisionSentence;
+    }
+    return '$detail\n\n$decisionSentence';
+  }
+
+  String _resolutionLabel(Object? resolution, {required String fallback}) {
+    if (resolution is bool) {
+      return resolution ? 'approved' : 'denied';
+    }
+    if (resolution is String && resolution.trim().isNotEmpty) {
+      return _normalizeResolutionLabel(resolution);
+    }
+    if (resolution is Map) {
+      final raw = _support.stringFromCandidates(<Object?>[
+        resolution['result'],
+        resolution['status'],
+        resolution['resolution'],
+        resolution['decision'],
+        resolution['outcome'],
+        resolution['action'],
+      ]);
+      if (raw != null && raw.trim().isNotEmpty) {
+        return _normalizeResolutionLabel(raw);
+      }
+      final approved = resolution['approved'];
+      if (approved is bool) {
+        return approved ? 'approved' : 'denied';
+      }
+    }
+    return fallback;
+  }
+
+  String _normalizeResolutionLabel(String value) {
+    final normalized = value.trim().toLowerCase();
+    return switch (normalized) {
+      'accept' || 'accepted' || 'approve' || 'approved' => 'approved',
+      'decline' || 'declined' || 'deny' || 'denied' || 'reject' || 'rejected' =>
+        'denied',
+      _ => normalized,
+    };
   }
 
   CodexActiveTurnState? _activeTurnForPendingApproval(

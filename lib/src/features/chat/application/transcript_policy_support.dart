@@ -118,6 +118,7 @@ class TranscriptPolicySupport {
     required String title,
     required String body,
     required DateTime createdAt,
+    CodexStatusBlockKind statusKind = CodexStatusBlockKind.info,
     bool isTranscriptSignal = false,
   }) {
     return CodexStatusBlock(
@@ -125,6 +126,7 @@ class TranscriptPolicySupport {
       createdAt: createdAt,
       title: title,
       body: body,
+      statusKind: statusKind,
       isTranscriptSignal: isTranscriptSignal,
     );
   }
@@ -134,6 +136,15 @@ class TranscriptPolicySupport {
       'account/chatgptAuthTokens/refresh' ||
       'item/tool/call' => true,
       _ => false,
+    };
+  }
+
+  CodexStatusBlockKind statusKindForRuntimeStatus(
+    CodexRuntimeStatusEvent event,
+  ) {
+    return switch (event.rawMethod) {
+      'account/chatgptAuthTokens/refresh' => CodexStatusBlockKind.auth,
+      _ => CodexStatusBlockKind.info,
     };
   }
 

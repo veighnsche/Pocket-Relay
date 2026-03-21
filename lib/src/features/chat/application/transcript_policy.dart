@@ -67,6 +67,7 @@ class TranscriptPolicy {
         createdAt: eventTime,
         title: 'New thread',
         body: message,
+        statusKind: CodexStatusBlockKind.info,
         isTranscriptSignal: true,
       ),
     );
@@ -266,6 +267,7 @@ class TranscriptPolicy {
         body: finalizedTurn.$2 == null
             ? (event.reason ?? 'The active turn was aborted.')
             : '${event.reason ?? 'The active turn was aborted.'}\n\nElapsed ${formatElapsedDuration(finalizedTurn.$2!)}.',
+        statusKind: CodexStatusBlockKind.info,
         isTranscriptSignal: true,
       ),
     );
@@ -347,11 +349,14 @@ class TranscriptPolicy {
       state,
       _support.statusEntry(
         prefix: 'warning',
-        title: 'Warning',
+        title: event.rawMethod == 'deprecationNotice'
+            ? 'Deprecation notice'
+            : 'Warning',
         body: event.details == null || event.details!.trim().isEmpty
             ? event.summary
             : '${event.summary}\n\n${event.details}',
         createdAt: event.createdAt,
+        statusKind: CodexStatusBlockKind.warning,
         isTranscriptSignal: true,
       ),
       turnId: event.turnId,
@@ -508,6 +513,7 @@ class TranscriptPolicy {
         createdAt: event.createdAt,
         title: event.title,
         body: event.message,
+        statusKind: _support.statusKindForRuntimeStatus(event),
         isTranscriptSignal: true,
       ),
       turnId: event.turnId,

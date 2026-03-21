@@ -33,6 +33,16 @@ class TranscriptItemBlockFactory {
     };
   }
 
+  CodexStatusBlockKind statusKindForItemType(CodexCanonicalItemType itemType) {
+    return switch (itemType) {
+      CodexCanonicalItemType.reviewEntered ||
+      CodexCanonicalItemType.reviewExited => CodexStatusBlockKind.review,
+      CodexCanonicalItemType.contextCompaction =>
+        CodexStatusBlockKind.compaction,
+      _ => CodexStatusBlockKind.info,
+    };
+  }
+
   String defaultItemTitle(CodexCanonicalItemType itemType) {
     return codexItemTitle(itemType);
   }

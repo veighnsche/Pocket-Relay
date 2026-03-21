@@ -29,3 +29,26 @@ String codexAnswersSummary(Map<String, List<String>> answers) {
       .map((entry) => '${entry.key}: ${entry.value.join(', ')}')
       .join('\n');
 }
+
+String codexAnswersSummaryFromQuestions({
+  required List<CodexRuntimeUserInputQuestion> questions,
+  required Map<String, List<String>> answers,
+}) {
+  if (answers.isEmpty) {
+    return 'The requested input was submitted.';
+  }
+
+  final labelsById = <String, String>{
+    for (final question in questions)
+      question.id: question.header.trim().isNotEmpty
+          ? question.header
+          : question.question,
+  };
+
+  return answers.entries
+      .map((entry) {
+        final label = labelsById[entry.key] ?? entry.key;
+        return '$label: ${entry.value.join(', ')}';
+      })
+      .join('\n');
+}

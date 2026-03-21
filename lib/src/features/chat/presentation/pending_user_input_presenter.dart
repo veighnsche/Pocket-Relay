@@ -28,11 +28,11 @@ class PendingUserInputPresenter {
     required ChatUserInputRequestContract request,
     required PendingUserInputDraft draft,
   }) {
-    if (request.questions.isEmpty) {
-      if (request.isResolved) {
-        return const <PendingUserInputFieldContract>[];
-      }
+    if (request.isResolved) {
+      return const <PendingUserInputFieldContract>[];
+    }
 
+    if (request.questions.isEmpty) {
       return <PendingUserInputFieldContract>[
         PendingUserInputFieldContract(
           id: pendingUserInputFallbackFieldId,
