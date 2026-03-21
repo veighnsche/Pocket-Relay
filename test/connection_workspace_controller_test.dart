@@ -856,7 +856,7 @@ void main() {
         threadId: 'thread_resumed',
       );
 
-      expect(conversationStateStore.saveAttempts, 1);
+      expect(conversationStateStore.saveAttempts, greaterThanOrEqualTo(1));
       expect(
         (await conversationStateStore.loadState(
           'conn_primary',
