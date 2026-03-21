@@ -4,6 +4,10 @@ import 'codex_app_server_connection.dart';
 import 'codex_app_server_models.dart';
 import 'codex_app_server_thread_read_decoder.dart';
 
+part 'codex_app_server_request_api_session_thread.dart';
+part 'codex_app_server_request_api_turn_requests.dart';
+part 'codex_app_server_request_api_support.dart';
+
 class CodexAppServerRequestApi {
   const CodexAppServerRequestApi({
     CodexAppServerThreadReadDecoder threadReadDecoder =
@@ -18,108 +22,41 @@ class CodexAppServerRequestApi {
     String? model,
     CodexReasoningEffort? reasoningEffort,
     String? resumeThreadId,
-  }) async {
-    final profile = connection.requireProfile();
-    connection.requireConnected();
-
-    final effectiveCwd = (cwd ?? profile.workspaceDir).trim().isEmpty
-        ? profile.workspaceDir.trim()
-        : (cwd ?? profile.workspaceDir).trim();
-    final normalizedResumeThreadId = resumeThreadId?.trim();
-    final effectiveResumeThreadId =
-        profile.ephemeralSession ||
-            normalizedResumeThreadId == null ||
-            normalizedResumeThreadId.isEmpty
-        ? null
-        : normalizedResumeThreadId;
-    final baseParams = <String, Object?>{
-      'cwd': effectiveCwd,
-      'approvalPolicy': _approvalPolicyFor(profile),
-      'sandbox': _sandboxFor(profile),
-      if (model != null && model.trim().isNotEmpty) 'model': model.trim(),
-      if (reasoningEffort != null) 'reasoning_effort': reasoningEffort.name,
-    };
-    var method = effectiveResumeThreadId != null
-        ? 'thread/resume'
-        : 'thread/start';
-    final resumeThreadParam = effectiveResumeThreadId == null
-        ? null
-        : <String, Object?>{'threadId': effectiveResumeThreadId};
-    var params = <String, Object?>{
-      ...baseParams,
-      if (method == 'thread/start') 'ephemeral': profile.ephemeralSession,
-      ...?resumeThreadParam,
-    };
-
-    final response = await connection.sendRequest(method, params);
-
-    final payload = _requireObject(response, '$method response');
-    final thread = _requireThreadSummary(payload['thread'], '$method response');
-    final threadId = thread.id;
-
-    if (effectiveResumeThreadId != null &&
-        threadId != effectiveResumeThreadId) {
-      throw CodexAppServerException(
-        'thread/resume returned a different thread id than requested.',
-        data: <String, Object?>{
-          'expectedThreadId': effectiveResumeThreadId,
-          'actualThreadId': threadId,
-        },
-      );
-    }
-
-    connection.setTrackedThread(threadId);
-    return _sessionFromPayload(
-      payload,
-      thread: thread,
-      threadId: threadId,
-      fallbackCwd: effectiveCwd,
+  }) {
+    return _startSession(
+      this,
+      connection,
+      cwd: cwd,
+      model: model,
+      reasoningEffort: reasoningEffort,
+      resumeThreadId: resumeThreadId,
     );
   }
 
   Future<CodexAppServerThreadSummary> readThread(
     CodexAppServerConnection connection, {
     required String threadId,
-  }) async {
-    connection.requireConnected();
-    final effectiveThreadId = _requireThreadId(threadId);
-    return _sendThreadRead(
-      connection,
-      threadId: effectiveThreadId,
-      includeTurns: false,
-    );
+  }) {
+    return _readThread(this, connection, threadId: threadId);
   }
 
   Future<CodexAppServerThreadHistory> readThreadWithTurns(
     CodexAppServerConnection connection, {
     required String threadId,
-  }) async {
-    connection.requireConnected();
-    final effectiveThreadId = _requireThreadId(threadId);
-    return _sendThreadReadWithTurns(
-      connection,
-      threadId: effectiveThreadId,
-    );
+  }) {
+    return _readThreadWithTurns(this, connection, threadId: threadId);
   }
 
   Future<CodexAppServerThreadHistory> rollbackThread(
     CodexAppServerConnection connection, {
     required String threadId,
     required int numTurns,
-  }) async {
-    connection.requireConnected();
-    final effectiveThreadId = _requireThreadId(threadId);
-    if (numTurns < 1) {
-      throw const CodexAppServerException('numTurns must be >= 1.');
-    }
-
-    final response = await connection.sendRequest(
-      'thread/rollback',
-      <String, Object?>{'threadId': effectiveThreadId, 'numTurns': numTurns},
-    );
-    return _threadReadDecoder.decodeHistoryResponse(
-      response,
-      fallbackThreadId: effectiveThreadId,
+  }) {
+    return _rollbackThread(
+      this,
+      connection,
+      threadId: threadId,
+      numTurns: numTurns,
     );
   }
 
@@ -132,114 +69,26 @@ class CodexAppServerRequestApi {
     String? modelProvider,
     bool? ephemeral,
     bool persistExtendedHistory = false,
-  }) async {
-    final profile = connection.requireProfile();
-    connection.requireConnected();
-    final effectiveThreadId = _requireThreadId(threadId);
-
-    final normalizedPath = path?.trim();
-    final normalizedCwd = cwd?.trim();
-    final params = <String, Object?>{
-      'threadId': effectiveThreadId,
-      if (normalizedPath != null && normalizedPath.isNotEmpty)
-        'path': normalizedPath,
-      if (normalizedCwd != null && normalizedCwd.isNotEmpty)
-        'cwd': normalizedCwd,
-      if (model != null && model.trim().isNotEmpty) 'model': model.trim(),
-      if (modelProvider != null && modelProvider.trim().isNotEmpty)
-        'modelProvider': modelProvider.trim(),
-      'approvalPolicy': _approvalPolicyFor(profile),
-      'sandbox': _sandboxFor(profile),
-      'ephemeral': ephemeral ?? profile.ephemeralSession,
-      'persistExtendedHistory': persistExtendedHistory,
-    };
-
-    final response = await connection.sendRequest('thread/fork', params);
-    final payload = _requireObject(response, 'thread/fork response');
-    final thread = _threadReadDecoder.decodeSummaryResponse(
-      payload,
-      fallbackThreadId: effectiveThreadId,
+  }) {
+    return _forkThread(
+      this,
+      connection,
+      threadId: threadId,
+      path: path,
+      cwd: cwd,
+      model: model,
+      modelProvider: modelProvider,
+      ephemeral: ephemeral,
+      persistExtendedHistory: persistExtendedHistory,
     );
-    final forkedThreadId = thread.id;
-    connection.setTrackedThread(forkedThreadId);
-    return _sessionFromPayload(
-      payload,
-      thread: thread,
-      threadId: forkedThreadId,
-      fallbackCwd: normalizedCwd ?? profile.workspaceDir,
-      fallbackModel: model?.trim() ?? '',
-      fallbackModelProvider: modelProvider?.trim() ?? thread.modelProvider,
-    );
-  }
-
-  Future<CodexAppServerThreadSummary> _sendThreadRead(
-    CodexAppServerConnection connection, {
-    required String threadId,
-    required bool includeTurns,
-  }) async {
-    final response = await connection.sendRequest(
-      'thread/read',
-      <String, Object?>{'threadId': threadId, 'includeTurns': includeTurns},
-    );
-    return _threadReadDecoder.decodeSummaryResponse(
-      response,
-      fallbackThreadId: threadId,
-    );
-  }
-
-  Future<CodexAppServerThreadHistory> _sendThreadReadWithTurns(
-    CodexAppServerConnection connection, {
-    required String threadId,
-  }) async {
-    final response = await connection.sendRequest(
-      'thread/read',
-      <String, Object?>{'threadId': threadId, 'includeTurns': true},
-    );
-    return _threadReadDecoder.decodeHistoryResponse(
-      response,
-      fallbackThreadId: threadId,
-    );
-  }
-
-  static String _requireThreadId(String threadId) {
-    final effectiveThreadId = threadId.trim();
-    if (effectiveThreadId.isEmpty) {
-      throw const CodexAppServerException('Thread id cannot be empty.');
-    }
-    return effectiveThreadId;
   }
 
   Future<CodexAppServerThreadListPage> listThreads(
     CodexAppServerConnection connection, {
     String? cursor,
     int? limit,
-  }) async {
-    connection.requireConnected();
-    final normalizedCursor = cursor?.trim();
-    final params = <String, Object?>{};
-    if (normalizedCursor != null && normalizedCursor.isNotEmpty) {
-      params['cursor'] = normalizedCursor;
-    }
-    if (limit != null) {
-      params['limit'] = limit;
-    }
-
-    final response = await connection.sendRequest('thread/list', params);
-    final payload = _requireObject(response, 'thread/list response');
-    final data = payload['data'];
-    if (data is! List) {
-      throw const CodexAppServerException(
-        'thread/list response did not include a thread list.',
-      );
-    }
-
-    return CodexAppServerThreadListPage(
-      threads: data
-          .map(_asThreadSummary)
-          .whereType<CodexAppServerThreadSummary>()
-          .toList(growable: false),
-      nextCursor: _asString(payload['nextCursor']),
-    );
+  }) {
+    return _listThreads(this, connection, cursor: cursor, limit: limit);
   }
 
   Future<CodexAppServerTurn> sendUserMessage(
@@ -248,69 +97,22 @@ class CodexAppServerRequestApi {
     required String text,
     String? model,
     CodexReasoningEffort? effort,
-  }) async {
-    connection.requireConnected();
-
-    final effectiveThreadId = threadId.trim();
-    final trimmedText = text.trim();
-    if (effectiveThreadId.isEmpty) {
-      throw const CodexAppServerException('Thread id cannot be empty.');
-    }
-    if (trimmedText.isEmpty) {
-      throw const CodexAppServerException('Turn input cannot be empty.');
-    }
-
-    final params = <String, Object?>{
-      'threadId': effectiveThreadId,
-      'input': <Object>[
-        <String, Object?>{
-          'type': 'text',
-          'text': trimmedText,
-          'text_elements': const <Object>[],
-        },
-      ],
-      if (model != null && model.trim().isNotEmpty) 'model': model.trim(),
-      if (effort != null) 'effort': effort.name,
-    };
-
-    final response = await connection.sendRequest('turn/start', params);
-    final payload = _requireObject(response, 'turn/start response');
-    final turn = _requireObject(payload['turn'], 'turn/start turn');
-    final turnId = _asString(turn['id']) ?? '';
-
-    if (turnId.isEmpty) {
-      throw const CodexAppServerException(
-        'turn/start response did not include a turn id.',
-      );
-    }
-
-    connection.setTrackedTurn(threadId: effectiveThreadId, turnId: turnId);
-    return CodexAppServerTurn(threadId: effectiveThreadId, turnId: turnId);
+  }) {
+    return _sendUserMessage(
+      connection,
+      threadId: threadId,
+      text: text,
+      model: model,
+      effort: effort,
+    );
   }
 
   Future<void> answerUserInput(
     CodexAppServerConnection connection, {
     required String requestId,
     required Map<String, List<String>> answers,
-  }) async {
-    final pending = connection.requirePendingServerRequest(requestId);
-    if (pending.method != 'item/tool/requestUserInput' &&
-        pending.method != 'tool/requestUserInput') {
-      throw CodexAppServerException(
-        'Request $requestId is ${pending.method}, not tool/requestUserInput.',
-      );
-    }
-
-    await connection.sendServerResult(
-      requestId: requestId,
-      result: <String, Object?>{
-        'answers': answers.map(
-          (key, value) => MapEntry<String, Object?>(key, <String, Object?>{
-            'answers': value,
-          }),
-        ),
-      },
-    );
+  }) {
+    return _answerUserInput(connection, requestId: requestId, answers: answers);
   }
 
   Future<void> respondDynamicToolCall(
@@ -318,20 +120,12 @@ class CodexAppServerRequestApi {
     required String requestId,
     required bool success,
     List<Map<String, Object?>> contentItems = const <Map<String, Object?>>[],
-  }) async {
-    final pending = connection.requirePendingServerRequest(requestId);
-    if (pending.method != 'item/tool/call') {
-      throw CodexAppServerException(
-        'Request $requestId is ${pending.method}, not item/tool/call.',
-      );
-    }
-
-    await connection.sendServerResult(
+  }) {
+    return _respondDynamicToolCall(
+      connection,
       requestId: requestId,
-      result: <String, Object?>{
-        'contentItems': contentItems,
-        'success': success,
-      },
+      success: success,
+      contentItems: contentItems,
     );
   }
 
@@ -339,31 +133,11 @@ class CodexAppServerRequestApi {
     CodexAppServerConnection connection, {
     required String requestId,
     required bool approved,
-  }) async {
-    final pending = connection.requirePendingServerRequest(requestId);
-    if (pending.method == 'item/permissions/requestApproval') {
-      await resolvePermissionsRequest(
-        connection,
-        requestId: requestId,
-        approved: approved,
-      );
-      return;
-    }
-
-    final decision = switch (pending.method) {
-      'item/commandExecution/requestApproval' =>
-        approved ? 'accept' : 'decline',
-      'item/fileChange/requestApproval' => approved ? 'accept' : 'decline',
-      'applyPatchApproval' => approved ? 'approved' : 'denied',
-      'execCommandApproval' => approved ? 'approved' : 'denied',
-      _ => throw CodexAppServerException(
-        'Boolean approval is not supported for ${pending.method}.',
-      ),
-    };
-
-    await connection.sendServerResult(
+  }) {
+    return _resolveApproval(
+      connection,
       requestId: requestId,
-      result: <String, Object?>{'decision': decision},
+      approved: approved,
     );
   }
 
@@ -372,28 +146,12 @@ class CodexAppServerRequestApi {
     required String requestId,
     required bool approved,
     String scope = 'turn',
-  }) async {
-    if (scope != 'turn' && scope != 'session') {
-      throw CodexAppServerException('Unsupported permission scope: $scope');
-    }
-
-    final pending = connection.requirePendingServerRequest(requestId);
-    if (pending.method != 'item/permissions/requestApproval') {
-      throw CodexAppServerException(
-        'Request $requestId is ${pending.method}, not item/permissions/requestApproval.',
-      );
-    }
-
-    final payload = _asObject(pending.params);
-    final requestedPermissions = _asObject(payload?['permissions']);
-    await connection.sendServerResult(
+  }) {
+    return _resolvePermissionsRequest(
+      connection,
       requestId: requestId,
-      result: <String, Object?>{
-        'permissions': approved
-            ? _grantedPermissionsFromRequest(requestedPermissions)
-            : const <String, Object?>{},
-        'scope': scope,
-      },
+      approved: approved,
+      scope: scope,
     );
   }
 
@@ -403,198 +161,21 @@ class CodexAppServerRequestApi {
     required CodexAppServerElicitationAction action,
     Object? content,
     Object? metadata,
-  }) async {
-    final pending = connection.requirePendingServerRequest(requestId);
-    if (pending.method != 'mcpServer/elicitation/request') {
-      throw CodexAppServerException(
-        'Request $requestId is ${pending.method}, not mcpServer/elicitation/request.',
-      );
-    }
-
-    if (action != CodexAppServerElicitationAction.accept && content != null) {
-      throw const CodexAppServerException(
-        'Only accepted elicitation responses may include content.',
-      );
-    }
-
-    final result = <String, Object?>{'action': action.name};
-    if (content != null) {
-      result['content'] = content;
-    }
-    if (metadata != null) {
-      result['_meta'] = metadata;
-    }
-
-    await connection.sendServerResult(requestId: requestId, result: result);
+  }) {
+    return _respondToElicitation(
+      connection,
+      requestId: requestId,
+      action: action,
+      content: content,
+      metadata: metadata,
+    );
   }
 
   Future<void> abortTurn(
     CodexAppServerConnection connection, {
     String? threadId,
     String? turnId,
-  }) async {
-    if (threadId == null || turnId == null) {
-      return;
-    }
-
-    await connection.sendRequest('turn/interrupt', <String, Object?>{
-      'threadId': threadId,
-      'turnId': turnId,
-    });
-  }
-
-  static Map<String, dynamic>? _asObject(Object? value) {
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
-    }
-    return null;
-  }
-
-  static Map<String, dynamic> _requireObject(Object? value, String label) {
-    final object = _asObject(value);
-    if (object == null) {
-      throw CodexAppServerException('$label was not an object.');
-    }
-    return object;
-  }
-
-  static String? _asString(Object? value) {
-    return value is String ? value : null;
-  }
-
-  static CodexAppServerSession _sessionFromPayload(
-    Map<String, dynamic> payload, {
-    required CodexAppServerThreadSummary thread,
-    required String threadId,
-    required String fallbackCwd,
-    String fallbackModel = '',
-    String fallbackModelProvider = '',
   }) {
-    return CodexAppServerSession(
-      threadId: threadId,
-      cwd: _asString(payload['cwd']) ?? fallbackCwd,
-      model: _asString(payload['model']) ?? fallbackModel,
-      modelProvider:
-          _asString(payload['modelProvider']) ?? fallbackModelProvider,
-      reasoningEffort: _responseReasoningEffort(payload),
-      thread: thread,
-      approvalPolicy: payload['approvalPolicy'],
-      sandbox: payload['sandbox'],
-    );
-  }
-
-  static String? _responseReasoningEffort(Map<String, dynamic> payload) {
-    return _asString(payload['reasoningEffort']) ??
-        _asString(payload['reasoning_effort']) ??
-        _asString(payload['effort']);
-  }
-
-  static CodexAppServerThreadSummary _requireThreadSummary(
-    Object? value,
-    String label,
-  ) {
-    final thread = _asThreadSummary(value);
-    if (thread == null) {
-      throw CodexAppServerException('$label did not include a thread object.');
-    }
-    return thread;
-  }
-
-  static CodexAppServerThreadSummary? _asThreadSummary(
-    Object? value, {
-    Object? fallbackThreadId,
-  }) {
-    final thread = _asObject(value);
-    final threadId =
-        _asString(thread?['id']) ?? _asString(fallbackThreadId) ?? '';
-    if (threadId.isEmpty) {
-      return null;
-    }
-
-    return CodexAppServerThreadSummary(
-      id: threadId,
-      preview: _asString(thread?['preview']) ?? '',
-      ephemeral: thread?['ephemeral'] as bool? ?? false,
-      modelProvider: _asString(thread?['modelProvider']) ?? '',
-      createdAt: _parseUnixTimestamp(thread?['createdAt']),
-      updatedAt: _parseUnixTimestamp(thread?['updatedAt']),
-      path: _asString(thread?['path']),
-      cwd: _asString(thread?['cwd']),
-      promptCount:
-          _asInt(thread?['promptCount']) ??
-          _countUserPromptItems(thread?['turns']),
-      name: _asString(thread?['name']),
-      sourceKind: _sourceKind(thread?['source']),
-      agentNickname: _asString(thread?['agentNickname']),
-      agentRole: _asString(thread?['agentRole']),
-    );
-  }
-
-  static String? _sourceKind(Object? raw) {
-    if (raw is String && raw.trim().isNotEmpty) {
-      return raw.trim();
-    }
-
-    final object = _asObject(raw);
-    return _asString(object?['kind']) ?? _asString(object?['type']);
-  }
-
-  static DateTime? _parseUnixTimestamp(Object? raw) {
-    if (raw is! num) {
-      return null;
-    }
-    return DateTime.fromMillisecondsSinceEpoch(
-      raw.toInt() * 1000,
-      isUtc: true,
-    ).toLocal();
-  }
-
-  static int? _countUserPromptItems(Object? rawTurns) {
-    if (rawTurns is! List) {
-      return null;
-    }
-
-    var count = 0;
-    for (final turn in rawTurns.whereType<Map>()) {
-      final items = turn['items'];
-      if (items is! List) {
-        continue;
-      }
-      for (final item in items.whereType<Map>()) {
-        if (_asString(item['type']) == 'userMessage') {
-          count += 1;
-        }
-      }
-    }
-    return count;
-  }
-
-  static int? _asInt(Object? value) {
-    return value is num ? value.toInt() : null;
-  }
-
-  static String _approvalPolicyFor(ConnectionProfile profile) {
-    return profile.dangerouslyBypassSandbox ? 'never' : 'on-request';
-  }
-
-  static String _sandboxFor(ConnectionProfile profile) {
-    return profile.dangerouslyBypassSandbox
-        ? 'danger-full-access'
-        : 'workspace-write';
-  }
-
-  static Map<String, Object?> _grantedPermissionsFromRequest(
-    Map<String, dynamic>? requested,
-  ) {
-    if (requested == null) {
-      return const <String, Object?>{};
-    }
-
-    return <String, Object?>{
-      if (requested['network'] != null) 'network': requested['network'],
-      if (requested['fileSystem'] != null)
-        'fileSystem': requested['fileSystem'],
-      if (requested['macos'] != null) 'macos': requested['macos'],
-    };
+    return _abortTurn(connection, threadId: threadId, turnId: turnId);
   }
 }
