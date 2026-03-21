@@ -988,7 +988,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Work log'), findsOneWidget);
+    expect(find.text('Work log'), findsNothing);
     expect(find.text('Running command'), findsOneWidget);
     expect(find.text('pwd'), findsOneWidget);
     expect(find.text('/repo'), findsOneWidget);
@@ -1047,7 +1047,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Work log'), findsOneWidget);
+      expect(find.text('Work log'), findsNothing);
       expect(find.text('waiting'), findsOneWidget);
       expect(find.text('Waiting for background terminal'), findsOneWidget);
       expect(find.text('sleep 5'), findsOneWidget);

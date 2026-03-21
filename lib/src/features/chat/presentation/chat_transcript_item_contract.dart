@@ -72,6 +72,24 @@ final class ChatWorkLogGroupItemContract extends ChatTranscriptItemContract {
   );
 }
 
+final class ChatExecCommandItemContract extends ChatTranscriptItemContract {
+  const ChatExecCommandItemContract({required this.entry});
+
+  final ChatCommandExecutionWorkLogEntryContract entry;
+
+  @override
+  String get id => entry.id;
+}
+
+final class ChatExecWaitItemContract extends ChatTranscriptItemContract {
+  const ChatExecWaitItemContract({required this.entry});
+
+  final ChatCommandWaitWorkLogEntryContract entry;
+
+  @override
+  String get id => entry.id;
+}
+
 final class ChatChangedFilesItemContract extends ChatTranscriptItemContract {
   const ChatChangedFilesItemContract({
     required this.id,

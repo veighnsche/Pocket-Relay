@@ -15,6 +15,23 @@ class ChatWorkLogItemProjector {
     );
   }
 
+  ChatTranscriptItemContract projectTranscriptItem(
+    CodexWorkLogGroupBlock block,
+  ) {
+    final projected = project(block);
+    if (projected.entries.length != 1) {
+      return projected;
+    }
+
+    return switch (projected.entries.single) {
+      final ChatCommandExecutionWorkLogEntryContract commandEntry =>
+        ChatExecCommandItemContract(entry: commandEntry),
+      final ChatCommandWaitWorkLogEntryContract waitEntry =>
+        ChatExecWaitItemContract(entry: waitEntry),
+      _ => projected,
+    };
+  }
+
   ChatWorkLogEntryContract _projectEntry(CodexWorkLogEntry entry) {
     final normalizedTitle = _normalizeCompactToolLabel(entry.title);
     final mcpToolCall = entry.entryKind == CodexWorkLogEntryKind.mcpToolCall

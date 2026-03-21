@@ -921,9 +921,8 @@ void main() {
         );
 
         final item =
-            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
-        final entry =
-            item.entries.single as ChatCommandExecutionWorkLogEntryContract;
+            projector.project(groupBlock) as ChatExecCommandItemContract;
+        final entry = item.entry;
 
         expect(entry.commandText, 'pwd');
         expect(entry.outputPreview, '/repo');
@@ -952,10 +951,8 @@ void main() {
           ],
         );
 
-        final item =
-            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
-        final entry =
-            item.entries.single as ChatCommandWaitWorkLogEntryContract;
+        final item = projector.project(groupBlock) as ChatExecWaitItemContract;
+        final entry = item.entry;
 
         expect(entry.commandText, 'sleep 5');
         expect(entry.outputPreview, 'still running');
@@ -987,9 +984,8 @@ void main() {
         );
 
         final item =
-            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
-        final entry =
-            item.entries.single as ChatCommandExecutionWorkLogEntryContract;
+            projector.project(groupBlock) as ChatExecCommandItemContract;
+        final entry = item.entry;
 
         expect(entry.commandText, 'sleep 5');
         expect(entry.outputPreview, 'ready');

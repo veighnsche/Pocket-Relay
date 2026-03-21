@@ -43,7 +43,7 @@ class ChatTranscriptItemProjector {
       final CodexProposedPlanBlock proposedPlanBlock =>
         ChatProposedPlanItemContract(block: proposedPlanBlock),
       final CodexWorkLogGroupBlock workLogGroupBlock =>
-        _workLogItemProjector.project(workLogGroupBlock),
+        _workLogItemProjector.projectTranscriptItem(workLogGroupBlock),
       final CodexChangedFilesBlock changedFilesBlock =>
         _changedFilesItemProjector.project(changedFilesBlock),
       final CodexApprovalRequestBlock approvalBlock =>
