@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/core/storage/codex_connection_conversation_hist
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
+import 'package:pocket_relay/src/features/chat/application/chat_conversation_selection_coordinator.dart';
 import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/models/chat_conversation_recovery_state.dart';
@@ -17,7 +18,8 @@ import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_a
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
-    this.conversationStateStore = const DiscardingCodexConversationStateStore(),
+    CodexConversationStateStore conversationStateStore =
+        const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
     SavedConnectionConversationState initialConversationState =
@@ -27,6 +29,10 @@ class ChatSessionController extends ChangeNotifier {
     bool? supportsLocalConnectionMode,
   }) : _sessionReducer = reducer,
        _runtimeEventMapper = runtimeEventMapper ?? CodexRuntimeEventMapper(),
+       _conversationSelection = ChatConversationSelectionCoordinator(
+         conversationStateStore: conversationStateStore,
+         initialConversationState: initialConversationState,
+       ),
        _supportsLocalConnectionMode =
            supportsLocalConnectionMode ?? supportsLocalCodexConnection() {
     final initial = initialSavedProfile;
@@ -35,18 +41,17 @@ class ChatSessionController extends ChangeNotifier {
       _secrets = initial.secrets;
       _isLoading = false;
     }
-    _resumeThreadId = initialConversationState.normalizedSelectedThreadId;
     _appServerEventSubscription = appServerClient.events.listen(
       _handleAppServerEvent,
     );
   }
 
   final CodexProfileStore profileStore;
-  final CodexConversationStateStore conversationStateStore;
   final CodexAppServerClient appServerClient;
 
   final TranscriptReducer _sessionReducer;
   final CodexRuntimeEventMapper _runtimeEventMapper;
+  final ChatConversationSelectionCoordinator _conversationSelection;
   final bool _supportsLocalConnectionMode;
   final _snackBarMessagesController = StreamController<String>.broadcast();
 
@@ -60,8 +65,6 @@ class ChatSessionController extends ChangeNotifier {
   bool _isDisposed = false;
   bool _isTrackingSshBootstrapFailures = false;
   bool _sawTrackedSshBootstrapFailure = false;
-  bool _suppressTrackedThreadReuse = false;
-  String? _resumeThreadId;
   final Set<String> _threadMetadataHydrationAttempts = <String>{};
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
 
@@ -253,19 +256,10 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   Future<void> selectConversationForResume(String threadId) async {
-    final normalizedThreadId = _normalizedThreadId(threadId);
-    if (normalizedThreadId == null) {
-      throw ArgumentError.value(
-        threadId,
-        'threadId',
-        'Thread id must not be empty.',
-      );
-    }
-
-    _resumeThreadId = normalizedThreadId;
-    _suppressTrackedThreadReuse = false;
-    await _persistConversationSelection(
-      _activeConversationThreadId() ?? _resumeConversationThreadId(),
+    await _conversationSelection.selectConversationForResume(
+      threadId,
+      ephemeralSession: _profile.ephemeralSession,
+      activeThreadId: _activeConversationThreadId(),
     );
   }
 
@@ -347,7 +341,11 @@ class ChatSessionController extends ChangeNotifier {
     }
 
     _sessionState = nextState;
-    _schedulePersistConversationHandoff();
+    _conversationSelection.schedulePersistConversationSelection(
+      isDisposed: _isDisposed,
+      ephemeralSession: _profile.ephemeralSession,
+      activeThreadId: _activeConversationThreadId(),
+    );
     notifyListeners();
   }
 
@@ -498,7 +496,9 @@ class ChatSessionController extends ChangeNotifier {
         model: _selectedModelOverride(),
         effort: _profile.reasoningEffort,
       );
-      await _recordConversationSelection(threadId: turn.threadId);
+      await _conversationSelection.recordConversationSelection(
+        threadId: turn.threadId,
+      );
       _rememberContinuationThread(turn.threadId);
       _applyRuntimeEvent(
         CodexRuntimeTurnStartedEvent(
@@ -570,7 +570,9 @@ class ChatSessionController extends ChangeNotifier {
       return activeThreadId;
     }
 
-    final resumeThreadId = _resumeConversationThreadId();
+    final resumeThreadId = _conversationSelection.resumeThreadId(
+      ephemeralSession: _profile.ephemeralSession,
+    );
     final session = await appServerClient.startSession(
       model: _selectedModelOverride(),
       reasoningEffort: _profile.reasoningEffort,
@@ -908,16 +910,14 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   String? _resumeConversationThreadId() {
-    if (_profile.ephemeralSession) {
-      return null;
-    }
-
-    return _normalizedThreadId(_resumeThreadId);
+    return _conversationSelection.resumeThreadId(
+      ephemeralSession: _profile.ephemeralSession,
+    );
   }
 
   String? _trackedThreadReuseCandidate() {
     if (_profile.ephemeralSession ||
-        _suppressTrackedThreadReuse ||
+        _conversationSelection.suppressTrackedThreadReuse ||
         _sessionState.hasMultipleTimelines) {
       return null;
     }
@@ -976,20 +976,20 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   void _rememberContinuationThread(String? threadId) {
-    final normalizedThreadId = _normalizedThreadId(threadId);
-    if (normalizedThreadId == null) {
-      return;
-    }
-
-    _resumeThreadId = normalizedThreadId;
-    _suppressTrackedThreadReuse = false;
-    _schedulePersistConversationHandoff();
+    _conversationSelection.rememberContinuationThread(
+      threadId,
+      isDisposed: _isDisposed,
+      ephemeralSession: _profile.ephemeralSession,
+      activeThreadId: _activeConversationThreadId(),
+    );
   }
 
   void _clearContinuationThread() {
-    _resumeThreadId = null;
-    _suppressTrackedThreadReuse = true;
-    _schedulePersistConversationHandoff();
+    _conversationSelection.clearContinuationThread(
+      isDisposed: _isDisposed,
+      ephemeralSession: _profile.ephemeralSession,
+      activeThreadId: _activeConversationThreadId(),
+    );
   }
 
   String? _normalizedThreadId(String? value) {
@@ -1035,30 +1035,6 @@ class ChatSessionController extends ChangeNotifier {
     return (expectedThreadId: expectedThreadId, actualThreadId: actualThreadId);
   }
 
-  void _schedulePersistConversationHandoff() {
-    if (_isDisposed) {
-      return;
-    }
-
-    final selectedThreadId =
-        _activeConversationThreadId() ?? _resumeConversationThreadId();
-    unawaited(_persistConversationSelection(selectedThreadId));
-  }
-
-  Future<void> _persistConversationSelection(String? selectedThreadId) async {
-    try {
-      final currentState = await conversationStateStore.loadState();
-      await conversationStateStore.saveState(
-        currentState.copyWith(
-          selectedThreadId: selectedThreadId,
-          clearSelectedThreadId: selectedThreadId == null,
-        ),
-      );
-    } catch (_) {
-      // Conversation selection persistence must not break the active session.
-    }
-  }
-
   String _sessionLabel() {
     return switch (_profile.connectionMode) {
       ConnectionMode.remote => 'remote Codex',
@@ -1075,20 +1051,5 @@ class ChatSessionController extends ChangeNotifier {
 
   static String? _asString(Object? value) {
     return value is String ? value : null;
-  }
-
-  Future<void> _recordConversationSelection({required String threadId}) async {
-    final normalizedThreadId = _normalizedThreadId(threadId);
-    if (normalizedThreadId == null) {
-      return;
-    }
-    try {
-      final currentState = await conversationStateStore.loadState();
-      await conversationStateStore.saveState(
-        currentState.copyWith(selectedThreadId: normalizedThreadId),
-      );
-    } catch (_) {
-      // Conversation selection persistence must not break the active session.
-    }
   }
 }
