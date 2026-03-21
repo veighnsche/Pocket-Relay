@@ -1,5 +1,5 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation.dart';
-import 'package:pocket_relay/src/features/chat/application/codex_runtime_payload_support.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/codex_runtime_payload_support.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 

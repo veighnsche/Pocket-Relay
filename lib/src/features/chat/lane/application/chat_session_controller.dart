@@ -10,7 +10,7 @@ import 'package:pocket_relay/src/features/chat/lane/application/chat_conversatio
 import 'package:pocket_relay/src/features/chat/lane/application/chat_conversation_recovery_policy.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
-import 'package:pocket_relay/src/features/chat/application/runtime_event_mapper.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
