@@ -22,13 +22,6 @@ CodexReasoningEffort? codexReasoningEffortFromWireValue(String? value) {
 }
 
 class ConnectionProfile {
-  static const legacyWorkspaceDirPlaceholders = <String>{
-    '/home/vince/Projects',
-    '/home/vince/Projects/Pocket-Relay',
-    '/Users/vince/Projects',
-    '/Users/vince/Projects/Pocket-Relay',
-  };
-
   const ConnectionProfile({
     required this.label,
     required this.host,

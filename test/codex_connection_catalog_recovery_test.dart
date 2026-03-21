@@ -98,52 +98,49 @@ void main() {
     expect(catalog?.orderedConnectionIds, <String>['conn_b', 'conn_a']);
   });
 
-  test(
-    'normalizes only the exact legacy seeded placeholder profile shape',
-    () async {
-      final preferences = SharedPreferencesAsync();
-      await preferences.setString(
-        'pocket_relay.connections.index',
-        jsonEncode(<String, Object?>{
-          'schemaVersion': 1,
-          'orderedConnectionIds': <String>['conn_seed', 'conn_custom'],
-        }),
-      );
-      await preferences.setString(
-        'pocket_relay.connection.conn_seed.profile',
-        jsonEncode(
-          ConnectionProfile.defaults()
-              .copyWith(workspaceDir: '/home/vince/Projects')
-              .toJson(),
-        ),
-      );
-      await preferences.setString(
-        'pocket_relay.connection.conn_custom.profile',
-        jsonEncode(
-          ConnectionProfile.defaults()
-              .copyWith(
-                host: 'relay.example.com',
-                username: 'vince',
-                workspaceDir: '/home/vince/Projects/Pocket-Relay',
-              )
-              .toJson(),
-        ),
-      );
-      final recovery = _buildRecovery(preferences);
+  test('preserves stored profile values exactly as persisted', () async {
+    final preferences = SharedPreferencesAsync();
+    await preferences.setString(
+      'pocket_relay.connections.index',
+      jsonEncode(<String, Object?>{
+        'schemaVersion': 1,
+        'orderedConnectionIds': <String>['conn_seed', 'conn_custom'],
+      }),
+    );
+    await preferences.setString(
+      'pocket_relay.connection.conn_seed.profile',
+      jsonEncode(
+        ConnectionProfile.defaults()
+            .copyWith(workspaceDir: '/home/vince/Projects')
+            .toJson(),
+      ),
+    );
+    await preferences.setString(
+      'pocket_relay.connection.conn_custom.profile',
+      jsonEncode(
+        ConnectionProfile.defaults()
+            .copyWith(
+              host: 'relay.example.com',
+              username: 'vince',
+              workspaceDir: '/home/vince/Projects/Pocket-Relay',
+            )
+            .toJson(),
+      ),
+    );
+    final recovery = _buildRecovery(preferences);
 
-      await recovery.ensurePreferencesReady();
-      final catalog = await recovery.loadCatalog();
+    await recovery.ensurePreferencesReady();
+    final catalog = await recovery.loadCatalog();
 
-      expect(
-        catalog?.connectionsById['conn_seed']?.profile,
-        ConnectionProfile.defaults(),
-      );
-      expect(
-        catalog?.connectionsById['conn_custom']?.profile.workspaceDir,
-        '/home/vince/Projects/Pocket-Relay',
-      );
-    },
-  );
+    expect(
+      catalog?.connectionsById['conn_seed']?.profile.workspaceDir,
+      '/home/vince/Projects',
+    );
+    expect(
+      catalog?.connectionsById['conn_custom']?.profile.workspaceDir,
+      '/home/vince/Projects/Pocket-Relay',
+    );
+  });
 }
 
 CodexConnectionCatalogRecovery _buildRecovery(

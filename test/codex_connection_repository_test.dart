@@ -170,7 +170,7 @@ void main() {
   );
 
   test(
-    'loadConnection clears the old seeded placeholder workspace only for the exact legacy default profile shape',
+    'loadConnection preserves persisted workspace values exactly as stored',
     () async {
       final preferences = SharedPreferencesAsync();
       await preferences.setString(
@@ -196,7 +196,8 @@ void main() {
 
       final connection = await repository.loadConnection('conn_seed');
 
-      expect(connection.profile, ConnectionProfile.defaults());
+      expect(connection.profile.workspaceDir, '/home/vince/Projects');
+      expect(connection.profile, isNot(ConnectionProfile.defaults()));
     },
   );
 

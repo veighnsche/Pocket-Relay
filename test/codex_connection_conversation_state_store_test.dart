@@ -23,36 +23,16 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  test(
-    'loadState migrates a legacy handoff thread into connection state storage',
-    () async {
-      SharedPreferences.setMockInitialValues(<String, Object>{
-        'pocket_relay.connection.conn_a.conversation_handoff': jsonEncode(
-          <String, Object?>{'resumeThreadId': ' thread_legacy '},
-        ),
-      });
-      final preferences = SharedPreferencesAsync();
-      final store = SecureCodexConnectionConversationStateStore(
-        preferences: preferences,
-      );
+  test('loadState returns empty state when no saved connection state exists', () async {
+    final preferences = SharedPreferencesAsync();
+    final store = SecureCodexConnectionConversationStateStore(
+      preferences: preferences,
+    );
 
-      final state = await store.loadState('conn_a');
+    final state = await store.loadState('conn_a');
 
-      expect(state.normalizedSelectedThreadId, 'thread_legacy');
-      expect(
-        await preferences.getString(
-          'pocket_relay.connection.conn_a.conversation_state',
-        ),
-        jsonEncode(<String, Object?>{'selectedThreadId': 'thread_legacy'}),
-      );
-      expect(
-        await preferences.getString(
-          'pocket_relay.connection.conn_a.conversation_handoff',
-        ),
-        isNull,
-      );
-    },
-  );
+    expect(state, const SavedConnectionConversationState());
+  });
 
   test('saveState persists only normalized selectedThreadId', () async {
     final preferences = SharedPreferencesAsync();
@@ -75,13 +55,7 @@ void main() {
     );
   });
 
-  test('deleteState removes both steady-state and legacy keys', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'pocket_relay.connection.conn_a.conversation_handoff': jsonEncode(
-        <String, Object?>{'resumeThreadId': 'thread_legacy'},
-      ),
-      'pocket_relay.connection.conn_a.conversation_history': '[]',
-    });
+  test('deleteState removes saved conversation state', () async {
     final preferences = SharedPreferencesAsync();
     final store = SecureCodexConnectionConversationStateStore(
       preferences: preferences,
@@ -92,32 +66,11 @@ void main() {
       const SavedConnectionConversationState(selectedThreadId: 'thread_saved'),
     );
 
-    await preferences.setString(
-      'pocket_relay.connection.conn_a.conversation_handoff',
-      jsonEncode(<String, Object?>{'resumeThreadId': 'thread_old'}),
-    );
-    await preferences.setString(
-      'pocket_relay.connection.conn_a.conversation_history',
-      '[]',
-    );
-
     await store.deleteState('conn_a');
 
     expect(
       await preferences.getString(
         'pocket_relay.connection.conn_a.conversation_state',
-      ),
-      isNull,
-    );
-    expect(
-      await preferences.getString(
-        'pocket_relay.connection.conn_a.conversation_handoff',
-      ),
-      isNull,
-    );
-    expect(
-      await preferences.getString(
-        'pocket_relay.connection.conn_a.conversation_history',
       ),
       isNull,
     );

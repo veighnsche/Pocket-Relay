@@ -95,10 +95,8 @@ class CodexConnectionCatalogRecovery {
       }
 
       orderedConnectionIds.add(connectionId);
-      final profile = _normalizeLegacySeededProfile(
-        ConnectionProfile.fromJson(
-          jsonDecode(rawProfile) as Map<String, dynamic>,
-        ),
+      final profile = ConnectionProfile.fromJson(
+        jsonDecode(rawProfile) as Map<String, dynamic>,
       );
       connectionsById[connectionId] = SavedConnectionSummary(
         id: connectionId,
@@ -162,26 +160,6 @@ class CodexConnectionCatalogRecovery {
     }
     return orderedConnectionIds;
   }
-
-  ConnectionProfile _normalizeLegacySeededProfile(ConnectionProfile profile) {
-    final trimmedWorkspaceDir = profile.workspaceDir.trim();
-    if (!ConnectionProfile.legacyWorkspaceDirPlaceholders.contains(
-      trimmedWorkspaceDir,
-    )) {
-      return profile;
-    }
-
-    final defaults = ConnectionProfile.defaults();
-    final legacySeededProfile = defaults.copyWith(
-      workspaceDir: trimmedWorkspaceDir,
-    );
-    if (profile != legacySeededProfile) {
-      return profile;
-    }
-
-    return defaults;
-  }
-
   String _profileKeyForConnection(String connectionId) {
     return '$profileKeyPrefix$connectionId$profileKeySuffix';
   }

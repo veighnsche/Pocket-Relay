@@ -2,8 +2,6 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'codex_connection_conversation_state_legacy_migration.dart';
-
 /// This file is not the home for authoritative historical conversation data.
 ///
 /// Pocket Relay only persists narrow connection-scoped lane state here,
@@ -75,11 +73,6 @@ class SecureCodexConnectionConversationStateStore
     implements CodexConnectionConversationStateStore {
   static const _stateKeyPrefix = 'pocket_relay.connection.';
   static const _stateKeySuffix = '.conversation_state';
-  static const _legacyMigration = CodexConnectionConversationStateLegacyMigration(
-    stateKeyPrefix: _stateKeyPrefix,
-    preferencesMigrationKey:
-        'pocket_relay.connection_conversation_history_async_migration_complete',
-  );
 
   SecureCodexConnectionConversationStateStore({
     SharedPreferencesAsync? preferences,
@@ -102,18 +95,7 @@ class SecureCodexConnectionConversationStateStore
         jsonDecode(rawState) as Map<String, dynamic>,
       );
     }
-
-    final migratedSelectedThreadId = await _legacyMigration
-        .loadLegacySelectedThreadId(_preferences, normalizedConnectionId);
-    if (migratedSelectedThreadId == null) {
-      return const SavedConnectionConversationState();
-    }
-
-    final migratedState = SavedConnectionConversationState(
-      selectedThreadId: migratedSelectedThreadId,
-    );
-    await saveState(normalizedConnectionId, migratedState);
-    return migratedState;
+    return const SavedConnectionConversationState();
   }
 
   @override
@@ -134,8 +116,6 @@ class SecureCodexConnectionConversationStateStore
     } else {
       await _preferences.setString(key, jsonEncode(normalizedState.toJson()));
     }
-
-    await _legacyMigration.clearLegacyKeys(_preferences, normalizedConnectionId);
   }
 
   @override
@@ -143,11 +123,10 @@ class SecureCodexConnectionConversationStateStore
     final normalizedConnectionId = _normalizeConnectionId(connectionId);
     await _ensurePreferencesReady();
     await _preferences.remove(_stateKeyForConnection(normalizedConnectionId));
-    await _legacyMigration.clearLegacyKeys(_preferences, normalizedConnectionId);
   }
 
   Future<void> _ensurePreferencesReady() {
-    return _preferencesReady ??= _legacyMigration.ensurePreferencesReady();
+    return _preferencesReady ??= Future<void>.value();
   }
 
   String _normalizeConnectionId(String connectionId) {
