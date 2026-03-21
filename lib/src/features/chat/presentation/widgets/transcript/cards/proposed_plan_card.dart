@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
-import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/markdown_style_factory.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
 class ProposedPlanCard extends StatefulWidget {
   const ProposedPlanCard({super.key, required this.block});
@@ -40,65 +40,25 @@ class _ProposedPlanCardState extends State<ProposedPlanCard> {
         ? displayedMarkdown
         : _buildCollapsedPlanPreview(widget.block.markdown, maxVisibleLines: 8);
 
-    return PocketTranscriptFrame(
-      shadowColor: cards.shadow,
-      shadowOpacity: cards.isDark ? 0.18 : 0.06,
-      backgroundColor: cards.surface,
-      borderColor: cards.accentBorder(accent),
+    return TranscriptAnnotation(
+      accent: accent,
+      header: TranscriptAnnotationHeader(
+        icon: Icons.description_outlined,
+        label: title,
+        accent: accent,
+        trailing: widget.block.isStreaming
+            ? const InlinePulseChip(label: 'drafting')
+            : null,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.description_outlined, size: 16, color: accent),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ),
-              if (widget.block.isStreaming)
-                const InlinePulseChip(label: 'drafting'),
-            ],
-          ),
-          const SizedBox(height: PocketSpacing.sm),
-          Stack(
-            children: [
-              MarkdownBody(
-                data: displayedText.trim().isEmpty
-                    ? '_Waiting for plan…_'
-                    : displayedText,
-                selectable: true,
-                styleSheet: markdownStyle,
-              ),
-              if (canCollapse && !_expanded)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            cards.surface.withValues(alpha: 0),
-                            cards.surface,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          MarkdownBody(
+            data: displayedText.trim().isEmpty
+                ? '_Waiting for plan…_'
+                : displayedText,
+            selectable: true,
+            styleSheet: markdownStyle,
           ),
           if (canCollapse) ...[
             const SizedBox(height: PocketSpacing.sm),

@@ -963,6 +963,10 @@ void main() {
       expect(find.text('Ship mobile widgets'), findsOneWidget);
       expect(find.text('Summary'), findsNothing);
       expect(find.text('Expand plan'), findsOneWidget);
+      expect(
+        _findDecoratedContainerColorForText(tester, 'Step 1 for the rollout'),
+        isNull,
+      );
 
       await tester.tap(find.text('Expand plan'));
       await tester.pumpAndSettle();
