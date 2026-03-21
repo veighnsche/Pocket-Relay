@@ -749,6 +749,33 @@ void main() {
       expect(entry.summaryLabel, 'Reading lines 1 to 120');
     });
 
+    test('projects web-search items into dedicated web-search entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_web_search',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_web_search',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.webSearch,
+            title: 'Search docs',
+            preview: 'Found CLI reference and API notes',
+            snapshot: const <String, Object?>{
+              'query': 'Pocket Relay CLI',
+            },
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatWebSearchWorkLogEntryContract;
+
+      expect(entry.queryText, 'Pocket Relay CLI');
+      expect(entry.resultSummary, 'Found CLI reference and API notes');
+      expect(entry.activityLabel, 'Searched');
+    });
+
     test('projects sed -ne read commands into read work-log entries', () {
       final groupBlock = CodexWorkLogGroupBlock(
         id: 'worklog_sed_ne',

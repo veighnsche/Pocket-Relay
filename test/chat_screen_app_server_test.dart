@@ -878,6 +878,44 @@ void main() {
     expect(find.text('Search docs'), findsOneWidget);
   });
 
+  testWidgets('renders web-search items with query-focused work-log copy', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(_buildCatalogApp(appServerClient: appServerClient));
+
+    await _pumpAppReady(tester);
+
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_1',
+          'item': <String, Object?>{
+            'id': 'item_search_1',
+            'type': 'webSearch',
+            'status': 'completed',
+            'title': 'Search docs',
+            'query': 'Pocket Relay CLI',
+            'result': <String, Object?>{
+              'summary': 'Found CLI reference and API notes',
+            },
+          },
+        },
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Searched'), findsOneWidget);
+    expect(find.text('Pocket Relay CLI'), findsOneWidget);
+    expect(find.text('Found CLI reference and API notes'), findsOneWidget);
+    expect(find.text('Search docs'), findsNothing);
+  });
+
   testWidgets('strips shell-wrapper noise from command work-log titles', (
     tester,
   ) async {

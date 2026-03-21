@@ -982,6 +982,36 @@ void main() {
     expect(find.text('running'), findsOneWidget);
   });
 
+  testWidgets('renders web-search entries as dedicated work-log rows', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexWorkLogGroupBlock(
+            id: 'worklog_web_search',
+            createdAt: DateTime(2026, 3, 14, 12),
+            entries: <CodexWorkLogEntry>[
+              CodexWorkLogEntry(
+                id: 'entry_web_search',
+                createdAt: DateTime(2026, 3, 14, 12),
+                entryKind: CodexWorkLogEntryKind.webSearch,
+                title: 'Search docs',
+                preview: 'Found CLI reference and API notes',
+                snapshot: const <String, Object?>{'query': 'Pocket Relay CLI'},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Searched'), findsOneWidget);
+    expect(find.text('Pocket Relay CLI'), findsOneWidget);
+    expect(find.text('Found CLI reference and API notes'), findsOneWidget);
+    expect(find.text('Search docs'), findsNothing);
+  });
+
   testWidgets('renders simple sed reads as structured read work-log rows', (
     tester,
   ) async {

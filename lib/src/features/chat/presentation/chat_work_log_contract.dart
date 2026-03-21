@@ -31,6 +31,31 @@ final class ChatGenericWorkLogEntryContract extends ChatWorkLogEntryContract {
   final String? preview;
 }
 
+final class ChatWebSearchWorkLogEntryContract extends ChatWorkLogEntryContract {
+  const ChatWebSearchWorkLogEntryContract({
+    required super.id,
+    required this.queryText,
+    this.resultSummary,
+    this.queryCount,
+    super.turnId,
+    super.isRunning = false,
+  }) : super(entryKind: CodexWorkLogEntryKind.webSearch, exitCode: null);
+
+  final String queryText;
+  final String? resultSummary;
+  final int? queryCount;
+
+  String get activityLabel => isRunning ? 'Searching' : 'Searched';
+
+  String get scopeLabel {
+    final count = queryCount;
+    if (count == null || count <= 1) {
+      return 'Web search';
+    }
+    return '$count queries';
+  }
+}
+
 sealed class ChatFileReadWorkLogEntryContract extends ChatWorkLogEntryContract {
   const ChatFileReadWorkLogEntryContract({
     required super.id,
