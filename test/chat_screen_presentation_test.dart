@@ -1038,7 +1038,7 @@ void main() {
       expect(item, isA<ChatSessionInfoItemContract>());
     });
 
-    test('keeps warning status blocks on the generic status surface', () {
+    test('projects warning status blocks into dedicated warning items', () {
       final item = projector.project(
         CodexStatusBlock(
           id: 'status_warning',
@@ -1049,7 +1049,34 @@ void main() {
         ),
       );
 
-      expect(item, isA<ChatStatusItemContract>());
+      expect(item, isA<ChatWarningItemContract>());
+    });
+
+    test('projects deprecation notices into dedicated warning items', () {
+      final item = projector.project(
+        CodexStatusBlock(
+          id: 'status_deprecation',
+          createdAt: DateTime(2026, 3, 15, 12),
+          title: 'Deprecation notice',
+          body: 'This event family will be removed soon.',
+          statusKind: CodexStatusBlockKind.warning,
+        ),
+      );
+
+      expect(item, isA<ChatDeprecationNoticeItemContract>());
+    });
+
+    test('projects patch-apply failures into dedicated error items', () {
+      final item = projector.project(
+        CodexErrorBlock(
+          id: 'error_patch_apply',
+          createdAt: DateTime(2026, 3, 15, 12),
+          title: 'Patch apply failed',
+          body: 'The patch could not be applied cleanly.',
+        ),
+      );
+
+      expect(item, isA<ChatPatchApplyFailureItemContract>());
     });
 
     test('projects sed -ne read commands into read work-log entries', () {

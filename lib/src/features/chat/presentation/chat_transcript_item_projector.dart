@@ -58,9 +58,7 @@ class ChatTranscriptItemProjector {
         block: sshBlock,
       ),
       final CodexStatusBlock statusBlock => _projectStatusItem(statusBlock),
-      final CodexErrorBlock errorBlock => ChatErrorItemContract(
-        block: errorBlock,
-      ),
+      final CodexErrorBlock errorBlock => _projectErrorItem(errorBlock),
       final CodexUsageBlock usageBlock => ChatUsageItemContract(
         block: usageBlock,
       ),
@@ -85,8 +83,24 @@ class ChatTranscriptItemProjector {
         block: block,
       ),
       CodexStatusBlockKind.info => ChatSessionInfoItemContract(block: block),
-      CodexStatusBlockKind.warning ||
+      CodexStatusBlockKind.warning =>
+        _isDeprecationNotice(block)
+            ? ChatDeprecationNoticeItemContract(block: block)
+            : ChatWarningItemContract(block: block),
       CodexStatusBlockKind.auth => ChatStatusItemContract(block: block),
     };
   }
+
+  ChatTranscriptItemContract _projectErrorItem(CodexErrorBlock block) {
+    if (_isPatchApplyFailure(block)) {
+      return ChatPatchApplyFailureItemContract(block: block);
+    }
+    return ChatErrorItemContract(block: block);
+  }
+
+  bool _isDeprecationNotice(CodexStatusBlock block) =>
+      block.title.trim().toLowerCase() == 'deprecation notice';
+
+  bool _isPatchApplyFailure(CodexErrorBlock block) =>
+      block.title.trim().toLowerCase() == 'patch apply failed';
 }

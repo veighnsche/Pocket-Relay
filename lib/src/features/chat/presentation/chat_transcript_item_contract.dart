@@ -185,10 +185,39 @@ final class ChatSessionInfoItemContract extends ChatTranscriptItemContract {
   String get id => block.id;
 }
 
+final class ChatWarningItemContract extends ChatTranscriptItemContract {
+  const ChatWarningItemContract({required this.block});
+
+  final CodexStatusBlock block;
+
+  @override
+  String get id => block.id;
+}
+
+final class ChatDeprecationNoticeItemContract
+    extends ChatTranscriptItemContract {
+  const ChatDeprecationNoticeItemContract({required this.block});
+
+  final CodexStatusBlock block;
+
+  @override
+  String get id => block.id;
+}
+
 final class ChatStatusItemContract extends ChatTranscriptItemContract {
   const ChatStatusItemContract({required this.block});
 
   final CodexStatusBlock block;
+
+  @override
+  String get id => block.id;
+}
+
+final class ChatPatchApplyFailureItemContract
+    extends ChatTranscriptItemContract {
+  const ChatPatchApplyFailureItemContract({required this.block});
+
+  final CodexErrorBlock block;
 
   @override
   String get id => block.id;

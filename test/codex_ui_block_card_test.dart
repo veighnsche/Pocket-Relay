@@ -12,6 +12,7 @@ import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/presentation/pending_user_input_form_scope.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/alert_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/conversation_entry_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/changed_files_card.dart';
@@ -151,6 +152,56 @@ void main() {
     expect(find.text('Resume the previous task.'), findsOneWidget);
   });
 
+  testWidgets('renders warning blocks as dedicated transcript surfaces', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexStatusBlock(
+            id: 'status_warning_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'Warning',
+            body: 'The command exceeded the preferred timeout.',
+            statusKind: CodexStatusBlockKind.warning,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(WarningEventCard), findsOneWidget);
+    expect(find.text('Warning'), findsOneWidget);
+    expect(
+      find.text('The command exceeded the preferred timeout.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('renders deprecation notices as dedicated transcript surfaces', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexStatusBlock(
+            id: 'status_deprecation_1',
+            createdAt: DateTime(2026, 3, 14, 12),
+            title: 'Deprecation notice',
+            body: 'This event family will be removed soon.',
+            statusKind: CodexStatusBlockKind.warning,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(DeprecationNoticeCard), findsOneWidget);
+    expect(find.text('Deprecation notice'), findsOneWidget);
+    expect(
+      find.text('This event family will be removed soon.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('renders error blocks as flat transcript annotations', (
     tester,
   ) async {
@@ -167,6 +218,7 @@ void main() {
       ),
     );
 
+    expect(find.byType(PatchApplyFailureCard), findsOneWidget);
     expect(find.text('Patch apply failed'), findsOneWidget);
     expect(
       find.text('The patch could not be applied cleanly.'),

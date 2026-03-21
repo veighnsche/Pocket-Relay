@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/alert_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_decision_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/approval_request_card.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/cards/assistant_message_card.dart';
@@ -116,9 +117,16 @@ class ConversationEntryCard extends StatelessWidget {
       final ChatSessionInfoItemContract sessionInfoItem => SessionInfoCard(
         block: sessionInfoItem.block,
       ),
+      final ChatWarningItemContract warningItem => WarningEventCard(
+        block: warningItem.block,
+      ),
+      final ChatDeprecationNoticeItemContract deprecationItem =>
+        DeprecationNoticeCard(block: deprecationItem.block),
       final ChatStatusItemContract statusItem => StatusCard(
         block: statusItem.block,
       ),
+      final ChatPatchApplyFailureItemContract patchApplyFailureItem =>
+        PatchApplyFailureCard(block: patchApplyFailureItem.block),
       final ChatErrorItemContract errorItem => ErrorCard(
         block: errorItem.block,
       ),
