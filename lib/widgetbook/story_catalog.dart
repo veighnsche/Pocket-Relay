@@ -36,28 +36,45 @@ Widget _storyCard({
   double maxWidth = 860,
   AlignmentGeometry alignment = Alignment.centerLeft,
 }) {
-  return SingleChildScrollView(
-    padding: const EdgeInsets.all(24),
-    child: Align(
-      alignment: alignment,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: child,
-      ),
-    ),
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      return SingleChildScrollView(
+        child: SizedBox(
+          width: constraints.maxWidth,
+          child: Align(
+            alignment: alignment,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: child,
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 
 Widget _storyFill({required Widget child, double? maxWidth}) {
-  return SingleChildScrollView(
-    padding: const EdgeInsets.all(24),
-    child: Align(
-      alignment: Alignment.topLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth ?? double.infinity),
-        child: child,
-      ),
-    ),
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final availableWidth = constraints.maxWidth;
+      final availableHeight = constraints.maxHeight;
+
+      return SizedBox(
+        width: availableWidth,
+        height: availableHeight,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxWidth ?? availableWidth,
+              maxHeight: availableHeight,
+            ),
+            child: child,
+          ),
+        ),
+      );
+    },
   );
 }
 

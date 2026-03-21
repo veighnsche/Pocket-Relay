@@ -102,6 +102,7 @@ class _PocketRelayWidgetbookState extends State<PocketRelayWidgetbook> {
       initialRoute: _initialRoute!,
       directories: buildPocketRelayWidgetbookCatalog(),
       addons: _addons,
+      home: const _PocketRelayWidgetbookHome(),
       appBuilder: (context, child) => wb.materialAppBuilder(
         context,
         _WidgetbookThemePersistence(child: child),
@@ -169,6 +170,130 @@ class _WidgetbookThemePersistenceState
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+class _PocketRelayWidgetbookHome extends StatelessWidget {
+  const _PocketRelayWidgetbookHome();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<PocketPalette>()!;
+    final textTheme = theme.textTheme;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: palette.surfaceBorder),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: palette.shadowColor.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pocket Relay Widgetbook',
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Preview real app-owned surfaces and backend-driven states.',
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _HomeBullet(
+                    title: 'Browse from Navigation',
+                    body:
+                        'Select a transcript card, settings surface, or workspace preview from the left panel.',
+                  ),
+                  const SizedBox(height: 12),
+                  _HomeBullet(
+                    title: 'Compare with Addons',
+                    body:
+                        'Use theme, viewport, and text-scale controls without changing the underlying app widget.',
+                  ),
+                  const SizedBox(height: 12),
+                  _HomeBullet(
+                    title: 'Stay Runtime-Literal',
+                    body:
+                        'This catalog should only reflect real Pocket Relay surfaces, not preview-only inventions.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeBullet extends StatelessWidget {
+  const _HomeBullet({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          margin: const EdgeInsets.only(top: 6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary,
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                body,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 ThemeData _buildWidgetbookShellTheme(Brightness brightness) {

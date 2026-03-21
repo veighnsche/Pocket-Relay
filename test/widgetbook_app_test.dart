@@ -20,6 +20,7 @@ void main() {
 
     expect(find.byType(PocketRelayWidgetbook), findsOneWidget);
     expect(find.byType(WidgetbookScope), findsOneWidget);
+    expect(find.text('Pocket Relay Widgetbook'), findsOneWidget);
   });
 
   testWidgets('restores the persisted Widgetbook theme selection', (
