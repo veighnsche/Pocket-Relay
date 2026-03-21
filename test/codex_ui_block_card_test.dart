@@ -224,7 +224,7 @@ void main() {
       expect(_findDecoratedContainerColorForText(tester, 'Reasoning'), isNull);
       expect(
         _findDecoratedContainerColorForText(tester, 'Changed files'),
-        PocketPalette.dark.surface,
+        isNull,
       );
     },
   );
@@ -1950,9 +1950,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Created'), findsOneWidget);
-      expect(find.text('Edited'), findsOneWidget);
-      expect(find.text('Deleted'), findsOneWidget);
+      expect(find.text('CREATED'), findsOneWidget);
+      expect(find.text('EDITED'), findsOneWidget);
+      expect(find.text('DELETED'), findsOneWidget);
 
       final createdColor = _findDecoratedContainerColorForText(
         tester,
@@ -1967,12 +1967,9 @@ void main() {
         'lib/deleted_file.dart',
       );
 
-      expect(createdColor, isNotNull);
-      expect(editedColor, isNotNull);
-      expect(deletedColor, isNotNull);
-      expect(createdColor, isNot(equals(editedColor)));
-      expect(deletedColor, isNot(equals(editedColor)));
-      expect(createdColor, isNot(equals(deletedColor)));
+      expect(createdColor, isNull);
+      expect(editedColor, isNull);
+      expect(deletedColor, isNull);
     },
   );
 

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
-import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/conversation_card_palette.dart';
+import 'package:pocket_relay/src/features/chat/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
 class ChangedFilesCard extends StatelessWidget {
   const ChangedFilesCard({super.key, required this.item, this.onOpenDiff});
@@ -21,33 +21,19 @@ class ChangedFilesCard extends StatelessWidget {
     final fileCountLabel =
         '${item.fileCount} ${item.fileCount == 1 ? 'file' : 'files'}';
 
-    return PocketTranscriptFrame(
-      shadowColor: cards.shadow,
-      shadowOpacity: cards.isDark ? 0.18 : 0.06,
-      backgroundColor: cards.surface,
-      borderColor: cards.accentBorder(accent),
+    return TranscriptAnnotation(
+      accent: accent,
+      header: TranscriptAnnotationHeader(
+        icon: Icons.drive_file_rename_outline,
+        label: item.title,
+        accent: accent,
+        trailing: item.isRunning
+            ? const InlinePulseChip(label: 'updating')
+            : null,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.drive_file_rename_outline, size: 16, color: accent),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  item.title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ),
-              if (item.isRunning) const InlinePulseChip(label: 'updating'),
-            ],
-          ),
-          const SizedBox(height: PocketSpacing.sm),
           Row(
             children: [
               Text(
@@ -76,13 +62,14 @@ class ChangedFilesCard extends StatelessWidget {
             )
           else
             Column(
-              children: item.rows
+              children: item.rows.indexed
                   .map(
-                    (row) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                    (entry) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: entry.$1 == item.rows.length - 1 ? 0 : 6,
+                      ),
                       child: _ChangedFileRow(
-                        row: row,
-                        accent: accent,
+                        row: entry.$2,
                         cards: cards,
                         onOpenDiff: onOpenDiff,
                       ),
@@ -99,13 +86,11 @@ class ChangedFilesCard extends StatelessWidget {
 class _ChangedFileRow extends StatelessWidget {
   const _ChangedFileRow({
     required this.row,
-    required this.accent,
     required this.cards,
     this.onOpenDiff,
   });
 
   final ChatChangedFileRowContract row;
-  final Color accent;
   final ConversationCardPalette cards;
   final void Function(ChatChangedFileDiffContract diff)? onOpenDiff;
 
@@ -137,65 +122,85 @@ class _ChangedFileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (visuals, rowAccent) = _visualsForRow();
-    final body = Container(
+    final body = Padding(
       key: ValueKey<String>('changed_file_row_${row.id}'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: PocketSpacing.sm,
-        vertical: PocketSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: cards.tintedSurface(
-          rowAccent,
-          lightAlpha: 0.08,
-          darkAlpha: 0.14,
-        ),
-        borderRadius: PocketRadii.circular(PocketRadii.sm),
-        border: Border.all(
-          color: cards.accentBorder(
-            rowAccent,
-            lightAlpha: 0.32,
-            darkAlpha: 0.42,
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(visuals.icon, size: 14, color: rowAccent),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(visuals.icon, size: 14, color: rowAccent),
+          ),
           const SizedBox(width: 6),
-          _ChangedFileStatusChip(
-            label: row.operationLabel,
-            accent: rowAccent,
-            cards: cards,
-          ),
-          const SizedBox(width: PocketSpacing.xs),
           Expanded(
-            child: Text(
-              row.displayPathLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontFamily: 'monospace',
-                color: cards.textSecondary,
-                height: 1.2,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.operationLabel.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.25,
+                        color: rowAccent,
+                      ),
+                    ),
+                    const SizedBox(width: PocketSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        row.displayPathLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontFamily: 'monospace',
+                          color: cards.textSecondary,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (row.stats.hasChanges || row.actionLabel.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      if (row.stats.hasChanges)
+                        Text(
+                          '+${row.stats.additions} -${row.stats.deletions}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: cards.textMuted,
+                          ),
+                        ),
+                      if (row.stats.hasChanges && row.actionLabel.isNotEmpty)
+                        Text(
+                          '  ·  ',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: cards.textMuted,
+                          ),
+                        ),
+                      if (row.actionLabel.isNotEmpty)
+                        Text(
+                          row.actionLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: _canOpenPatch
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: _canOpenPatch ? rowAccent : cards.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
             ),
-          ),
-          if (row.stats.hasChanges) ...[
-            const SizedBox(width: PocketSpacing.xs),
-            Text(
-              '+${row.stats.additions} -${row.stats.deletions}',
-              style: TextStyle(fontSize: 11, color: cards.textMuted),
-            ),
-          ],
-          const SizedBox(width: PocketSpacing.xs),
-          _ChangedFileActionChip(
-            label: row.actionLabel,
-            accent: rowAccent,
-            cards: cards,
-            isEnabled: _canOpenPatch,
           ),
         ],
       ),
@@ -220,87 +225,6 @@ class _ChangedFileVisuals {
   const _ChangedFileVisuals({required this.icon});
 
   final IconData icon;
-}
-
-class _ChangedFileStatusChip extends StatelessWidget {
-  const _ChangedFileStatusChip({
-    required this.label,
-    required this.accent,
-    required this.cards,
-  });
-
-  final String label;
-  final Color accent;
-  final ConversationCardPalette cards;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: cards.tintedSurface(accent, lightAlpha: 0.12, darkAlpha: 0.22),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: cards.accentBorder(accent, lightAlpha: 0.3, darkAlpha: 0.42),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: accent,
-        ),
-      ),
-    );
-  }
-}
-
-class _ChangedFileActionChip extends StatelessWidget {
-  const _ChangedFileActionChip({
-    required this.label,
-    required this.accent,
-    required this.cards,
-    required this.isEnabled,
-  });
-
-  final String label;
-  final Color accent;
-  final ConversationCardPalette cards;
-  final bool isEnabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final chipAccent = isEnabled ? accent : cards.textMuted;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: cards.tintedSurface(
-          chipAccent,
-          lightAlpha: isEnabled ? 0.12 : 0.05,
-          darkAlpha: isEnabled ? 0.22 : 0.1,
-        ),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: cards.accentBorder(
-            chipAccent,
-            lightAlpha: isEnabled ? 0.3 : 0.18,
-            darkAlpha: isEnabled ? 0.42 : 0.24,
-          ),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: chipAccent,
-        ),
-      ),
-    );
-  }
 }
 
 class ChangedFileDiffSheet extends StatefulWidget {
