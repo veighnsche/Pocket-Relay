@@ -21,6 +21,9 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 
 part 'chat_session_controller_events.dart';
 part 'chat_session_controller_history.dart';
+part 'chat_session_controller_init.dart';
+part 'chat_session_controller_prompt_flow.dart';
+part 'chat_session_controller_recovery.dart';
 part 'chat_session_controller_thread_metadata.dart';
 
 class ChatSessionController extends ChangeNotifier {
@@ -101,160 +104,36 @@ class ChatSessionController extends ChangeNotifier {
     return _initializationFuture ??= _initializeOnce();
   }
 
-  Future<void> _initializeOnce() async {
-    if (!_isLoading) {
-      await _conversationSelection.hydratePersistedSelection();
-      await _restoreInitialConversationIfNeeded();
-      return;
-    }
-
-    final savedProfile = await profileStore.load();
-    if (_isDisposed) {
-      return;
-    }
-
-    _profile = savedProfile.profile;
-    _secrets = savedProfile.secrets;
-    _isLoading = false;
-    notifyListeners();
-    await _conversationSelection.hydratePersistedSelection();
-    await _restoreInitialConversationIfNeeded();
+  Future<void> _initializeOnce() {
+    return _ChatSessionControllerInit(this)._initializeOnce();
   }
 
-  Future<void> saveObservedHostFingerprint(String blockId) async {
-    final block = _findUnpinnedHostKeyBlock(blockId);
-    if (block == null) {
-      _emitSnackBar('This host fingerprint prompt is no longer available.');
-      return;
-    }
-    if (block.isSaved) {
-      return;
-    }
-
-    final currentFingerprint = _profile.hostFingerprint.trim();
-    if (currentFingerprint.isNotEmpty) {
-      if (normalizeFingerprint(currentFingerprint) ==
-          normalizeFingerprint(block.fingerprint)) {
-        _applySessionState(
-          _sessionReducer.markUnpinnedHostKeySaved(
-            _sessionState,
-            blockId: blockId,
-          ),
-        );
-        return;
-      }
-
-      _emitSnackBar(
-        'This profile already has a different pinned host fingerprint. Review the connection settings before replacing it.',
-      );
-      return;
-    }
-
-    final nextProfile = _profile.copyWith(hostFingerprint: block.fingerprint);
-
-    try {
-      await profileStore.save(nextProfile, _secrets);
-    } catch (_) {
-      _emitSnackBar('Could not save the host fingerprint to this profile.');
-      return;
-    }
-    if (_isDisposed) {
-      return;
-    }
-
-    _profile = nextProfile;
-    _applySessionState(
-      _sessionReducer.markUnpinnedHostKeySaved(_sessionState, blockId: blockId),
-    );
+  Future<void> saveObservedHostFingerprint(String blockId) {
+    return _ChatSessionControllerPromptFlow(
+      this,
+    ).saveObservedHostFingerprint(blockId);
   }
 
-  Future<bool> sendPrompt(String prompt) async {
-    final normalizedPrompt = prompt.trim();
-    if (normalizedPrompt.isEmpty ||
-        _conversationRecoveryState != null ||
-        _historicalConversationRestoreState != null) {
-      return false;
-    }
-
-    final validationMessage = _validateProfileForSend();
-    if (validationMessage != null) {
-      _emitSnackBar(validationMessage);
-      return false;
-    }
-
-    await _conversationSelection.hydratePersistedSelection();
-
-    final rootThreadId = _sessionState.rootThreadId;
-    if (rootThreadId != null && _sessionState.currentThreadId != rootThreadId) {
-      selectTimeline(rootThreadId);
-    }
-
-    final recoveryState = _conversationRecoveryPolicy.preflightRecoveryState(
-      sessionState: _sessionState,
-      activeThreadId: _activeConversationThreadId(),
-      resumeThreadId: _resumeConversationThreadId(),
-      trackedThreadId: _trackedThreadReuseCandidate(),
-    );
-    if (recoveryState != null) {
-      _setConversationRecovery(recoveryState);
-      return false;
-    }
-
-    _applySessionState(
-      _sessionReducer.addUserMessage(_sessionState, text: normalizedPrompt),
-    );
-    return _sendPromptWithAppServer(normalizedPrompt);
+  Future<bool> sendPrompt(String prompt) {
+    return _ChatSessionControllerPromptFlow(this).sendPrompt(prompt);
   }
 
-  Future<void> stopActiveTurn() async {
-    await _stopAppServerTurn();
+  Future<void> stopActiveTurn() {
+    return _ChatSessionControllerPromptFlow(this).stopActiveTurn();
   }
 
   void startFreshConversation() {
-    _resetConversationState(
-      nextState: _sessionReducer.startFreshThread(
-        _sessionState,
-        message: 'The next prompt will start a fresh Codex thread.',
-      ),
-    );
+    _ChatSessionControllerRecovery(this).startFreshConversation();
   }
 
   void clearTranscript() {
-    _resetConversationState(
-      nextState: _sessionReducer.clearTranscript(_sessionState),
-    );
+    _ChatSessionControllerRecovery(this).clearTranscript();
   }
 
   void openConversationRecoveryAlternateSession() {
-    final alternateThreadId = _conversationRecoveryState?.alternateThreadId
-        ?.trim();
-    if (alternateThreadId == null || alternateThreadId.isEmpty) {
-      return;
-    }
-
-    final timeline = _sessionState.timelineForThread(alternateThreadId);
-    if (timeline == null) {
-      _emitSnackBar('That active session is no longer available locally.');
-      return;
-    }
-
-    final nextRegistry = <String, CodexThreadRegistryEntry>{
-      for (final entry in _sessionState.threadRegistry.entries)
-        entry.key: entry.value.copyWith(
-          isPrimary: entry.key == alternateThreadId,
-        ),
-    };
-
-    _rememberContinuationThread(alternateThreadId);
-    _clearConversationRecovery();
-    _clearHistoricalConversationRestoreState();
-    _applySessionState(
-      _sessionState.copyWith(
-        rootThreadId: alternateThreadId,
-        selectedThreadId: alternateThreadId,
-        threadRegistry: nextRegistry,
-      ),
-    );
+    _ChatSessionControllerRecovery(
+      this,
+    ).openConversationRecoveryAlternateSession();
   }
 
   void selectTimeline(String threadId) {
@@ -283,146 +162,32 @@ class ChatSessionController extends ChangeNotifier {
     );
   }
 
-  Future<void> selectConversationForResume(String threadId) async {
-    await _conversationSelection.selectConversationForResume(
-      threadId,
-      ephemeralSession: _profile.ephemeralSession,
-      activeThreadId: _activeConversationThreadId(),
-    );
-    await _restoreConversationTranscript(threadId.trim());
+  Future<void> selectConversationForResume(String threadId) {
+    return _ChatSessionControllerRecovery(
+      this,
+    ).selectConversationForResume(threadId);
   }
 
-  Future<void> retryHistoricalConversationRestore() async {
-    final threadId = _historicalConversationRestoreState?.threadId.trim();
-    if (threadId == null || threadId.isEmpty) {
-      return;
-    }
-
-    await _restoreConversationTranscript(threadId);
+  Future<void> retryHistoricalConversationRestore() {
+    return _ChatSessionControllerRecovery(
+      this,
+    ).retryHistoricalConversationRestore();
   }
 
-  Future<String?> continueFromUserMessage(String blockId) async {
-    final normalizedBlockId = blockId.trim();
-    if (normalizedBlockId.isEmpty) {
-      return null;
-    }
-    if (_historicalConversationRestoreState != null) {
-      _emitSnackBar('Wait for transcript restore before continuing from here.');
-      return null;
-    }
-    if (_sessionState.activeTurn != null || _sessionState.isBusy) {
-      _emitSnackBar('Stop the active turn before continuing from here.');
-      return null;
-    }
-
-    final targetThreadId = _activeConversationThreadId();
-    if (targetThreadId == null) {
-      _emitSnackBar('This conversation cannot continue from that prompt yet.');
-      return null;
-    }
-
-    final timeline = _sessionState.timelineForThread(targetThreadId);
-    final transcriptBlocks =
-        timeline?.transcriptBlocks ?? _sessionState.transcriptBlocks;
-    final userMessages = transcriptBlocks
-        .whereType<CodexUserMessageBlock>()
-        .toList(growable: false);
-    final targetIndex = userMessages.indexWhere(
-      (block) => block.id == normalizedBlockId,
-    );
-    if (targetIndex < 0) {
-      _emitSnackBar('That prompt is no longer available for continuation.');
-      return null;
-    }
-
-    final targetBlock = userMessages[targetIndex];
-    final numTurns = userMessages.length - targetIndex;
-    if (numTurns < 1) {
-      return null;
-    }
-
-    final nextState = await _performHistoryRestoringThreadTransition(
-      operation: () => appServerClient.rollbackThread(
-        threadId: targetThreadId,
-        numTurns: numTurns,
-      ),
-      rememberContinuationThread: true,
-      failureTitle: 'Continue from prompt failed',
-      failureMessage:
-          'Could not rewind this conversation to the selected prompt.',
-    );
-    if (nextState == null) {
-      return null;
-    }
-
-    return targetBlock.text;
+  Future<String?> continueFromUserMessage(String blockId) {
+    return _ChatSessionControllerRecovery(
+      this,
+    ).continueFromUserMessage(blockId);
   }
 
-  Future<bool> branchSelectedConversation() async {
-    if (_historicalConversationRestoreState != null) {
-      _emitSnackBar('Wait for transcript restore before branching.');
-      return false;
-    }
-    if (_sessionState.activeTurn != null || _sessionState.isBusy) {
-      _emitSnackBar('Stop the active turn before branching this conversation.');
-      return false;
-    }
-
-    final targetThreadId = _selectedConversationThreadId();
-    if (targetThreadId == null) {
-      _emitSnackBar('This conversation cannot be branched yet.');
-      return false;
-    }
-
-    final nextState = await _performHistoryRestoringThreadTransition(
-      operation: () async {
-        final forkedSession = await appServerClient.forkThread(
-          threadId: targetThreadId,
-          persistExtendedHistory: true,
-        );
-        return appServerClient.readThreadWithTurns(
-          threadId: forkedSession.threadId,
-        );
-      },
-      rememberContinuationThread: true,
-      failureTitle: 'Branch conversation failed',
-      failureMessage: 'Could not branch this conversation from Codex.',
-    );
-    return nextState != null;
+  Future<bool> branchSelectedConversation() {
+    return _ChatSessionControllerRecovery(this).branchSelectedConversation();
   }
 
-  Future<void> prepareSelectedConversationForContinuation() async {
-    if (_historicalConversationRestoreState != null) {
-      return;
-    }
-
-    await _conversationSelection.hydratePersistedSelection();
-
-    final targetThreadId =
-        _activeConversationThreadId() ?? _resumeConversationThreadId();
-    if (targetThreadId == null) {
-      return;
-    }
-
-    final trackedThreadId = _normalizedThreadId(appServerClient.threadId);
-    if (appServerClient.isConnected && trackedThreadId == targetThreadId) {
-      return;
-    }
-
-    try {
-      await _ensureAppServerThread();
-      _clearConversationRecovery();
-    } catch (error) {
-      final recoveryAssessment = _conversationRecoveryPolicy.assessSendFailure(
-        error: error,
-        sessionState: _sessionState,
-        sessionLabel: _sessionLabel(),
-        preferredAlternateThreadId: appServerClient.threadId,
-      );
-      if (recoveryAssessment.recoveryState != null) {
-        _setConversationRecovery(recoveryAssessment.recoveryState!);
-      }
-    }
+  Future<void> prepareSelectedConversationForContinuation() {
+    return _ChatSessionControllerRecovery(
+      this,
+    ).prepareSelectedConversationForContinuation();
   }
 
   Future<void> approveRequest(String requestId) {
@@ -436,34 +201,10 @@ class ChatSessionController extends ChangeNotifier {
   Future<void> submitUserInput(
     String requestId,
     Map<String, List<String>> answers,
-  ) async {
-    final pendingRequest = _findPendingUserInputRequest(requestId);
-    if (pendingRequest == null) {
-      _emitSnackBar('This input request is no longer pending.');
-      return;
-    }
-
-    try {
-      if (pendingRequest.requestType ==
-          CodexCanonicalRequestType.mcpServerElicitation) {
-        await appServerClient.respondToElicitation(
-          requestId: requestId,
-          action: CodexAppServerElicitationAction.accept,
-          content: _elicitationContentFromAnswers(answers),
-        );
-      } else {
-        await appServerClient.answerUserInput(
-          requestId: requestId,
-          answers: answers,
-        );
-      }
-    } catch (error) {
-      _reportAppServerFailure(
-        title: 'Input failed',
-        message: 'Could not submit the requested user input.',
-        error: error,
-      );
-    }
+  ) {
+    return _ChatSessionControllerPromptFlow(
+      this,
+    ).submitUserInput(requestId, answers);
   }
 
   @override
@@ -473,28 +214,6 @@ class ChatSessionController extends ChangeNotifier {
     unawaited(appServerClient.disconnect());
     unawaited(_snackBarMessagesController.close());
     super.dispose();
-  }
-
-  String? _validateProfileForSend() {
-    if (!_profile.isReady) {
-      return switch (_profile.connectionMode) {
-        ConnectionMode.remote => 'Fill in the remote connection details first.',
-        ConnectionMode.local => 'Fill in the local Codex settings first.',
-      };
-    }
-    if (_profile.connectionMode == ConnectionMode.local) {
-      if (!_supportsLocalConnectionMode) {
-        return 'Local Codex is only available on desktop.';
-      }
-      return null;
-    }
-    if (_profile.authMode == AuthMode.password && !_secrets.hasPassword) {
-      return 'This profile needs an SSH password.';
-    }
-    if (_profile.authMode == AuthMode.privateKey && !_secrets.hasPrivateKey) {
-      return 'This profile needs a private key.';
-    }
-    return null;
   }
 
   void _applySessionState(CodexSessionState nextState) {
@@ -509,58 +228,6 @@ class ChatSessionController extends ChangeNotifier {
       activeThreadId: _activeConversationThreadId(),
     );
     notifyListeners();
-  }
-
-  void _setConversationRecovery(ChatConversationRecoveryState nextState) {
-    final currentState = _conversationRecoveryState;
-    if (currentState?.reason == nextState.reason &&
-        currentState?.alternateThreadId == nextState.alternateThreadId &&
-        currentState?.expectedThreadId == nextState.expectedThreadId &&
-        currentState?.actualThreadId == nextState.actualThreadId) {
-      return;
-    }
-
-    _conversationRecoveryState = nextState;
-    if (!_isDisposed) {
-      notifyListeners();
-    }
-  }
-
-  void _clearConversationRecovery() {
-    if (_conversationRecoveryState == null) {
-      return;
-    }
-
-    _conversationRecoveryState = null;
-    if (!_isDisposed) {
-      notifyListeners();
-    }
-  }
-
-  void _setHistoricalConversationRestoreState(
-    ChatHistoricalConversationRestoreState nextState,
-  ) {
-    final currentState = _historicalConversationRestoreState;
-    if (currentState?.phase == nextState.phase &&
-        currentState?.threadId == nextState.threadId) {
-      return;
-    }
-
-    _historicalConversationRestoreState = nextState;
-    if (!_isDisposed) {
-      notifyListeners();
-    }
-  }
-
-  void _clearHistoricalConversationRestoreState() {
-    if (_historicalConversationRestoreState == null) {
-      return;
-    }
-
-    _historicalConversationRestoreState = null;
-    if (!_isDisposed) {
-      notifyListeners();
-    }
   }
 
   CodexSshUnpinnedHostKeyBlock? _findUnpinnedHostKeyBlock(String blockId) {
@@ -726,48 +393,6 @@ class ChatSessionController extends ChangeNotifier {
     return value != null && value.trim().isNotEmpty;
   }
 
-  Object? _elicitationContentFromAnswers(Map<String, List<String>> answers) {
-    if (answers.length == 1) {
-      final entry = answers.entries.single;
-      final values = entry.value;
-      if (entry.key == 'response' && values.length == 1) {
-        return values.single;
-      }
-      if (values.length == 1) {
-        return <String, Object?>{entry.key: values.single};
-      }
-    }
-
-    return answers.map<String, Object?>((key, values) {
-      if (values.isEmpty) {
-        return MapEntry<String, Object?>(key, null);
-      }
-      if (values.length == 1) {
-        return MapEntry<String, Object?>(key, values.single);
-      }
-      return MapEntry<String, Object?>(key, values);
-    });
-  }
-
-  void _reportAppServerFailure({
-    required String title,
-    required String message,
-    required Object error,
-    String? runtimeErrorMessage,
-    bool suppressRuntimeError = false,
-    bool suppressSnackBar = false,
-  }) {
-    _reportChatSessionAppServerFailure(
-      this,
-      title: title,
-      message: message,
-      error: error,
-      runtimeErrorMessage: runtimeErrorMessage,
-      suppressRuntimeError: suppressRuntimeError,
-      suppressSnackBar: suppressSnackBar,
-    );
-  }
-
   bool _isSshBootstrapFailureRuntimeEvent(CodexRuntimeEvent event) {
     return switch (event) {
       CodexRuntimeSshConnectFailedEvent() ||
@@ -785,69 +410,46 @@ class ChatSessionController extends ChangeNotifier {
     _snackBarMessagesController.add(message);
   }
 
-  void _resetConversationState({required CodexSessionState nextState}) {
-    _clearConversationRecovery();
-    _clearHistoricalConversationRestoreState();
-    _clearContinuationThread();
-    _applySessionState(nextState);
+  void _setConversationRecovery(ChatConversationRecoveryState nextState) {
+    _ChatSessionControllerRecovery(this)._setConversationRecovery(nextState);
+  }
+
+  void _clearConversationRecovery() {
+    _ChatSessionControllerRecovery(this)._clearConversationRecovery();
+  }
+
+  void _setHistoricalConversationRestoreState(
+    ChatHistoricalConversationRestoreState nextState,
+  ) {
+    _ChatSessionControllerRecovery(
+      this,
+    )._setHistoricalConversationRestoreState(nextState);
   }
 
   String? _activeConversationThreadId() {
-    if (_profile.ephemeralSession) {
-      return null;
-    }
-
-    return _normalizedThreadId(_sessionState.rootThreadId);
-  }
-
-  String? _selectedConversationThreadId() {
-    if (_profile.ephemeralSession) {
-      return null;
-    }
-
-    return _normalizedThreadId(
-      _sessionState.currentThreadId ?? _sessionState.rootThreadId,
-    );
+    return _ChatSessionControllerRecovery(this)._activeConversationThreadId();
   }
 
   String? _resumeConversationThreadId() {
-    return _conversationSelection.resumeThreadId(
-      ephemeralSession: _profile.ephemeralSession,
-    );
+    return _ChatSessionControllerRecovery(this)._resumeConversationThreadId();
   }
 
   String? _trackedThreadReuseCandidate() {
-    if (_profile.ephemeralSession ||
-        _conversationSelection.suppressTrackedThreadReuse ||
-        _sessionState.hasMultipleTimelines) {
-      return null;
-    }
-
-    return _normalizedThreadId(appServerClient.threadId);
+    return _ChatSessionControllerRecovery(this)._trackedThreadReuseCandidate();
   }
 
   void _rememberContinuationThread(String? threadId) {
-    _conversationSelection.rememberContinuationThread(
-      threadId,
-      isDisposed: _isDisposed,
-      ephemeralSession: _profile.ephemeralSession,
-      activeThreadId: _activeConversationThreadId(),
-    );
-  }
-
-  void _clearContinuationThread() {
-    _conversationSelection.clearContinuationThread(
-      isDisposed: _isDisposed,
-      ephemeralSession: _profile.ephemeralSession,
-    );
+    _ChatSessionControllerRecovery(this)._rememberContinuationThread(threadId);
   }
 
   String? _normalizedThreadId(String? value) {
-    final normalizedValue = value?.trim();
-    if (normalizedValue == null || normalizedValue.isEmpty) {
-      return null;
+    return _ChatSessionControllerRecovery(this)._normalizedThreadId(value);
+  }
+
+  void _notifyListenersIfMounted() {
+    if (!_isDisposed) {
+      notifyListeners();
     }
-    return normalizedValue;
   }
 
   String _sessionLabel() {
