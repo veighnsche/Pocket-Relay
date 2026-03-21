@@ -955,6 +955,54 @@ void main() {
     expect(find.textContaining('/usr/bin/zsh -lc'), findsNothing);
   });
 
+  testWidgets(
+    'renders plain command executions as dedicated work-log rows',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildCatalogApp(appServerClient: appServerClient),
+      );
+
+      await _pumpAppReady(tester);
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'item': <String, Object?>{
+              'id': 'item_cmd_plain_1',
+              'type': 'commandExecution',
+              'status': 'inProgress',
+              'command': 'pwd',
+            },
+          },
+        ),
+      );
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'item/commandExecution/outputDelta',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'item_cmd_plain_1',
+            'delta': '/repo',
+          },
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Work log'), findsOneWidget);
+      expect(find.text('Running command'), findsOneWidget);
+      expect(find.text('pwd'), findsOneWidget);
+      expect(find.text('/repo'), findsOneWidget);
+    },
+  );
+
   testWidgets('renders MCP tool calls as structured work-log rows', (
     tester,
   ) async {

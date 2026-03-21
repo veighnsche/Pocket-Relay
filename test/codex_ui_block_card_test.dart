@@ -1012,6 +1012,35 @@ void main() {
     expect(find.text('Search docs'), findsNothing);
   });
 
+  testWidgets('renders plain command executions as dedicated work-log rows', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: _entryCard(
+          block: CodexWorkLogGroupBlock(
+            id: 'worklog_command',
+            createdAt: DateTime(2026, 3, 14, 12),
+            entries: <CodexWorkLogEntry>[
+              CodexWorkLogEntry(
+                id: 'entry_command',
+                createdAt: DateTime(2026, 3, 14, 12),
+                entryKind: CodexWorkLogEntryKind.commandExecution,
+                title: 'pwd',
+                preview: '/repo',
+                isRunning: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Running command'), findsOneWidget);
+    expect(find.text('pwd'), findsOneWidget);
+    expect(find.text('/repo'), findsOneWidget);
+  });
+
   testWidgets('renders simple sed reads as structured read work-log rows', (
     tester,
   ) async {

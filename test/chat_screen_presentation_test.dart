@@ -776,6 +776,32 @@ void main() {
       expect(entry.activityLabel, 'Searched');
     });
 
+    test('projects plain command executions into dedicated command entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_command',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_command',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'pwd',
+            preview: '/repo',
+            isRunning: true,
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry =
+          item.entries.single as ChatCommandExecutionWorkLogEntryContract;
+
+      expect(entry.commandText, 'pwd');
+      expect(entry.outputPreview, '/repo');
+      expect(entry.activityLabel, 'Running command');
+    });
+
     test('projects sed -ne read commands into read work-log entries', () {
       final groupBlock = CodexWorkLogGroupBlock(
         id: 'worklog_sed_ne',

@@ -45,6 +45,18 @@ class ChatWorkLogItemProjector {
             entry.entryKind == CodexWorkLogEntryKind.commandExecution
         ? _tryParseContentSearchCommand(normalizedTitle)
         : null;
+    final commandExecution =
+        mcpToolCall == null &&
+            webSearch == null &&
+            readCommand == null &&
+            gitCommand == null &&
+            searchCommand == null &&
+            entry.entryKind == CodexWorkLogEntryKind.commandExecution
+        ? _projectCommandExecution(
+            entry,
+            normalizedTitle: normalizedTitle,
+          )
+        : null;
 
     if (mcpToolCall != null) {
       return mcpToolCall;
@@ -73,12 +85,33 @@ class ChatWorkLogItemProjector {
         normalizedTitle: normalizedTitle,
       );
     }
+    if (commandExecution != null) {
+      return commandExecution;
+    }
 
     return ChatGenericWorkLogEntryContract(
       id: entry.id,
       entryKind: entry.entryKind,
       title: normalizedTitle,
       preview: _normalizedWorkLogPreview(entry.preview, normalizedTitle),
+      turnId: entry.turnId,
+      isRunning: entry.isRunning,
+      exitCode: entry.exitCode,
+    );
+  }
+
+  ChatCommandExecutionWorkLogEntryContract? _projectCommandExecution(
+    CodexWorkLogEntry entry, {
+    required String normalizedTitle,
+  }) {
+    if (!_looksLikeCommandExecution(normalizedTitle)) {
+      return null;
+    }
+
+    return ChatCommandExecutionWorkLogEntryContract(
+      id: entry.id,
+      commandText: normalizedTitle,
+      outputPreview: _normalizedWorkLogPreview(entry.preview, normalizedTitle),
       turnId: entry.turnId,
       isRunning: entry.isRunning,
       exitCode: entry.exitCode,
@@ -1695,6 +1728,61 @@ String? _normalizedWorkLogPreview(String? preview, String normalizedTitle) {
   }
   return value;
 }
+
+bool _looksLikeCommandExecution(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return false;
+  }
+  if (trimmed.contains('&&') ||
+      trimmed.contains('||') ||
+      trimmed.contains('|') ||
+      trimmed.contains(';')) {
+    return false;
+  }
+
+  final tokens = _tokenizeShellCommand(trimmed);
+  if (tokens == null || tokens.isEmpty) {
+    return false;
+  }
+
+  final commandName = _commandName(tokens.first);
+  if (commandName.isEmpty) {
+    return false;
+  }
+  if (_structuredCommandNames.contains(commandName)) {
+    return false;
+  }
+
+  if (tokens.length == 1) {
+    return true;
+  }
+
+  return tokens.skip(1).any(
+    (token) =>
+        token.startsWith('-') ||
+        token.contains('/') ||
+        token.contains('\\') ||
+        token.contains('.') ||
+        token.contains('=') ||
+        token.contains(':'),
+  );
+}
+
+const Set<String> _structuredCommandNames = <String>{
+  'cat',
+  'findstr',
+  'get-content',
+  'git',
+  'grep',
+  'head',
+  'more',
+  'rg',
+  'sed',
+  'select-string',
+  'tail',
+  'type',
+};
 
 Map<String, dynamic>? _asObjectValue(Object? value) {
   if (value is Map) {

@@ -31,6 +31,23 @@ final class ChatGenericWorkLogEntryContract extends ChatWorkLogEntryContract {
   final String? preview;
 }
 
+final class ChatCommandExecutionWorkLogEntryContract
+    extends ChatWorkLogEntryContract {
+  const ChatCommandExecutionWorkLogEntryContract({
+    required super.id,
+    required this.commandText,
+    this.outputPreview,
+    super.turnId,
+    super.isRunning = false,
+    super.exitCode,
+  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+
+  final String commandText;
+  final String? outputPreview;
+
+  String get activityLabel => isRunning ? 'Running command' : 'Ran command';
+}
+
 final class ChatWebSearchWorkLogEntryContract extends ChatWorkLogEntryContract {
   const ChatWebSearchWorkLogEntryContract({
     required super.id,

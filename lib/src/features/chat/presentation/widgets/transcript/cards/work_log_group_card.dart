@@ -113,6 +113,8 @@ class _WorkLogEntryRow extends StatelessWidget {
       final ChatGitWorkLogEntryContract gitEntry => _GitWorkLogEntryRow(
         entry: gitEntry,
       ),
+      final ChatCommandExecutionWorkLogEntryContract commandEntry =>
+        _CommandExecutionWorkLogEntryRow(entry: commandEntry),
       final ChatWebSearchWorkLogEntryContract webSearchEntry =>
         _WebSearchWorkLogEntryRow(entry: webSearchEntry),
       final ChatMcpToolCallWorkLogEntryContract mcpEntry =>
@@ -351,6 +353,21 @@ class _WebSearchWorkLogEntryRow extends StatelessWidget {
       entry: entry,
       accent: tealAccent(Theme.of(context).brightness),
       icon: Icons.travel_explore_outlined,
+    );
+  }
+}
+
+class _CommandExecutionWorkLogEntryRow extends StatelessWidget {
+  const _CommandExecutionWorkLogEntryRow({required this.entry});
+
+  final ChatCommandExecutionWorkLogEntryContract entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CommandExecutionCardShell(
+      entry: entry,
+      accent: blueAccent(Theme.of(context).brightness),
+      icon: Icons.terminal_outlined,
     );
   }
 }
@@ -699,6 +716,104 @@ class _WebSearchCardShell extends StatelessWidget {
                     height: 1.25,
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommandExecutionCardShell extends StatelessWidget {
+  const _CommandExecutionCardShell({
+    required this.entry,
+    required this.accent,
+    required this.icon,
+  });
+
+  final ChatCommandExecutionWorkLogEntryContract entry;
+  final Color accent;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cards = ConversationCardPalette.of(context);
+    final statusBadge = _specialCommandStatusBadge(
+      theme: theme,
+      isRunning: entry.isRunning,
+      exitCode: entry.exitCode,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+      decoration: BoxDecoration(
+        color: cards.tintedSurface(accent, lightAlpha: 0.1, darkAlpha: 0.2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cards.accentBorder(accent)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: cards.tintedSurface(
+                accent,
+                lightAlpha: 0.16,
+                darkAlpha: 0.3,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (statusBadge != null) ...[
+                  statusBadge,
+                  const SizedBox(height: 7),
+                ],
+                Text(
+                  entry.activityLabel,
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11.5,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  entry.commandText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cards.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    height: 1.15,
+                  ),
+                ),
+                if (entry.outputPreview != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    entry.outputPreview!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: cards.textSecondary,
+                      fontSize: 11.25,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
