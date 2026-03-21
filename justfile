@@ -102,7 +102,7 @@ widgetbook:
 
     case "$(uname -s)" in
       Darwin)
-        exec flutter run -d macos -t lib/widgetbook/main.dart
+        exec "{{ justfile_directory() }}/scripts/widgetbook-run.sh" macos
         ;;
       Linux)
         exec flutter run -d linux -t lib/widgetbook/main.dart
@@ -138,7 +138,7 @@ widgetbook-ios:
       xcrun simctl boot "$device" >/dev/null 2>&1 || true
     fi
 
-    exec flutter run -d "$device" -t lib/widgetbook/main.dart
+    exec "{{ justfile_directory() }}/scripts/widgetbook-run.sh" "$device"
 
 alias wb-ios := widgetbook-ios
 
