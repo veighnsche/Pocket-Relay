@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
-import 'codex_connection_conversation_history_store.dart';
+import 'codex_connection_conversation_state_store.dart';
 import 'codex_connection_repository.dart';
 import 'codex_profile_store.dart';
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -288,7 +288,7 @@ void main() {
       clientsById['conn_primary']!.threadsById['thread_saved'] =
           _savedConversationThread(threadId: 'thread_saved');
       final conversationStateStore =
-          MemoryCodexConnectionConversationHistoryStore();
+          MemoryCodexConnectionConversationStateStore();
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
         conversationStateStore: conversationStateStore,
@@ -583,7 +583,7 @@ void main() {
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final conversationStateStore =
-        MemoryCodexConnectionConversationHistoryStore();
+        MemoryCodexConnectionConversationStateStore();
     final controller = _buildWorkspaceController(
       clientsById: clientsById,
       conversationStateStore: conversationStateStore,
@@ -676,7 +676,7 @@ Widget _buildShell(
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationHistoryStore? conversationStateStore,
+  MemoryCodexConnectionConversationStateStore? conversationStateStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -695,7 +695,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
         ],
       );
   final resolvedConversationStateStore =
-      conversationStateStore ?? MemoryCodexConnectionConversationHistoryStore();
+      conversationStateStore ?? MemoryCodexConnectionConversationStateStore();
 
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,

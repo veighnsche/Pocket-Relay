@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/application/chat_session_controller.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';

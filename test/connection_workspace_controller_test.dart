@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
@@ -364,7 +364,7 @@ void main() {
         ],
       );
       final conversationStateStore =
-          MemoryCodexConnectionConversationHistoryStore();
+          MemoryCodexConnectionConversationStateStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
@@ -425,7 +425,7 @@ void main() {
     'deleteDormantConnection removes the saved definition and handoff',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-      final historyStore = MemoryCodexConnectionConversationHistoryStore();
+      final historyStore = MemoryCodexConnectionConversationStateStore();
       final controller = _buildWorkspaceController(
         clientsById: clientsById,
         historyStore: historyStore,
@@ -466,7 +466,7 @@ void main() {
           ),
         ],
       );
-      final historyStore = MemoryCodexConnectionConversationHistoryStore();
+      final historyStore = MemoryCodexConnectionConversationStateStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
@@ -559,7 +559,7 @@ void main() {
             },
           );
       final sessionOwnedConversationStateStore =
-          MemoryCodexConnectionConversationHistoryStore();
+          MemoryCodexConnectionConversationStateStore();
       final client = FakeCodexAppServerClient();
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
@@ -623,7 +623,7 @@ void main() {
           ),
         ],
       );
-      final historyStore = MemoryCodexConnectionConversationHistoryStore();
+      final historyStore = MemoryCodexConnectionConversationStateStore();
       final restoreGate = Completer<void>();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
@@ -749,7 +749,7 @@ void main() {
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationHistoryStore? historyStore,
+  MemoryCodexConnectionConversationStateStore? historyStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -769,7 +769,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
       );
   final seededHistoryStore =
       historyStore ??
-      MemoryCodexConnectionConversationHistoryStore(
+      MemoryCodexConnectionConversationStateStore(
         initialStates: <String, SavedConnectionConversationState>{
           'conn_secondary': const SavedConnectionConversationState(
             selectedThreadId: 'thread_saved',

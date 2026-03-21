@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/chat/models/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/presentation/chat_screen_contract.dart';
@@ -511,7 +511,7 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                   savedProfile: WidgetbookFixtures.savedProfile,
                 ),
                 connectionConversationStateStore:
-                    MemoryCodexConnectionConversationHistoryStore(),
+                    MemoryCodexConnectionConversationStateStore(),
                 appServerClient: WidgetbookFakeCodexAppServerClient(),
                 displayWakeLockController:
                     const NoopDisplayWakeLockController(),
@@ -525,7 +525,7 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                   savedProfile: WidgetbookFixtures.savedProfile,
                 ),
                 connectionConversationStateStore:
-                    MemoryCodexConnectionConversationHistoryStore(),
+                    MemoryCodexConnectionConversationStateStore(),
                 appServerClient: WidgetbookFakeCodexAppServerClient(),
                 displayWakeLockController:
                     const NoopDisplayWakeLockController(),

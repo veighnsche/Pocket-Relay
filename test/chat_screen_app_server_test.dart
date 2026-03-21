@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_history_store.dart';
+import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/chat/infrastructure/app_server/codex_app_server_client.dart';
 
@@ -226,7 +226,7 @@ void main() {
         _buildCatalogApp(
           appServerClient: appServerClient,
           connectionConversationStateStore:
-              MemoryCodexConnectionConversationHistoryStore(
+              MemoryCodexConnectionConversationStateStore(
                 initialStates: <String, SavedConnectionConversationState>{
                   'conn_primary': const SavedConnectionConversationState(
                     selectedThreadId: 'thread_old',
@@ -2704,7 +2704,7 @@ PocketRelayApp _buildCatalogApp({
         ),
     connectionConversationStateStore:
         connectionConversationStateStore ??
-        MemoryCodexConnectionConversationHistoryStore(),
+        MemoryCodexConnectionConversationStateStore(),
     appServerClient: appServerClient,
   );
 }
