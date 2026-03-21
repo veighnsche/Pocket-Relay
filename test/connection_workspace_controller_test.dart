@@ -10,8 +10,8 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversati
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
-import 'package:pocket_relay/src/features/workspace/models/connection_workspace_state.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/conversation_card_palette.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
+import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
 
 class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
   const ConnectionWorkspaceConversationHistorySheet({

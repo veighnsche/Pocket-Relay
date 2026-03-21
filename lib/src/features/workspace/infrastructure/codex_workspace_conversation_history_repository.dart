@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
+import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
 
 abstract interface class CodexWorkspaceConversationHistoryRepository {
   /// Loads authoritative conversation history from Codex.

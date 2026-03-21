@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_conversation_history_sheet.dart';
+import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_conversation_history_sheet.dart';
 
 void main() {
   testWidgets(

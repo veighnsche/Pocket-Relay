@@ -12,9 +12,9 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_dormant_roster_content.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_live_lane_surface.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_dormant_roster_content.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 

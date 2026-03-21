@@ -4,7 +4,7 @@ import 'package:pocket_relay/src/core/storage/codex_connection_conversation_stat
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 
-import '../models/connection_workspace_state.dart';
+import '../domain/connection_workspace_state.dart';
 
 typedef ConnectionLaneBindingFactory =
     ConnectionLaneBinding Function({

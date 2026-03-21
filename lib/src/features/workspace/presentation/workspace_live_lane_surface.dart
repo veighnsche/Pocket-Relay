@@ -10,11 +10,11 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_con
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
-import 'package:pocket_relay/src/features/workspace/models/codex_workspace_conversation_summary.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_copy.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 
-import 'connection_workspace_conversation_history_sheet.dart';
+import 'workspace_conversation_history_sheet.dart';
 
 class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
   const ConnectionWorkspaceLiveLaneSurface({

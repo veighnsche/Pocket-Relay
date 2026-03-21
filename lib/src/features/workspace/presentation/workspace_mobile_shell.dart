@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
-import 'package:pocket_relay/src/features/workspace/models/connection_workspace_state.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_copy.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_workspace_controller.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_dormant_roster_content.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/widgets/connection_workspace_live_lane_surface.dart';
+import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_dormant_roster_content.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
 
 class ConnectionWorkspaceMobileShell extends StatefulWidget {
   const ConnectionWorkspaceMobileShell({
