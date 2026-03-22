@@ -34,16 +34,18 @@ _performHistoryRestoringThreadTransitionForController(
   ChatHistoricalConversationRestoreState? loadingRestoreState,
   ChatHistoricalConversationRestoreState? emptyHistoryRestoreState,
   ChatHistoricalConversationRestoreState? failureRestoreState,
-  bool rememberContinuationThread = false,
 }) async {
-  if (loadingRestoreState != null) {
-    controller._setHistoricalConversationRestoreState(loadingRestoreState);
-  }
+  final restoreGeneration = controller._beginHistoricalConversationRestore(
+    loadingState: loadingRestoreState,
+  );
 
   try {
     await _ensureChatSessionAppServerConnected(controller);
     final thread = await operation();
-    if (controller._isDisposed) {
+    if (controller._isDisposed ||
+        !controller._isCurrentHistoricalConversationRestore(
+          restoreGeneration,
+        )) {
       return null;
     }
 
@@ -51,14 +53,19 @@ _performHistoryRestoringThreadTransitionForController(
     controller._clearConversationRecovery();
     controller._historicalConversationRestoreState =
         nextState.transcriptBlocks.isEmpty ? emptyHistoryRestoreState : null;
-    if (rememberContinuationThread) {
-      controller._rememberContinuationThread(thread.id);
-    }
+    controller._suppressTrackedThreadReuse = false;
     controller._applySessionState(nextState);
     return nextState;
   } catch (error) {
+    if (!controller._isCurrentHistoricalConversationRestore(
+      restoreGeneration,
+    )) {
+      return null;
+    }
     if (failureRestoreState != null) {
       controller._setHistoricalConversationRestoreState(failureRestoreState);
+    } else {
+      controller._clearHistoricalConversationRestoreState();
     }
     _reportChatSessionAppServerFailure(
       controller,
@@ -101,10 +108,7 @@ Future<bool> _sendPromptWithAppServerForController(
       model: controller._selectedModelOverride(),
       effort: controller._profile.reasoningEffort,
     );
-    await controller._conversationSelection.recordConversationSelection(
-      threadId: turn.threadId,
-    );
-    controller._rememberContinuationThread(turn.threadId);
+    controller._suppressTrackedThreadReuse = false;
     _applyChatSessionRuntimeEvent(
       controller,
       CodexRuntimeTurnStartedEvent(
@@ -161,29 +165,24 @@ Future<String> _ensureChatSessionAppServerThread(
     controller.appServerClient.threadId,
   );
   if (activeThreadId != null && trackedThreadId == activeThreadId) {
-    controller._rememberContinuationThread(activeThreadId);
+    controller._suppressTrackedThreadReuse = false;
     return activeThreadId;
   }
 
-  final resumeThreadId =
-      activeThreadId ??
-      controller._conversationSelection.resumeThreadId(
-        ephemeralSession: controller._profile.ephemeralSession,
-      );
   final session = await controller.appServerClient.startSession(
     model: controller._selectedModelOverride(),
     reasoningEffort: controller._profile.reasoningEffort,
-    resumeThreadId: resumeThreadId,
+    resumeThreadId: activeThreadId,
   );
-  controller._rememberContinuationThread(session.threadId);
+  controller._suppressTrackedThreadReuse = false;
   _rememberChatSessionHeaderMetadata(controller, session);
   _applyChatSessionRuntimeEvent(
     controller,
     CodexRuntimeThreadStartedEvent(
-      createdAt: DateTime.now(),
-      threadId: session.threadId,
-      providerThreadId: session.threadId,
-      rawMethod: resumeThreadId == null
+        createdAt: DateTime.now(),
+        threadId: session.threadId,
+        providerThreadId: session.threadId,
+        rawMethod: activeThreadId == null
           ? 'thread/start(response)'
           : 'thread/resume(response)',
       threadName: session.thread?.name,

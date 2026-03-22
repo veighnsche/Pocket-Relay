@@ -1,6 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
-import 'codex_connection_conversation_state_store.dart';
 import 'codex_connection_repository.dart';
 import 'codex_profile_store.dart';
 
@@ -33,28 +32,6 @@ class ConnectionScopedProfileStore implements CodexProfileStore {
     await _connectionRepository.saveConnection(
       SavedConnection(id: _connectionId, profile: profile, secrets: secrets),
     );
-  }
-}
-
-class ConnectionScopedConversationStateStore
-    implements CodexConversationStateStore {
-  ConnectionScopedConversationStateStore({
-    required String connectionId,
-    required CodexConnectionConversationStateStore conversationStateStore,
-  }) : _connectionId = _normalizeConnectionId(connectionId),
-       _conversationStateStore = conversationStateStore;
-
-  final String _connectionId;
-  final CodexConnectionConversationStateStore _conversationStateStore;
-
-  @override
-  Future<SavedConnectionConversationState> loadState() {
-    return _conversationStateStore.loadState(_connectionId);
-  }
-
-  @override
-  Future<void> saveState(SavedConnectionConversationState state) {
-    return _conversationStateStore.saveState(_connectionId, state);
   }
 }
 

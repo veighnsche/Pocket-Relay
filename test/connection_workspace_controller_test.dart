@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
@@ -60,22 +58,12 @@ void main() {
   });
 
   test(
-    'initialization keeps the first live lane empty even when a persisted selectedThreadId exists',
+    'initialization keeps the first live lane empty until history is explicitly picked',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
           _savedConversationThread(threadId: 'thread_saved');
-      final historyStore = MemoryCodexConnectionConversationStateStore(
-        initialStates: <String, SavedConnectionConversationState>{
-          'conn_primary': const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        },
-      );
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        historyStore: historyStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -91,12 +79,6 @@ void main() {
       expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
       expect(binding.sessionController.transcriptBlocks, isEmpty);
       expect(binding.sessionController.sessionState.rootThreadId, isNull);
-      expect(
-        (await historyStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_saved',
-      );
     },
   );
 
@@ -106,17 +88,7 @@ void main() {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_secondary']!.threadHistoriesById['thread_saved'] =
           _savedConversationThread(threadId: 'thread_saved');
-      final historyStore = MemoryCodexConnectionConversationStateStore(
-        initialStates: <String, SavedConnectionConversationState>{
-          'conn_secondary': const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        },
-      );
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        historyStore: historyStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -150,12 +122,6 @@ void main() {
             ?.sessionController
             .transcriptBlocks,
         isEmpty,
-      );
-      expect(
-        (await historyStore.loadState(
-          'conn_secondary',
-        )).normalizedSelectedThreadId,
-        'thread_saved',
       );
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
     },
@@ -435,15 +401,12 @@ void main() {
           ),
         ],
       );
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
       };
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionConversationStateStore: conversationStateStore,
         laneBindingFactory:
             ({
               required connectionId,
@@ -508,15 +471,12 @@ void main() {
           ),
         ],
       );
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
       };
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionConversationStateStore: conversationStateStore,
         laneBindingFactory:
             ({
               required connectionId,
@@ -531,10 +491,6 @@ void main() {
                 profileStore: ConnectionScopedProfileStore(
                   connectionId: connectionId,
                   connectionRepository: repository,
-                ),
-                conversationStateStore: ConnectionScopedConversationStateStore(
-                  connectionId: connectionId,
-                  conversationStateStore: conversationStateStore,
                 ),
                 appServerClient: appServerClient,
                 initialSavedProfile: SavedProfile(
@@ -586,14 +542,10 @@ void main() {
   );
 
   test(
-    'deleteDormantConnection removes the saved definition and handoff',
+    'deleteDormantConnection removes the saved definition',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-      final historyStore = MemoryCodexConnectionConversationStateStore();
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        historyStore: historyStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -606,15 +558,11 @@ void main() {
         'conn_primary',
       ]);
       expect(controller.state.dormantConnectionIds, isEmpty);
-      expect(
-        await historyStore.loadState('conn_secondary'),
-        const SavedConnectionConversationState(),
-      );
     },
   );
 
   test(
-    'resumeConversation stores the selected thread id and replaces the live binding',
+    'resumeConversation replaces the live binding and restores the selected transcript',
     () async {
       final repository = MemoryCodexConnectionRepository(
         initialConnections: <SavedConnection>[
@@ -630,14 +578,12 @@ void main() {
           ),
         ],
       );
-      final historyStore = MemoryCodexConnectionConversationStateStore();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
         'conn_secondary': <FakeCodexAppServerClient>[],
       };
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionConversationStateStore: historyStore,
         laneBindingFactory:
             ({
               required connectionId,
@@ -652,10 +598,6 @@ void main() {
                 profileStore: ConnectionScopedProfileStore(
                   connectionId: connectionId,
                   connectionRepository: repository,
-                ),
-                conversationStateStore: ConnectionScopedConversationStateStore(
-                  connectionId: connectionId,
-                  conversationStateStore: historyStore,
                 ),
                 appServerClient: appServerClient,
                 initialSavedProfile: SavedProfile(
@@ -682,27 +624,13 @@ void main() {
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
       expect(nextBinding, isNot(same(firstBinding)));
-      expect(
-        (await historyStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_resumed',
-      );
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
       expect(clientsByConnectionId['conn_primary']!.last.disconnectCalls, 0);
       expect(
         clientsByConnectionId['conn_primary']!.last.readThreadCalls,
         <String>['thread_resumed'],
       );
-      expect(clientsByConnectionId['conn_primary']!.last.startSessionCalls, 1);
-      expect(
-        clientsByConnectionId['conn_primary']!
-            .last
-            .startSessionRequests
-            .single
-            .resumeThreadId,
-        'thread_resumed',
-      );
+      expect(clientsByConnectionId['conn_primary']!.last.startSessionCalls, 0);
       expect(
         nextBinding!.sessionController.transcriptBlocks
             .whereType<CodexTextBlock>()
@@ -716,7 +644,7 @@ void main() {
   );
 
   test(
-    'resumeConversation surfaces an unavailable historical thread before the user sends',
+    'resumeConversation does not create recovery state before the user sends',
     () async {
       final repository = MemoryCodexConnectionRepository(
         initialConnections: <SavedConnection>[
@@ -727,17 +655,12 @@ void main() {
           ),
         ],
       );
-      final historyStore = MemoryCodexConnectionConversationStateStore();
       final client = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_missing'] = _savedConversationThread(
           threadId: 'thread_missing',
-        )
-        ..startSessionError = const CodexAppServerException(
-          'thread/resume failed: thread not found',
         );
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionConversationStateStore: historyStore,
         laneBindingFactory:
             ({
               required connectionId,
@@ -748,10 +671,6 @@ void main() {
                 profileStore: ConnectionScopedProfileStore(
                   connectionId: connectionId,
                   connectionRepository: repository,
-                ),
-                conversationStateStore: ConnectionScopedConversationStateStore(
-                  connectionId: connectionId,
-                  conversationStateStore: historyStore,
                 ),
                 appServerClient: client,
                 initialSavedProfile: SavedProfile(
@@ -772,80 +691,13 @@ void main() {
         connectionId: 'conn_primary',
         threadId: 'thread_missing',
       );
-
       expect(
-        controller
-            .selectedLaneBinding!
-            .sessionController
-            .conversationRecoveryState
-            ?.reason,
-        ChatConversationRecoveryReason.missingRemoteConversation,
+        controller.selectedLaneBinding!.sessionController.conversationRecoveryState,
+        isNull,
       );
-    },
-  );
-
-  test(
-    'resumeConversation persists the selected thread id through the workspace store before recreating the lane',
-    () async {
-      final repository = MemoryCodexConnectionRepository(
-        initialConnections: <SavedConnection>[
-          SavedConnection(
-            id: 'conn_primary',
-            profile: _profile('Primary Box', 'primary.local'),
-            secrets: const ConnectionSecrets(password: 'secret-1'),
-          ),
-        ],
-      );
-      final conversationStateStore = _TrackingConnectionConversationStateStore(
-        initialStates: <String, SavedConnectionConversationState>{
-          'conn_primary': const SavedConnectionConversationState(),
-        },
-      );
-      final client = FakeCodexAppServerClient();
-      final controller = ConnectionWorkspaceController(
-        connectionRepository: repository,
-        connectionConversationStateStore: conversationStateStore,
-        laneBindingFactory:
-            ({
-              required connectionId,
-              required connection,
-            }) {
-              return ConnectionLaneBinding(
-                connectionId: connectionId,
-                profileStore: ConnectionScopedProfileStore(
-                  connectionId: connectionId,
-                  connectionRepository: repository,
-                ),
-                conversationStateStore: ConnectionScopedConversationStateStore(
-                  connectionId: connectionId,
-                  conversationStateStore: conversationStateStore,
-                ),
-                appServerClient: client,
-                initialSavedProfile: SavedProfile(
-                  profile: connection.profile,
-                  secrets: connection.secrets,
-                ),
-                ownsAppServerClient: false,
-              );
-            },
-      );
-      addTearDown(() async {
-        controller.dispose();
-        await client.close();
-      });
-
-      await controller.initialize();
-      await controller.resumeConversation(
-        connectionId: 'conn_primary',
-        threadId: 'thread_resumed',
-      );
-
-      expect(conversationStateStore.saveAttempts, greaterThanOrEqualTo(1));
       expect(
-        (await conversationStateStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_resumed',
+        client.startSessionCalls,
+        0,
       );
     },
   );
@@ -862,14 +714,12 @@ void main() {
           ),
         ],
       );
-      final historyStore = MemoryCodexConnectionConversationStateStore();
       final restoreGate = Completer<void>();
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
       };
       final controller = ConnectionWorkspaceController(
         connectionRepository: repository,
-        connectionConversationStateStore: historyStore,
         laneBindingFactory:
             ({
               required connectionId,
@@ -887,10 +737,6 @@ void main() {
                 profileStore: ConnectionScopedProfileStore(
                   connectionId: connectionId,
                   connectionRepository: repository,
-                ),
-                conversationStateStore: ConnectionScopedConversationStateStore(
-                  connectionId: connectionId,
-                  conversationStateStore: historyStore,
                 ),
                 appServerClient: appServerClient,
                 initialSavedProfile: SavedProfile(
@@ -990,7 +836,6 @@ void main() {
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationStateStore? historyStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -1008,12 +853,8 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
-  final seededHistoryStore =
-      historyStore ?? MemoryCodexConnectionConversationStateStore();
-
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionConversationStateStore: seededHistoryStore,
     laneBindingFactory:
         ({
           required connectionId,
@@ -1025,10 +866,6 @@ ConnectionWorkspaceController _buildWorkspaceController({
             profileStore: ConnectionScopedProfileStore(
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
-            ),
-            conversationStateStore: ConnectionScopedConversationStateStore(
-              connectionId: connectionId,
-              conversationStateStore: seededHistoryStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(
@@ -1140,40 +977,5 @@ Future<void> _closeClientLists(
     for (final client in clients) {
       await client.close();
     }
-  }
-}
-
-class _TrackingConnectionConversationStateStore
-    implements CodexConnectionConversationStateStore {
-  _TrackingConnectionConversationStateStore({
-    required Map<String, SavedConnectionConversationState> initialStates,
-  }) : _states = Map<String, SavedConnectionConversationState>.from(
-         initialStates,
-       );
-
-  final Map<String, SavedConnectionConversationState> _states;
-  int saveAttempts = 0;
-
-  @override
-  Future<SavedConnectionConversationState> loadState(
-    String connectionId,
-  ) async {
-    return _states[connectionId] ?? const SavedConnectionConversationState();
-  }
-
-  @override
-  Future<void> saveState(
-    String connectionId,
-    SavedConnectionConversationState state,
-  ) async {
-    saveAttempts += 1;
-    _states[connectionId] = SavedConnectionConversationState(
-      selectedThreadId: state.selectedThreadId,
-    );
-  }
-
-  @override
-  Future<void> deleteState(String connectionId) async {
-    _states.remove(connectionId);
   }
 }

@@ -27,11 +27,9 @@ class ChatConversationRecoveryPolicy {
   ChatConversationRecoveryState? preflightRecoveryState({
     required CodexSessionState sessionState,
     required String? activeThreadId,
-    required String? resumeThreadId,
     required String? trackedThreadId,
   }) {
-    if (_normalizeThreadId(activeThreadId) != null ||
-        _normalizeThreadId(resumeThreadId) != null) {
+    if (_normalizeThreadId(activeThreadId) != null) {
       return null;
     }
 

@@ -135,6 +135,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Completer<void>? sendUserMessageGate;
   Completer<void>? readThreadWithTurnsGate;
   Completer<void>? rollbackThreadGate;
+  final Map<String, Completer<void>> readThreadWithTurnsGatesByThreadId =
+      <String, Completer<void>>{};
   final Map<String, CodexAppServerThreadSummary> threadsById =
       <String, CodexAppServerThreadSummary>{};
   final Map<String, CodexAppServerThreadHistory> threadHistoriesById =
@@ -268,9 +270,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     final configuredHistory = threadHistoriesById[threadId];
     if (configuredHistory != null) {
       readThreadCalls.add(threadId);
-      if (readThreadWithTurnsGate case final gate?) {
-        await gate.future;
-      }
+      await _awaitReadThreadWithTurnsGate(threadId);
       if (readThreadWithTurnsError != null) {
         throw readThreadWithTurnsError!;
       }
@@ -280,9 +280,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     final configuredThread = threadsById[threadId];
     if (configuredThread is CodexAppServerThreadHistory) {
       readThreadCalls.add(threadId);
-      if (readThreadWithTurnsGate case final gate?) {
-        await gate.future;
-      }
+      await _awaitReadThreadWithTurnsGate(threadId);
       if (readThreadWithTurnsError != null) {
         throw readThreadWithTurnsError!;
       }
@@ -290,9 +288,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     }
 
     final summary = await readThread(threadId: threadId);
-    if (readThreadWithTurnsGate case final gate?) {
-      await gate.future;
-    }
+    await _awaitReadThreadWithTurnsGate(threadId);
     if (readThreadWithTurnsError != null) {
       throw readThreadWithTurnsError!;
     }
@@ -311,6 +307,17 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       agentNickname: summary.agentNickname,
       agentRole: summary.agentRole,
     );
+  }
+
+  Future<void> _awaitReadThreadWithTurnsGate(String threadId) async {
+    final threadGate = readThreadWithTurnsGatesByThreadId[threadId];
+    if (threadGate != null) {
+      await threadGate.future;
+      return;
+    }
+    if (readThreadWithTurnsGate case final gate?) {
+      await gate.future;
+    }
   }
 
   @override

@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
@@ -968,7 +967,6 @@ Widget _buildAdapterApp({
   PocketPlatformBehavior? platformBehavior,
   ConnectionLaneBinding? laneBinding,
   CodexProfileStore? profileStore,
-  CodexConversationStateStore? conversationStateStore,
   SavedProfile? savedProfile,
   ThemeData? theme,
 }) {
@@ -983,7 +981,6 @@ Widget _buildAdapterApp({
       laneBinding: laneBinding,
       appServerClient: appServerClient,
       profileStore: profileStore,
-      conversationStateStore: conversationStateStore,
       savedProfile: savedProfile ?? _savedProfile(),
       platformPolicy: resolvedPlatformPolicy,
       overlayDelegate: overlayDelegate,
@@ -997,7 +994,6 @@ ConnectionLaneBinding _buildLaneBinding({
   required FakeCodexAppServerClient appServerClient,
   required SavedProfile savedProfile,
   CodexProfileStore? profileStore,
-  CodexConversationStateStore? conversationStateStore,
   PocketPlatformPolicy? platformPolicy,
 }) {
   final resolvedPlatformPolicy =
@@ -1007,8 +1003,6 @@ ConnectionLaneBinding _buildLaneBinding({
     connectionId: 'conn_primary',
     profileStore:
         profileStore ?? MemoryCodexProfileStore(initialValue: savedProfile),
-    conversationStateStore:
-        conversationStateStore ?? const DiscardingCodexConversationStateStore(),
     appServerClient: appServerClient,
     initialSavedProfile: savedProfile,
     supportsLocalConnectionMode:
@@ -1020,7 +1014,7 @@ Future<void> _restoreConversationInLane(
   ConnectionLaneBinding laneBinding,
   String threadId,
 ) async {
-  await laneBinding.initializeSession();
+  await laneBinding.sessionController.initialize();
   await laneBinding.sessionController.selectConversationForResume(threadId);
 }
 
@@ -1318,7 +1312,6 @@ class _ChatRootAdapterHarness extends StatefulWidget {
     required this.onConnectionSettingsRequested,
     this.laneBinding,
     this.profileStore,
-    this.conversationStateStore,
   });
 
   final FakeCodexAppServerClient appServerClient;
@@ -1329,7 +1322,6 @@ class _ChatRootAdapterHarness extends StatefulWidget {
   onConnectionSettingsRequested;
   final ConnectionLaneBinding? laneBinding;
   final CodexProfileStore? profileStore;
-  final CodexConversationStateStore? conversationStateStore;
 
   bool get _usesExternalBinding => laneBinding != null;
 
@@ -1355,7 +1347,6 @@ class _ChatRootAdapterHarnessState extends State<_ChatRootAdapterHarness> {
           oldWidget.laneBinding != widget.laneBinding ||
           oldWidget.appServerClient != widget.appServerClient ||
           oldWidget.profileStore != widget.profileStore ||
-          oldWidget.conversationStateStore != widget.conversationStateStore ||
           oldWidget.savedProfile != widget.savedProfile ||
           oldWidget.platformPolicy != widget.platformPolicy,
     );
@@ -1392,7 +1383,6 @@ class _ChatRootAdapterHarnessState extends State<_ChatRootAdapterHarness> {
     final nextLaneBinding = _buildLaneBinding(
       appServerClient: widget.appServerClient,
       profileStore: widget.profileStore,
-      conversationStateStore: widget.conversationStateStore,
       savedProfile: widget.savedProfile,
       platformPolicy: widget.platformPolicy,
     );

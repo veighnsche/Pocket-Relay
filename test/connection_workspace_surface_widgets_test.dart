@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -238,7 +237,6 @@ Widget _buildLiveLaneApp(
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   CodexConnectionRepository? repository,
-  CodexConnectionConversationStateStore? conversationStateStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -256,12 +254,8 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
-  final resolvedConversationStateStore =
-      conversationStateStore ?? MemoryCodexConnectionConversationStateStore();
-
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionConversationStateStore: resolvedConversationStateStore,
     laneBindingFactory:
         ({
           required connectionId,
@@ -272,10 +266,6 @@ ConnectionWorkspaceController _buildWorkspaceController({
             profileStore: ConnectionScopedProfileStore(
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
-            ),
-            conversationStateStore: ConnectionScopedConversationStateStore(
-              connectionId: connectionId,
-              conversationStateStore: resolvedConversationStateStore,
             ),
             appServerClient: clientsById[connectionId]!,
             initialSavedProfile: SavedProfile(

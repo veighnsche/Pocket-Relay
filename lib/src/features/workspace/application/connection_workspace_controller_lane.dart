@@ -31,19 +31,11 @@ Future<void> _resumeWorkspaceConversationSelection(
 
   await controller.initialize();
   _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
-  final nextConversationState =
-      (await controller._connectionConversationStateStore.loadState(
-        normalizedConnectionId,
-      )).copyWith(selectedThreadId: normalizedThreadId);
-  await controller._connectionConversationStateStore.saveState(
-    normalizedConnectionId,
-    nextConversationState,
-  );
 
   await _resumeWorkspaceConversation(
     controller,
     normalizedConnectionId,
-    activatePersistedConversation: true,
+    threadId: normalizedThreadId,
   );
 }
 
@@ -60,19 +52,7 @@ Future<void> _instantiateWorkspaceLiveConnection(
     return;
   }
 
-  await _instantiateControllerConnection(controller, normalizedConnectionId);
-}
-
-Future<void> _instantiateControllerConnection(
-  ConnectionWorkspaceController controller,
-  String connectionId, {
-  bool activatePersistedConversation = false,
-}) async {
-  await _instantiateWorkspaceConnection(
-    controller,
-    connectionId,
-    activatePersistedConversation: activatePersistedConversation,
-  );
+  await _instantiateWorkspaceConnection(controller, normalizedConnectionId);
 }
 
 void _selectWorkspaceConnection(

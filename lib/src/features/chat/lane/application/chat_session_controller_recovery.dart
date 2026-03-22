@@ -36,7 +36,8 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
         ),
     };
 
-    _rememberContinuationThread(alternateThreadId);
+    _invalidateHistoricalConversationRestore();
+    _suppressTrackedThreadReuse = false;
     _clearConversationRecovery();
     _clearHistoricalConversationRestoreState();
     _applySessionState(
@@ -49,32 +50,17 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
   }
 
   Future<void> selectConversationForResume(String threadId) async {
-    await _conversationSelection.selectConversationForResume(
-      threadId,
-      ephemeralSession: _profile.ephemeralSession,
-      activeThreadId: _activeConversationThreadId(),
-    );
-    await _restoreConversationTranscript(threadId.trim());
-  }
-
-  Future<void> activatePersistedConversation() async {
-    await _conversationSelection.hydratePersistedSelection();
-
-    final threadId = _resumeConversationThreadId();
-    if (threadId == null) {
-      return;
+    final normalizedThreadId = _normalizedThreadId(threadId);
+    if (normalizedThreadId == null) {
+      throw ArgumentError.value(
+        threadId,
+        'threadId',
+        'Thread id must not be empty.',
+      );
     }
 
-    if (_historicalConversationRestoreState == null &&
-        _sessionState.rootThreadId == null &&
-        _sessionState.transcriptBlocks.isEmpty) {
-      await _restoreConversationTranscript(threadId);
-    }
-    if (_isDisposed || _historicalConversationRestoreState != null) {
-      return;
-    }
-
-    await prepareSelectedConversationForContinuation();
+    _suppressTrackedThreadReuse = false;
+    await _restoreConversationTranscript(normalizedThreadId);
   }
 
   Future<void> retryHistoricalConversationRestore() async {
@@ -131,7 +117,10 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
         threadId: targetThreadId,
         numTurns: numTurns,
       ),
-      rememberContinuationThread: true,
+      loadingRestoreState: ChatHistoricalConversationRestoreState(
+        threadId: targetThreadId,
+        phase: ChatHistoricalConversationRestorePhase.loading,
+      ),
       failureTitle: 'Continue from prompt failed',
       failureMessage:
           'Could not rewind this conversation to the selected prompt.',
@@ -169,43 +158,14 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
           threadId: forkedSession.threadId,
         );
       },
-      rememberContinuationThread: true,
+      loadingRestoreState: ChatHistoricalConversationRestoreState(
+        threadId: targetThreadId,
+        phase: ChatHistoricalConversationRestorePhase.loading,
+      ),
       failureTitle: 'Branch conversation failed',
       failureMessage: 'Could not branch this conversation from Codex.',
     );
     return nextState != null;
-  }
-
-  Future<void> prepareSelectedConversationForContinuation() async {
-    if (_historicalConversationRestoreState != null) {
-      return;
-    }
-
-    final targetThreadId =
-        _activeConversationThreadId() ?? _resumeConversationThreadId();
-    if (targetThreadId == null) {
-      return;
-    }
-
-    final trackedThreadId = _normalizedThreadId(appServerClient.threadId);
-    if (appServerClient.isConnected && trackedThreadId == targetThreadId) {
-      return;
-    }
-
-    try {
-      await _ensureAppServerThread();
-      _clearConversationRecovery();
-    } catch (error) {
-      final recoveryAssessment = _conversationRecoveryPolicy.assessSendFailure(
-        error: error,
-        sessionState: _sessionState,
-        sessionLabel: _sessionLabel(),
-        preferredAlternateThreadId: appServerClient.threadId,
-      );
-      if (recoveryAssessment.recoveryState != null) {
-        _setConversationRecovery(recoveryAssessment.recoveryState!);
-      }
-    }
   }
 
   void _setConversationRecovery(ChatConversationRecoveryState nextState) {
@@ -261,9 +221,10 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
   }
 
   void _resetConversationState({required CodexSessionState nextState}) {
+    _invalidateHistoricalConversationRestore();
     _clearConversationRecovery();
     _clearHistoricalConversationRestoreState();
-    _clearContinuationThread();
+    _suppressTrackedThreadReuse = true;
     _applySessionState(nextState);
   }
 
@@ -285,36 +246,14 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     );
   }
 
-  String? _resumeConversationThreadId() {
-    return _conversationSelection.resumeThreadId(
-      ephemeralSession: _profile.ephemeralSession,
-    );
-  }
-
   String? _trackedThreadReuseCandidate() {
     if (_profile.ephemeralSession ||
-        _conversationSelection.suppressTrackedThreadReuse ||
+        _suppressTrackedThreadReuse ||
         _sessionState.hasMultipleTimelines) {
       return null;
     }
 
     return _normalizedThreadId(appServerClient.threadId);
-  }
-
-  void _rememberContinuationThread(String? threadId) {
-    _conversationSelection.rememberContinuationThread(
-      threadId,
-      isDisposed: _isDisposed,
-      ephemeralSession: _profile.ephemeralSession,
-      activeThreadId: _activeConversationThreadId(),
-    );
-  }
-
-  void _clearContinuationThread() {
-    _conversationSelection.clearContinuationThread(
-      isDisposed: _isDisposed,
-      ephemeralSession: _profile.ephemeralSession,
-    );
   }
 
   String? _normalizedThreadId(String? value) {

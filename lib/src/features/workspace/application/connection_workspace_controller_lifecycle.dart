@@ -39,13 +39,13 @@ Future<void> _initializeWorkspaceController(
       reconnectRequiredConnectionIds: const <String>{},
     ),
   );
+  await firstBinding.sessionController.initialize();
 }
 
 Future<void> _instantiateWorkspaceConnection(
   ConnectionWorkspaceController controller,
-  String connectionId, {
-  bool activatePersistedConversation = false,
-}) async {
+  String connectionId,
+) async {
   final binding = await _loadWorkspaceLaneBinding(controller, connectionId);
   if (controller._isDisposed) {
     binding.dispose();
@@ -70,11 +70,9 @@ Future<void> _instantiateWorkspaceConnection(
       ),
     ),
   );
-  if (activatePersistedConversation) {
-    await binding.activatePersistedConversation();
-    if (controller._isDisposed) {
-      return;
-    }
+  await binding.sessionController.initialize();
+  if (controller._isDisposed) {
+    return;
   }
 }
 
@@ -94,17 +92,6 @@ Future<void> _reconnectWorkspaceConnection(
             .historicalConversationRestoreState
             ?.threadId,
   );
-  if (preservedThreadId != null) {
-    final nextConversationState =
-        (await controller._connectionConversationStateStore.loadState(
-          connectionId,
-        )).copyWith(selectedThreadId: preservedThreadId);
-    await controller._connectionConversationStateStore.saveState(
-      connectionId,
-      nextConversationState,
-    );
-  }
-
   final nextBinding = await _loadWorkspaceLaneBinding(controller, connectionId);
   if (controller._isDisposed) {
     nextBinding.dispose();
@@ -126,18 +113,22 @@ Future<void> _reconnectWorkspaceConnection(
       ),
     ),
   );
-  if (preservedThreadId != null) {
-    await nextBinding.activatePersistedConversation();
+  await nextBinding.sessionController.initialize();
+  if (controller._isDisposed) {
     return;
   }
-
-  await nextBinding.initializeSession();
+  if (preservedThreadId != null) {
+    await nextBinding.sessionController.selectConversationForResume(
+      preservedThreadId,
+    );
+    return;
+  }
 }
 
 Future<void> _resumeWorkspaceConversation(
   ConnectionWorkspaceController controller,
   String connectionId, {
-  required bool activatePersistedConversation,
+  required String threadId,
 }) async {
   if (controller._state.isConnectionLive(connectionId)) {
     final previousBinding =
@@ -174,22 +165,31 @@ Future<void> _resumeWorkspaceConversation(
     if (!didNotifyStateChange) {
       controller._notifyBindingChange();
     }
-    await nextBinding.activatePersistedConversation();
+    await nextBinding.sessionController.initialize();
+    if (controller._isDisposed) {
+      return;
+    }
+    await nextBinding.sessionController.selectConversationForResume(threadId);
     return;
   }
 
-  await _instantiateWorkspaceConnection(
-    controller,
-    connectionId,
-    activatePersistedConversation: activatePersistedConversation,
-  );
+  await _instantiateWorkspaceConnection(controller, connectionId);
+  if (controller._isDisposed) {
+    return;
+  }
+
+  final binding = controller._liveBindingsByConnectionId[connectionId];
+  if (binding == null) {
+    return;
+  }
+
+  await binding.sessionController.selectConversationForResume(threadId);
 }
 
 Future<void> _deleteDormantWorkspaceConnection(
   ConnectionWorkspaceController controller,
   String connectionId,
 ) async {
-  await controller._connectionConversationStateStore.deleteState(connectionId);
   await controller._connectionRepository.deleteConnection(connectionId);
   final nextCatalog = await controller._connectionRepository.loadCatalog();
   if (controller._isDisposed) {

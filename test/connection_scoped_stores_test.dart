@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 
@@ -49,48 +48,6 @@ void main() {
       expect(connectionA.secrets.privateKeyPem, 'pem-a');
       expect(connectionB.profile.label, 'B');
       expect(connectionB.secrets.privateKeyPem, isEmpty);
-    },
-  );
-
-  test(
-    'ConnectionScopedConversationStateStore loads and saves only its connection',
-    () async {
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore(
-            initialStates: <String, SavedConnectionConversationState>{
-              'conn_a': const SavedConnectionConversationState(
-                selectedThreadId: 'thread_handoff',
-              ),
-              'conn_b': const SavedConnectionConversationState(
-                selectedThreadId: 'thread_other',
-              ),
-            },
-          );
-      final store = ConnectionScopedConversationStateStore(
-        connectionId: 'conn_a',
-        conversationStateStore: conversationStateStore,
-      );
-
-      final initial = await store.loadState();
-      await store.saveState(
-        const SavedConnectionConversationState(
-          selectedThreadId: 'thread_updated',
-        ),
-      );
-
-      expect(initial.normalizedSelectedThreadId, 'thread_handoff');
-      expect(
-        (await conversationStateStore.loadState(
-          'conn_a',
-        )).normalizedSelectedThreadId,
-        'thread_updated',
-      );
-      expect(
-        (await conversationStateStore.loadState(
-          'conn_b',
-        )).normalizedSelectedThreadId,
-        'thread_other',
-      );
     },
   );
 }

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_session_controller.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
@@ -85,11 +84,6 @@ void main() {
     'sendPrompt starts a fresh conversation after controller restart until history is explicitly picked',
     () async {
       final appServerClient = FakeCodexAppServerClient();
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -99,7 +93,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -129,25 +122,16 @@ void main() {
         appServerClient.startSessionRequests.single.resumeThreadId,
         isNull,
       );
-      expect(
-        (await conversationStateStore.loadState()).normalizedSelectedThreadId,
-        'thread_123',
-      );
     },
   );
 
   test(
-    'initialize keeps a fresh lane empty even when a persisted selectedThreadId exists',
+    'initialize keeps a fresh lane empty until history is explicitly picked',
     () async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
           threadId: 'thread_saved',
         );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -157,7 +141,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -184,11 +167,6 @@ void main() {
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
           threadId: 'thread_saved',
         );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -198,7 +176,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -234,11 +211,6 @@ void main() {
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
           threadId: 'thread_saved',
         );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -248,7 +220,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -306,11 +277,6 @@ void main() {
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
           threadId: 'thread_saved',
         );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -320,7 +286,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -354,11 +319,6 @@ void main() {
           threadId: 'thread_saved',
         )
         ..rollbackThreadError = StateError('transport broke');
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -368,7 +328,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -436,11 +395,6 @@ void main() {
         ..threadHistoriesById['thread_forked'] = _savedConversationThread(
           threadId: 'thread_forked',
         );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -450,7 +404,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -493,11 +446,6 @@ void main() {
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
           threadId: 'thread_saved',
         );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -507,7 +455,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -535,11 +482,6 @@ void main() {
           threadId: 'thread_saved',
         )
         ..forkThreadError = StateError('fork broke');
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -549,7 +491,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -586,7 +527,7 @@ void main() {
   );
 
   test(
-    'initialize ignores persisted selectedThreadId with unavailable history until the user explicitly resumes',
+    'initialize ignores unavailable history until the user explicitly resumes',
     () async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_empty'] =
@@ -596,11 +537,6 @@ void main() {
               sourceKind: 'app-server',
               turns: <CodexAppServerHistoryTurn>[],
             );
-      final conversationStateStore = _RecordingConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_empty',
-        ),
-      );
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -610,7 +546,6 @@ void main() {
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
@@ -638,65 +573,6 @@ void main() {
         model: null,
         effort: null,
       ));
-    },
-  );
-
-  test('sendPrompt records selected thread id by thread id', () async {
-    final appServerClient = FakeCodexAppServerClient();
-    final historyStore = _RecordingConversationHistoryStore(
-      initialState: const SavedConnectionConversationState(
-        selectedThreadId: 'thread_123',
-      ),
-    );
-    addTearDown(appServerClient.close);
-
-    final controller = ChatSessionController(
-      profileStore: MemoryCodexProfileStore(
-        initialValue: SavedProfile(
-          profile: _configuredProfile(),
-          secrets: const ConnectionSecrets(password: 'secret'),
-        ),
-      ),
-      conversationStateStore: historyStore,
-      appServerClient: appServerClient,
-      initialSavedProfile: SavedProfile(
-        profile: _configuredProfile(),
-        secrets: const ConnectionSecrets(password: 'secret'),
-      ),
-    );
-    addTearDown(controller.dispose);
-
-    expect(await controller.sendPrompt('Second prompt'), isTrue);
-
-    expect(historyStore.state.normalizedSelectedThreadId, 'thread_123');
-  });
-
-  test(
-    'selectConversationForResume persists the selected thread through the session controller',
-    () async {
-      final appServerClient = FakeCodexAppServerClient();
-      final historyStore = _RecordingConversationHistoryStore();
-      addTearDown(appServerClient.close);
-
-      final controller = ChatSessionController(
-        profileStore: MemoryCodexProfileStore(
-          initialValue: SavedProfile(
-            profile: _configuredProfile(),
-            secrets: const ConnectionSecrets(password: 'secret'),
-          ),
-        ),
-        conversationStateStore: historyStore,
-        appServerClient: appServerClient,
-        initialSavedProfile: SavedProfile(
-          profile: _configuredProfile(),
-          secrets: const ConnectionSecrets(password: 'secret'),
-        ),
-      );
-      addTearDown(controller.dispose);
-
-      await controller.selectConversationForResume('thread_saved');
-
-      expect(historyStore.state.normalizedSelectedThreadId, 'thread_saved');
     },
   );
 
@@ -846,6 +722,109 @@ void main() {
       await restoreFuture;
 
       expect(controller.historicalConversationRestoreState, isNull);
+    },
+  );
+
+  test(
+    'the latest explicit history selection wins if an earlier restore completes later',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_old'] = _savedConversationThread(
+          threadId: 'thread_old',
+        )
+        ..threadHistoriesById['thread_new'] = _savedConversationThread(
+          threadId: 'thread_new',
+        )
+        ..readThreadWithTurnsGatesByThreadId['thread_old'] = Completer<void>()
+        ..readThreadWithTurnsGatesByThreadId['thread_new'] = Completer<void>();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final firstRestore = controller.selectConversationForResume('thread_old');
+      await Future<void>.delayed(Duration.zero);
+
+      final secondRestore = controller.selectConversationForResume('thread_new');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        controller.historicalConversationRestoreState?.threadId,
+        'thread_new',
+      );
+
+      appServerClient.readThreadWithTurnsGatesByThreadId['thread_new']!
+          .complete();
+      await secondRestore;
+
+      expect(controller.sessionState.rootThreadId, 'thread_new');
+      expect(controller.historicalConversationRestoreState, isNull);
+
+      appServerClient.readThreadWithTurnsGatesByThreadId['thread_old']!
+          .complete();
+      await firstRestore;
+
+      expect(controller.sessionState.rootThreadId, 'thread_new');
+      expect(controller.historicalConversationRestoreState, isNull);
+    },
+  );
+
+  test(
+    'startFreshConversation invalidates an in-flight history restore',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        )
+        ..readThreadWithTurnsGatesByThreadId['thread_saved'] = Completer<void>();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final restoreFuture = controller.selectConversationForResume(
+        'thread_saved',
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      controller.startFreshConversation();
+
+      expect(controller.historicalConversationRestoreState, isNull);
+      expect(controller.sessionState.rootThreadId, isNull);
+
+      appServerClient.readThreadWithTurnsGatesByThreadId['thread_saved']!
+          .complete();
+      await restoreFuture;
+
+      expect(controller.historicalConversationRestoreState, isNull);
+      expect(controller.sessionState.rootThreadId, isNull);
+
+      expect(await controller.sendPrompt('Fresh after cancelled restore'), isTrue);
+      expect(appServerClient.startSessionRequests.single.resumeThreadId, isNull);
     },
   );
 
@@ -1313,11 +1292,6 @@ void main() {
           profile: _configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
         ),
-        conversationStateStore: _RecordingConversationHistoryStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_old',
-          ),
-        ),
       );
       addTearDown(controller.dispose);
 
@@ -1384,71 +1358,43 @@ void main() {
   );
 
   test(
-    'startFreshConversation clears the persisted resume thread before the lane is recreated',
+    'startFreshConversation clears the in-memory resume target before the next send',
     () async {
-      final firstClient = FakeCodexAppServerClient();
-      final secondClient = FakeCodexAppServerClient();
-      final conversationStateStore = _DelayedConversationHistoryStore(
-        initialState: const SavedConnectionConversationState(
-          selectedThreadId: 'thread_saved',
-        ),
-      );
-      addTearDown(firstClient.close);
-      addTearDown(secondClient.close);
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
 
-      final firstController = ChatSessionController(
+      final controller = ChatSessionController(
         profileStore: MemoryCodexProfileStore(
           initialValue: SavedProfile(
             profile: _configuredProfile(),
             secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
-        conversationStateStore: conversationStateStore,
-        appServerClient: firstClient,
+        appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: _configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
         ),
       );
-      addTearDown(firstController.dispose);
+      addTearDown(controller.dispose);
 
-      expect(await firstController.sendPrompt('First prompt'), isTrue);
-      firstClient.emit(
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
         const CodexAppServerNotificationEvent(
           method: 'turn/completed',
           params: <String, Object?>{
-            'threadId': 'thread_saved',
+            'threadId': 'thread_123',
             'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
           },
         ),
       );
       await Future<void>.delayed(Duration.zero);
 
-      firstController.startFreshConversation();
-      await Future<void>.delayed(Duration.zero);
-      await conversationStateStore.flush();
+      controller.startFreshConversation();
 
-      expect(conversationStateStore.state.normalizedSelectedThreadId, isNull);
-
-      final secondController = ChatSessionController(
-        profileStore: MemoryCodexProfileStore(
-          initialValue: SavedProfile(
-            profile: _configuredProfile(),
-            secrets: const ConnectionSecrets(password: 'secret'),
-          ),
-        ),
-        conversationStateStore: conversationStateStore,
-        appServerClient: secondClient,
-        initialSavedProfile: SavedProfile(
-          profile: _configuredProfile(),
-          secrets: const ConnectionSecrets(password: 'secret'),
-        ),
-      );
-      addTearDown(secondController.dispose);
-
-      await secondController.initialize();
-      expect(await secondController.sendPrompt('Second prompt'), isTrue);
-      expect(secondClient.startSessionRequests.single.resumeThreadId, isNull);
+      expect(await controller.sendPrompt('Second prompt'), isTrue);
+      expect(appServerClient.startSessionCalls, 2);
+      expect(appServerClient.startSessionRequests.last.resumeThreadId, isNull);
     },
   );
 
@@ -2018,54 +1964,4 @@ CodexAppServerThreadHistory _rewoundConversationThread({
       ),
     ],
   );
-}
-
-class _RecordingConversationHistoryStore
-    implements CodexConversationStateStore {
-  _RecordingConversationHistoryStore({
-    SavedConnectionConversationState? initialState,
-  }) : state = initialState ?? const SavedConnectionConversationState();
-
-  SavedConnectionConversationState state;
-
-  @override
-  Future<SavedConnectionConversationState> loadState() async {
-    return state;
-  }
-
-  @override
-  Future<void> saveState(SavedConnectionConversationState nextState) async {
-    state = nextState;
-  }
-}
-
-class _DelayedConversationHistoryStore implements CodexConversationStateStore {
-  _DelayedConversationHistoryStore({
-    SavedConnectionConversationState? initialState,
-  }) : state = initialState ?? const SavedConnectionConversationState();
-
-  SavedConnectionConversationState state;
-  final List<Future<void>> _pendingWrites = <Future<void>>[];
-
-  @override
-  Future<SavedConnectionConversationState> loadState() async {
-    return state;
-  }
-
-  @override
-  Future<void> saveState(SavedConnectionConversationState nextState) {
-    final write = Future<void>.microtask(() {
-      state = nextState;
-    });
-    _pendingWrites.add(write);
-    return write;
-  }
-
-  Future<void> flush() async {
-    while (_pendingWrites.isNotEmpty) {
-      final pending = List<Future<void>>.from(_pendingWrites);
-      _pendingWrites.clear();
-      await Future.wait(pending);
-    }
-  }
 }

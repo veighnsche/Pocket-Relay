@@ -29,7 +29,6 @@ void main() {
       final recoveryState = policy.preflightRecoveryState(
         sessionState: sessionState,
         activeThreadId: null,
-        resumeThreadId: null,
         trackedThreadId: 'thread_live',
       );
 

@@ -70,7 +70,6 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
     final recoveryState = _conversationRecoveryPolicy.preflightRecoveryState(
       sessionState: _sessionState,
       activeThreadId: _activeConversationThreadId(),
-      resumeThreadId: _resumeConversationThreadId(),
       trackedThreadId: _trackedThreadReuseCandidate(),
     );
     if (recoveryState != null) {

@@ -237,7 +237,7 @@ class ChatScreenPresenter {
     return switch (restoreState.phase) {
       ChatHistoricalConversationRestorePhase.loading =>
         const ChatHistoricalConversationRestoreNoticeContract(
-          title: 'Loading saved conversation',
+          title: 'Loading conversation',
           message:
               'Pocket Relay is restoring this transcript from Codex before the lane can continue.',
           isLoading: true,

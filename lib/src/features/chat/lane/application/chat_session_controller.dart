@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
-import 'package:pocket_relay/src/features/chat/lane/application/chat_conversation_selection_coordinator.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_conversation_recovery_policy.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
@@ -30,8 +28,6 @@ part 'chat_session_controller_thread_metadata.dart';
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
-    CodexConversationStateStore conversationStateStore =
-        const DiscardingCodexConversationStateStore(),
     required this.appServerClient,
     SavedProfile? initialSavedProfile,
     TranscriptReducer reducer = const TranscriptReducer(),
@@ -46,9 +42,6 @@ class ChatSessionController extends ChangeNotifier {
        _historicalConversationRestorer =
            historicalConversationRestorer ??
            ChatHistoricalConversationRestorer(reducer: reducer),
-       _conversationSelection = ChatConversationSelectionCoordinator(
-         conversationStateStore: conversationStateStore,
-       ),
        _supportsLocalConnectionMode =
            supportsLocalConnectionMode ?? supportsLocalCodexConnection() {
     final initial = initialSavedProfile;
@@ -69,7 +62,6 @@ class ChatSessionController extends ChangeNotifier {
   final CodexRuntimeEventMapper _runtimeEventMapper;
   final CodexHistoricalConversationNormalizer _historicalConversationNormalizer;
   final ChatHistoricalConversationRestorer _historicalConversationRestorer;
-  final ChatConversationSelectionCoordinator _conversationSelection;
   final ChatConversationRecoveryPolicy _conversationRecoveryPolicy =
       const ChatConversationRecoveryPolicy();
   final bool _supportsLocalConnectionMode;
@@ -85,6 +77,8 @@ class ChatSessionController extends ChangeNotifier {
   bool _isDisposed = false;
   bool _isTrackingSshBootstrapFailures = false;
   bool _sawTrackedSshBootstrapFailure = false;
+  bool _suppressTrackedThreadReuse = false;
+  int _historicalConversationRestoreGeneration = 0;
   final Set<String> _threadMetadataHydrationAttempts = <String>{};
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
   Future<void>? _initializationFuture;
@@ -185,16 +179,6 @@ class ChatSessionController extends ChangeNotifier {
     return _ChatSessionControllerRecovery(this).branchSelectedConversation();
   }
 
-  Future<void> prepareSelectedConversationForContinuation() {
-    return _ChatSessionControllerRecovery(
-      this,
-    ).prepareSelectedConversationForContinuation();
-  }
-
-  Future<void> activatePersistedConversation() {
-    return _ChatSessionControllerRecovery(this).activatePersistedConversation();
-  }
-
   Future<void> approveRequest(String requestId) {
     return _resolveApproval(requestId, approved: true);
   }
@@ -227,11 +211,6 @@ class ChatSessionController extends ChangeNotifier {
     }
 
     _sessionState = nextState;
-    _conversationSelection.schedulePersistConversationSelection(
-      isDisposed: _isDisposed,
-      ephemeralSession: _profile.ephemeralSession,
-      activeThreadId: _activeConversationThreadId(),
-    );
     notifyListeners();
   }
 
@@ -264,7 +243,6 @@ class ChatSessionController extends ChangeNotifier {
     ChatHistoricalConversationRestoreState? loadingRestoreState,
     ChatHistoricalConversationRestoreState? emptyHistoryRestoreState,
     ChatHistoricalConversationRestoreState? failureRestoreState,
-    bool rememberContinuationThread = false,
   }) async {
     return _performHistoryRestoringThreadTransitionForController(
       this,
@@ -274,16 +252,11 @@ class ChatSessionController extends ChangeNotifier {
       loadingRestoreState: loadingRestoreState,
       emptyHistoryRestoreState: emptyHistoryRestoreState,
       failureRestoreState: failureRestoreState,
-      rememberContinuationThread: rememberContinuationThread,
     );
   }
 
   Future<bool> _sendPromptWithAppServer(String prompt) async {
     return _sendPromptWithAppServerForController(this, prompt);
-  }
-
-  Future<String> _ensureAppServerThread() async {
-    return _ensureChatSessionAppServerThread(this);
   }
 
   String? _selectedModelOverride() {
@@ -306,6 +279,24 @@ class ChatSessionController extends ChangeNotifier {
     if (!_isDisposed) {
       notifyListeners();
     }
+  }
+
+  int _beginHistoricalConversationRestore({
+    ChatHistoricalConversationRestoreState? loadingState,
+  }) {
+    final generation = ++_historicalConversationRestoreGeneration;
+    if (loadingState != null) {
+      _setHistoricalConversationRestoreState(loadingState);
+    }
+    return generation;
+  }
+
+  void _invalidateHistoricalConversationRestore() {
+    _historicalConversationRestoreGeneration += 1;
+  }
+
+  bool _isCurrentHistoricalConversationRestore(int generation) {
+    return _historicalConversationRestoreGeneration == generation;
   }
 
 }

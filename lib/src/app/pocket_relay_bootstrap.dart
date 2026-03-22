@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
@@ -21,7 +20,6 @@ class PocketRelayBootstrap extends StatefulWidget {
 
 class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
   CodexConnectionRepository? _ownedConnectionRepository;
-  CodexConnectionConversationStateStore? _ownedConversationStateStore;
   late ConnectionWorkspaceController _workspaceController;
 
   @override
@@ -37,8 +35,6 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     final workspaceDependenciesChanged =
         oldWidget.dependencies.connectionRepository !=
             widget.dependencies.connectionRepository ||
-        oldWidget.dependencies.connectionConversationStateStore !=
-            widget.dependencies.connectionConversationStateStore ||
         oldWidget.dependencies.appServerClient !=
             widget.dependencies.appServerClient ||
         oldWidget.dependencies.platformPolicy !=
@@ -63,10 +59,8 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
   ConnectionWorkspaceController _createWorkspaceController() {
     final bootstrap = widget.dependencies.createWorkspaceBootstrap(
       ownedConnectionRepository: _ownedConnectionRepository,
-      ownedConversationStateStore: _ownedConversationStateStore,
     );
     _ownedConnectionRepository = bootstrap.ownedConnectionRepository;
-    _ownedConversationStateStore = bootstrap.ownedConversationStateStore;
     return bootstrap.workspaceController;
   }
 

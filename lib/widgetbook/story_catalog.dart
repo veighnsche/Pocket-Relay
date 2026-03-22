@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
@@ -736,8 +735,6 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                 connectionRepository: MemoryCodexConnectionRepository.single(
                   savedProfile: WidgetbookFixtures.savedProfile,
                 ),
-                connectionConversationStateStore:
-                    MemoryCodexConnectionConversationStateStore(),
                 appServerClient: FakeCodexAppServerClient(),
                 displayWakeLockController:
                     const NoopDisplayWakeLockController(),
@@ -750,8 +747,6 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                 connectionRepository: MemoryCodexConnectionRepository.single(
                   savedProfile: WidgetbookFixtures.savedProfile,
                 ),
-                connectionConversationStateStore:
-                    MemoryCodexConnectionConversationStateStore(),
                 appServerClient: FakeCodexAppServerClient(),
                 displayWakeLockController:
                     const NoopDisplayWakeLockController(),

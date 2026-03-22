@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
-import 'package:pocket_relay/src/core/storage/codex_connection_conversation_state_store.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -55,23 +54,12 @@ void main() {
   });
 
   testWidgets(
-    'desktop shell keeps the live lane empty on startup even when a persisted selectedThreadId exists',
+    'desktop shell keeps the live lane empty until history is explicitly picked',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
           _savedConversationThread(threadId: 'thread_saved');
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore(
-            initialStates: <String, SavedConnectionConversationState>{
-              'conn_primary': const SavedConnectionConversationState(
-                selectedThreadId: 'thread_saved',
-              ),
-            },
-          );
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        conversationStateStore: conversationStateStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -83,17 +71,11 @@ void main() {
 
       expect(find.text('Restored answer'), findsNothing);
       expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
-      expect(
-        (await conversationStateStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_saved',
-      );
     },
   );
 
   testWidgets(
-    'desktop shell does not surface unavailable-history chrome on startup from a persisted selectedThreadId',
+    'desktop shell does not surface unavailable-history chrome on startup',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
@@ -103,18 +85,7 @@ void main() {
             sourceKind: 'app-server',
             turns: <CodexAppServerHistoryTurn>[],
           );
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore(
-            initialStates: <String, SavedConnectionConversationState>{
-              'conn_primary': const SavedConnectionConversationState(
-                selectedThreadId: 'thread_empty',
-              ),
-            },
-          );
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        conversationStateStore: conversationStateStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -127,12 +98,6 @@ void main() {
       expect(find.text('Transcript history unavailable'), findsNothing);
       expect(find.text('Retry load'), findsNothing);
       expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
-      expect(
-        (await conversationStateStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_empty',
-      );
     },
   );
 
@@ -369,12 +334,7 @@ void main() {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadsById['thread_saved'] =
           _savedConversationThread(threadId: 'thread_saved');
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore();
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        conversationStateStore: conversationStateStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -410,12 +370,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        (await conversationStateStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_saved',
-      );
       expect(clientsById['conn_primary']?.disconnectCalls, 1);
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
@@ -441,12 +395,7 @@ void main() {
             sourceKind: 'app-server',
             turns: <CodexAppServerHistoryTurn>[],
           );
-      final conversationStateStore =
-          MemoryCodexConnectionConversationStateStore();
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        conversationStateStore: conversationStateStore,
-      );
+      final controller = _buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -484,12 +433,6 @@ void main() {
 
       expect(find.text('Transcript history unavailable'), findsOneWidget);
       expect(find.text('Retry load'), findsOneWidget);
-      expect(
-        (await conversationStateStore.loadState(
-          'conn_primary',
-        )).normalizedSelectedThreadId,
-        'thread_empty',
-      );
     },
   );
 
@@ -535,11 +478,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(clientsById['conn_primary']!.startSessionCalls, 1);
-      expect(
-        clientsById['conn_primary']!.startSessionRequests.single.resumeThreadId,
-        'thread_saved',
-      );
+      expect(clientsById['conn_primary']!.startSessionCalls, 0);
 
       expect(
         await controller.selectedLaneBinding!.sessionController.sendPrompt(
@@ -550,6 +489,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(clientsById['conn_primary']!.startSessionCalls, 1);
+      expect(
+        clientsById['conn_primary']!.startSessionRequests.single.resumeThreadId,
+        'thread_saved',
+      );
       expect(clientsById['conn_primary']!.sentTurns, <
         ({
           String threadId,
@@ -803,12 +746,7 @@ void main() {
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final conversationStateStore =
-        MemoryCodexConnectionConversationStateStore();
-    final controller = _buildWorkspaceController(
-      clientsById: clientsById,
-      conversationStateStore: conversationStateStore,
-    );
+    final controller = _buildWorkspaceController(clientsById: clientsById);
     addTearDown(() async {
       controller.dispose();
       await _closeClients(clientsById);
@@ -830,10 +768,6 @@ void main() {
     expect(controller.state.catalog.orderedConnectionIds, <String>[
       'conn_primary',
     ]);
-    expect(
-      await conversationStateStore.loadState('conn_secondary'),
-      const SavedConnectionConversationState(),
-    );
   });
 
   testWidgets(
@@ -897,7 +831,6 @@ Widget _buildShell(
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
-  MemoryCodexConnectionConversationStateStore? conversationStateStore,
 }) {
   final resolvedRepository =
       repository ??
@@ -915,12 +848,8 @@ ConnectionWorkspaceController _buildWorkspaceController({
           ),
         ],
       );
-  final resolvedConversationStateStore =
-      conversationStateStore ?? MemoryCodexConnectionConversationStateStore();
-
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    connectionConversationStateStore: resolvedConversationStateStore,
     laneBindingFactory:
         ({
           required connectionId,
@@ -932,10 +861,6 @@ ConnectionWorkspaceController _buildWorkspaceController({
             profileStore: ConnectionScopedProfileStore(
               connectionId: connectionId,
               connectionRepository: resolvedRepository,
-            ),
-            conversationStateStore: ConnectionScopedConversationStateStore(
-              connectionId: connectionId,
-              conversationStateStore: resolvedConversationStateStore,
             ),
             appServerClient: appServerClient,
             initialSavedProfile: SavedProfile(
