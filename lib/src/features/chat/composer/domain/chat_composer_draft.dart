@@ -37,38 +37,67 @@ class ChatComposerDraft {
       return copyWith(textElements: const <ChatComposerTextElement>[]);
     }
 
-    final nextAttachments = <ChatComposerLocalImageAttachment>[];
-    final nextTextElements = <ChatComposerTextElement>[];
-    var searchStart = 0;
-    for (final attachment in localImageAttachments) {
-      final placeholder = attachment.placeholder?.trim();
-      if (placeholder == null || placeholder.isEmpty) {
-        continue;
-      }
-
-      final startOffset = text.indexOf(placeholder, searchStart);
-      if (startOffset < 0) {
-        continue;
-      }
-
-      final endOffset = startOffset + placeholder.length;
-      nextAttachments.add(attachment);
-      nextTextElements.add(
-        ChatComposerTextElement(
-          start: _utf8ByteOffset(text, startOffset),
-          end: _utf8ByteOffset(text, endOffset),
-          placeholder: placeholder,
-        ),
+    final locatedAttachments = _locatedLocalImageAttachments(
+      text,
+      localImageAttachments,
+    );
+    if (locatedAttachments.isEmpty) {
+      return copyWith(
+        textElements: const <ChatComposerTextElement>[],
+        localImageAttachments: const <ChatComposerLocalImageAttachment>[],
       );
-      searchStart = endOffset;
     }
 
-    if (_listEquals(nextAttachments, localImageAttachments) &&
+    final nextAttachments = <ChatComposerLocalImageAttachment>[];
+    final nextTextElementRanges =
+        <({int start, int end, String placeholder})>[];
+    final buffer = StringBuffer();
+    var cursor = 0;
+    for (var index = 0; index < locatedAttachments.length; index++) {
+      final locatedAttachment = locatedAttachments[index];
+      if (locatedAttachment.start > cursor) {
+        buffer.write(text.substring(cursor, locatedAttachment.start));
+      }
+
+      final normalizedPlaceholder = localImagePlaceholder(index + 1);
+      final placeholderStart = buffer.length;
+      buffer.write(normalizedPlaceholder);
+      final placeholderEnd = buffer.length;
+      nextAttachments.add(
+        locatedAttachment.attachment.copyWith(
+          placeholder: normalizedPlaceholder,
+        ),
+      );
+      nextTextElementRanges.add((
+        start: placeholderStart,
+        end: placeholderEnd,
+        placeholder: normalizedPlaceholder,
+      ));
+      cursor = locatedAttachment.end;
+    }
+    if (cursor < text.length) {
+      buffer.write(text.substring(cursor));
+    }
+
+    final nextText = buffer.toString();
+    final nextTextElements = nextTextElementRanges
+        .map(
+          (range) => ChatComposerTextElement(
+            start: _utf8ByteOffset(nextText, range.start),
+            end: _utf8ByteOffset(nextText, range.end),
+            placeholder: range.placeholder,
+          ),
+        )
+        .toList(growable: false);
+
+    if (nextText == text &&
+        _listEquals(nextAttachments, localImageAttachments) &&
         _listEquals(nextTextElements, textElements)) {
       return this;
     }
 
     return copyWith(
+      text: nextText,
       textElements: nextTextElements,
       localImageAttachments: nextAttachments,
     );
@@ -114,6 +143,18 @@ class ChatComposerDraft {
       }
     }
     return maxNumber + 1;
+  }
+
+  List<ChatComposerLocalImagePlaceholderSpan> placeholderSpans() {
+    return _locatedLocalImageAttachments(text, localImageAttachments)
+        .map(
+          (locatedAttachment) => ChatComposerLocalImagePlaceholderSpan(
+            start: locatedAttachment.start,
+            end: locatedAttachment.end,
+            attachment: locatedAttachment.attachment,
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override
@@ -164,6 +205,16 @@ class ChatComposerLocalImageAttachment {
   final String path;
   final String? placeholder;
 
+  ChatComposerLocalImageAttachment copyWith({
+    String? path,
+    String? placeholder,
+  }) {
+    return ChatComposerLocalImageAttachment(
+      path: path ?? this.path,
+      placeholder: placeholder ?? this.placeholder,
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     return other is ChatComposerLocalImageAttachment &&
@@ -183,6 +234,20 @@ class ChatComposerDraftInsertion {
 
   final ChatComposerDraft draft;
   final int selectionOffset;
+}
+
+class ChatComposerLocalImagePlaceholderSpan {
+  const ChatComposerLocalImagePlaceholderSpan({
+    required this.start,
+    required this.end,
+    required this.attachment,
+  });
+
+  final int start;
+  final int end;
+  final ChatComposerLocalImageAttachment attachment;
+
+  bool containsOffset(int offset) => start < offset && offset < end;
 }
 
 String localImagePlaceholder(int number) => '[Image #$number]';
@@ -209,6 +274,46 @@ int _placeholderNumber(String? placeholder) {
 
   final match = RegExp(r'^\[Image #(\d+)\]$').firstMatch(placeholder.trim());
   return int.tryParse(match?.group(1) ?? '') ?? 0;
+}
+
+List<_LocatedLocalImageAttachment> _locatedLocalImageAttachments(
+  String text,
+  List<ChatComposerLocalImageAttachment> attachments,
+) {
+  final located = <_LocatedLocalImageAttachment>[];
+  final usedStarts = <int>{};
+  for (final attachment in attachments) {
+    final placeholder = attachment.placeholder?.trim();
+    if (placeholder == null || placeholder.isEmpty) {
+      continue;
+    }
+
+    final startOffset = text.indexOf(placeholder);
+    if (startOffset < 0 || !usedStarts.add(startOffset)) {
+      continue;
+    }
+    located.add(
+      _LocatedLocalImageAttachment(
+        start: startOffset,
+        end: startOffset + placeholder.length,
+        attachment: attachment,
+      ),
+    );
+  }
+  located.sort((left, right) => left.start.compareTo(right.start));
+  return located;
+}
+
+class _LocatedLocalImageAttachment {
+  const _LocatedLocalImageAttachment({
+    required this.start,
+    required this.end,
+    required this.attachment,
+  });
+
+  final int start;
+  final int end;
+  final ChatComposerLocalImageAttachment attachment;
 }
 
 bool _listEquals<T>(List<T> left, List<T> right) {

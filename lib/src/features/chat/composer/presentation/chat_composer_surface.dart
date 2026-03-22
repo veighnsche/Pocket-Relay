@@ -44,12 +44,16 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     extensions: <String>['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'heic'],
   );
   late final TextEditingController _controller;
+  late final _AtomicPlaceholderTextInputFormatter _placeholderFormatter;
   late ChatComposerDraft _draft;
 
   @override
   void initState() {
     super.initState();
     _draft = widget.contract.draft.normalized();
+    _placeholderFormatter = _AtomicPlaceholderTextInputFormatter(
+      draftProvider: () => _draft,
+    );
     _controller = TextEditingController(text: _draft.text);
   }
 
@@ -121,6 +125,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
               maxLines: 6,
               textInputAction: TextInputAction.newline,
               onTapOutside: (_) => _dismissKeyboard(),
+              inputFormatters: <TextInputFormatter>[_placeholderFormatter],
               onChanged: _handleChanged,
               decoration: InputDecoration(
                 hintText: widget.contract.placeholder,
@@ -225,6 +230,13 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
 
   void _handleChanged(String value) {
     _draft = _draft.copyWith(text: value).normalized();
+    if (_controller.text != _draft.text) {
+      _controller.value = _controller.value.copyWith(
+        text: _draft.text,
+        selection: _clampSelection(_controller.selection, _draft.text.length),
+        composing: TextRange.empty,
+      );
+    }
     setState(() {});
     widget.onChanged(_draft);
   }
@@ -274,12 +286,16 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     );
     final nextOffset = selection.start + insertedText.length;
 
-    _controller.value = currentValue.copyWith(
+    final proposedValue = currentValue.copyWith(
       text: nextText,
       selection: TextSelection.collapsed(offset: nextOffset),
       composing: TextRange.empty,
     );
-    _draft = _draft.copyWith(text: nextText).normalized();
+    _controller.value = _placeholderFormatter.formatEditUpdate(
+      currentValue,
+      proposedValue,
+    );
+    _draft = _draft.copyWith(text: _controller.text).normalized();
     widget.onChanged(_draft);
   }
 
@@ -293,4 +309,144 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     );
     return file?.path;
   }
+}
+
+class _AtomicPlaceholderTextInputFormatter extends TextInputFormatter {
+  _AtomicPlaceholderTextInputFormatter({required this.draftProvider});
+
+  final ChatComposerDraft Function() draftProvider;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (oldValue.text == newValue.text) {
+      return newValue;
+    }
+
+    final placeholderSpans = draftProvider().normalized().placeholderSpans();
+    if (placeholderSpans.isEmpty) {
+      return newValue;
+    }
+
+    final editDelta = _TextEditDelta.fromValues(oldValue.text, newValue.text);
+    if (editDelta.isInsertionOnly) {
+      final containingSpan = placeholderSpans.where(
+        (span) => span.containsOffset(editDelta.oldStart),
+      );
+      if (containingSpan.isNotEmpty) {
+        final span = containingSpan.first;
+        final adjustedText = oldValue.text.replaceRange(
+          span.end,
+          span.end,
+          editDelta.insertedText,
+        );
+        final nextOffset = span.end + editDelta.insertedText.length;
+        return newValue.copyWith(
+          text: adjustedText,
+          selection: TextSelection.collapsed(offset: nextOffset),
+          composing: TextRange.empty,
+        );
+      }
+      return newValue;
+    }
+
+    final intersectedSpans = placeholderSpans
+        .where(
+          (span) => _rangesIntersect(
+            editDelta.oldStart,
+            editDelta.oldEnd,
+            span.start,
+            span.end,
+          ),
+        )
+        .toList(growable: false);
+    if (intersectedSpans.isEmpty) {
+      return newValue;
+    }
+
+    final expandedStart = intersectedSpans.first.start < editDelta.oldStart
+        ? intersectedSpans.first.start
+        : editDelta.oldStart;
+    final expandedEnd = intersectedSpans.last.end > editDelta.oldEnd
+        ? intersectedSpans.last.end
+        : editDelta.oldEnd;
+    final adjustedText = oldValue.text.replaceRange(
+      expandedStart,
+      expandedEnd,
+      editDelta.insertedText,
+    );
+    final nextOffset = expandedStart + editDelta.insertedText.length;
+    return newValue.copyWith(
+      text: adjustedText,
+      selection: TextSelection.collapsed(offset: nextOffset),
+      composing: TextRange.empty,
+    );
+  }
+}
+
+class _TextEditDelta {
+  const _TextEditDelta({
+    required this.oldStart,
+    required this.oldEnd,
+    required this.insertedText,
+  });
+
+  factory _TextEditDelta.fromValues(String oldText, String newText) {
+    var prefixLength = 0;
+    final minLength = oldText.length < newText.length
+        ? oldText.length
+        : newText.length;
+    while (prefixLength < minLength &&
+        oldText.codeUnitAt(prefixLength) == newText.codeUnitAt(prefixLength)) {
+      prefixLength += 1;
+    }
+
+    var oldSuffixStart = oldText.length;
+    var newSuffixStart = newText.length;
+    while (oldSuffixStart > prefixLength &&
+        newSuffixStart > prefixLength &&
+        oldText.codeUnitAt(oldSuffixStart - 1) ==
+            newText.codeUnitAt(newSuffixStart - 1)) {
+      oldSuffixStart -= 1;
+      newSuffixStart -= 1;
+    }
+
+    return _TextEditDelta(
+      oldStart: prefixLength,
+      oldEnd: oldSuffixStart,
+      insertedText: newText.substring(prefixLength, newSuffixStart),
+    );
+  }
+
+  final int oldStart;
+  final int oldEnd;
+  final String insertedText;
+
+  bool get isInsertionOnly => oldStart == oldEnd && insertedText.isNotEmpty;
+}
+
+TextSelection _clampSelection(TextSelection selection, int textLength) {
+  if (!selection.isValid) {
+    return TextSelection.collapsed(offset: textLength);
+  }
+
+  final baseOffset = selection.baseOffset.clamp(0, textLength);
+  final extentOffset = selection.extentOffset.clamp(0, textLength);
+  return TextSelection(
+    baseOffset: baseOffset,
+    extentOffset: extentOffset,
+    affinity: selection.affinity,
+    isDirectional: selection.isDirectional,
+  );
+}
+
+bool _rangesIntersect(
+  int leftStart,
+  int leftEnd,
+  int rightStart,
+  int rightEnd,
+) {
+  return leftStart < rightEnd && rightStart < leftEnd;
 }
