@@ -3,16 +3,145 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 
 enum ConnectionWorkspaceViewport { liveLane, dormantRoster }
 
+enum ConnectionWorkspaceBackgroundLifecycleState { inactive, hidden, paused }
+
 enum ConnectionWorkspaceReconnectRequirement {
   savedSettings,
   transport,
   transportWithSavedSettings,
 }
 
+enum ConnectionWorkspaceRecoveryOrigin { foregroundResume, coldStart }
+
+enum ConnectionWorkspaceTransportLossReason {
+  disconnected,
+  appServerExitGraceful,
+  appServerExitError,
+  connectFailed,
+  sshConnectFailed,
+  sshHostKeyMismatch,
+  sshAuthenticationFailed,
+  sshRemoteLaunchFailed,
+}
+
+enum ConnectionWorkspaceRecoveryOutcome {
+  transportRestored,
+  transportUnavailable,
+  conversationRestored,
+  conversationUnavailable,
+  conversationRestoreFailed,
+}
+
 enum ConnectionWorkspaceTransportRecoveryPhase {
   lost,
   reconnecting,
   unavailable,
+}
+
+@immutable
+class ConnectionWorkspaceRecoveryDiagnostics {
+  const ConnectionWorkspaceRecoveryDiagnostics({
+    this.lastBackgroundedAt,
+    this.lastBackgroundedLifecycleState,
+    this.lastResumedAt,
+    this.lastRecoveryOrigin,
+    this.lastRecoveryStartedAt,
+    this.lastRecoveryCompletedAt,
+    this.lastTransportLossAt,
+    this.lastTransportLossReason,
+    this.lastRecoveryOutcome,
+  });
+
+  final DateTime? lastBackgroundedAt;
+  final ConnectionWorkspaceBackgroundLifecycleState?
+  lastBackgroundedLifecycleState;
+  final DateTime? lastResumedAt;
+  final ConnectionWorkspaceRecoveryOrigin? lastRecoveryOrigin;
+  final DateTime? lastRecoveryStartedAt;
+  final DateTime? lastRecoveryCompletedAt;
+  final DateTime? lastTransportLossAt;
+  final ConnectionWorkspaceTransportLossReason? lastTransportLossReason;
+  final ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome;
+
+  ConnectionWorkspaceRecoveryDiagnostics copyWith({
+    DateTime? lastBackgroundedAt,
+    ConnectionWorkspaceBackgroundLifecycleState? lastBackgroundedLifecycleState,
+    DateTime? lastResumedAt,
+    ConnectionWorkspaceRecoveryOrigin? lastRecoveryOrigin,
+    DateTime? lastRecoveryStartedAt,
+    DateTime? lastRecoveryCompletedAt,
+    DateTime? lastTransportLossAt,
+    ConnectionWorkspaceTransportLossReason? lastTransportLossReason,
+    ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome,
+    bool clearLastBackgroundedAt = false,
+    bool clearLastBackgroundedLifecycleState = false,
+    bool clearLastResumedAt = false,
+    bool clearLastRecoveryOrigin = false,
+    bool clearLastRecoveryStartedAt = false,
+    bool clearLastRecoveryCompletedAt = false,
+    bool clearLastTransportLossAt = false,
+    bool clearLastTransportLossReason = false,
+    bool clearLastRecoveryOutcome = false,
+  }) {
+    return ConnectionWorkspaceRecoveryDiagnostics(
+      lastBackgroundedAt: clearLastBackgroundedAt
+          ? null
+          : (lastBackgroundedAt ?? this.lastBackgroundedAt),
+      lastBackgroundedLifecycleState: clearLastBackgroundedLifecycleState
+          ? null
+          : (lastBackgroundedLifecycleState ??
+                this.lastBackgroundedLifecycleState),
+      lastResumedAt: clearLastResumedAt
+          ? null
+          : (lastResumedAt ?? this.lastResumedAt),
+      lastRecoveryOrigin: clearLastRecoveryOrigin
+          ? null
+          : (lastRecoveryOrigin ?? this.lastRecoveryOrigin),
+      lastRecoveryStartedAt: clearLastRecoveryStartedAt
+          ? null
+          : (lastRecoveryStartedAt ?? this.lastRecoveryStartedAt),
+      lastRecoveryCompletedAt: clearLastRecoveryCompletedAt
+          ? null
+          : (lastRecoveryCompletedAt ?? this.lastRecoveryCompletedAt),
+      lastTransportLossAt: clearLastTransportLossAt
+          ? null
+          : (lastTransportLossAt ?? this.lastTransportLossAt),
+      lastTransportLossReason: clearLastTransportLossReason
+          ? null
+          : (lastTransportLossReason ?? this.lastTransportLossReason),
+      lastRecoveryOutcome: clearLastRecoveryOutcome
+          ? null
+          : (lastRecoveryOutcome ?? this.lastRecoveryOutcome),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ConnectionWorkspaceRecoveryDiagnostics &&
+        other.lastBackgroundedAt == lastBackgroundedAt &&
+        other.lastBackgroundedLifecycleState ==
+            lastBackgroundedLifecycleState &&
+        other.lastResumedAt == lastResumedAt &&
+        other.lastRecoveryOrigin == lastRecoveryOrigin &&
+        other.lastRecoveryStartedAt == lastRecoveryStartedAt &&
+        other.lastRecoveryCompletedAt == lastRecoveryCompletedAt &&
+        other.lastTransportLossAt == lastTransportLossAt &&
+        other.lastTransportLossReason == lastTransportLossReason &&
+        other.lastRecoveryOutcome == lastRecoveryOutcome;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    lastBackgroundedAt,
+    lastBackgroundedLifecycleState,
+    lastResumedAt,
+    lastRecoveryOrigin,
+    lastRecoveryStartedAt,
+    lastRecoveryCompletedAt,
+    lastTransportLossAt,
+    lastTransportLossReason,
+    lastRecoveryOutcome,
+  );
 }
 
 class ConnectionWorkspaceState {
@@ -25,6 +154,7 @@ class ConnectionWorkspaceState {
     required this.savedSettingsReconnectRequiredConnectionIds,
     required this.transportReconnectRequiredConnectionIds,
     required this.transportRecoveryPhasesByConnectionId,
+    required this.recoveryDiagnosticsByConnectionId,
   });
 
   const ConnectionWorkspaceState.initial()
@@ -36,7 +166,9 @@ class ConnectionWorkspaceState {
       savedSettingsReconnectRequiredConnectionIds = const <String>{},
       transportReconnectRequiredConnectionIds = const <String>{},
       transportRecoveryPhasesByConnectionId =
-          const <String, ConnectionWorkspaceTransportRecoveryPhase>{};
+          const <String, ConnectionWorkspaceTransportRecoveryPhase>{},
+      recoveryDiagnosticsByConnectionId =
+          const <String, ConnectionWorkspaceRecoveryDiagnostics>{};
 
   final bool isLoading;
   final ConnectionCatalogState catalog;
@@ -47,6 +179,8 @@ class ConnectionWorkspaceState {
   final Set<String> transportReconnectRequiredConnectionIds;
   final Map<String, ConnectionWorkspaceTransportRecoveryPhase>
   transportRecoveryPhasesByConnectionId;
+  final Map<String, ConnectionWorkspaceRecoveryDiagnostics>
+  recoveryDiagnosticsByConnectionId;
 
   Set<String> get reconnectRequiredConnectionIds => <String>{
     ...savedSettingsReconnectRequiredConnectionIds,
@@ -83,6 +217,12 @@ class ConnectionWorkspaceState {
     return transportRecoveryPhasesByConnectionId[connectionId];
   }
 
+  ConnectionWorkspaceRecoveryDiagnostics? recoveryDiagnosticsFor(
+    String connectionId,
+  ) {
+    return recoveryDiagnosticsByConnectionId[connectionId];
+  }
+
   ConnectionWorkspaceReconnectRequirement? reconnectRequirementFor(
     String connectionId,
   ) {
@@ -117,6 +257,8 @@ class ConnectionWorkspaceState {
     Set<String>? transportReconnectRequiredConnectionIds,
     Map<String, ConnectionWorkspaceTransportRecoveryPhase>?
     transportRecoveryPhasesByConnectionId,
+    Map<String, ConnectionWorkspaceRecoveryDiagnostics>?
+    recoveryDiagnosticsByConnectionId,
     bool clearSelectedConnectionId = false,
   }) {
     return ConnectionWorkspaceState(
@@ -136,6 +278,9 @@ class ConnectionWorkspaceState {
       transportRecoveryPhasesByConnectionId:
           transportRecoveryPhasesByConnectionId ??
           this.transportRecoveryPhasesByConnectionId,
+      recoveryDiagnosticsByConnectionId:
+          recoveryDiagnosticsByConnectionId ??
+          this.recoveryDiagnosticsByConnectionId,
     );
   }
 
@@ -158,6 +303,10 @@ class ConnectionWorkspaceState {
         mapEquals(
           other.transportRecoveryPhasesByConnectionId,
           transportRecoveryPhasesByConnectionId,
+        ) &&
+        mapEquals(
+          other.recoveryDiagnosticsByConnectionId,
+          recoveryDiagnosticsByConnectionId,
         );
   }
 
@@ -172,6 +321,11 @@ class ConnectionWorkspaceState {
     Object.hashAllUnordered(transportReconnectRequiredConnectionIds),
     Object.hashAllUnordered(
       transportRecoveryPhasesByConnectionId.entries.map(
+        (entry) => Object.hash(entry.key, entry.value),
+      ),
+    ),
+    Object.hashAllUnordered(
+      recoveryDiagnosticsByConnectionId.entries.map(
         (entry) => Object.hash(entry.key, entry.value),
       ),
     ),

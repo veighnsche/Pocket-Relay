@@ -184,11 +184,15 @@ void main() {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_secondary']!.threadHistoriesById['thread_saved'] =
           _savedConversationThread(threadId: 'thread_saved');
+      final backgroundedAt = DateTime.utc(2026, 3, 22, 12, 30);
       final recoveryStore = MemoryConnectionWorkspaceRecoveryStore(
-        initialState: const ConnectionWorkspaceRecoveryState(
+        initialState: ConnectionWorkspaceRecoveryState(
           connectionId: 'conn_secondary',
           selectedThreadId: 'thread_saved',
           draftText: 'Restore my draft',
+          backgroundedAt: backgroundedAt,
+          backgroundedLifecycleState:
+              ConnectionWorkspaceBackgroundLifecycleState.paused,
         ),
       );
       final controller = _buildWorkspaceController(
@@ -229,6 +233,23 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_secondary'),
         isNull,
       );
+      final diagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_secondary',
+      );
+      expect(diagnostics, isNotNull);
+      expect(diagnostics!.lastBackgroundedAt, backgroundedAt);
+      expect(
+        diagnostics.lastBackgroundedLifecycleState,
+        ConnectionWorkspaceBackgroundLifecycleState.paused,
+      );
+      expect(
+        diagnostics.lastRecoveryOrigin,
+        ConnectionWorkspaceRecoveryOrigin.coldStart,
+      );
+      expect(
+        diagnostics.lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.conversationRestored,
+      );
     },
   );
 
@@ -244,6 +265,8 @@ void main() {
           connectionId: 'conn_secondary',
           selectedThreadId: 'thread_saved',
           draftText: 'Restore my draft',
+          backgroundedLifecycleState:
+              ConnectionWorkspaceBackgroundLifecycleState.paused,
         ),
       );
       final controller = _buildWorkspaceController(
@@ -271,6 +294,17 @@ void main() {
         controller.selectedLaneBinding?.composerDraftHost.draft.text,
         'Restore my draft',
       );
+      final reconnectingDiagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_secondary',
+      );
+      expect(reconnectingDiagnostics, isNotNull);
+      expect(
+        reconnectingDiagnostics!.lastRecoveryOrigin,
+        ConnectionWorkspaceRecoveryOrigin.coldStart,
+      );
+      expect(reconnectingDiagnostics.lastRecoveryStartedAt, isNotNull);
+      expect(reconnectingDiagnostics.lastRecoveryCompletedAt, isNull);
+      expect(reconnectingDiagnostics.lastRecoveryOutcome, isNull);
 
       clientsById['conn_secondary']!.connectGate!.complete();
       await initialization;
@@ -291,6 +325,15 @@ void main() {
             .rootThreadId,
         'thread_saved',
       );
+      final restoredDiagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_secondary',
+      );
+      expect(restoredDiagnostics, isNotNull);
+      expect(
+        restoredDiagnostics!.lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.conversationRestored,
+      );
+      expect(restoredDiagnostics.lastRecoveryCompletedAt, isNotNull);
     },
   );
 
@@ -305,6 +348,8 @@ void main() {
           connectionId: 'conn_secondary',
           selectedThreadId: 'thread_saved',
           draftText: 'Restore my draft',
+          backgroundedLifecycleState:
+              ConnectionWorkspaceBackgroundLifecycleState.paused,
         ),
       );
       final controller = _buildWorkspaceController(
@@ -331,6 +376,22 @@ void main() {
       expect(
         controller.state.transportRecoveryPhaseFor('conn_secondary'),
         ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+      );
+      final unavailableDiagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_secondary',
+      );
+      expect(unavailableDiagnostics, isNotNull);
+      expect(
+        unavailableDiagnostics!.lastRecoveryOrigin,
+        ConnectionWorkspaceRecoveryOrigin.coldStart,
+      );
+      expect(
+        unavailableDiagnostics.lastTransportLossReason,
+        ConnectionWorkspaceTransportLossReason.connectFailed,
+      );
+      expect(
+        unavailableDiagnostics.lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
       );
       expect(
         controller
@@ -691,10 +752,102 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         ConnectionWorkspaceTransportRecoveryPhase.lost,
       );
+      final diagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_primary',
+      );
+      expect(diagnostics, isNotNull);
+      expect(
+        diagnostics!.lastTransportLossReason,
+        ConnectionWorkspaceTransportLossReason.appServerExitError,
+      );
+      expect(diagnostics.lastTransportLossAt, isNotNull);
       expect(controller.state.reconnectRequiredConnectionIds, <String>{
         'conn_primary',
       });
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
+    },
+  );
+
+  test(
+    'unexpected graceful app-server exit records a distinct transport loss reason',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await clientsById['conn_primary']!.connect(
+        profile: ConnectionProfile.defaults(),
+        secrets: const ConnectionSecrets(),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      clientsById['conn_primary']!.emit(
+        const CodexAppServerDisconnectedEvent(exitCode: 0),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        controller.state.requiresTransportReconnect('conn_primary'),
+        isTrue,
+      );
+      expect(
+        controller.state
+            .recoveryDiagnosticsFor('conn_primary')!
+            .lastTransportLossReason,
+        ConnectionWorkspaceTransportLossReason.appServerExitGraceful,
+      );
+    },
+  );
+
+  test(
+    'cold-start connect failures keep specific SSH loss reasons instead of downgrading to generic connect failure',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_secondary']!
+        ..connectEventsBeforeThrow.add(
+          const CodexAppServerSshConnectFailedEvent(
+            host: 'secondary.local',
+            port: 22,
+            message: 'No route to host',
+          ),
+        )
+        ..connectError = const CodexAppServerException('connect failed');
+      final recoveryStore = MemoryConnectionWorkspaceRecoveryStore(
+        initialState: const ConnectionWorkspaceRecoveryState(
+          connectionId: 'conn_secondary',
+          selectedThreadId: 'thread_saved',
+          draftText: 'Restore my draft',
+          backgroundedLifecycleState:
+              ConnectionWorkspaceBackgroundLifecycleState.paused,
+        ),
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        recoveryStore: recoveryStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+
+      final diagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_secondary',
+      );
+      expect(diagnostics, isNotNull);
+      expect(
+        diagnostics!.lastTransportLossReason,
+        ConnectionWorkspaceTransportLossReason.sshConnectFailed,
+      );
+      expect(
+        diagnostics.lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+      );
     },
   );
 
@@ -744,6 +897,12 @@ void main() {
       expect(
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         isNull,
+      );
+      expect(
+        controller.state
+            .recoveryDiagnosticsFor('conn_primary')!
+            .lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.transportRestored,
       );
       expect(clientsById['conn_primary']?.connectCalls, 2);
       expect(controller.bindingForConnectionId('conn_primary'), same(binding));
@@ -1159,6 +1318,18 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         isNull,
       );
+      final resumedDiagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_primary',
+      );
+      expect(resumedDiagnostics, isNotNull);
+      expect(
+        resumedDiagnostics!.lastRecoveryOrigin,
+        ConnectionWorkspaceRecoveryOrigin.foregroundResume,
+      );
+      expect(
+        resumedDiagnostics.lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.conversationRestored,
+      );
       expect(clientsByConnectionId['conn_primary'], hasLength(2));
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
       expect(
@@ -1253,6 +1424,22 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         ConnectionWorkspaceTransportRecoveryPhase.unavailable,
       );
+      final unavailableDiagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_primary',
+      );
+      expect(unavailableDiagnostics, isNotNull);
+      expect(
+        unavailableDiagnostics!.lastRecoveryOrigin,
+        ConnectionWorkspaceRecoveryOrigin.foregroundResume,
+      );
+      expect(
+        unavailableDiagnostics.lastTransportLossReason,
+        ConnectionWorkspaceTransportLossReason.connectFailed,
+      );
+      expect(
+        unavailableDiagnostics.lastRecoveryOutcome,
+        ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+      );
       expect(nextBinding!.composerDraftHost.draft.text, 'Recover me');
       expect(clientsByConnectionId['conn_primary'], hasLength(2));
       expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
@@ -1327,6 +1514,7 @@ void main() {
       await controller.handleAppLifecycleStateChanged(
         AppLifecycleState.inactive,
       );
+      final backgroundedRecoveryState = await recoveryStore.load();
       await controller.handleAppLifecycleStateChanged(
         AppLifecycleState.resumed,
       );
@@ -1336,9 +1524,22 @@ void main() {
       expect(nextBinding, same(firstBinding));
       expect(clientsById['conn_primary']!.disconnectCalls, 0);
       expect(controller.state.requiresReconnect('conn_primary'), isFalse);
+      expect(backgroundedRecoveryState, isNotNull);
+      expect(backgroundedRecoveryState!.draftText, 'Keep me');
+      expect(backgroundedRecoveryState.backgroundedAt, snapshotTime);
+      expect(
+        backgroundedRecoveryState.backgroundedLifecycleState,
+        ConnectionWorkspaceBackgroundLifecycleState.inactive,
+      );
       expect(recoveryState, isNotNull);
-      expect(recoveryState!.draftText, 'Keep me');
-      expect(recoveryState.backgroundedAt, snapshotTime);
+      expect(recoveryState!.backgroundedAt, isNull);
+      expect(recoveryState.backgroundedLifecycleState, isNull);
+      final diagnostics = controller.state.recoveryDiagnosticsFor(
+        'conn_primary',
+      );
+      expect(diagnostics, isNotNull);
+      expect(diagnostics!.lastResumedAt, snapshotTime);
+      expect(diagnostics.lastBackgroundedAt, isNull);
     },
   );
 

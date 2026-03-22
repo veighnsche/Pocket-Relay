@@ -5,6 +5,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 
@@ -257,11 +258,61 @@ class ConnectionWorkspaceController extends ChangeNotifier {
         event,
       ) {
         switch (event) {
-          case CodexAppServerDisconnectedEvent():
+          case CodexAppServerDisconnectedEvent(:final exitCode):
+            _recordTransportLoss(
+              connectionId,
+              occurredAt: _now(),
+              reason: switch (exitCode) {
+                null => ConnectionWorkspaceTransportLossReason.disconnected,
+                0 =>
+                  ConnectionWorkspaceTransportLossReason.appServerExitGraceful,
+                _ => ConnectionWorkspaceTransportLossReason.appServerExitError,
+              },
+            );
             _markTransportReconnectRequired(connectionId);
             break;
           case CodexAppServerConnectedEvent():
+            final wasRecovering = _state.requiresTransportReconnect(
+              connectionId,
+            );
             _clearTransportReconnectRequired(connectionId);
+            if (wasRecovering) {
+              _completeRecoveryAttempt(
+                connectionId,
+                completedAt: _now(),
+                outcome: ConnectionWorkspaceRecoveryOutcome.transportRestored,
+              );
+            }
+            break;
+          case CodexAppServerSshConnectFailedEvent():
+            _recordTransportLoss(
+              connectionId,
+              occurredAt: _now(),
+              reason: ConnectionWorkspaceTransportLossReason.sshConnectFailed,
+            );
+            break;
+          case CodexAppServerSshHostKeyMismatchEvent():
+            _recordTransportLoss(
+              connectionId,
+              occurredAt: _now(),
+              reason: ConnectionWorkspaceTransportLossReason.sshHostKeyMismatch,
+            );
+            break;
+          case CodexAppServerSshAuthenticationFailedEvent():
+            _recordTransportLoss(
+              connectionId,
+              occurredAt: _now(),
+              reason: ConnectionWorkspaceTransportLossReason
+                  .sshAuthenticationFailed,
+            );
+            break;
+          case CodexAppServerSshRemoteLaunchFailedEvent():
+            _recordTransportLoss(
+              connectionId,
+              occurredAt: _now(),
+              reason:
+                  ConnectionWorkspaceTransportLossReason.sshRemoteLaunchFailed,
+            );
             break;
           default:
             break;
@@ -307,11 +358,17 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
   }
 
-  Future<void> _enqueueRecoveryPersistence({DateTime? backgroundedAt}) {
+  Future<void> _enqueueRecoveryPersistence({
+    DateTime? backgroundedAt,
+    ConnectionWorkspaceBackgroundLifecycleState? backgroundedLifecycleState,
+  }) {
     _recoveryPersistenceDebounceTimer?.cancel();
     _recoveryPersistenceDebounceTimer = null;
     return _queueRecoveryPersistenceSnapshot(
-      snapshot: _selectedRecoveryStateSnapshot(backgroundedAt: backgroundedAt),
+      snapshot: _selectedRecoveryStateSnapshot(
+        backgroundedAt: backgroundedAt,
+        backgroundedLifecycleState: backgroundedLifecycleState,
+      ),
     );
   }
 
@@ -385,6 +442,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
   ConnectionWorkspaceRecoveryState? _selectedRecoveryStateSnapshot({
     DateTime? backgroundedAt,
+    ConnectionWorkspaceBackgroundLifecycleState? backgroundedLifecycleState,
   }) {
     final selectedConnectionId = _state.selectedConnectionId;
     if (selectedConnectionId == null ||
@@ -405,12 +463,16 @@ class ConnectionWorkspaceController extends ChangeNotifier {
               .historicalConversationRestoreState
               ?.threadId,
     );
+    final diagnostics = _state.recoveryDiagnosticsFor(selectedConnectionId);
 
     return ConnectionWorkspaceRecoveryState(
       connectionId: selectedConnectionId,
       selectedThreadId: selectedThreadId,
       draftText: binding.composerDraftHost.draft.text,
-      backgroundedAt: backgroundedAt,
+      backgroundedAt: backgroundedAt ?? diagnostics?.lastBackgroundedAt,
+      backgroundedLifecycleState:
+          backgroundedLifecycleState ??
+          diagnostics?.lastBackgroundedLifecycleState,
     );
   }
 
@@ -502,6 +564,154 @@ class ConnectionWorkspaceController extends ChangeNotifier {
                   <String, ConnectionWorkspaceTransportRecoveryPhase>{
                     ..._state.transportRecoveryPhasesByConnectionId,
                     connectionId: phase,
+                  },
+            ),
+      ),
+    );
+  }
+
+  void _recordLifecycleBackgroundSnapshot(
+    String connectionId, {
+    required DateTime occurredAt,
+    required ConnectionWorkspaceBackgroundLifecycleState lifecycleState,
+  }) {
+    _updateRecoveryDiagnostics(
+      connectionId,
+      (current) => current.copyWith(
+        lastBackgroundedAt: occurredAt,
+        lastBackgroundedLifecycleState: lifecycleState,
+      ),
+    );
+  }
+
+  void _recordLifecycleResume(
+    String connectionId, {
+    required DateTime occurredAt,
+  }) {
+    _updateRecoveryDiagnostics(
+      connectionId,
+      (current) => current.copyWith(
+        lastResumedAt: occurredAt,
+        clearLastBackgroundedAt: true,
+        clearLastBackgroundedLifecycleState: true,
+      ),
+    );
+  }
+
+  void _recordTransportLoss(
+    String connectionId, {
+    required DateTime occurredAt,
+    required ConnectionWorkspaceTransportLossReason reason,
+  }) {
+    _updateRecoveryDiagnostics(
+      connectionId,
+      (current) => current.copyWith(
+        lastTransportLossAt: occurredAt,
+        lastTransportLossReason: reason,
+      ),
+    );
+  }
+
+  void _recordFallbackTransportConnectFailure(
+    String connectionId, {
+    required DateTime occurredAt,
+  }) {
+    final diagnostics = _state.recoveryDiagnosticsFor(connectionId);
+    final lastRecoveryStartedAt = diagnostics?.lastRecoveryStartedAt;
+    final lastTransportLossAt = diagnostics?.lastTransportLossAt;
+    if (lastRecoveryStartedAt != null &&
+        lastTransportLossAt != null &&
+        !lastTransportLossAt.isBefore(lastRecoveryStartedAt)) {
+      return;
+    }
+
+    _recordTransportLoss(
+      connectionId,
+      occurredAt: occurredAt,
+      reason: ConnectionWorkspaceTransportLossReason.connectFailed,
+    );
+  }
+
+  void _beginRecoveryAttempt(
+    String connectionId, {
+    required DateTime startedAt,
+    required ConnectionWorkspaceRecoveryOrigin origin,
+  }) {
+    _updateRecoveryDiagnostics(
+      connectionId,
+      (current) => current.copyWith(
+        lastRecoveryOrigin: origin,
+        lastRecoveryStartedAt: startedAt,
+        clearLastRecoveryCompletedAt: true,
+        clearLastRecoveryOutcome: true,
+      ),
+    );
+  }
+
+  void _completeRecoveryAttempt(
+    String connectionId, {
+    required DateTime completedAt,
+    required ConnectionWorkspaceRecoveryOutcome outcome,
+  }) {
+    _updateRecoveryDiagnostics(
+      connectionId,
+      (current) => current.copyWith(
+        lastRecoveryCompletedAt: completedAt,
+        lastRecoveryOutcome: outcome,
+      ),
+    );
+  }
+
+  void _completeConversationRecoveryAttempt(
+    String connectionId,
+    ConnectionLaneBinding binding, {
+    required DateTime completedAt,
+  }) {
+    final restorePhase =
+        binding.sessionController.historicalConversationRestoreState?.phase;
+    final outcome = switch (restorePhase) {
+      ChatHistoricalConversationRestorePhase.unavailable =>
+        ConnectionWorkspaceRecoveryOutcome.conversationUnavailable,
+      ChatHistoricalConversationRestorePhase.failed =>
+        ConnectionWorkspaceRecoveryOutcome.conversationRestoreFailed,
+      _ => ConnectionWorkspaceRecoveryOutcome.conversationRestored,
+    };
+    _completeRecoveryAttempt(
+      connectionId,
+      completedAt: completedAt,
+      outcome: outcome,
+    );
+  }
+
+  void _updateRecoveryDiagnostics(
+    String connectionId,
+    ConnectionWorkspaceRecoveryDiagnostics Function(
+      ConnectionWorkspaceRecoveryDiagnostics current,
+    )
+    update,
+  ) {
+    if (_isDisposed || !_state.isConnectionLive(connectionId)) {
+      return;
+    }
+
+    final currentDiagnostics =
+        _state.recoveryDiagnosticsFor(connectionId) ??
+        const ConnectionWorkspaceRecoveryDiagnostics();
+    final nextDiagnostics = update(currentDiagnostics);
+    if (nextDiagnostics == currentDiagnostics) {
+      return;
+    }
+
+    _applyState(
+      _state.copyWith(
+        recoveryDiagnosticsByConnectionId:
+            _sanitizeWorkspaceRecoveryDiagnostics(
+              catalog: _state.catalog,
+              liveConnectionIds: _state.liveConnectionIds,
+              recoveryDiagnosticsByConnectionId:
+                  <String, ConnectionWorkspaceRecoveryDiagnostics>{
+                    ..._state.recoveryDiagnosticsByConnectionId,
+                    connectionId: nextDiagnostics,
                   },
             ),
       ),

@@ -52,6 +52,12 @@ Future<String> _createWorkspaceConnection(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
+      ),
     ),
   );
   return connection.id;
@@ -111,6 +117,12 @@ Future<void> _saveWorkspaceDormantConnection(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
+      ),
     ),
   );
 }
@@ -180,6 +192,12 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
+      ),
     ),
   );
 }
@@ -298,6 +316,22 @@ _sanitizeWorkspaceTransportRecoveryPhases({
   final liveConnectionIdSet = liveConnectionIds.toSet();
   return <String, ConnectionWorkspaceTransportRecoveryPhase>{
     for (final entry in transportRecoveryPhasesByConnectionId.entries)
+      if (catalog.connectionForId(entry.key) != null &&
+          liveConnectionIdSet.contains(entry.key))
+        entry.key: entry.value,
+  };
+}
+
+Map<String, ConnectionWorkspaceRecoveryDiagnostics>
+_sanitizeWorkspaceRecoveryDiagnostics({
+  required ConnectionCatalogState catalog,
+  required List<String> liveConnectionIds,
+  required Map<String, ConnectionWorkspaceRecoveryDiagnostics>
+  recoveryDiagnosticsByConnectionId,
+}) {
+  final liveConnectionIdSet = liveConnectionIds.toSet();
+  return <String, ConnectionWorkspaceRecoveryDiagnostics>{
+    for (final entry in recoveryDiagnosticsByConnectionId.entries)
       if (catalog.connectionForId(entry.key) != null &&
           liveConnectionIdSet.contains(entry.key))
         entry.key: entry.value,

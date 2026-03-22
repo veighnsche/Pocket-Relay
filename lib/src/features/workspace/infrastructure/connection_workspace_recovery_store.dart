@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:pocket_relay/src/core/storage/shared_preferences_async_migration.dart';
+import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 
 class ConnectionWorkspaceRecoveryState {
   const ConnectionWorkspaceRecoveryState({
@@ -10,12 +11,14 @@ class ConnectionWorkspaceRecoveryState {
     required this.draftText,
     this.selectedThreadId,
     this.backgroundedAt,
+    this.backgroundedLifecycleState,
   });
 
   final String connectionId;
   final String draftText;
   final String? selectedThreadId;
   final DateTime? backgroundedAt;
+  final ConnectionWorkspaceBackgroundLifecycleState? backgroundedLifecycleState;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -23,6 +26,7 @@ class ConnectionWorkspaceRecoveryState {
       'draftText': draftText,
       'selectedThreadId': selectedThreadId,
       'backgroundedAt': backgroundedAt?.toIso8601String(),
+      'backgroundedLifecycleState': backgroundedLifecycleState?.name,
     };
   }
 
@@ -32,6 +36,9 @@ class ConnectionWorkspaceRecoveryState {
       draftText: json['draftText'] as String? ?? '',
       selectedThreadId: _normalizedRecoveryString(json['selectedThreadId']),
       backgroundedAt: _parseRecoveryDateTime(json['backgroundedAt']),
+      backgroundedLifecycleState: _parseBackgroundLifecycleState(
+        json['backgroundedLifecycleState'],
+      ),
     );
   }
 
@@ -146,4 +153,21 @@ String? _normalizedRecoveryString(Object? value) {
   }
   final normalizedValue = value.trim();
   return normalizedValue.isEmpty ? null : normalizedValue;
+}
+
+ConnectionWorkspaceBackgroundLifecycleState? _parseBackgroundLifecycleState(
+  Object? value,
+) {
+  final normalizedValue = _normalizedRecoveryString(value);
+  if (normalizedValue == null) {
+    return null;
+  }
+
+  for (final lifecycleState
+      in ConnectionWorkspaceBackgroundLifecycleState.values) {
+    if (lifecycleState.name == normalizedValue) {
+      return lifecycleState;
+    }
+  }
+  return null;
 }
