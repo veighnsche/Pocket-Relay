@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/core/storage/codex_connection_conversation_stat
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
@@ -107,6 +108,165 @@ void main() {
     expect(find.text('Saved backend thread'), findsOneWidget);
     expect(find.textContaining('2 prompts'), findsOneWidget);
   });
+
+  testWidgets(
+    'mobile shell keeps the live lane empty on startup even when a persisted selectedThreadId exists',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore(
+            initialStates: <String, SavedConnectionConversationState>{
+              'conn_primary': const SavedConnectionConversationState(
+                selectedThreadId: 'thread_saved',
+              ),
+            },
+          );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        conversationStateStore: conversationStateStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restored answer'), findsNothing);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(
+        (await conversationStateStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_saved',
+      );
+    },
+  );
+
+  testWidgets(
+    'mobile conversation history row resumes the selected Codex thread',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadsById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        conversationStateStore: conversationStateStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          conversationHistoryRepository:
+              FakeCodexWorkspaceConversationHistoryRepository(
+                conversations: <CodexWorkspaceConversationSummary>[
+                  CodexWorkspaceConversationSummary(
+                    threadId: 'thread_saved',
+                    preview: 'Saved backend thread',
+                    cwd: '/workspace',
+                    promptCount: 2,
+                    firstPromptAt: DateTime(2026, 3, 20, 9),
+                    lastActivityAt: DateTime(2026, 3, 20, 10),
+                  ),
+                ],
+              ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Conversation history'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('workspace_conversation_thread_saved')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restored answer'), findsOneWidget);
+      expect(
+        (await conversationStateStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_saved',
+      );
+      expect(clientsById['conn_primary']?.disconnectCalls, 1);
+    },
+  );
+
+  testWidgets(
+    'mobile conversation history row surfaces unavailable-history chrome when the selected transcript is empty',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
+          const CodexAppServerThreadHistory(
+            id: 'thread_empty',
+            name: 'Empty conversation',
+            sourceKind: 'app-server',
+            turns: <CodexAppServerHistoryTurn>[],
+          );
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        conversationStateStore: conversationStateStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          conversationHistoryRepository:
+              FakeCodexWorkspaceConversationHistoryRepository(
+                conversations: <CodexWorkspaceConversationSummary>[
+                  CodexWorkspaceConversationSummary(
+                    threadId: 'thread_empty',
+                    preview: 'Empty backend thread',
+                    cwd: '/workspace',
+                    promptCount: 0,
+                    firstPromptAt: null,
+                    lastActivityAt: DateTime(2026, 3, 20, 11),
+                  ),
+                ],
+              ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Conversation history'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('workspace_conversation_thread_empty')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Transcript history unavailable'), findsOneWidget);
+      expect(find.text('Retry load'), findsOneWidget);
+      expect(
+        (await conversationStateStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_empty',
+      );
+    },
+  );
 
   testWidgets(
     'overflow menu shows an honest error until Codex-backed history loading exists',
@@ -853,6 +1013,72 @@ Future<void> _closeClients(
   for (final client in clientsById.values) {
     await client.close();
   }
+}
+
+CodexAppServerThreadHistory _savedConversationThread({
+  required String threadId,
+}) {
+  return CodexAppServerThreadHistory(
+    id: threadId,
+    name: 'Saved conversation',
+    sourceKind: 'app-server',
+    turns: const <CodexAppServerHistoryTurn>[
+      CodexAppServerHistoryTurn(
+        id: 'turn_saved',
+        status: 'completed',
+        items: <CodexAppServerHistoryItem>[
+          CodexAppServerHistoryItem(
+            id: 'item_user',
+            type: 'user_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+          ),
+          CodexAppServerHistoryItem(
+            id: 'item_assistant',
+            type: 'agent_message',
+            status: 'completed',
+            raw: <String, dynamic>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ),
+        ],
+        raw: <String, dynamic>{
+          'id': 'turn_saved',
+          'status': 'completed',
+          'items': <Object>[
+            <String, Object?>{
+              'id': 'item_user',
+              'type': 'user_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restore this'},
+              ],
+            },
+            <String, Object?>{
+              'id': 'item_assistant',
+              'type': 'agent_message',
+              'status': 'completed',
+              'content': <Object>[
+                <String, Object?>{'text': 'Restored answer'},
+              ],
+            },
+          ],
+        },
+      ),
+    ],
+  );
 }
 
 class FakeCodexWorkspaceConversationHistoryRepository
