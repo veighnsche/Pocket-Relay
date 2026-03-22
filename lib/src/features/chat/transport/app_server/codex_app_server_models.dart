@@ -266,6 +266,72 @@ class CodexAppServerThreadListPage {
   final String? nextCursor;
 }
 
+class CodexAppServerModelUpgradeInfo {
+  const CodexAppServerModelUpgradeInfo({
+    required this.model,
+    this.upgradeCopy,
+    this.modelLink,
+    this.migrationMarkdown,
+  });
+
+  final String model;
+  final String? upgradeCopy;
+  final String? modelLink;
+  final String? migrationMarkdown;
+}
+
+class CodexAppServerReasoningEffortOption {
+  const CodexAppServerReasoningEffortOption({
+    required this.reasoningEffort,
+    required this.description,
+  });
+
+  final CodexReasoningEffort reasoningEffort;
+  final String description;
+}
+
+class CodexAppServerModel {
+  const CodexAppServerModel({
+    required this.id,
+    required this.model,
+    required this.displayName,
+    required this.description,
+    required this.hidden,
+    required this.supportedReasoningEfforts,
+    required this.defaultReasoningEffort,
+    required this.inputModalities,
+    required this.supportsPersonality,
+    required this.isDefault,
+    this.upgrade,
+    this.upgradeInfo,
+    this.availabilityNuxMessage,
+  });
+
+  final String id;
+  final String model;
+  final String displayName;
+  final String description;
+  final bool hidden;
+  final List<CodexAppServerReasoningEffortOption> supportedReasoningEfforts;
+  final CodexReasoningEffort defaultReasoningEffort;
+  final List<String> inputModalities;
+  final bool supportsPersonality;
+  final bool isDefault;
+  final String? upgrade;
+  final CodexAppServerModelUpgradeInfo? upgradeInfo;
+  final String? availabilityNuxMessage;
+}
+
+class CodexAppServerModelListPage {
+  const CodexAppServerModelListPage({
+    required this.models,
+    required this.nextCursor,
+  });
+
+  final List<CodexAppServerModel> models;
+  final String? nextCursor;
+}
+
 class CodexAppServerSession {
   const CodexAppServerSession({
     required this.threadId,

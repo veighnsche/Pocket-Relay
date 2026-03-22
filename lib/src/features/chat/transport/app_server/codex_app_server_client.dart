@@ -117,6 +117,20 @@ class CodexAppServerClient {
     return _requestApi.listThreads(_connection, cursor: cursor, limit: limit);
   }
 
+  Future<CodexAppServerModelListPage> listModels({
+    String? cursor,
+    int? limit,
+    bool? includeHidden,
+  }) async {
+    _ensureNotDisposed();
+    return _requestApi.listModels(
+      _connection,
+      cursor: cursor,
+      limit: limit,
+      includeHidden: includeHidden,
+    );
+  }
+
   Future<CodexAppServerTurn> sendUserMessage({
     required String threadId,
     required String text,

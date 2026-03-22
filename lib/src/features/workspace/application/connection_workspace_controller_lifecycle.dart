@@ -219,6 +219,7 @@ Future<void> _deleteDormantWorkspaceConnection(
   String connectionId,
 ) async {
   await controller._connectionRepository.deleteConnection(connectionId);
+  await controller._modelCatalogStore.delete(connectionId);
   final nextCatalog = await controller._connectionRepository.loadCatalog();
   if (controller._isDisposed) {
     return;

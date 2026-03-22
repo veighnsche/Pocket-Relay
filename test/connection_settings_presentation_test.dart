@@ -121,6 +121,9 @@ void main() {
         initialProfile: initialProfile,
         initialSecrets: initialSecrets,
         formState: formState,
+        availableModelCatalog: codexReferenceModelCatalog(
+          connectionId: 'presenter-local-test',
+        ),
         supportsLocalConnectionMode: true,
       );
       final payload = contract.saveAction.submitPayload;
@@ -130,6 +133,12 @@ void main() {
       expect(contract.authenticationSection, isNull);
       expect(contract.codexSection.title, 'Local Codex');
       expect(contract.modelSection.selectedReasoningEffort, isNull);
+      expect(
+        contract.modelSection.modelOptions.any(
+          (option) => option.modelId == 'gpt-5.4',
+        ),
+        isTrue,
+      );
       expect(payload, isNotNull);
       expect(payload!.profile.connectionMode, ConnectionMode.local);
       expect(payload.profile.workspaceDir, '/workspace/local');
@@ -161,6 +170,9 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-save-test',
+          ),
         );
         final payload = contract.saveAction.submitPayload;
 
@@ -200,6 +212,9 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-payload-test',
+          ),
         );
         final payload = contract.saveAction.submitPayload;
 
@@ -212,6 +227,235 @@ void main() {
         expect(payload.profile.reasoningEffort, CodexReasoningEffort.high);
       },
     );
+
+    test(
+      'filters reasoning effort options to the selected reference model',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState =
+            ConnectionSettingsFormState.initial(
+              profile: initialProfile,
+              secrets: initialSecrets,
+            ).copyWith(
+              draft: ConnectionSettingsDraft.fromConnection(
+                profile: initialProfile,
+                secrets: initialSecrets,
+              ).copyWith(model: 'gpt-5.1-codex-mini'),
+            );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-reasoning-test',
+          ),
+        );
+
+        expect(contract.modelSection.selectedModelId, 'gpt-5.1-codex-mini');
+        expect(
+          contract.modelSection.reasoningEffortOptions
+              .map((option) => option.label)
+              .toList(growable: false),
+          <String>['Default', 'Medium', 'High'],
+        );
+      },
+    );
+
+    test(
+      'disables model editing and preserves saved model semantics when backend-only mode has no catalog',
+      () {
+        final initialProfile = _configuredProfile().copyWith(
+          model: 'saved-model-only',
+          reasoningEffort: CodexReasoningEffort.xhigh,
+        );
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+        );
+        final payload = contract.saveAction.submitPayload;
+
+        expect(contract.modelSection.selectedModelId, 'saved-model-only');
+        expect(contract.modelSection.isModelEnabled, isFalse);
+        expect(
+          contract.modelSection.selectedReasoningEffort,
+          CodexReasoningEffort.xhigh,
+        );
+        expect(contract.modelSection.isReasoningEffortEnabled, isFalse);
+        expect(
+          contract.modelSection.modelOptions.map((option) => option.label),
+          <String>['saved-model-only'],
+        );
+        expect(
+          contract.modelSection.reasoningEffortOptions.map(
+            (option) => option.label,
+          ),
+          <String>['XHigh'],
+        );
+        expect(payload, isNotNull);
+        expect(payload!.profile.model, 'saved-model-only');
+        expect(payload.profile.reasoningEffort, CodexReasoningEffort.xhigh);
+      },
+    );
+
+    test(
+      'preserves a saved reasoning effort when the backend catalog has no matching effort options',
+      () {
+        final initialProfile = _configuredProfile().copyWith(
+          model: 'saved-model-only',
+          reasoningEffort: CodexReasoningEffort.xhigh,
+        );
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          availableModelCatalog: ConnectionModelCatalog(
+            connectionId: 'empty-catalog',
+            fetchedAt: DateTime.utc(2026, 3, 22),
+            models: <ConnectionAvailableModel>[],
+          ),
+        );
+        final payload = contract.saveAction.submitPayload;
+
+        expect(
+          contract.modelSection.reasoningEffortOptions.map(
+            (option) => option.label,
+          ),
+          <String>['Default', 'XHigh'],
+        );
+        expect(
+          contract.modelSection.reasoningEffortHelperText,
+          'Saved reasoning effort outside the available backend options.',
+        );
+        expect(
+          contract.modelSection.selectedReasoningEffort,
+          CodexReasoningEffort.xhigh,
+        );
+        expect(payload, isNotNull);
+        expect(payload!.profile.reasoningEffort, CodexReasoningEffort.xhigh);
+      },
+    );
+
+    test(
+      'enables refresh when backend refresh is available and the workspace directory is set',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          supportsModelCatalogRefresh: true,
+        );
+
+        expect(contract.modelSection.isRefreshActionEnabled, isTrue);
+        expect(
+          contract.modelSection.refreshActionHelperText,
+          contains('Refresh'),
+        );
+      },
+    );
+
+    test(
+      'calls out cached model catalogs explicitly in the refresh helper text',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-cache-copy-test',
+            fetchedAt: DateTime.utc(2026, 3, 22, 12, 30),
+          ),
+          availableModelCatalogSource:
+              ConnectionSettingsModelCatalogSource.lastKnownCache,
+        );
+
+        expect(
+          contract.modelSection.refreshActionHelperText,
+          'Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes. Last refreshed 2026-03-22 12:30 UTC. Model refresh is available when this settings sheet is opened from a live backend connection.',
+        );
+      },
+    );
+
+    test(
+      'calls out refresh failure while preserving cached catalog context',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-cache-failure-test',
+            fetchedAt: DateTime.utc(2026, 3, 22, 15, 45),
+          ),
+          availableModelCatalogSource:
+              ConnectionSettingsModelCatalogSource.lastKnownCache,
+          didModelCatalogRefreshFail: true,
+          supportsModelCatalogRefresh: true,
+        );
+
+        expect(
+          contract.modelSection.refreshActionHelperText,
+          'Refresh failed. Showing the previous model list. Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes. Last refreshed 2026-03-22 15:45 UTC. Use Refresh models to try again.',
+        );
+      },
+    );
+
+    test('disables refresh when the workspace directory is empty', () {
+      final initialProfile = _configuredProfile().copyWith(workspaceDir: '');
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState = ConnectionSettingsFormState.initial(
+        profile: initialProfile,
+        secrets: initialSecrets,
+      );
+
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        supportsModelCatalogRefresh: true,
+      );
+
+      expect(contract.modelSection.isRefreshActionEnabled, isFalse);
+      expect(
+        contract.modelSection.refreshActionHelperText,
+        'Set a workspace directory to enable model refresh.',
+      );
+    });
   });
 }
 

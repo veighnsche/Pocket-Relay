@@ -30,8 +30,7 @@ ConnectionSettingsConnectionModeSectionContract? _buildConnectionModeSection(
       ConnectionSettingsConnectionModeOptionContract(
         mode: ConnectionMode.remote,
         label: 'Remote',
-        description:
-            'Connect to a developer box over SSH and run Codex there.',
+        description: 'Connect to a developer box over SSH and run Codex there.',
       ),
       ConnectionSettingsConnectionModeOptionContract(
         mode: ConnectionMode.local,
@@ -170,57 +169,153 @@ ConnectionSettingsModelSectionContract _buildModelSection(
   _ConnectionSettingsPresentationState state,
 ) {
   final draft = state.draft;
+  final availableModelCatalog = state.availableModelCatalog;
+  final refreshActionLabel = state.isRefreshingModelCatalog
+      ? 'Refreshing models...'
+      : 'Refresh models';
+  final isRefreshActionEnabled =
+      state.supportsModelCatalogRefresh &&
+      draft.workspaceDir.trim().isNotEmpty &&
+      !state.isRefreshingModelCatalog;
+  final refreshActionHelperText = _refreshActionHelperText(state);
+  final selectedModelId = _selectedModelIdForDraft(draft);
+  if (availableModelCatalog == null) {
+    return _buildUnavailableModelSection(
+      state: state,
+      selectedModelId: selectedModelId,
+      selectedReasoningEffort: draft.reasoningEffort,
+    );
+  }
+
+  final selectedCatalogModel = codexCatalogModelForModel(
+    availableModelCatalog,
+    selectedModelId,
+  );
+  final selectedVisibleCatalogModel = codexVisibleCatalogModelForModel(
+    availableModelCatalog,
+    selectedModelId,
+  );
+  final hasUnknownModel =
+      selectedModelId != null && selectedVisibleCatalogModel == null;
+  final effectiveCatalogModel = codexEffectiveCatalogModelForModel(
+    availableModelCatalog,
+    selectedModelId,
+  );
+  final selectedReasoningEffort = codexNormalizedReasoningEffortForModel(
+    selectedModelId,
+    draft.reasoningEffort,
+    availableModelCatalog: availableModelCatalog,
+  );
+  final modelOptions = <ConnectionSettingsModelOptionContract>[
+    const ConnectionSettingsModelOptionContract(
+      modelId: null,
+      label: 'Default',
+      description: 'Use the default model from the backend catalog.',
+    ),
+    if (hasUnknownModel)
+      ConnectionSettingsModelOptionContract(
+        modelId: selectedModelId,
+        label: selectedCatalogModel == null
+            ? selectedModelId
+            : _catalogModelLabel(selectedCatalogModel),
+        description: 'Saved model outside the available picker list.',
+      ),
+    ...availableModelCatalog.visibleModels.map(
+      (model) => ConnectionSettingsModelOptionContract(
+        modelId: model.model,
+        label: _catalogModelLabel(model),
+        description: model.description,
+      ),
+    ),
+  ];
+  final modelHelperText = hasUnknownModel
+      ? 'Saved model outside the available picker list.'
+      : selectedCatalogModel == null
+      ? 'Available models come from the backend catalog. Leave blank to use the backend default model.'
+      : selectedCatalogModel.description;
+  final reasoningEffortOptions =
+      <ConnectionSettingsReasoningEffortOptionContract>[
+        const ConnectionSettingsReasoningEffortOptionContract(
+          effort: null,
+          label: 'Default',
+          description: 'Use the selected model default effort.',
+        ),
+        ...?effectiveCatalogModel?.supportedReasoningEfforts.map(
+          (option) => ConnectionSettingsReasoningEffortOptionContract(
+            effort: option.reasoningEffort,
+            label: _reasoningEffortLabel(option.reasoningEffort),
+            description: option.description.trim().isEmpty
+                ? _reasoningEffortDescription(option.reasoningEffort)
+                : option.description,
+          ),
+        ),
+      ];
+  final hasSelectedReasoningEffortOption = switch (selectedReasoningEffort) {
+    null => true,
+    final selectedEffort => reasoningEffortOptions.any(
+      (option) => option.effort == selectedEffort,
+    ),
+  };
+  if (!hasSelectedReasoningEffortOption) {
+    final selectedEffort = selectedReasoningEffort!;
+    reasoningEffortOptions.insert(
+      1,
+      ConnectionSettingsReasoningEffortOptionContract(
+        effort: selectedEffort,
+        label: _reasoningEffortLabel(selectedEffort),
+        description: 'Saved reasoning effort outside the available backend options.',
+      ),
+    );
+  }
+  final reasoningEffortHelperText = !hasSelectedReasoningEffortOption
+      ? 'Saved reasoning effort outside the available backend options.'
+      : selectedCatalogModel != null
+      ? 'Available efforts follow ${_catalogModelLabel(selectedCatalogModel)}.'
+      : effectiveCatalogModel == null
+      ? 'Available efforts follow the backend default model.'
+      : 'Available efforts follow ${_catalogModelLabel(effectiveCatalogModel)}.';
   return ConnectionSettingsModelSectionContract(
     title: 'Model defaults',
-    fields: <ConnectionSettingsTextFieldContract>[
-      ConnectionSettingsTextFieldContract(
-        id: ConnectionSettingsFieldId.model,
-        label: 'Model override (optional)',
-        value: draft.model,
-        hintText: 'gpt-5.4 or gpt-5.4-mini',
-        helperText: state.modelHelperText,
-      ),
-    ],
-    selectedReasoningEffort: draft.reasoningEffort,
-    reasoningEffortOptions:
-        const <ConnectionSettingsReasoningEffortOptionContract>[
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: null,
-            label: 'Default',
-            description: 'Use the model or workspace default effort.',
-          ),
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: CodexReasoningEffort.none,
-            label: 'None',
-            description: 'Disable extra reasoning where supported.',
-          ),
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: CodexReasoningEffort.minimal,
-            label: 'Minimal',
-            description: 'Use the lightest reasoning pass.',
-          ),
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: CodexReasoningEffort.low,
-            label: 'Low',
-            description: 'Favor speed over deeper planning.',
-          ),
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: CodexReasoningEffort.medium,
-            label: 'Medium',
-            description: 'Balanced default for general work.',
-          ),
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: CodexReasoningEffort.high,
-            label: 'High',
-            description: 'Spend more reasoning on harder tasks.',
-          ),
-          ConnectionSettingsReasoningEffortOptionContract(
-            effort: CodexReasoningEffort.xhigh,
-            label: 'XHigh',
-            description: 'Maximum reasoning depth when supported.',
-          ),
-        ],
+    selectedModelId: selectedModelId,
+    modelOptions: modelOptions,
+    modelHelperText: modelHelperText,
+    isModelEnabled: true,
+    selectedReasoningEffort: selectedReasoningEffort,
+    reasoningEffortOptions: reasoningEffortOptions,
+    reasoningEffortHelperText: reasoningEffortHelperText,
+    isReasoningEffortEnabled: true,
+    refreshActionLabel: refreshActionLabel,
+    refreshActionHelperText: refreshActionHelperText,
+    isRefreshActionEnabled: isRefreshActionEnabled,
+    isRefreshActionInProgress: state.isRefreshingModelCatalog,
   );
+}
+
+String? _selectedModelIdForDraft(ConnectionSettingsDraft draft) {
+  final normalized = draft.model.trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
+String _reasoningEffortLabel(CodexReasoningEffort effort) {
+  return switch (effort) {
+    CodexReasoningEffort.none => 'None',
+    CodexReasoningEffort.minimal => 'Minimal',
+    CodexReasoningEffort.low => 'Low',
+    CodexReasoningEffort.medium => 'Medium',
+    CodexReasoningEffort.high => 'High',
+    CodexReasoningEffort.xhigh => 'XHigh',
+  };
+}
+
+String _reasoningEffortDescription(CodexReasoningEffort effort) {
+  return switch (effort) {
+    CodexReasoningEffort.none => 'Disable extra reasoning where supported.',
+    CodexReasoningEffort.minimal => 'Use the lightest reasoning pass.',
+    CodexReasoningEffort.low => 'Favor speed over deeper planning.',
+    CodexReasoningEffort.medium => 'Balanced default for general work.',
+    CodexReasoningEffort.high => 'Spend more reasoning on harder tasks.',
+    CodexReasoningEffort.xhigh => 'Maximum reasoning depth when supported.',
+  };
 }
 
 ConnectionSettingsSubmitPayload _buildSubmitPayload({
@@ -239,8 +334,12 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
       username: draft.username.trim(),
       workspaceDir: draft.workspaceDir.trim(),
       codexPath: draft.codexPath.trim(),
-      model: draft.model.trim(),
-      reasoningEffort: draft.reasoningEffort,
+      model: _selectedModelIdForDraft(draft) ?? '',
+      reasoningEffort: codexNormalizedReasoningEffortForModel(
+        _selectedModelIdForDraft(draft),
+        draft.reasoningEffort,
+        availableModelCatalog: state.availableModelCatalog,
+      ),
       authMode: draft.authMode,
       hostFingerprint: draft.hostFingerprint.trim(),
       dangerouslyBypassSandbox: draft.dangerouslyBypassSandbox,
@@ -252,4 +351,145 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
       privateKeyPassphrase: draft.privateKeyPassphrase,
     ),
   );
+}
+
+String _catalogModelLabel(ConnectionAvailableModel model) {
+  final displayName = model.displayName.trim();
+  return displayName.isEmpty ? model.model : displayName;
+}
+
+ConnectionSettingsModelSectionContract _buildUnavailableModelSection({
+  required _ConnectionSettingsPresentationState state,
+  required String? selectedModelId,
+  required CodexReasoningEffort? selectedReasoningEffort,
+}) {
+  final hasSavedModel = selectedModelId != null;
+  final hasSavedReasoningEffort = selectedReasoningEffort != null;
+
+  return ConnectionSettingsModelSectionContract(
+    title: 'Model defaults',
+    selectedModelId: selectedModelId,
+    modelOptions: hasSavedModel
+        ? <ConnectionSettingsModelOptionContract>[
+            ConnectionSettingsModelOptionContract(
+              modelId: selectedModelId,
+              label: selectedModelId,
+              description:
+                  'Saved model value. Use Refresh models after the first successful backend connection to update the available list.',
+            ),
+          ]
+        : const <ConnectionSettingsModelOptionContract>[
+            ConnectionSettingsModelOptionContract(
+              modelId: null,
+              label: 'Unavailable',
+              description:
+                  'Use Refresh models after the first successful backend connection to load available models from the backend.',
+            ),
+          ],
+    modelHelperText: hasSavedModel
+        ? 'Use Refresh models after the first successful backend connection to update available models. Showing the saved model value only.'
+        : 'Use Refresh models after the first successful backend connection to load available models.',
+    isModelEnabled: false,
+    selectedReasoningEffort: selectedReasoningEffort,
+    reasoningEffortOptions: hasSavedReasoningEffort
+        ? <ConnectionSettingsReasoningEffortOptionContract>[
+            ConnectionSettingsReasoningEffortOptionContract(
+              effort: selectedReasoningEffort,
+              label: _reasoningEffortLabel(selectedReasoningEffort),
+              description:
+                  'Saved reasoning effort. Use Refresh models after the first successful backend connection to update supported options.',
+            ),
+          ]
+        : const <ConnectionSettingsReasoningEffortOptionContract>[
+            ConnectionSettingsReasoningEffortOptionContract(
+              effort: null,
+              label: 'Unavailable',
+              description:
+                  'Use Refresh models after the first successful backend connection to load supported reasoning efforts from the backend.',
+            ),
+          ],
+    reasoningEffortHelperText: hasSavedReasoningEffort
+        ? 'Use Refresh models after the first successful backend connection to update supported reasoning efforts. Showing the saved effort only.'
+        : 'Use Refresh models after the first successful backend connection to load supported reasoning efforts.',
+    isReasoningEffortEnabled: false,
+    refreshActionLabel: state.isRefreshingModelCatalog
+        ? 'Refreshing models...'
+        : 'Refresh models',
+    refreshActionHelperText: _refreshActionHelperText(state),
+    isRefreshActionEnabled:
+        state.supportsModelCatalogRefresh &&
+        state.draft.workspaceDir.trim().isNotEmpty &&
+        !state.isRefreshingModelCatalog,
+    isRefreshActionInProgress: state.isRefreshingModelCatalog,
+  );
+}
+
+String _refreshActionHelperText(_ConnectionSettingsPresentationState state) {
+  if (state.isRefreshingModelCatalog) {
+    return 'Refreshing available models from the backend.';
+  }
+
+  final cachedCatalogStatus = switch (state.availableModelCatalogSource) {
+    ConnectionSettingsModelCatalogSource.connectionCache =>
+      'Showing models cached for this connection.',
+    ConnectionSettingsModelCatalogSource.lastKnownCache =>
+      'Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes.',
+    null => null,
+  };
+  final cachedCatalogTimestamp = _catalogRefreshTimestamp(
+    state.availableModelCatalogSource,
+    state.availableModelCatalog?.fetchedAt,
+  );
+  final refreshFailureStatus = state.didModelCatalogRefreshFail
+      ? state.availableModelCatalog == null
+            ? 'Refresh failed. Could not load models from the backend.'
+            : 'Refresh failed. Showing the previous model list.'
+      : null;
+  final leadingStatus = _joinHelperText(<String?>[
+    refreshFailureStatus,
+    cachedCatalogStatus,
+    cachedCatalogTimestamp,
+  ]);
+
+  if (state.draft.workspaceDir.trim().isEmpty) {
+    return _joinHelperText(<String?>[
+      leadingStatus,
+      'Set a workspace directory to enable model refresh.',
+    ]);
+  }
+
+  if (!state.supportsModelCatalogRefresh) {
+    return _joinHelperText(<String?>[
+      leadingStatus,
+      'Model refresh is available when this settings sheet is opened from a live backend connection.',
+    ]);
+  }
+
+  return _joinHelperText(<String?>[
+    leadingStatus,
+    state.didModelCatalogRefreshFail
+        ? 'Use Refresh models to try again.'
+        : 'Use Refresh models to update from the backend.',
+  ]);
+}
+
+String? _catalogRefreshTimestamp(
+  ConnectionSettingsModelCatalogSource? source,
+  DateTime? fetchedAt,
+) {
+  if (source == null || fetchedAt == null) {
+    return null;
+  }
+
+  final utc = fetchedAt.toUtc();
+  final year = utc.year.toString().padLeft(4, '0');
+  final month = utc.month.toString().padLeft(2, '0');
+  final day = utc.day.toString().padLeft(2, '0');
+  final hour = utc.hour.toString().padLeft(2, '0');
+  final minute = utc.minute.toString().padLeft(2, '0');
+  return 'Last refreshed $year-$month-$day $hour:$minute UTC.';
+}
+
+String _joinHelperText(Iterable<String?> parts) {
+  return parts.whereType<String>().where((part) => part.isNotEmpty).join(' ');
 }

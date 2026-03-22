@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
@@ -15,6 +16,7 @@ class PocketRelayApp extends StatelessWidget {
   const PocketRelayApp({
     super.key,
     this.connectionRepository,
+    this.modelCatalogStore,
     this.conversationHistoryRepository,
     this.recoveryStore,
     this.appServerClient,
@@ -25,6 +27,7 @@ class PocketRelayApp extends StatelessWidget {
   });
 
   final CodexConnectionRepository? connectionRepository;
+  final ConnectionModelCatalogStore? modelCatalogStore;
   final CodexWorkspaceConversationHistoryRepository?
   conversationHistoryRepository;
   final ConnectionWorkspaceRecoveryStore? recoveryStore;
@@ -44,6 +47,7 @@ class PocketRelayApp extends StatelessWidget {
       home: PocketRelayBootstrap(
         dependencies: PocketRelayAppDependencies(
           connectionRepository: connectionRepository,
+          modelCatalogStore: modelCatalogStore,
           conversationHistoryRepository: conversationHistoryRepository,
           recoveryStore: recoveryStore,
           appServerClient: appServerClient,

@@ -3,6 +3,11 @@ part of 'connection_settings_presenter.dart';
 class _ConnectionSettingsPresentationState {
   const _ConnectionSettingsPresentationState({
     required this.draft,
+    required this.availableModelCatalog,
+    required this.availableModelCatalogSource,
+    required this.didModelCatalogRefreshFail,
+    required this.supportsModelCatalogRefresh,
+    required this.isRefreshingModelCatalog,
     required this.isRemote,
     required this.hasChanges,
     required this.canSubmit,
@@ -20,6 +25,11 @@ class _ConnectionSettingsPresentationState {
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
+    ConnectionModelCatalog? availableModelCatalog,
+    ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    bool didModelCatalogRefreshFail = false,
+    bool supportsModelCatalogRefresh = false,
+    bool isRefreshingModelCatalog = false,
   }) {
     final draft = formState.draft;
     final isRemote = draft.connectionMode == ConnectionMode.remote;
@@ -91,6 +101,11 @@ class _ConnectionSettingsPresentationState {
 
     return _ConnectionSettingsPresentationState(
       draft: draft,
+      availableModelCatalog: availableModelCatalog,
+      availableModelCatalogSource: availableModelCatalogSource,
+      didModelCatalogRefreshFail: didModelCatalogRefreshFail,
+      supportsModelCatalogRefresh: supportsModelCatalogRefresh,
+      isRefreshingModelCatalog: isRefreshingModelCatalog,
       isRemote: isRemote,
       hasChanges: hasChanges,
       canSubmit: !hasChanges || !hasValidationErrors,
@@ -106,6 +121,11 @@ class _ConnectionSettingsPresentationState {
   }
 
   final ConnectionSettingsDraft draft;
+  final ConnectionModelCatalog? availableModelCatalog;
+  final ConnectionSettingsModelCatalogSource? availableModelCatalogSource;
+  final bool didModelCatalogRefreshFail;
+  final bool supportsModelCatalogRefresh;
+  final bool isRefreshingModelCatalog;
   final bool isRemote;
   final bool hasChanges;
   final bool canSubmit;
@@ -117,10 +137,6 @@ class _ConnectionSettingsPresentationState {
   final String? codexPathError;
   final String? passwordError;
   final String? privateKeyError;
-
-  String get modelHelperText => draft.model.trim().isEmpty
-      ? 'Leave blank to use the Codex or workspace default.'
-      : 'Sent to Codex when the session starts and when each turn starts.';
 }
 
 bool _hasChanges({
@@ -142,7 +158,8 @@ bool _hasChanges({
       draft.privateKeyPem != initialSecrets.privateKeyPem ||
       draft.privateKeyPassphrase != initialSecrets.privateKeyPassphrase ||
       draft.authMode != initialProfile.authMode ||
-      draft.dangerouslyBypassSandbox != initialProfile.dangerouslyBypassSandbox ||
+      draft.dangerouslyBypassSandbox !=
+          initialProfile.dangerouslyBypassSandbox ||
       draft.ephemeralSession != initialProfile.ephemeralSession;
 }
 

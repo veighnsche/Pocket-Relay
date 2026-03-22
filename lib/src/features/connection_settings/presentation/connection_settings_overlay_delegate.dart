@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 
 import '../domain/connection_settings_contract.dart';
 import 'connection_settings_host.dart';
@@ -12,6 +13,10 @@ abstract interface class ConnectionSettingsOverlayDelegate {
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
+    ConnectionModelCatalog? availableModelCatalog,
+    ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+    onRefreshModelCatalog,
   });
 }
 
@@ -25,6 +30,10 @@ class ModalConnectionSettingsOverlayDelegate
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
+    ConnectionModelCatalog? availableModelCatalog,
+    ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+    onRefreshModelCatalog,
   }) {
     return showModalBottomSheet<ConnectionSettingsSubmitPayload>(
       context: context,
@@ -35,6 +44,9 @@ class ModalConnectionSettingsOverlayDelegate
         return ConnectionSettingsHost(
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
+          availableModelCatalog: availableModelCatalog,
+          availableModelCatalogSource: availableModelCatalogSource,
+          onRefreshModelCatalog: onRefreshModelCatalog,
           platformBehavior: platformBehavior,
           onCancel: () => Navigator.of(sheetContext).pop(),
           onSubmit: (payload) {

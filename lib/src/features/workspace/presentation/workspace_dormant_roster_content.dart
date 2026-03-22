@@ -119,9 +119,18 @@ class _ConnectionWorkspaceDormantRosterContentState
     });
 
     try {
+      final availableModelCatalog = await widget.workspaceController
+          .loadLastKnownConnectionModelCatalog();
+      if (!mounted) {
+        return;
+      }
       final payload = await _openConnectionSettings(
         profile: ConnectionProfile.defaults(),
         secrets: const ConnectionSecrets(),
+        availableModelCatalog: availableModelCatalog,
+        availableModelCatalogSource: availableModelCatalog == null
+            ? null
+            : ConnectionSettingsModelCatalogSource.lastKnownCache,
       );
       if (!mounted || payload == null) {
         return;
@@ -151,8 +160,15 @@ class _ConnectionWorkspaceDormantRosterContentState
     });
 
     try {
-      final savedConnection = await widget.workspaceController
+      final savedConnectionFuture = widget.workspaceController
           .loadSavedConnection(connectionId);
+      final cachedModelCatalogFuture = widget.workspaceController
+          .loadConnectionModelCatalog(connectionId);
+      final lastKnownModelCatalogFuture = widget.workspaceController
+          .loadLastKnownConnectionModelCatalog();
+      final savedConnection = await savedConnectionFuture;
+      final cachedModelCatalog = await cachedModelCatalogFuture;
+      final lastKnownModelCatalog = await lastKnownModelCatalogFuture;
       if (!mounted) {
         return;
       }
@@ -160,6 +176,12 @@ class _ConnectionWorkspaceDormantRosterContentState
       final payload = await _openConnectionSettings(
         profile: savedConnection.profile,
         secrets: savedConnection.secrets,
+        availableModelCatalog: cachedModelCatalog ?? lastKnownModelCatalog,
+        availableModelCatalogSource: cachedModelCatalog != null
+            ? ConnectionSettingsModelCatalogSource.connectionCache
+            : lastKnownModelCatalog != null
+            ? ConnectionSettingsModelCatalogSource.lastKnownCache
+            : null,
       );
       if (!mounted || payload == null) {
         return;
@@ -212,12 +234,16 @@ class _ConnectionWorkspaceDormantRosterContentState
   Future<ConnectionSettingsSubmitPayload?> _openConnectionSettings({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
+    ConnectionModelCatalog? availableModelCatalog,
+    ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
   }) {
     return widget.settingsOverlayDelegate.openConnectionSettings(
       context: context,
       initialProfile: profile,
       initialSecrets: secrets,
       platformBehavior: widget.platformBehavior,
+      availableModelCatalog: availableModelCatalog,
+      availableModelCatalogSource: availableModelCatalogSource,
     );
   }
 }

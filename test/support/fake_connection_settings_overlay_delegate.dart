@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 
 class FakeConnectionSettingsOverlayDelegate
@@ -14,6 +15,17 @@ class FakeConnectionSettingsOverlayDelegate
   final List<ConnectionSettingsSubmitPayload?> _results;
   final List<(ConnectionProfile, ConnectionSecrets)> launchedSettings =
       <(ConnectionProfile, ConnectionSecrets)>[];
+  final List<ConnectionModelCatalog?> launchedModelCatalogs =
+      <ConnectionModelCatalog?>[];
+  final List<ConnectionSettingsModelCatalogSource?> launchedModelCatalogSources =
+      <ConnectionSettingsModelCatalogSource?>[];
+  final List<
+    Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+  >
+  launchedRefreshCallbacks =
+      <
+        Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+      >[];
 
   @override
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
@@ -21,8 +33,15 @@ class FakeConnectionSettingsOverlayDelegate
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
+    ConnectionModelCatalog? availableModelCatalog,
+    ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+    onRefreshModelCatalog,
   }) async {
     launchedSettings.add((initialProfile, initialSecrets));
+    launchedModelCatalogs.add(availableModelCatalog);
+    launchedModelCatalogSources.add(availableModelCatalogSource);
+    launchedRefreshCallbacks.add(onRefreshModelCatalog);
     if (_results.isEmpty) {
       return null;
     }

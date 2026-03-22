@@ -63,6 +63,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       <({String threadId, int numTurns})>[];
   final List<({String? cursor, int? limit})> listThreadCalls =
       <({String? cursor, int? limit})>[];
+  final List<({String? cursor, int? limit, bool? includeHidden})>
+  listModelCalls = <({String? cursor, int? limit, bool? includeHidden})>[];
   final List<String> sentMessages = <String>[];
   final List<
     ({
@@ -126,10 +128,12 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Object? sendUserMessageError;
   Object? readThreadWithTurnsError;
   Object? rollbackThreadError;
+  Object? listModelsError;
   String? startSessionModel;
   String? forkThreadId;
   String? startSessionReasoningEffort;
   String? startSessionCwd;
+  String? listModelsNextCursor;
   int disconnectCalls = 0;
   String? connectedThreadId;
   Completer<void>? sendUserMessageGate;
@@ -143,6 +147,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       <String, CodexAppServerThreadHistory>{};
   final List<CodexAppServerThreadSummary> listedThreads =
       <CodexAppServerThreadSummary>[];
+  final List<CodexAppServerModel> listedModels = <CodexAppServerModel>[];
 
   bool _isConnected = false;
   String? _threadId;
@@ -350,6 +355,26 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     return CodexAppServerThreadListPage(
       threads: List<CodexAppServerThreadSummary>.from(listedThreads),
       nextCursor: null,
+    );
+  }
+
+  @override
+  Future<CodexAppServerModelListPage> listModels({
+    String? cursor,
+    int? limit,
+    bool? includeHidden,
+  }) async {
+    if (listModelsError != null) {
+      throw listModelsError!;
+    }
+    listModelCalls.add((
+      cursor: cursor,
+      limit: limit,
+      includeHidden: includeHidden,
+    ));
+    return CodexAppServerModelListPage(
+      models: List<CodexAppServerModel>.from(listedModels),
+      nextCursor: listModelsNextCursor,
     );
   }
 
