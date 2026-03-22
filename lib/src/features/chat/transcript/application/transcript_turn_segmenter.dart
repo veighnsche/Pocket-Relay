@@ -337,8 +337,8 @@ List<CodexChangedFile> _mergeChangedFiles(
     }
     mergedByPath[file.path] = current.copyWith(
       movePath: file.movePath ?? current.movePath,
-      additions: file.additions > 0 ? file.additions : current.additions,
-      deletions: file.deletions > 0 ? file.deletions : current.deletions,
+      additions: current.additions + file.additions,
+      deletions: current.deletions + file.deletions,
     );
   }
 
