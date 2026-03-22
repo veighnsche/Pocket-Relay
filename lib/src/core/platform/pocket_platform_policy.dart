@@ -22,4 +22,7 @@ class PocketPlatformPolicy {
   bool get supportsLocalConnectionMode => behavior.supportsLocalConnectionMode;
 
   bool get supportsWakeLock => behavior.supportsWakeLock;
+
+  bool get supportsFiniteBackgroundGrace =>
+      behavior.supportsFiniteBackgroundGrace;
 }

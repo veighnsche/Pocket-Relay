@@ -11,6 +11,7 @@ void main() {
     expect(policy.experience, PocketPlatformExperience.desktop);
     expect(policy.supportsLocalConnectionMode, isTrue);
     expect(policy.supportsWakeLock, isFalse);
+    expect(policy.supportsFiniteBackgroundGrace, isFalse);
     expect(policy.usesDesktopKeyboardSubmit, isTrue);
   });
 
@@ -20,6 +21,7 @@ void main() {
     expect(policy.experience, PocketPlatformExperience.mobile);
     expect(policy.supportsLocalConnectionMode, isFalse);
     expect(policy.supportsWakeLock, isTrue);
+    expect(policy.supportsFiniteBackgroundGrace, isTrue);
     expect(policy.usesDesktopKeyboardSubmit, isFalse);
   });
 
@@ -32,6 +34,7 @@ void main() {
     expect(policy.experience, PocketPlatformExperience.desktop);
     expect(policy.supportsLocalConnectionMode, isFalse);
     expect(policy.supportsWakeLock, isFalse);
+    expect(policy.supportsFiniteBackgroundGrace, isFalse);
     expect(policy.usesDesktopKeyboardSubmit, isTrue);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
@@ -20,6 +21,7 @@ class PocketRelayApp extends StatelessWidget {
     this.conversationHistoryRepository,
     this.recoveryStore,
     this.appServerClient,
+    this.backgroundGraceController,
     this.displayWakeLockController,
     this.platformPolicy,
     this.settingsOverlayDelegate =
@@ -32,6 +34,7 @@ class PocketRelayApp extends StatelessWidget {
   conversationHistoryRepository;
   final ConnectionWorkspaceRecoveryStore? recoveryStore;
   final CodexAppServerClient? appServerClient;
+  final BackgroundGraceController? backgroundGraceController;
   final DisplayWakeLockController? displayWakeLockController;
   final PocketPlatformPolicy? platformPolicy;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
@@ -51,6 +54,7 @@ class PocketRelayApp extends StatelessWidget {
           conversationHistoryRepository: conversationHistoryRepository,
           recoveryStore: recoveryStore,
           appServerClient: appServerClient,
+          backgroundGraceController: backgroundGraceController,
           displayWakeLockController: displayWakeLockController,
           platformPolicy: platformPolicy,
           settingsOverlayDelegate: settingsOverlayDelegate,

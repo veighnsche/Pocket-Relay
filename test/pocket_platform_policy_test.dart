@@ -8,6 +8,7 @@ void main() {
     final policy = PocketPlatformPolicy.resolve(platform: TargetPlatform.iOS);
 
     expect(policy.behavior.experience, PocketPlatformExperience.mobile);
+    expect(policy.supportsFiniteBackgroundGrace, isTrue);
   });
 
   test('resolves desktop behavior from windows', () {
@@ -17,5 +18,6 @@ void main() {
 
     expect(policy.behavior.experience, PocketPlatformExperience.desktop);
     expect(policy.supportsLocalConnectionMode, isTrue);
+    expect(policy.supportsFiniteBackgroundGrace, isFalse);
   });
 }
