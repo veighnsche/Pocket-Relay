@@ -230,13 +230,8 @@ Future<void> _reconnectWorkspaceConnection(
             catalog: controller._state.catalog,
             liveConnectionIds: controller._state.liveConnectionIds,
             reconnectRequiredConnectionIds: <String>{
-              for (final reconnectConnectionId
-                  in controller
-                      ._state
-                      .savedSettingsReconnectRequiredConnectionIds)
-                if (reconnectConnectionId != connectionId)
-                  reconnectConnectionId,
-            },
+              ...controller._state.savedSettingsReconnectRequiredConnectionIds,
+            }..remove(connectionId),
           ),
       transportReconnectRequiredConnectionIds: shouldReconnectTransport
           ? controller._state.transportReconnectRequiredConnectionIds
@@ -244,13 +239,8 @@ Future<void> _reconnectWorkspaceConnection(
               catalog: controller._state.catalog,
               liveConnectionIds: controller._state.liveConnectionIds,
               reconnectRequiredConnectionIds: <String>{
-                for (final reconnectConnectionId
-                    in controller
-                        ._state
-                        .transportReconnectRequiredConnectionIds)
-                  if (reconnectConnectionId != connectionId)
-                    reconnectConnectionId,
-              },
+                ...controller._state.transportReconnectRequiredConnectionIds,
+              }..remove(connectionId),
             ),
       transportRecoveryPhasesByConnectionId: shouldReconnectTransport
           ? _sanitizeWorkspaceTransportRecoveryPhases(
@@ -360,26 +350,18 @@ Future<void> _resumeWorkspaceConversation(
               catalog: controller._state.catalog,
               liveConnectionIds: controller._state.liveConnectionIds,
               reconnectRequiredConnectionIds: <String>{
-                for (final reconnectConnectionId
-                    in controller
-                        ._state
-                        .savedSettingsReconnectRequiredConnectionIds)
-                  if (reconnectConnectionId != connectionId)
-                    reconnectConnectionId,
-              },
+                ...controller
+                    ._state
+                    .savedSettingsReconnectRequiredConnectionIds,
+              }..remove(connectionId),
             ),
         transportReconnectRequiredConnectionIds:
             _sanitizeWorkspaceReconnectRequiredIds(
               catalog: controller._state.catalog,
               liveConnectionIds: controller._state.liveConnectionIds,
               reconnectRequiredConnectionIds: <String>{
-                for (final reconnectConnectionId
-                    in controller
-                        ._state
-                        .transportReconnectRequiredConnectionIds)
-                  if (reconnectConnectionId != connectionId)
-                    reconnectConnectionId,
-              },
+                ...controller._state.transportReconnectRequiredConnectionIds,
+              }..remove(connectionId),
             ),
         transportRecoveryPhasesByConnectionId:
             _sanitizeWorkspaceTransportRecoveryPhases(

@@ -521,11 +521,8 @@ class ConnectionWorkspaceController extends ChangeNotifier {
               catalog: _state.catalog,
               liveConnectionIds: _state.liveConnectionIds,
               reconnectRequiredConnectionIds: <String>{
-                for (final reconnectConnectionId
-                    in _state.transportReconnectRequiredConnectionIds)
-                  if (reconnectConnectionId != connectionId)
-                    reconnectConnectionId,
-              },
+                ..._state.transportReconnectRequiredConnectionIds,
+              }..remove(connectionId),
             ),
         transportRecoveryPhasesByConnectionId:
             _sanitizeWorkspaceTransportRecoveryPhases(
