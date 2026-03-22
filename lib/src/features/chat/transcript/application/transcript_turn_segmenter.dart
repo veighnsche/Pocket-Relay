@@ -174,15 +174,15 @@ class TranscriptTurnArtifactBuilder {
       );
       artifactId = last.id;
     } else {
-      final retainedDiff = _memoryBudget.retainUnifiedDiff(entry.unifiedDiff);
+      final nextEntries = <CodexChangedFilesEntry>[entry];
       final nextArtifact = CodexTurnChangedFilesArtifact(
         id: 'changed_files_group_${item.entryId}',
         createdAt: item.createdAt,
         title: item.title ?? _blockFactory.defaultItemTitle(item.itemType),
         itemId: item.itemId,
-        files: entry.files,
-        unifiedDiff: retainedDiff,
-        entries: <CodexChangedFilesEntry>[entry.copyWith(unifiedDiff: null)],
+        files: _mergeChangedFilesForEntries(nextEntries),
+        unifiedDiff: _mergedRetainedUnifiedDiff(nextEntries, _memoryBudget),
+        entries: nextEntries,
         isStreaming: item.isRunning,
       );
       nextArtifacts = appendCodexTurnArtifact(nextArtifacts, nextArtifact);
@@ -209,9 +209,11 @@ class TranscriptTurnArtifactBuilder {
         snapshot: item.snapshot,
         body: item.body,
       ),
-      unifiedDiff: _changedFilesParser.unifiedDiffFromSources(
-        snapshot: item.snapshot,
-        body: item.body,
+      unifiedDiff: _memoryBudget.retainUnifiedDiff(
+        _changedFilesParser.unifiedDiffFromSources(
+          snapshot: item.snapshot,
+          body: item.body,
+        ),
       ),
       isRunning: item.isRunning,
     );
@@ -221,16 +223,14 @@ class TranscriptTurnArtifactBuilder {
     CodexTurnChangedFilesArtifact artifact,
     CodexChangedFilesEntry entry,
   ) {
-    final retainedDiff = _memoryBudget.retainUnifiedDiff(entry.unifiedDiff);
-    final sanitizedEntry = entry.copyWith(unifiedDiff: null);
     final nextEntries = List<CodexChangedFilesEntry>.from(artifact.entries);
     final index = nextEntries.indexWhere(
-      (existing) => existing.id == sanitizedEntry.id,
+      (existing) => existing.id == entry.id,
     );
     if (index == -1) {
-      nextEntries.add(sanitizedEntry);
+      nextEntries.add(entry);
     } else {
-      nextEntries[index] = sanitizedEntry;
+      nextEntries[index] = entry;
     }
 
     return CodexTurnChangedFilesArtifact(
@@ -238,13 +238,8 @@ class TranscriptTurnArtifactBuilder {
       createdAt: artifact.createdAt,
       title: artifact.title,
       itemId: entry.itemId,
-      files: _mergeChangedFiles(artifact.files, entry.files),
-      unifiedDiff: _memoryBudget.retainUnifiedDiff(
-        _joinUnifiedDiffFragments(<String?>[
-          artifact.unifiedDiff,
-          retainedDiff,
-        ]),
-      ),
+      files: _mergeChangedFilesForEntries(nextEntries),
+      unifiedDiff: _mergedRetainedUnifiedDiff(nextEntries, _memoryBudget),
       entries: nextEntries,
       isStreaming: entry.isRunning,
     );
@@ -321,28 +316,29 @@ class TranscriptTurnArtifactBuilder {
   }
 }
 
-List<CodexChangedFile> _mergeChangedFiles(
-  Iterable<CodexChangedFile> existing,
-  Iterable<CodexChangedFile> next,
+List<CodexChangedFile> _mergeChangedFilesForEntries(
+  Iterable<CodexChangedFilesEntry> entries,
 ) {
-  final mergedByPath = <String, CodexChangedFile>{
-    for (final file in existing) file.path: file,
-  };
+  final mergedByPath = <String, CodexChangedFile>{};
 
-  for (final file in next) {
-    final current = mergedByPath[file.path];
-    if (current == null) {
+  for (final entry in entries) {
+    for (final file in entry.files) {
       mergedByPath[file.path] = file;
-      continue;
     }
-    mergedByPath[file.path] = current.copyWith(
-      movePath: file.movePath ?? current.movePath,
-      additions: current.additions + file.additions,
-      deletions: current.deletions + file.deletions,
-    );
   }
 
   return mergedByPath.values.toList(growable: false);
+}
+
+String? _mergedRetainedUnifiedDiff(
+  Iterable<CodexChangedFilesEntry> entries,
+  TranscriptMemoryBudget memoryBudget,
+) {
+  return memoryBudget.retainUnifiedDiff(
+    _joinUnifiedDiffFragments(
+      entries.map((entry) => entry.unifiedDiff).toList(growable: false),
+    ),
+  );
 }
 
 String? _joinUnifiedDiffFragments(Iterable<String?> parts) {
