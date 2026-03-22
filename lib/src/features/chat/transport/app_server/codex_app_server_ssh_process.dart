@@ -18,11 +18,13 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
   final username = profile.username.trim();
   final command = buildSshCodexAppServerCommand(profile: profile);
   var emittedHostKeyMismatch = false;
+  var emittedUnpinnedHostKey = false;
 
   bool verifyHostKey(String keyType, String actualFingerprint) {
     final expectedFingerprint = profile.hostFingerprint.trim();
 
     if (expectedFingerprint.isEmpty) {
+      emittedUnpinnedHostKey = true;
       emitEvent(
         CodexAppServerUnpinnedHostKeyEvent(
           host: host,
@@ -31,7 +33,7 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
           fingerprint: actualFingerprint,
         ),
       );
-      return true;
+      return false;
     }
 
     if (normalizeFingerprint(expectedFingerprint) ==
@@ -60,7 +62,11 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
       verifyHostKey: verifyHostKey,
     );
   } catch (error) {
-    if (!_shouldSuppressHostKeyFailure(error, emittedHostKeyMismatch)) {
+    if (!_shouldSuppressHostKeyFailure(
+      error,
+      emittedHostKeyMismatch: emittedHostKeyMismatch,
+      emittedUnpinnedHostKey: emittedUnpinnedHostKey,
+    )) {
       emitEvent(
         CodexAppServerSshConnectFailedEvent(
           host: host,
@@ -77,7 +83,11 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
     await client.authenticate();
   } catch (error) {
     client.close();
-    if (_shouldSuppressHostKeyFailure(error, emittedHostKeyMismatch)) {
+    if (_shouldSuppressHostKeyFailure(
+      error,
+      emittedHostKeyMismatch: emittedHostKeyMismatch,
+      emittedUnpinnedHostKey: emittedUnpinnedHostKey,
+    )) {
       rethrow;
     }
     if (error is SSHAuthFailError || error is SSHAuthAbortError) {
@@ -140,8 +150,13 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
   }
 }
 
-bool _shouldSuppressHostKeyFailure(Object error, bool emittedHostKeyMismatch) {
-  return emittedHostKeyMismatch && error is SSHHostkeyError;
+bool _shouldSuppressHostKeyFailure(
+  Object error, {
+  required bool emittedHostKeyMismatch,
+  required bool emittedUnpinnedHostKey,
+}) {
+  return (emittedHostKeyMismatch || emittedUnpinnedHostKey) &&
+      error is SSHHostkeyError;
 }
 
 String _sshErrorMessage(Object error) {

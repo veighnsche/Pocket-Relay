@@ -117,6 +117,39 @@ void main() {
   });
 
   test(
+    'emits an unpinned-host-key event and rejects the connection',
+    () async {
+      final events = <CodexAppServerEvent>[];
+
+      await expectLater(
+        openSshCodexAppServerProcess(
+          profile: _profile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          emitEvent: events.add,
+          sshBootstrap:
+              ({required profile, required secrets, required verifyHostKey}) {
+                final accepted = verifyHostKey(
+                  'ssh-ed25519',
+                  '7a:9f:d7:dc:2e:f2',
+                );
+                expect(accepted, isFalse);
+                throw SSHHostkeyError('Hostkey verification failed');
+              },
+        ),
+        throwsA(isA<SSHHostkeyError>()),
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single, isA<CodexAppServerUnpinnedHostKeyEvent>());
+      final event = events.single as CodexAppServerUnpinnedHostKeyEvent;
+      expect(event.host, 'example.com');
+      expect(event.port, 22);
+      expect(event.keyType, 'ssh-ed25519');
+      expect(event.fingerprint, '7a:9f:d7:dc:2e:f2');
+    },
+  );
+
+  test(
     'emits authenticated and remote-process-started events on success',
     () async {
       final events = <CodexAppServerEvent>[];
@@ -124,7 +157,7 @@ void main() {
       final client = _FakeSshBootstrapClient(process: process);
 
       final launched = await openSshCodexAppServerProcess(
-        profile: _profile(),
+        profile: _profile().copyWith(hostFingerprint: '7a:9f:d7:dc:2e:f2'),
         secrets: const ConnectionSecrets(password: 'secret'),
         emitEvent: events.add,
         sshBootstrap:
@@ -133,17 +166,20 @@ void main() {
               required secrets,
               required verifyHostKey,
             }) async {
-              verifyHostKey('ssh-ed25519', '7a:9f:d7:dc:2e:f2');
+              final accepted = verifyHostKey(
+                'ssh-ed25519',
+                '7a:9f:d7:dc:2e:f2',
+              );
+              expect(accepted, isTrue);
               return client;
             },
       );
 
       expect(launched, same(process));
-      expect(events, hasLength(3));
-      expect(events[0], isA<CodexAppServerUnpinnedHostKeyEvent>());
-      expect(events[1], isA<CodexAppServerSshAuthenticatedEvent>());
-      expect(events[2], isA<CodexAppServerSshRemoteProcessStartedEvent>());
-      final started = events[2] as CodexAppServerSshRemoteProcessStartedEvent;
+      expect(events, hasLength(2));
+      expect(events[0], isA<CodexAppServerSshAuthenticatedEvent>());
+      expect(events[1], isA<CodexAppServerSshRemoteProcessStartedEvent>());
+      final started = events[1] as CodexAppServerSshRemoteProcessStartedEvent;
       expect(started.username, 'vince');
       expect(started.command, contains('codex app-server --listen stdio://'));
       expect(client.launchCommands, hasLength(1));
