@@ -95,6 +95,46 @@ void main() {
     expect(deltaEvent.delta, 'Hello');
   });
 
+  test('maps turn started effort from reasoning effort field variants', () {
+    final mapper = CodexRuntimeEventMapper();
+
+    final camelCaseEvent = mapper.mapEvent(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/started',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turn': <String, Object?>{
+            'id': 'turn_camel',
+            'model': 'gpt-5.4',
+            'reasoningEffort': 'xhigh',
+          },
+        },
+      ),
+    );
+    final snakeCaseEvent = mapper.mapEvent(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/started',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turn': <String, Object?>{
+            'id': 'turn_snake',
+            'model': 'gpt-5.4',
+            'reasoning_effort': 'high',
+          },
+        },
+      ),
+    );
+
+    expect(
+      (camelCaseEvent.single as CodexRuntimeTurnStartedEvent).effort,
+      'xhigh',
+    );
+    expect(
+      (snakeCaseEvent.single as CodexRuntimeTurnStartedEvent).effort,
+      'high',
+    );
+  });
+
   test('preserves whitespace in streaming content deltas', () {
     final mapper = CodexRuntimeEventMapper();
 

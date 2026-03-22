@@ -562,11 +562,11 @@ void main() {
       expect(controller.historicalConversationRestoreState, isNull);
       expect(controller.sessionState.rootThreadId, isNull);
       expect(controller.transcriptBlocks, isEmpty);
+      expect(await controller.sendPrompt('stay fresh after startup'), isTrue);
       expect(
-        await controller.sendPrompt('stay fresh after startup'),
-        isTrue,
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        isNull,
       );
-      expect(appServerClient.startSessionRequests.single.resumeThreadId, isNull);
       expect(appServerClient.sentTurns.single, (
         threadId: 'thread_123',
         text: 'stay fresh after startup',
@@ -757,7 +757,9 @@ void main() {
       final firstRestore = controller.selectConversationForResume('thread_old');
       await Future<void>.delayed(Duration.zero);
 
-      final secondRestore = controller.selectConversationForResume('thread_new');
+      final secondRestore = controller.selectConversationForResume(
+        'thread_new',
+      );
       await Future<void>.delayed(Duration.zero);
 
       expect(
@@ -788,7 +790,8 @@ void main() {
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
           threadId: 'thread_saved',
         )
-        ..readThreadWithTurnsGatesByThreadId['thread_saved'] = Completer<void>();
+        ..readThreadWithTurnsGatesByThreadId['thread_saved'] =
+            Completer<void>();
       addTearDown(appServerClient.close);
 
       final controller = ChatSessionController(
@@ -823,8 +826,14 @@ void main() {
       expect(controller.historicalConversationRestoreState, isNull);
       expect(controller.sessionState.rootThreadId, isNull);
 
-      expect(await controller.sendPrompt('Fresh after cancelled restore'), isTrue);
-      expect(appServerClient.startSessionRequests.single.resumeThreadId, isNull);
+      expect(
+        await controller.sendPrompt('Fresh after cancelled restore'),
+        isTrue,
+      );
+      expect(
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        isNull,
+      );
     },
   );
 
@@ -953,6 +962,54 @@ void main() {
 
       expect(controller.sessionState.headerMetadata.model, 'gpt-5.4');
       expect(controller.sessionState.headerMetadata.reasoningEffort, 'high');
+    },
+  );
+
+  test(
+    'turn started notifications keep header effort in sync for reasoningEffort payloads',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..startSessionModel = 'gpt-5.4'
+        ..startSessionReasoningEffort = 'medium';
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('Observe live effort'), isTrue);
+      expect(controller.sessionState.headerMetadata.reasoningEffort, 'medium');
+
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{
+              'id': 'turn_1',
+              'status': 'running',
+              'model': 'gpt-5.4',
+              'reasoningEffort': 'xhigh',
+            },
+          },
+        ),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.sessionState.headerMetadata.model, 'gpt-5.4');
+      expect(controller.sessionState.headerMetadata.reasoningEffort, 'xhigh');
     },
   );
 

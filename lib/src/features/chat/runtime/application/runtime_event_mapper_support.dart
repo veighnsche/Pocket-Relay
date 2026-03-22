@@ -35,6 +35,14 @@ String? _contentDelta(Map<String, dynamic>? payload) {
   ]);
 }
 
+String? _reasoningEffortFromPayload(Map<String, dynamic>? payload) {
+  return _stringFromCandidates(<Object?>[
+    payload?['effort'],
+    payload?['reasoningEffort'],
+    payload?['reasoning_effort'],
+  ]);
+}
+
 String _threadTokenUsageMessage(Map<String, dynamic>? payload) {
   final tokenUsage = _asObject(payload?['tokenUsage']);
   final last = _asObject(tokenUsage?['last']);

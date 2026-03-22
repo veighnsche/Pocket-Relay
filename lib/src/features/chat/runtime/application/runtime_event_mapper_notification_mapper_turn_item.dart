@@ -18,7 +18,7 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
           rawMethod: event.method,
           rawPayload: event.params,
           model: _asString(turn?['model']),
-          effort: _asString(turn?['effort']),
+          effort: _reasoningEffortFromPayload(turn),
         ),
       ];
     case 'turn/completed':
