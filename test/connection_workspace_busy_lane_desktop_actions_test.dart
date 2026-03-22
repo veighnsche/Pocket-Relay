@@ -40,7 +40,9 @@ void main() {
             action.label == ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
       );
       final reconnectAction = actions.firstWhere(
-        (action) => action.label == ConnectionWorkspaceCopy.reconnectMenuAction,
+        (action) =>
+            action.label ==
+            ConnectionWorkspaceCopy.transportReconnectMenuAction,
       );
       final closeAction = actions.firstWhere(
         (action) => action.label == ConnectionWorkspaceCopy.closeLaneAction,

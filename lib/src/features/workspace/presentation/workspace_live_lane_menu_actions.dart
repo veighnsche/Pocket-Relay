@@ -25,8 +25,8 @@ List<ChatChromeMenuAction> buildWorkspaceLiveLaneMenuActions({
     if (requiresReconnect)
       ChatChromeMenuAction(
         label: isApplyingSavedSettings
-            ? ConnectionWorkspaceCopy.reconnectMenuProgress
-            : ConnectionWorkspaceCopy.reconnectMenuAction,
+            ? ConnectionWorkspaceCopy.transportReconnectMenuProgress
+            : ConnectionWorkspaceCopy.transportReconnectMenuAction,
         onSelected: onReconnect,
         isEnabled: !isApplyingSavedSettings && !isLaneBusy,
       ),
