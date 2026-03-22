@@ -46,15 +46,6 @@ Color _accentForOperation(
   };
 }
 
-IconData _iconForOperation(ChatChangedFileOperationKind kind) {
-  return switch (kind) {
-    ChatChangedFileOperationKind.created => Icons.add_circle_outline_rounded,
-    ChatChangedFileOperationKind.modified => Icons.edit_note_rounded,
-    ChatChangedFileOperationKind.renamed => Icons.drive_file_move_outline,
-    ChatChangedFileOperationKind.deleted => Icons.delete_outline_rounded,
-  };
-}
-
 _DiffLineStyle _styleForDiffLine(
   ChatChangedFileDiffLineKind kind,
   ConversationCardPalette cards,

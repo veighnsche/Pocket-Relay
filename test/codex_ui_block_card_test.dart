@@ -2096,7 +2096,7 @@ void main() {
     await tester.tap(find.text('new_name.dart'));
     await tester.pumpAndSettle();
 
-    expect(find.text('RENAMED'), findsOneWidget);
+    expect(find.byTooltip('Close diff'), findsOneWidget);
     expect(find.text('Additions'), findsOneWidget);
     expect(find.text('Deletions'), findsOneWidget);
     expect(
