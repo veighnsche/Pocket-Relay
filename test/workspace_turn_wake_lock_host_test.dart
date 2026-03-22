@@ -12,13 +12,15 @@ import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspa
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 void main() {
-  testWidgets('blocked turns release the workspace wake lock', (tester) async {
-    final clientsById = _buildClientsById(
-      firstConnectionId: 'conn_primary',
-    );
+  testWidgets('blocked turns keep the workspace wake lock', (tester) async {
+    final clientsById = _buildClientsById(firstConnectionId: 'conn_primary');
     final controller = _buildWorkspaceController(clientsById: clientsById);
+    var cleanedUp = false;
     final wakeLockController = _FakeDisplayWakeLockController();
     addTearDown(() async {
+      if (cleanedUp) {
+        return;
+      }
       controller.dispose();
       await _closeClients(clientsById);
     });
@@ -64,19 +66,42 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(wakeLockController.enabledStates, <bool>[true]);
+
+    clientsById['conn_primary']!.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(wakeLockController.enabledStates, <bool>[true, false]);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    controller.dispose();
+    await _closeClients(clientsById);
+    cleanedUp = true;
   });
 
   testWidgets(
-    'a non-selected live lane with a ticking turn still keeps the display awake',
+    'a non-selected live lane with an active turn still keeps the display awake',
     (tester) async {
       final clientsById = _buildClientsById(
         firstConnectionId: 'conn_primary',
         secondConnectionId: 'conn_secondary',
       );
       final controller = _buildWorkspaceController(clientsById: clientsById);
+      var cleanedUp = false;
       final wakeLockController = _FakeDisplayWakeLockController();
       addTearDown(() async {
+        if (cleanedUp) {
+          return;
+        }
         controller.dispose();
         await _closeClients(clientsById);
       });
@@ -100,8 +125,9 @@ void main() {
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(wakeLockController.enabledStates, isEmpty);
 
-      final backgroundLane =
-          controller.bindingForConnectionId('conn_secondary')!;
+      final backgroundLane = controller.bindingForConnectionId(
+        'conn_secondary',
+      )!;
       expect(
         await backgroundLane.sessionController.sendPrompt(
           'Run in the background lane',
@@ -124,6 +150,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(wakeLockController.enabledStates, <bool>[true, false]);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+      controller.dispose();
+      await _closeClients(clientsById);
+      cleanedUp = true;
     },
   );
 }
@@ -151,26 +183,22 @@ ConnectionWorkspaceController _buildWorkspaceController({
       );
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    laneBindingFactory:
-        ({
-          required connectionId,
-          required connection,
-        }) {
-          final appServerClient = clientsById[connectionId]!;
-          return ConnectionLaneBinding(
-            connectionId: connectionId,
-            profileStore: ConnectionScopedProfileStore(
-              connectionId: connectionId,
-              connectionRepository: resolvedRepository,
-            ),
-            appServerClient: appServerClient,
-            initialSavedProfile: SavedProfile(
-              profile: connection.profile,
-              secrets: connection.secrets,
-            ),
-            ownsAppServerClient: false,
-          );
-        },
+    laneBindingFactory: ({required connectionId, required connection}) {
+      final appServerClient = clientsById[connectionId]!;
+      return ConnectionLaneBinding(
+        connectionId: connectionId,
+        profileStore: ConnectionScopedProfileStore(
+          connectionId: connectionId,
+          connectionRepository: resolvedRepository,
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: connection.profile,
+          secrets: connection.secrets,
+        ),
+        ownsAppServerClient: false,
+      );
+    },
   );
 }
 

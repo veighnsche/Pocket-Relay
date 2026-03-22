@@ -78,6 +78,88 @@ void main() {
       cleanedUp = true;
     },
   );
+
+  testWidgets(
+    'keeps the Android foreground service enabled while a turn is blocked',
+    (tester) async {
+      final clientsById = _buildClientsById(firstConnectionId: 'conn_primary');
+      final workspaceController = _buildWorkspaceController(
+        clientsById: clientsById,
+      );
+      var cleanedUp = false;
+      final foregroundServiceController = _FakeForegroundServiceController();
+      final notificationPermissionController =
+          _FakeNotificationPermissionController();
+      addTearDown(() async {
+        if (cleanedUp) {
+          return;
+        }
+        workspaceController.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await workspaceController.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceTurnForegroundServiceHost(
+            workspaceController: workspaceController,
+            foregroundServiceController: foregroundServiceController,
+            notificationPermissionController: notificationPermissionController,
+            supportsForegroundService: true,
+            child: const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final laneBinding = workspaceController.selectedLaneBinding!;
+      expect(
+        await laneBinding.sessionController.sendPrompt(
+          'Keep the blocked turn alive outside the app',
+        ),
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      expect(foregroundServiceController.enabledStates, <bool>[true]);
+
+      clientsById['conn_primary']!.emit(
+        const CodexAppServerRequestEvent(
+          requestId: 'approval_1',
+          method: 'item/fileChange/requestApproval',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turnId': 'turn_1',
+            'itemId': 'item_1',
+            'reason': 'Write files',
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(foregroundServiceController.enabledStates, <bool>[true]);
+
+      clientsById['conn_primary']!.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/completed',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(foregroundServiceController.enabledStates, <bool>[true, false]);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+      workspaceController.dispose();
+      await _closeClients(clientsById);
+      cleanedUp = true;
+    },
+  );
 }
 
 ConnectionWorkspaceController _buildWorkspaceController({

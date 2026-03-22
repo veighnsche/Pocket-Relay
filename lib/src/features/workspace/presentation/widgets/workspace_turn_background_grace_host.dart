@@ -22,11 +22,11 @@ class WorkspaceTurnBackgroundGraceHost extends StatelessWidget {
   Widget build(BuildContext context) {
     return WorkspaceTurnActivityBuilder(
       workspaceController: workspaceController,
-      builder: (context, hasTickingTurn) {
+      builder: (context, hasActiveTurn) {
         return BackgroundGraceHost(
           backgroundGraceController: backgroundGraceController,
           supportsBackgroundGrace: supportsBackgroundGrace,
-          keepBackgroundGraceAlive: hasTickingTurn,
+          keepBackgroundGraceAlive: hasActiveTurn,
           child: child,
         );
       },

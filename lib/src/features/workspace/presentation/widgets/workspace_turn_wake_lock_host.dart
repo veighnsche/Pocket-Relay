@@ -22,11 +22,11 @@ class WorkspaceTurnWakeLockHost extends StatelessWidget {
   Widget build(BuildContext context) {
     return WorkspaceTurnActivityBuilder(
       workspaceController: workspaceController,
-      builder: (context, hasTickingTurn) {
+      builder: (context, hasActiveTurn) {
         return DisplayWakeLockHost(
           displayWakeLockController: displayWakeLockController,
           supportsWakeLock: supportsWakeLock,
-          keepDisplayAwake: hasTickingTurn,
+          keepDisplayAwake: hasActiveTurn,
           child: child,
         );
       },

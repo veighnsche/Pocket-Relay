@@ -4,7 +4,7 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_s
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 
 typedef WorkspaceTurnActivityWidgetBuilder =
-    Widget Function(BuildContext context, bool hasTickingTurn);
+    Widget Function(BuildContext context, bool hasActiveTurn);
 
 class WorkspaceTurnActivityBuilder extends StatefulWidget {
   const WorkspaceTurnActivityBuilder({
@@ -55,7 +55,7 @@ class _WorkspaceTurnActivityBuilderState
 
   @override
   Widget build(BuildContext context) {
-    return widget.builder(context, _hasTickingTurnAcrossLiveLanes());
+    return widget.builder(context, _hasActiveTurnAcrossLiveLanes());
   }
 
   void _handleWorkspaceChanged() {
@@ -110,9 +110,9 @@ class _WorkspaceTurnActivityBuilderState
     }
   }
 
-  bool _hasTickingTurnAcrossLiveLanes() {
+  bool _hasActiveTurnAcrossLiveLanes() {
     for (final controller in _liveSessionControllers()) {
-      if (_sessionHasTickingTurn(controller.sessionState)) {
+      if (_sessionHasActiveTurn(controller.sessionState)) {
         return true;
       }
     }
@@ -120,17 +120,21 @@ class _WorkspaceTurnActivityBuilderState
     return false;
   }
 
-  bool _sessionHasTickingTurn(CodexSessionState sessionState) {
-    if (sessionState.sessionActiveTurn?.timer.isTicking == true) {
+  bool _sessionHasActiveTurn(CodexSessionState sessionState) {
+    if (_turnKeepsWorkspaceActivity(sessionState.sessionActiveTurn)) {
       return true;
     }
 
     for (final timeline in sessionState.timelinesByThreadId.values) {
-      if (timeline.activeTurn?.timer.isTicking == true) {
+      if (_turnKeepsWorkspaceActivity(timeline.activeTurn)) {
         return true;
       }
     }
 
     return false;
+  }
+
+  bool _turnKeepsWorkspaceActivity(CodexActiveTurnState? activeTurn) {
+    return activeTurn?.timer.isRunning == true;
   }
 }

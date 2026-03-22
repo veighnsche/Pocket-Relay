@@ -25,12 +25,12 @@ class WorkspaceTurnForegroundServiceHost extends StatelessWidget {
   Widget build(BuildContext context) {
     return WorkspaceTurnActivityBuilder(
       workspaceController: workspaceController,
-      builder: (context, hasTickingTurn) {
+      builder: (context, hasActiveTurn) {
         return ForegroundServiceHost(
           foregroundServiceController: foregroundServiceController,
           notificationPermissionController: notificationPermissionController,
           supportsForegroundService: supportsForegroundService,
-          keepForegroundServiceRunning: hasTickingTurn,
+          keepForegroundServiceRunning: hasActiveTurn,
           child: child,
         );
       },
