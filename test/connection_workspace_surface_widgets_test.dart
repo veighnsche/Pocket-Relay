@@ -168,10 +168,6 @@ void main() {
         settingsOverlayDelegate.launchedModelCatalogs.single,
         cachedCatalog,
       );
-      expect(
-        settingsOverlayDelegate.launchedAllowReferenceModelFallbacks.single,
-        isFalse,
-      );
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
@@ -236,10 +232,6 @@ void main() {
       expect(
         settingsOverlayDelegate.launchedModelCatalogs.single,
         lastKnownCatalog,
-      );
-      expect(
-        settingsOverlayDelegate.launchedAllowReferenceModelFallbacks.single,
-        isFalse,
       );
       expect(settingsOverlayDelegate.launchedRefreshCallbacks.single, isNull);
 
@@ -307,10 +299,6 @@ void main() {
         settingsOverlayDelegate.launchedModelCatalogs.single,
         lastKnownCatalog,
       );
-      expect(
-        settingsOverlayDelegate.launchedAllowReferenceModelFallbacks.single,
-        isFalse,
-      );
       expect(settingsOverlayDelegate.launchedRefreshCallbacks.single, isNull);
 
       settingsOverlayDelegate.complete(null);
@@ -348,10 +336,6 @@ void main() {
 
       expect(settingsOverlayDelegate.launchCount, 1);
       expect(settingsOverlayDelegate.launchedModelCatalogs.single, isNull);
-      expect(
-        settingsOverlayDelegate.launchedAllowReferenceModelFallbacks.single,
-        isFalse,
-      );
       expect(settingsOverlayDelegate.launchedRefreshCallbacks.single, isNull);
 
       settingsOverlayDelegate.complete(null);
@@ -473,10 +457,6 @@ void main() {
       expect(
         settingsOverlayDelegate.launchedModelCatalogs.single,
         lastKnownCatalog,
-      );
-      expect(
-        settingsOverlayDelegate.launchedAllowReferenceModelFallbacks.single,
-        isFalse,
       );
       expect(
         settingsOverlayDelegate.launchedRefreshCallbacks.single,
@@ -840,7 +820,6 @@ class _DeferredConnectionSettingsOverlayDelegate
       <(ConnectionProfile, ConnectionSecrets)>[];
   final List<ConnectionModelCatalog?> launchedModelCatalogs =
       <ConnectionModelCatalog?>[];
-  final List<bool> launchedAllowReferenceModelFallbacks = <bool>[];
   final List<
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   >
@@ -858,14 +837,12 @@ class _DeferredConnectionSettingsOverlayDelegate
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
     ConnectionModelCatalog? availableModelCatalog,
-    bool allowReferenceModelFallback = false,
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
   }) {
     launchCount += 1;
     launchedSettings.add((initialProfile, initialSecrets));
     launchedModelCatalogs.add(availableModelCatalog);
-    launchedAllowReferenceModelFallbacks.add(allowReferenceModelFallback);
     launchedRefreshCallbacks.add(onRefreshModelCatalog);
     return _completer.future;
   }

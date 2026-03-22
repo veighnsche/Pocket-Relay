@@ -170,7 +170,6 @@ ConnectionSettingsModelSectionContract _buildModelSection(
 ) {
   final draft = state.draft;
   final availableModelCatalog = state.availableModelCatalog;
-  final allowReferenceModelFallback = state.allowReferenceModelFallback;
   final refreshActionLabel = state.isRefreshingModelCatalog
       ? 'Refreshing models...'
       : 'Refresh models';
@@ -180,7 +179,7 @@ ConnectionSettingsModelSectionContract _buildModelSection(
       !state.isRefreshingModelCatalog;
   final refreshActionHelperText = _refreshActionHelperText(state);
   final selectedModelId = _selectedModelIdForDraft(draft);
-  if (availableModelCatalog == null && !allowReferenceModelFallback) {
+  if (availableModelCatalog == null) {
     return _buildUnavailableModelSection(
       state: state,
       selectedModelId: selectedModelId,
@@ -196,117 +195,62 @@ ConnectionSettingsModelSectionContract _buildModelSection(
     availableModelCatalog,
     selectedModelId,
   );
-  final selectedReferenceModel = codexReferenceModelForId(selectedModelId);
-  final hasUnknownModel = availableModelCatalog == null
-      ? selectedModelId != null && selectedReferenceModel == null
-      : selectedModelId != null && selectedVisibleCatalogModel == null;
+  final hasUnknownModel =
+      selectedModelId != null && selectedVisibleCatalogModel == null;
   final effectiveCatalogModel = codexEffectiveCatalogModelForModel(
     availableModelCatalog,
-    selectedModelId,
-  );
-  final effectiveReferenceModel = codexEffectiveReferenceModelForId(
     selectedModelId,
   );
   final selectedReasoningEffort = codexNormalizedReasoningEffortForModel(
     selectedModelId,
     draft.reasoningEffort,
     availableModelCatalog: availableModelCatalog,
-    allowReferenceModelFallback: allowReferenceModelFallback,
   );
-  final modelOptions = availableModelCatalog == null
-      ? <ConnectionSettingsModelOptionContract>[
-          const ConnectionSettingsModelOptionContract(
-            modelId: null,
-            label: 'Default',
-            description:
-                'Use the default Codex model from the reference catalog.',
-          ),
-          if (hasUnknownModel)
-            ConnectionSettingsModelOptionContract(
-              modelId: selectedModelId,
-              label: selectedModelId,
-              description:
-                  'Saved model outside the standard reference picker list.',
-            ),
-          ...codexReferenceVisibleModels.map(
-            (model) => ConnectionSettingsModelOptionContract(
-              modelId: model.id,
-              label: model.label,
-              description: model.description,
-            ),
-          ),
-        ]
-      : <ConnectionSettingsModelOptionContract>[
-          const ConnectionSettingsModelOptionContract(
-            modelId: null,
-            label: 'Default',
-            description: 'Use the default model from the backend catalog.',
-          ),
-          if (hasUnknownModel)
-            ConnectionSettingsModelOptionContract(
-              modelId: selectedModelId,
-              label: selectedCatalogModel == null
-                  ? selectedModelId!
-                  : _catalogModelLabel(selectedCatalogModel),
-              description: 'Saved model outside the available picker list.',
-            ),
-          ...availableModelCatalog.visibleModels.map(
-            (model) => ConnectionSettingsModelOptionContract(
-              modelId: model.model,
-              label: _catalogModelLabel(model),
-              description: model.description,
-            ),
-          ),
-        ];
-  final modelHelperText = availableModelCatalog == null
-      ? hasUnknownModel
-            ? 'Saved model outside the standard reference picker list.'
-            : selectedReferenceModel == null
-            ? 'Standard picker list only. Leave blank to use the default Codex model.'
-            : selectedReferenceModel.description
-      : hasUnknownModel
+  final modelOptions = <ConnectionSettingsModelOptionContract>[
+    const ConnectionSettingsModelOptionContract(
+      modelId: null,
+      label: 'Default',
+      description: 'Use the default model from the backend catalog.',
+    ),
+    if (hasUnknownModel)
+      ConnectionSettingsModelOptionContract(
+        modelId: selectedModelId,
+        label: selectedCatalogModel == null
+            ? selectedModelId!
+            : _catalogModelLabel(selectedCatalogModel),
+        description: 'Saved model outside the available picker list.',
+      ),
+    ...availableModelCatalog.visibleModels.map(
+      (model) => ConnectionSettingsModelOptionContract(
+        modelId: model.model,
+        label: _catalogModelLabel(model),
+        description: model.description,
+      ),
+    ),
+  ];
+  final modelHelperText = hasUnknownModel
       ? 'Saved model outside the available picker list.'
       : selectedCatalogModel == null
       ? 'Available models come from the backend catalog. Leave blank to use the backend default model.'
       : selectedCatalogModel.description;
-  final reasoningEffortOptions = availableModelCatalog == null
-      ? <ConnectionSettingsReasoningEffortOptionContract>[
-          const ConnectionSettingsReasoningEffortOptionContract(
-            effort: null,
-            label: 'Default',
-            description: 'Use the selected model default effort.',
+  final reasoningEffortOptions =
+      <ConnectionSettingsReasoningEffortOptionContract>[
+        const ConnectionSettingsReasoningEffortOptionContract(
+          effort: null,
+          label: 'Default',
+          description: 'Use the selected model default effort.',
+        ),
+        ...?effectiveCatalogModel?.supportedReasoningEfforts.map(
+          (option) => ConnectionSettingsReasoningEffortOptionContract(
+            effort: option.reasoningEffort,
+            label: _reasoningEffortLabel(option.reasoningEffort),
+            description: option.description.trim().isEmpty
+                ? _reasoningEffortDescription(option.reasoningEffort)
+                : option.description,
           ),
-          ...effectiveReferenceModel.supportedReasoningEfforts.map(
-            (effort) => ConnectionSettingsReasoningEffortOptionContract(
-              effort: effort,
-              label: _reasoningEffortLabel(effort),
-              description: _reasoningEffortDescription(effort),
-            ),
-          ),
-        ]
-      : <ConnectionSettingsReasoningEffortOptionContract>[
-          const ConnectionSettingsReasoningEffortOptionContract(
-            effort: null,
-            label: 'Default',
-            description: 'Use the selected model default effort.',
-          ),
-          ...?effectiveCatalogModel?.supportedReasoningEfforts.map(
-            (option) => ConnectionSettingsReasoningEffortOptionContract(
-              effort: option.reasoningEffort,
-              label: _reasoningEffortLabel(option.reasoningEffort),
-              description: option.description.trim().isEmpty
-                  ? _reasoningEffortDescription(option.reasoningEffort)
-                  : option.description,
-            ),
-          ),
-        ];
-  final reasoningEffortHelperText = availableModelCatalog == null
-      ? hasUnknownModel
-            ? 'Available efforts use the fallback default-model list.'
-            : selectedReferenceModel == null
-            ? 'Available efforts follow the default model.'
-            : 'Available efforts follow ${effectiveReferenceModel.label}.'
-      : selectedCatalogModel != null
+        ),
+      ];
+  final reasoningEffortHelperText = selectedCatalogModel != null
       ? 'Available efforts follow ${_catalogModelLabel(selectedCatalogModel)}.'
       : effectiveCatalogModel == null
       ? 'Available efforts follow the backend default model.'
@@ -376,7 +320,6 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
         _selectedModelIdForDraft(draft),
         draft.reasoningEffort,
         availableModelCatalog: state.availableModelCatalog,
-        allowReferenceModelFallback: state.allowReferenceModelFallback,
       ),
       authMode: draft.authMode,
       hostFingerprint: draft.hostFingerprint.trim(),

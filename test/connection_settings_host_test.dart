@@ -116,7 +116,9 @@ void main() {
 
       await tester.pumpWidget(
         _buildMaterialSettingsApp(
-          allowReferenceModelFallback: true,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'host-submit-test',
+          ),
           onSubmit: (payload) {
             materialPayload = payload;
           },
@@ -171,7 +173,9 @@ void main() {
       await tester.pumpWidget(
         _buildMaterialSettingsApp(
           onSubmit: (_) {},
-          allowReferenceModelFallback: true,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'host-reasoning-test',
+          ),
         ),
       );
 
@@ -261,7 +265,6 @@ void main() {
             model: 'saved-model-only',
             reasoningEffort: CodexReasoningEffort.xhigh,
           ),
-          allowReferenceModelFallback: false,
         ),
       );
 
@@ -311,7 +314,6 @@ void main() {
           onRefreshModelCatalog: (draft) async =>
               _backendAvailableModelCatalog(),
           initialProfile: _configuredProfile().copyWith(workspaceDir: ''),
-          allowReferenceModelFallback: false,
         ),
       );
 
@@ -345,7 +347,6 @@ void main() {
       await tester.pumpWidget(
         _buildMaterialSettingsApp(
           onSubmit: (_) {},
-          allowReferenceModelFallback: false,
           onRefreshModelCatalog: (draft) async {
             refreshCalls += 1;
             return _backendAvailableModelCatalog();
@@ -394,7 +395,6 @@ Widget _buildMaterialSettingsApp({
   PocketPlatformBehavior platformBehavior = _mobileBehavior,
   ConnectionModelCatalog? availableModelCatalog,
   ConnectionProfile? initialProfile,
-  bool allowReferenceModelFallback = false,
   Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog,
 }) {
@@ -408,7 +408,6 @@ Widget _buildMaterialSettingsApp({
         platformBehavior: platformBehavior,
         availableModelCatalog: availableModelCatalog,
         initialProfile: initialProfile,
-        allowReferenceModelFallback: allowReferenceModelFallback,
         onRefreshModelCatalog: onRefreshModelCatalog,
         builder: (context, viewModel, actions) {
           return ConnectionSheet(viewModel: viewModel, actions: actions);
@@ -424,7 +423,6 @@ Widget _buildHost({
   PocketPlatformBehavior platformBehavior = _mobileBehavior,
   ConnectionModelCatalog? availableModelCatalog,
   ConnectionProfile? initialProfile,
-  bool allowReferenceModelFallback = false,
   Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog,
 }) {
@@ -432,7 +430,6 @@ Widget _buildHost({
     initialProfile: initialProfile ?? _configuredProfile(),
     initialSecrets: const ConnectionSecrets(password: 'secret'),
     availableModelCatalog: availableModelCatalog,
-    allowReferenceModelFallback: allowReferenceModelFallback,
     onRefreshModelCatalog: onRefreshModelCatalog,
     platformBehavior: platformBehavior,
     onCancel: () {},

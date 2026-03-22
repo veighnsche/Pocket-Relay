@@ -59,7 +59,6 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         initialSecrets: initialSettings.$2,
         platformBehavior: platformPolicy.behavior,
         availableModelCatalog: availableModelCatalog,
-        allowReferenceModelFallback: false,
         onRefreshModelCatalog: onRefreshModelCatalog,
       );
       if (!_matchesLiveRequestContext(

@@ -691,7 +691,9 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                 child: ConnectionSettingsHost(
                   initialProfile: WidgetbookFixtures.remoteProfile,
                   initialSecrets: WidgetbookFixtures.passwordSecrets,
-                  allowReferenceModelFallback: true,
+                  availableModelCatalog: codexReferenceModelCatalog(
+                    connectionId: 'widgetbook-remote',
+                  ),
                   platformBehavior: WidgetbookFixtures.desktopBehavior,
                   onCancel: () {},
                   onSubmit: (_) {},
@@ -711,7 +713,9 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                 child: ConnectionSettingsHost(
                   initialProfile: WidgetbookFixtures.localProfile,
                   initialSecrets: const ConnectionSecrets(),
-                  allowReferenceModelFallback: true,
+                  availableModelCatalog: codexReferenceModelCatalog(
+                    connectionId: 'widgetbook-local',
+                  ),
                   platformBehavior: WidgetbookFixtures.desktopBehavior,
                   onCancel: () {},
                   onSubmit: (_) {},

@@ -97,23 +97,38 @@ codexReferenceVisibleModels = <CodexReferenceModel>[
 CodexReferenceModel get codexDefaultReferenceModel =>
     codexReferenceVisibleModels.first;
 
-CodexReferenceModel? codexReferenceModelForId(String? modelId) {
-  final normalized = modelId?.trim();
-  if (normalized == null || normalized.isEmpty) {
-    return null;
-  }
-
-  for (final model in codexReferenceVisibleModels) {
-    if (model.id == normalized) {
-      return model;
-    }
-  }
-
-  return null;
-}
-
-CodexReferenceModel codexEffectiveReferenceModelForId(String? modelId) {
-  return codexReferenceModelForId(modelId) ?? codexDefaultReferenceModel;
+ConnectionModelCatalog codexReferenceModelCatalog({
+  String connectionId = 'reference',
+  DateTime? fetchedAt,
+}) {
+  return ConnectionModelCatalog(
+    connectionId: connectionId,
+    fetchedAt:
+        fetchedAt ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    models: <ConnectionAvailableModel>[
+      for (final model in codexReferenceVisibleModels)
+        ConnectionAvailableModel(
+          id: model.id,
+          model: model.id,
+          displayName: model.label,
+          description: model.description,
+          hidden: false,
+          supportedReasoningEfforts:
+              model.supportedReasoningEfforts
+                  .map(
+                    (effort) => ConnectionAvailableModelReasoningEffortOption(
+                      reasoningEffort: effort,
+                      description: '',
+                    ),
+                  )
+                  .toList(growable: false),
+          defaultReasoningEffort: model.defaultReasoningEffort,
+          inputModalities: const <String>[],
+          supportsPersonality: false,
+          isDefault: model.id == codexDefaultReferenceModel.id,
+        ),
+    ],
+  );
 }
 
 ConnectionAvailableModel? codexCatalogModelForModel(
@@ -188,7 +203,6 @@ CodexReasoningEffort? codexNormalizedReasoningEffortForModel(
   String? modelId,
   CodexReasoningEffort? effort, {
   ConnectionModelCatalog? availableModelCatalog,
-  bool allowReferenceModelFallback = false,
 }) {
   if (effort == null) {
     return null;
@@ -207,15 +221,5 @@ CodexReasoningEffort? codexNormalizedReasoningEffortForModel(
 
     return availableModel.defaultReasoningEffort;
   }
-
-  if (!allowReferenceModelFallback) {
-    return effort;
-  }
-
-  final model = codexEffectiveReferenceModelForId(modelId);
-  if (model.supportedReasoningEfforts.contains(effort)) {
-    return effort;
-  }
-
-  return model.defaultReasoningEffort;
+  return effort;
 }

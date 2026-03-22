@@ -121,7 +121,9 @@ void main() {
         initialProfile: initialProfile,
         initialSecrets: initialSecrets,
         formState: formState,
-        allowReferenceModelFallback: true,
+        availableModelCatalog: codexReferenceModelCatalog(
+          connectionId: 'presenter-local-test',
+        ),
         supportsLocalConnectionMode: true,
       );
       final payload = contract.saveAction.submitPayload;
@@ -168,7 +170,9 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
-          allowReferenceModelFallback: true,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-save-test',
+          ),
         );
         final payload = contract.saveAction.submitPayload;
 
@@ -208,7 +212,9 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
-          allowReferenceModelFallback: true,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-payload-test',
+          ),
         );
         final payload = contract.saveAction.submitPayload;
 
@@ -242,7 +248,9 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
-          allowReferenceModelFallback: true,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-reasoning-test',
+          ),
         );
 
         expect(contract.modelSection.selectedModelId, 'gpt-5.1-codex-mini');
@@ -272,7 +280,6 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
-          allowReferenceModelFallback: false,
         );
         final payload = contract.saveAction.submitPayload;
 
@@ -313,7 +320,6 @@ void main() {
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           formState: formState,
-          allowReferenceModelFallback: false,
           supportsModelCatalogRefresh: true,
         );
 
@@ -337,7 +343,6 @@ void main() {
         initialProfile: initialProfile,
         initialSecrets: initialSecrets,
         formState: formState,
-        allowReferenceModelFallback: false,
         supportsModelCatalogRefresh: true,
       );
 

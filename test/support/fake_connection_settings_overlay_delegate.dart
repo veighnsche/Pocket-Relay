@@ -17,7 +17,6 @@ class FakeConnectionSettingsOverlayDelegate
       <(ConnectionProfile, ConnectionSecrets)>[];
   final List<ConnectionModelCatalog?> launchedModelCatalogs =
       <ConnectionModelCatalog?>[];
-  final List<bool> launchedAllowReferenceModelFallbacks = <bool>[];
   final List<
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   >
@@ -33,13 +32,11 @@ class FakeConnectionSettingsOverlayDelegate
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
     ConnectionModelCatalog? availableModelCatalog,
-    bool allowReferenceModelFallback = false,
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
   }) async {
     launchedSettings.add((initialProfile, initialSecrets));
     launchedModelCatalogs.add(availableModelCatalog);
-    launchedAllowReferenceModelFallbacks.add(allowReferenceModelFallback);
     launchedRefreshCallbacks.add(onRefreshModelCatalog);
     if (_results.isEmpty) {
       return null;

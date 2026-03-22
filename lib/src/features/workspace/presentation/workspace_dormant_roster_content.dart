@@ -128,7 +128,6 @@ class _ConnectionWorkspaceDormantRosterContentState
         profile: ConnectionProfile.defaults(),
         secrets: const ConnectionSecrets(),
         availableModelCatalog: availableModelCatalog,
-        allowReferenceModelFallback: false,
       );
       if (!mounted || payload == null) {
         return;
@@ -175,7 +174,6 @@ class _ConnectionWorkspaceDormantRosterContentState
         profile: savedConnection.profile,
         secrets: savedConnection.secrets,
         availableModelCatalog: cachedModelCatalog ?? lastKnownModelCatalog,
-        allowReferenceModelFallback: false,
       );
       if (!mounted || payload == null) {
         return;
@@ -229,7 +227,6 @@ class _ConnectionWorkspaceDormantRosterContentState
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     ConnectionModelCatalog? availableModelCatalog,
-    bool allowReferenceModelFallback = false,
   }) {
     return widget.settingsOverlayDelegate.openConnectionSettings(
       context: context,
@@ -237,7 +234,6 @@ class _ConnectionWorkspaceDormantRosterContentState
       initialSecrets: secrets,
       platformBehavior: widget.platformBehavior,
       availableModelCatalog: availableModelCatalog,
-      allowReferenceModelFallback: allowReferenceModelFallback,
     );
   }
 }

@@ -20,7 +20,6 @@ class ConnectionSettingsHost extends StatefulWidget {
     required this.initialProfile,
     required this.initialSecrets,
     this.availableModelCatalog,
-    this.allowReferenceModelFallback = false,
     this.onRefreshModelCatalog,
     required this.onCancel,
     required this.onSubmit,
@@ -31,7 +30,6 @@ class ConnectionSettingsHost extends StatefulWidget {
   final ConnectionProfile initialProfile;
   final ConnectionSecrets initialSecrets;
   final ConnectionModelCatalog? availableModelCatalog;
-  final bool allowReferenceModelFallback;
   final Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog;
   final VoidCallback onCancel;
@@ -104,7 +102,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       initialSecrets: widget.initialSecrets,
       formState: formState ?? _formState,
       availableModelCatalog: _availableModelCatalog,
-      allowReferenceModelFallback: widget.allowReferenceModelFallback,
       supportsModelCatalogRefresh: widget.onRefreshModelCatalog != null,
       isRefreshingModelCatalog: _isRefreshingModelCatalog,
       supportsLocalConnectionMode:
@@ -158,7 +155,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       normalizedModel.isEmpty ? null : normalizedModel,
       _formState.draft.reasoningEffort,
       availableModelCatalog: _availableModelCatalog,
-      allowReferenceModelFallback: widget.allowReferenceModelFallback,
     );
     setState(() {
       _formState = _formState.copyWith(
@@ -193,7 +189,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
         selectedModelId,
         _formState.draft.reasoningEffort,
         availableModelCatalog: refreshedCatalog,
-        allowReferenceModelFallback: widget.allowReferenceModelFallback,
       );
       setState(() {
         _availableModelCatalog = refreshedCatalog;
