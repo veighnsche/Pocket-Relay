@@ -14,6 +14,8 @@ import 'package:pocket_relay/src/features/workspace/presentation/workspace_dorma
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
 
 part 'workspace_desktop_shell_sidebar.dart';
+part 'workspace_desktop_shell_sidebar_collapsed.dart';
+part 'workspace_desktop_shell_sidebar_expanded.dart';
 
 class ConnectionWorkspaceDesktopShell extends StatefulWidget {
   const ConnectionWorkspaceDesktopShell({
