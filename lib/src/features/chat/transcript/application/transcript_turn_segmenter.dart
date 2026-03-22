@@ -226,17 +226,13 @@ class TranscriptTurnArtifactBuilder {
     CodexChangedFilesEntry entry,
   ) {
     final nextEntries = List<CodexChangedFilesEntry>.from(artifact.entries);
-    final index = nextEntries.indexWhere(
-      (existing) => existing.id == entry.id,
-    );
+    final index = nextEntries.indexWhere((existing) => existing.id == entry.id);
     if (index == -1) {
       nextEntries.add(entry);
     } else {
       nextEntries[index] = entry;
     }
-    final retainedEntries = _retainChangedFilesEntryDiffs(
-      nextEntries,
-    );
+    final retainedEntries = _retainChangedFilesEntryDiffs(nextEntries);
 
     return CodexTurnChangedFilesArtifact(
       id: artifact.id,
@@ -335,9 +331,7 @@ List<CodexChangedFile> _mergeChangedFilesForEntries(
   return mergedByPath.values.toList(growable: false);
 }
 
-String? _mergedRetainedUnifiedDiff(
-  Iterable<CodexChangedFilesEntry> entries,
-) {
+String? _mergedRetainedUnifiedDiff(Iterable<CodexChangedFilesEntry> entries) {
   return _joinUnifiedDiffFragments(
     entries.map((entry) => entry.unifiedDiff).toList(growable: false),
   );
@@ -378,7 +372,10 @@ List<CodexChangedFilesEntry> _retainChangedFilesEntryDiffs(
     );
 
     if (retainedDiff != entry.unifiedDiff) {
-      retainedEntries[index] = entry.copyWith(unifiedDiff: retainedDiff);
+      retainedEntries[index] = _changedFilesEntryWithUnifiedDiff(
+        entry,
+        retainedDiff,
+      );
     }
     if (retainedDiff == null) {
       continue;
@@ -431,4 +428,19 @@ String? _retainUnifiedDiffWithinBudget(
   return retained.isEmpty ? null : retained;
 }
 
-int _lineCount(String value) => '\n'.allMatches(value).length + 1;
+CodexChangedFilesEntry _changedFilesEntryWithUnifiedDiff(
+  CodexChangedFilesEntry entry,
+  String? unifiedDiff,
+) {
+  return CodexChangedFilesEntry(
+    id: entry.id,
+    itemId: entry.itemId,
+    createdAt: entry.createdAt,
+    files: entry.files,
+    unifiedDiff: unifiedDiff,
+    isRunning: entry.isRunning,
+  );
+}
+
+int _lineCount(String value) =>
+    value.isEmpty ? 0 : '\n'.allMatches(value).length + 1;

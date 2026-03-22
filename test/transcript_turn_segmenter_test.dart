@@ -8,14 +8,13 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.
 void main() {
   const builder = TranscriptTurnArtifactBuilder();
   final startedAt = DateTime.utc(2026, 1, 1, 12);
+  int countLines(String text) =>
+      text.isEmpty ? 0 : '\n'.allMatches(text).length + 1;
 
   CodexActiveTurnState initialTurn() {
     return CodexActiveTurnState(
       turnId: 'turn-1',
-      timer: CodexSessionTurnTimer(
-        turnId: 'turn-1',
-        startedAt: startedAt,
-      ),
+      timer: CodexSessionTurnTimer(turnId: 'turn-1', startedAt: startedAt),
     );
   }
 
@@ -38,42 +37,46 @@ void main() {
     );
   }
 
-  test('replaces changed-file updates for the same entry without duplicating state', () {
-    final firstItem = changedFilesItem(
-      itemId: 'item-1',
-      entryId: 'entry-1',
-      body: '''
+  test(
+    'replaces changed-file updates for the same entry without duplicating state',
+    () {
+      final firstItem = changedFilesItem(
+        itemId: 'item-1',
+        entryId: 'entry-1',
+        body: '''
 --- a/lib/app.dart
 +++ b/lib/app.dart
 @@ -0,0 +1 @@
 +first
 ''',
-      isRunning: true,
-    );
-    final secondItem = changedFilesItem(
-      itemId: 'item-1',
-      entryId: 'entry-1',
-      body: '''
+        isRunning: true,
+      );
+      final secondItem = changedFilesItem(
+        itemId: 'item-1',
+        entryId: 'entry-1',
+        body: '''
 --- a/lib/app.dart
 +++ b/lib/app.dart
 @@ -0,0 +1,2 @@
 +first
 +second
 ''',
-    );
+      );
 
-    final firstTurn = builder.upsertItem(initialTurn(), firstItem);
-    final secondTurn = builder.upsertItem(firstTurn, secondItem);
-    final artifact = secondTurn.artifacts.single as CodexTurnChangedFilesArtifact;
+      final firstTurn = builder.upsertItem(initialTurn(), firstItem);
+      final secondTurn = builder.upsertItem(firstTurn, secondItem);
+      final artifact =
+          secondTurn.artifacts.single as CodexTurnChangedFilesArtifact;
 
-    expect(artifact.entries, hasLength(1));
-    expect(artifact.files, hasLength(1));
-    expect(artifact.files.single.path, 'lib/app.dart');
-    expect(artifact.files.single.additions, 2);
-    expect(artifact.files.single.deletions, 0);
-    expect(artifact.unifiedDiff, contains('@@ -0,0 +1,2 @@'));
-    expect(artifact.unifiedDiff, isNot(contains('@@ -0,0 +1 @@')));
-  });
+      expect(artifact.entries, hasLength(1));
+      expect(artifact.files, hasLength(1));
+      expect(artifact.files.single.path, 'lib/app.dart');
+      expect(artifact.files.single.additions, 2);
+      expect(artifact.files.single.deletions, 0);
+      expect(artifact.unifiedDiff, contains('@@ -0,0 +1,2 @@'));
+      expect(artifact.unifiedDiff, isNot(contains('@@ -0,0 +1 @@')));
+    },
+  );
 
   test('caps retained changed-file diffs in the segmenter', () {
     final largeDiff = List<String>.generate(
@@ -83,7 +86,8 @@ void main() {
     final item = changedFilesItem(
       itemId: 'item-2',
       entryId: 'entry-2',
-      body: '''
+      body:
+          '''
 --- a/lib/large.dart
 +++ b/lib/large.dart
 @@ -0,0 +1,${TranscriptMemoryBudget.maxUnifiedDiffLines + 200} @@
@@ -98,11 +102,11 @@ $largeDiff
     expect(artifact.unifiedDiff, isNotNull);
     expect(retainedEntryDiff, isNotNull);
     expect(
-      '\n'.allMatches(artifact.unifiedDiff!).length + 1,
+      countLines(artifact.unifiedDiff!),
       lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffLines),
     );
     expect(
-      '\n'.allMatches(retainedEntryDiff!).length + 1,
+      countLines(retainedEntryDiff!),
       lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffLines),
     );
     expect(
@@ -115,64 +119,68 @@ $largeDiff
     );
   });
 
-  test('bounds total retained changed-file entry diffs across many entries', () {
-    CodexActiveTurnState turn = initialTurn();
-    final entryCount = 6;
-    final perEntryLines = 260;
+  test(
+    'bounds total retained changed-file entry diffs across many entries',
+    () {
+      CodexActiveTurnState turn = initialTurn();
+      final entryCount = 6;
+      final perEntryLines = 260;
 
-    for (var index = 0; index < entryCount; index += 1) {
-      final diffLines = List<String>.generate(
-        perEntryLines,
-        (lineIndex) => '+entry $index line $lineIndex ${'x' * 80}',
-      ).join('\n');
-      turn = builder.upsertItem(
-        turn,
-        changedFilesItem(
-          itemId: 'item-$index',
-          entryId: 'entry-$index',
-          body: '''
+      for (var index = 0; index < entryCount; index += 1) {
+        final diffLines = List<String>.generate(
+          perEntryLines,
+          (lineIndex) => '+entry $index line $lineIndex ${'x' * 80}',
+        ).join('\n');
+        turn = builder.upsertItem(
+          turn,
+          changedFilesItem(
+            itemId: 'item-$index',
+            entryId: 'entry-$index',
+            body:
+                '''
 --- a/lib/file_$index.dart
 +++ b/lib/file_$index.dart
 @@ -0,0 +1,$perEntryLines @@
 $diffLines
 ''',
-        ),
+          ),
+        );
+      }
+
+      final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
+      final retainedEntryDiffs = artifact.entries
+          .map((entry) => entry.unifiedDiff)
+          .whereType<String>()
+          .toList(growable: false);
+      final totalRetainedEntryChars = retainedEntryDiffs.fold<int>(
+        0,
+        (total, diff) => total + diff.length,
       );
-    }
+      final totalRetainedEntryLines = retainedEntryDiffs.fold<int>(
+        0,
+        (total, diff) => total + countLines(diff),
+      );
 
-    final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
-    final retainedEntryDiffs = artifact.entries
-        .map((entry) => entry.unifiedDiff)
-        .whereType<String>()
-        .toList(growable: false);
-    final totalRetainedEntryChars = retainedEntryDiffs.fold<int>(
-      0,
-      (total, diff) => total + diff.length,
-    );
-    final totalRetainedEntryLines = retainedEntryDiffs.fold<int>(
-      0,
-      (total, diff) => total + '\n'.allMatches(diff).length + 1,
-    );
-
-    expect(artifact.entries, hasLength(entryCount));
-    expect(retainedEntryDiffs, isNotEmpty);
-    expect(
-      totalRetainedEntryChars,
-      lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffChars),
-    );
-    expect(
-      totalRetainedEntryLines,
-      lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffLines),
-    );
-    expect(artifact.entries.first.unifiedDiff, isNull);
-    expect(artifact.entries.last.unifiedDiff, isNotNull);
-    expect(
-      artifact.unifiedDiff!.length,
-      lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffChars),
-    );
-    expect(
-      '\n'.allMatches(artifact.unifiedDiff!).length + 1,
-      lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffLines),
-    );
-  });
+      expect(artifact.entries, hasLength(entryCount));
+      expect(retainedEntryDiffs, isNotEmpty);
+      expect(
+        totalRetainedEntryChars,
+        lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffChars),
+      );
+      expect(
+        totalRetainedEntryLines,
+        lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffLines),
+      );
+      expect(artifact.entries.first.unifiedDiff, isNull);
+      expect(artifact.entries.last.unifiedDiff, isNotNull);
+      expect(
+        artifact.unifiedDiff!.length,
+        lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffChars),
+      );
+      expect(
+        countLines(artifact.unifiedDiff!),
+        lessThanOrEqualTo(TranscriptMemoryBudget.maxUnifiedDiffLines),
+      );
+    },
+  );
 }
