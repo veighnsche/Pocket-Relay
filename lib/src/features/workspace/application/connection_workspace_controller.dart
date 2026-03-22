@@ -26,6 +26,9 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     required ConnectionLaneBindingFactory laneBindingFactory,
     ConnectionModelCatalogStore? modelCatalogStore,
     ConnectionWorkspaceRecoveryStore? recoveryStore,
+    Duration recoveryPersistenceDebounceDuration = const Duration(
+      milliseconds: 250,
+    ),
     WorkspaceNow? now,
   }) : _connectionRepository = connectionRepository,
        _laneBindingFactory = laneBindingFactory,
@@ -33,12 +36,15 @@ class ConnectionWorkspaceController extends ChangeNotifier {
            modelCatalogStore ?? const NoopConnectionModelCatalogStore(),
        _recoveryStore =
            recoveryStore ?? const NoopConnectionWorkspaceRecoveryStore(),
+       _recoveryPersistenceDebounceDuration =
+           recoveryPersistenceDebounceDuration,
        _now = now ?? DateTime.now;
 
   final CodexConnectionRepository _connectionRepository;
   final ConnectionLaneBindingFactory _laneBindingFactory;
   final ConnectionModelCatalogStore _modelCatalogStore;
   final ConnectionWorkspaceRecoveryStore _recoveryStore;
+  final Duration _recoveryPersistenceDebounceDuration;
   final WorkspaceNow _now;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
       <String, ConnectionLaneBinding>{};
@@ -49,9 +55,14 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceState _state = const ConnectionWorkspaceState.initial();
   Future<void>? _initializationFuture;
   Future<void> _recoveryPersistence = Future<void>.value();
+  Timer? _recoveryPersistenceDebounceTimer;
+  ConnectionWorkspaceRecoveryState? _pendingRecoveryPersistenceState;
+  ConnectionWorkspaceRecoveryState? _lastPersistedRecoveryState;
+  bool _isPersistingRecoveryState = false;
   bool _isDisposed = false;
 
   ConnectionWorkspaceState get state => _state;
+  Future<void> flushRecoveryPersistence() => _enqueueRecoveryPersistence();
   ConnectionLaneBinding? get selectedLaneBinding {
     final selectedConnectionId = _state.selectedConnectionId;
     if (selectedConnectionId == null) {
@@ -169,7 +180,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     if (_isDisposed) {
       return;
     }
+    final finalRecoveryPersistence = _enqueueRecoveryPersistence();
     _isDisposed = true;
+    _recoveryPersistenceDebounceTimer?.cancel();
+    unawaited(finalRecoveryPersistence);
 
     final liveBindingEntries = _liveBindingsByConnectionId.entries.toList();
     _liveBindingsByConnectionId.clear();
@@ -210,7 +224,15 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ) {
     _unregisterLiveBinding(connectionId);
     void listener() {
-      unawaited(_enqueueRecoveryPersistence());
+      if (_state.selectedConnectionId != connectionId) {
+        return;
+      }
+      final snapshot = _selectedRecoveryStateSnapshot();
+      if (_hasImmediateRecoveryIdentityChange(snapshot)) {
+        unawaited(_queueRecoveryPersistenceSnapshot(snapshot: snapshot));
+        return;
+      }
+      _scheduleRecoveryPersistence();
     }
 
     _bindingRecoveryRegistrationsByConnectionId[connectionId] = (
@@ -237,18 +259,98 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
   }
 
+  void _scheduleRecoveryPersistence() {
+    if (_isDisposed) {
+      return;
+    }
+    _recoveryPersistenceDebounceTimer?.cancel();
+    _recoveryPersistenceDebounceTimer = Timer(
+      _recoveryPersistenceDebounceDuration,
+      () {
+        _recoveryPersistenceDebounceTimer = null;
+        unawaited(
+          _queueRecoveryPersistenceSnapshot(
+            snapshot: _selectedRecoveryStateSnapshot(),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _enqueueRecoveryPersistence({DateTime? backgroundedAt}) {
-    _recoveryPersistence = _recoveryPersistence
-        .then((_) async {
-          if (_isDisposed) {
-            return;
-          }
-          await _recoveryStore.save(
-            _selectedRecoveryStateSnapshot(backgroundedAt: backgroundedAt),
-          );
-        })
-        .catchError((_) {});
+    _recoveryPersistenceDebounceTimer?.cancel();
+    _recoveryPersistenceDebounceTimer = null;
+    return _queueRecoveryPersistenceSnapshot(
+      snapshot: _selectedRecoveryStateSnapshot(backgroundedAt: backgroundedAt),
+    );
+  }
+
+  Future<void> _queueRecoveryPersistenceSnapshot({
+    ConnectionWorkspaceRecoveryState? snapshot,
+  }) {
+    if (_isDisposed) {
+      return _recoveryPersistence;
+    }
+
+    if (snapshot == _lastPersistedRecoveryState ||
+        snapshot == _pendingRecoveryPersistenceState) {
+      return _recoveryPersistence;
+    }
+
+    _pendingRecoveryPersistenceState = snapshot;
+    if (_isPersistingRecoveryState) {
+      return _recoveryPersistence;
+    }
+
+    _isPersistingRecoveryState = true;
+    _recoveryPersistence = _drainRecoveryPersistenceQueue();
     return _recoveryPersistence;
+  }
+
+  Future<void> _drainRecoveryPersistenceQueue() async {
+    try {
+      while (true) {
+        final snapshot = _pendingRecoveryPersistenceState;
+        _pendingRecoveryPersistenceState = null;
+        if (snapshot == null) {
+          break;
+        }
+        if (snapshot == _lastPersistedRecoveryState) {
+          if (_pendingRecoveryPersistenceState == null) {
+            break;
+          }
+          continue;
+        }
+        try {
+          await _recoveryStore.save(snapshot);
+          _lastPersistedRecoveryState = snapshot;
+        } catch (error, stackTrace) {
+          assert(() {
+            debugPrint('Failed to save workspace recovery state: $error');
+            debugPrintStack(stackTrace: stackTrace);
+            return true;
+          }());
+        }
+        if (_pendingRecoveryPersistenceState == null) {
+          break;
+        }
+      }
+    } finally {
+      _isPersistingRecoveryState = false;
+      if (_pendingRecoveryPersistenceState != null && !_isDisposed) {
+        _isPersistingRecoveryState = true;
+        _recoveryPersistence = _drainRecoveryPersistenceQueue();
+      }
+    }
+  }
+
+  bool _hasImmediateRecoveryIdentityChange(
+    ConnectionWorkspaceRecoveryState? snapshot,
+  ) {
+    final referenceSnapshot =
+        _pendingRecoveryPersistenceState ?? _lastPersistedRecoveryState;
+    return referenceSnapshot?.connectionId != snapshot?.connectionId ||
+        referenceSnapshot?.selectedThreadId != snapshot?.selectedThreadId;
   }
 
   ConnectionWorkspaceRecoveryState? _selectedRecoveryStateSnapshot({

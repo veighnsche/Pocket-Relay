@@ -809,6 +809,140 @@ void main() {
     },
   );
 
+  test(
+    'selected lane draft bursts debounce into one persisted recovery snapshot',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final recoveryStore = _RecordingConnectionWorkspaceRecoveryStore(
+        initialState: const ConnectionWorkspaceRecoveryState(
+          connectionId: 'conn_primary',
+          draftText: '',
+        ),
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        recoveryStore: recoveryStore,
+        recoveryPersistenceDebounceDuration: Duration.zero,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      recoveryStore.savedStates.clear();
+      final binding = controller.bindingForConnectionId('conn_primary')!;
+
+      binding.restoreComposerDraft('D');
+      binding.restoreComposerDraft('Dr');
+      binding.restoreComposerDraft('Draft');
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+
+      expect(recoveryStore.savedStates, hasLength(1));
+      expect(recoveryStore.savedStates.single?.draftText, 'Draft');
+      expect(recoveryStore.savedStates.single?.connectionId, 'conn_primary');
+    },
+  );
+
+  test('dispose flushes a pending debounced recovery snapshot', () async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final recoveryStore = _RecordingConnectionWorkspaceRecoveryStore(
+      initialState: const ConnectionWorkspaceRecoveryState(
+        connectionId: 'conn_primary',
+        draftText: '',
+      ),
+    );
+    final controller = _buildWorkspaceController(
+      clientsById: clientsById,
+      recoveryStore: recoveryStore,
+      recoveryPersistenceDebounceDuration: const Duration(minutes: 5),
+    );
+    addTearDown(() async {
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    recoveryStore.savedStates.clear();
+    final binding = controller.bindingForConnectionId('conn_primary')!;
+
+    binding.restoreComposerDraft('Pending draft');
+    controller.dispose();
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+
+    expect(recoveryStore.savedStates, isNotEmpty);
+    expect(recoveryStore.savedStates.last?.connectionId, 'conn_primary');
+    expect(recoveryStore.savedStates.last?.draftText, 'Pending draft');
+  });
+
+  test(
+    'selected lane thread changes persist immediately without waiting for debounce',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
+      final recoveryStore = _RecordingConnectionWorkspaceRecoveryStore(
+        initialState: const ConnectionWorkspaceRecoveryState(
+          connectionId: 'conn_primary',
+          draftText: '',
+        ),
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        recoveryStore: recoveryStore,
+        recoveryPersistenceDebounceDuration: const Duration(minutes: 5),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      recoveryStore.savedStates.clear();
+      final binding = controller.bindingForConnectionId('conn_primary')!;
+
+      await binding.sessionController.selectConversationForResume(
+        'thread_saved',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+
+      expect(recoveryStore.savedStates, isNotEmpty);
+      expect(recoveryStore.savedStates.last?.connectionId, 'conn_primary');
+      expect(recoveryStore.savedStates.last?.selectedThreadId, 'thread_saved');
+    },
+  );
+
+  test('non-selected lane changes do not persist recovery snapshots', () async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final recoveryStore = _RecordingConnectionWorkspaceRecoveryStore(
+      initialState: const ConnectionWorkspaceRecoveryState(
+        connectionId: 'conn_primary',
+        draftText: '',
+      ),
+    );
+    final controller = _buildWorkspaceController(
+      clientsById: clientsById,
+      recoveryStore: recoveryStore,
+      recoveryPersistenceDebounceDuration: Duration.zero,
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await controller.instantiateConnection('conn_secondary');
+    controller.selectConnection('conn_primary');
+    recoveryStore.savedStates.clear();
+
+    controller
+        .bindingForConnectionId('conn_secondary')!
+        .restoreComposerDraft('Ignored draft');
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+
+    expect(recoveryStore.savedStates, isEmpty);
+    expect(await recoveryStore.load(), recoveryStore.initialState);
+  });
+
   test('terminateConnection refuses to close a busy live lane', () async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final controller = _buildWorkspaceController(clientsById: clientsById);
@@ -1239,6 +1373,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
   MemoryCodexConnectionRepository? repository,
   ConnectionModelCatalogStore? modelCatalogStore,
   ConnectionWorkspaceRecoveryStore? recoveryStore,
+  Duration? recoveryPersistenceDebounceDuration,
   WorkspaceNow? now,
 }) {
   final resolvedRepository =
@@ -1261,6 +1396,9 @@ ConnectionWorkspaceController _buildWorkspaceController({
     connectionRepository: resolvedRepository,
     modelCatalogStore: modelCatalogStore,
     recoveryStore: recoveryStore,
+    recoveryPersistenceDebounceDuration:
+        recoveryPersistenceDebounceDuration ??
+        const Duration(milliseconds: 250),
     now: now,
     laneBindingFactory: ({required connectionId, required connection}) {
       final appServerClient = clientsById[connectionId]!;
@@ -1279,6 +1417,27 @@ ConnectionWorkspaceController _buildWorkspaceController({
       );
     },
   );
+}
+
+class _RecordingConnectionWorkspaceRecoveryStore
+    implements ConnectionWorkspaceRecoveryStore {
+  _RecordingConnectionWorkspaceRecoveryStore({this.initialState});
+
+  final ConnectionWorkspaceRecoveryState? initialState;
+  final List<ConnectionWorkspaceRecoveryState?> savedStates =
+      <ConnectionWorkspaceRecoveryState?>[];
+  ConnectionWorkspaceRecoveryState? _state;
+
+  @override
+  Future<ConnectionWorkspaceRecoveryState?> load() async {
+    return _state ?? initialState;
+  }
+
+  @override
+  Future<void> save(ConnectionWorkspaceRecoveryState? state) async {
+    _state = state;
+    savedStates.add(state);
+  }
 }
 
 ConnectionProfile _profile(String label, String host) {

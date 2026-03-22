@@ -26,9 +26,7 @@ class ConnectionWorkspaceRecoveryState {
     };
   }
 
-  factory ConnectionWorkspaceRecoveryState.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory ConnectionWorkspaceRecoveryState.fromJson(Map<String, dynamic> json) {
     return ConnectionWorkspaceRecoveryState(
       connectionId: _normalizedRecoveryString(json['connectionId']) ?? '',
       draftText: json['draftText'] as String? ?? '',
@@ -36,6 +34,19 @@ class ConnectionWorkspaceRecoveryState {
       backgroundedAt: _parseRecoveryDateTime(json['backgroundedAt']),
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ConnectionWorkspaceRecoveryState &&
+        other.connectionId == connectionId &&
+        other.draftText == draftText &&
+        other.selectedThreadId == selectedThreadId &&
+        other.backgroundedAt == backgroundedAt;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(connectionId, draftText, selectedThreadId, backgroundedAt);
 }
 
 abstract interface class ConnectionWorkspaceRecoveryStore {
@@ -78,9 +89,8 @@ class SecureConnectionWorkspaceRecoveryStore
   static const _preferencesMigrationKey =
       'pocket_relay.workspace_recovery_async_migration_complete';
 
-  SecureConnectionWorkspaceRecoveryStore({
-    SharedPreferencesAsync? preferences,
-  }) : _preferences = preferences ?? SharedPreferencesAsync();
+  SecureConnectionWorkspaceRecoveryStore({SharedPreferencesAsync? preferences})
+    : _preferences = preferences ?? SharedPreferencesAsync();
 
   final SharedPreferencesAsync _preferences;
   Future<void>? _preferencesReady;

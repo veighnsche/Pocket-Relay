@@ -23,6 +23,7 @@ class ChatRootAdapter extends StatefulWidget {
     required this.laneBinding,
     required this.platformPolicy,
     required this.onConnectionSettingsRequested,
+    this.screenPresenter = const ChatScreenPresenter(),
     this.overlayDelegate = const FlutterChatRootOverlayDelegate(),
     this.supplementalMenuActions = const <ChatChromeMenuAction>[],
     this.laneRestartAction,
@@ -33,6 +34,7 @@ class ChatRootAdapter extends StatefulWidget {
   final PocketPlatformPolicy platformPolicy;
   final Future<void> Function(ChatConnectionSettingsLaunchContract payload)
   onConnectionSettingsRequested;
+  final ChatScreenPresenter screenPresenter;
   final ChatRootOverlayDelegate overlayDelegate;
   final List<ChatChromeMenuAction> supplementalMenuActions;
   final ChatLaneRestartActionContract? laneRestartAction;
@@ -44,7 +46,6 @@ class ChatRootAdapter extends StatefulWidget {
 
 class _ChatRootAdapterState extends State<ChatRootAdapter> {
   final _effectMapper = const ChatScreenEffectMapper();
-  final _screenPresenter = const ChatScreenPresenter();
   StreamSubscription<ChatScreenEffect>? _screenEffectSubscription;
   ConnectionMode? _preferredEmptyStateConnectionMode;
 
@@ -77,18 +78,34 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     final laneBinding = widget.laneBinding;
 
     return AnimatedBuilder(
-      animation: Listenable.merge(<Listenable>[
-        laneBinding.sessionController,
-        laneBinding.composerDraftHost,
-        laneBinding.transcriptFollowHost,
-      ]),
+      animation: laneBinding.sessionController,
       builder: (context, _) {
-        final screen = _buildScreenContract();
+        final sessionScreen = _buildSessionScreenContract();
+        final screen = sessionScreen.compose(
+          transcriptFollow: laneBinding.transcriptFollowHost.contract,
+          composerDraft: laneBinding.composerDraftHost.draft,
+        );
         return FlutterChatScreenRenderer(
           screen: screen,
           appChrome: _buildAppChrome(screen),
-          transcriptRegion: _buildTranscriptRegion(screen),
-          composerRegion: _buildComposerRegion(screen),
+          transcriptRegion: _ChatTranscriptRegionHost(
+            sessionScreen: sessionScreen,
+            laneBinding: laneBinding,
+            platformPolicy: widget.platformPolicy,
+            onScreenAction: _handleScreenAction,
+            onSelectConnectionMode: _selectConnectionMode,
+            onRequestChangedFileDiff: _requestChangedFileDiff,
+            onContinueFromUserMessage: _continueFromUserMessage,
+          ),
+          composerRegion: _ChatComposerRegionHost(
+            sessionScreen: sessionScreen,
+            laneBinding: laneBinding,
+            platformPolicy: widget.platformPolicy,
+            onSendPrompt: _sendPrompt,
+            onConversationRecoveryAction: _handleConversationRecoveryAction,
+            onHistoricalConversationRestoreAction:
+                _handleHistoricalConversationRestoreAction,
+          ),
           onStopActiveTurn: _stopActiveTurn,
           laneRestartAction: widget.laneRestartAction,
           onRestartLane: widget.onRestartLane,
@@ -107,51 +124,11 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
     );
   }
 
-  Widget _buildTranscriptRegion(ChatScreenContract screen) {
+  ChatScreenSessionContract _buildSessionScreenContract() {
     final laneBinding = widget.laneBinding;
     final sessionController = laneBinding.sessionController;
 
-    return FlutterChatTranscriptRegion(
-      screen: screen,
-      surfaceChangeToken: sessionController.sessionState,
-      platformBehavior: widget.platformPolicy.behavior,
-      onScreenAction: (action) => _handleScreenAction(action, screen),
-      onSelectTimeline: sessionController.selectTimeline,
-      onSelectConnectionMode: _selectConnectionMode,
-      onAutoFollowEligibilityChanged: (isNearBottom) {
-        laneBinding.transcriptFollowHost.updateAutoFollowEligibility(
-          isNearBottom: isNearBottom,
-        );
-      },
-      onApproveRequest: sessionController.approveRequest,
-      onDenyRequest: sessionController.denyRequest,
-      onOpenChangedFileDiff: _requestChangedFileDiff,
-      onSubmitUserInput: sessionController.submitUserInput,
-      onSaveHostFingerprint: sessionController.saveObservedHostFingerprint,
-      onContinueFromUserMessage: _continueFromUserMessage,
-    );
-  }
-
-  Widget _buildComposerRegion(ChatScreenContract screen) {
-    return FlutterChatComposerRegion(
-      platformBehavior: widget.platformPolicy.behavior,
-      conversationRecoveryNotice: screen.conversationRecoveryNotice,
-      historicalConversationRestoreNotice:
-          screen.historicalConversationRestoreNotice,
-      composer: screen.composer,
-      onComposerDraftChanged: widget.laneBinding.composerDraftHost.updateDraft,
-      onSendPrompt: _sendPrompt,
-      onConversationRecoveryAction: _handleConversationRecoveryAction,
-      onHistoricalConversationRestoreAction:
-          _handleHistoricalConversationRestoreAction,
-    );
-  }
-
-  ChatScreenContract _buildScreenContract() {
-    final laneBinding = widget.laneBinding;
-    final sessionController = laneBinding.sessionController;
-
-    return _screenPresenter.present(
+    return widget.screenPresenter.presentSession(
       isLoading: sessionController.isLoading,
       profile: sessionController.profile,
       secrets: sessionController.secrets,
@@ -159,10 +136,8 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       conversationRecoveryState: sessionController.conversationRecoveryState,
       historicalConversationRestoreState:
           sessionController.historicalConversationRestoreState,
-      composerDraft: laneBinding.composerDraftHost.draft,
       effectiveModelSupportsImages:
           sessionController.currentModelSupportsImageInput,
-      transcriptFollow: laneBinding.transcriptFollowHost.contract,
       preferredConnectionMode: _preferredEmptyStateConnectionMode,
     );
   }
@@ -220,4 +195,105 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
 
   void _showTransientFeedback(String message) =>
       _showChatTransientFeedback(this, message);
+}
+
+class _ChatTranscriptRegionHost extends StatelessWidget {
+  const _ChatTranscriptRegionHost({
+    required this.sessionScreen,
+    required this.laneBinding,
+    required this.platformPolicy,
+    required this.onScreenAction,
+    required this.onSelectConnectionMode,
+    required this.onRequestChangedFileDiff,
+    required this.onContinueFromUserMessage,
+  });
+
+  final ChatScreenSessionContract sessionScreen;
+  final ConnectionLaneBinding laneBinding;
+  final PocketPlatformPolicy platformPolicy;
+  final void Function(ChatScreenActionId action, ChatScreenContract screen)
+  onScreenAction;
+  final ValueChanged<ConnectionMode> onSelectConnectionMode;
+  final void Function(ChatChangedFileDiffContract diff)
+  onRequestChangedFileDiff;
+  final Future<void> Function(String blockId) onContinueFromUserMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final sessionController = laneBinding.sessionController;
+
+    return AnimatedBuilder(
+      animation: laneBinding.transcriptFollowHost,
+      builder: (context, _) {
+        final screen = sessionScreen.compose(
+          transcriptFollow: laneBinding.transcriptFollowHost.contract,
+          composerDraft: laneBinding.composerDraftHost.draft,
+        );
+        return FlutterChatTranscriptRegion(
+          screen: screen,
+          surfaceChangeToken: sessionController.sessionState,
+          platformBehavior: platformPolicy.behavior,
+          onScreenAction: (action) => onScreenAction(action, screen),
+          onSelectTimeline: sessionController.selectTimeline,
+          onSelectConnectionMode: onSelectConnectionMode,
+          onAutoFollowEligibilityChanged: (isNearBottom) {
+            laneBinding.transcriptFollowHost.updateAutoFollowEligibility(
+              isNearBottom: isNearBottom,
+            );
+          },
+          onApproveRequest: sessionController.approveRequest,
+          onDenyRequest: sessionController.denyRequest,
+          onOpenChangedFileDiff: onRequestChangedFileDiff,
+          onSubmitUserInput: sessionController.submitUserInput,
+          onSaveHostFingerprint: sessionController.saveObservedHostFingerprint,
+          onContinueFromUserMessage: onContinueFromUserMessage,
+        );
+      },
+    );
+  }
+}
+
+class _ChatComposerRegionHost extends StatelessWidget {
+  const _ChatComposerRegionHost({
+    required this.sessionScreen,
+    required this.laneBinding,
+    required this.platformPolicy,
+    required this.onSendPrompt,
+    required this.onConversationRecoveryAction,
+    required this.onHistoricalConversationRestoreAction,
+  });
+
+  final ChatScreenSessionContract sessionScreen;
+  final ConnectionLaneBinding laneBinding;
+  final PocketPlatformPolicy platformPolicy;
+  final Future<void> Function() onSendPrompt;
+  final void Function(ChatConversationRecoveryActionId action)
+  onConversationRecoveryAction;
+  final void Function(ChatHistoricalConversationRestoreActionId action)
+  onHistoricalConversationRestoreAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: laneBinding.composerDraftHost,
+      builder: (context, _) {
+        final screen = sessionScreen.compose(
+          transcriptFollow: laneBinding.transcriptFollowHost.contract,
+          composerDraft: laneBinding.composerDraftHost.draft,
+        );
+        return FlutterChatComposerRegion(
+          platformBehavior: platformPolicy.behavior,
+          conversationRecoveryNotice: screen.conversationRecoveryNotice,
+          historicalConversationRestoreNotice:
+              screen.historicalConversationRestoreNotice,
+          composer: screen.composer,
+          onComposerDraftChanged: laneBinding.composerDraftHost.updateDraft,
+          onSendPrompt: onSendPrompt,
+          onConversationRecoveryAction: onConversationRecoveryAction,
+          onHistoricalConversationRestoreAction:
+              onHistoricalConversationRestoreAction,
+        );
+      },
+    );
+  }
 }
