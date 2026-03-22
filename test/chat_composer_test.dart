@@ -8,12 +8,13 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_con
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer.dart';
 
 void main() {
-  test('local image text elements use UTF-8 byte offsets', () {
+  test('image text elements use UTF-8 byte offsets', () {
     final draft = const ChatComposerDraft(
       text: 'é [Image #1]',
-      localImageAttachments: <ChatComposerLocalImageAttachment>[
-        ChatComposerLocalImageAttachment(
-          path: '/tmp/reference.png',
+      imageAttachments: <ChatComposerImageAttachment>[
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+          displayName: 'reference.png',
           placeholder: '[Image #1]',
         ),
       ],
@@ -25,17 +26,19 @@ void main() {
   });
 
   test(
-    'normalizes local image placeholders by text order and renumbers them',
+    'normalizes image placeholders by text order and renumbers them',
     () {
       final draft = const ChatComposerDraft(
         text: '[Image #2] then [Image #1]',
-        localImageAttachments: <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/second.png',
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,c2Vjb25k',
+            displayName: 'second.png',
             placeholder: '[Image #1]',
           ),
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/first.png',
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+            displayName: 'first.png',
             placeholder: '[Image #2]',
           ),
         ],
@@ -43,14 +46,16 @@ void main() {
 
       expect(draft.text, '[Image #1] then [Image #2]');
       expect(
-        draft.localImageAttachments,
-        const <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/first.png',
+        draft.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+            displayName: 'first.png',
             placeholder: '[Image #1]',
           ),
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/second.png',
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,c2Vjb25k',
+            displayName: 'second.png',
             placeholder: '[Image #2]',
           ),
         ],
@@ -59,33 +64,39 @@ void main() {
   );
 
   test(
-    'insertLocalImage preserves placeholder order when inserting before an existing image',
+    'insertImageAttachment preserves placeholder order when inserting before an existing image',
     () {
       final insertion =
           const ChatComposerDraft(
             text: 'Before [Image #1]',
-            localImageAttachments: <ChatComposerLocalImageAttachment>[
-              ChatComposerLocalImageAttachment(
-                path: '/tmp/existing.png',
+            imageAttachments: <ChatComposerImageAttachment>[
+              ChatComposerImageAttachment(
+                imageUrl: 'data:image/png;base64,ZXhpc3Rpbmc=',
+                displayName: 'existing.png',
                 placeholder: '[Image #1]',
               ),
             ],
-          ).insertLocalImage(
-            path: '/tmp/earlier.png',
+          ).insertImageAttachment(
+            attachment: const ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,ZWFybGllcg==',
+              displayName: 'earlier.png',
+            ),
             selectionStart: 0,
             selectionEnd: 0,
           );
 
       expect(insertion.draft.text, '[Image #1]Before [Image #2]');
       expect(
-        insertion.draft.localImageAttachments,
-        const <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/earlier.png',
+        insertion.draft.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,ZWFybGllcg==',
+            displayName: 'earlier.png',
             placeholder: '[Image #1]',
           ),
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/existing.png',
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,ZXhpc3Rpbmc=',
+            displayName: 'existing.png',
             placeholder: '[Image #2]',
           ),
         ],
@@ -135,18 +146,18 @@ void main() {
   });
 
   testWidgets(
-    'local attach inserts an image placeholder at the current caret position',
+    'attach inserts an image placeholder at the current caret position',
     (tester) async {
       ChatComposerDraft? latestDraft;
 
       await tester.pumpWidget(
         _buildComposerApp(
           platform: TargetPlatform.macOS,
-          contract: _composerContract(allowsLocalImageAttachment: true),
+          contract: _composerContract(allowsImageAttachment: true),
           onChanged: (draft) {
             latestDraft = draft;
           },
-          localImagePicker: () async => '/tmp/reference.png',
+          imageAttachmentPicker: () async => _referenceImageAttachment(),
         ),
       );
 
@@ -158,17 +169,18 @@ void main() {
       controller.selection = const TextSelection.collapsed(offset: 4);
       await tester.pump();
 
-      await tester.tap(find.byKey(const ValueKey('attach_local_image')));
+      await tester.tap(find.byKey(const ValueKey('attach_image')));
       await tester.pump();
 
       expect(controller.text, 'See [Image #1] for details');
       expect(find.text('[Image #1] reference.png'), findsOneWidget);
       expect(latestDraft?.text, 'See [Image #1] for details');
       expect(
-        latestDraft?.localImageAttachments,
-        const <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/reference.png',
+        latestDraft?.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
             placeholder: '[Image #1]',
           ),
         ],
@@ -179,12 +191,12 @@ void main() {
     },
   );
 
-  testWidgets('remote composer does not expose the local image attach action', (
+  testWidgets('composer hides the image attach action when disallowed', (
     tester,
   ) async {
     await tester.pumpWidget(_buildComposerApp(contract: _composerContract()));
 
-    expect(find.byKey(const ValueKey('attach_local_image')), findsNothing);
+    expect(find.byKey(const ValueKey('attach_image')), findsNothing);
   });
 
   testWidgets(
@@ -198,19 +210,21 @@ void main() {
           contract: ChatComposerContract(
             draft: const ChatComposerDraft(
               text: 'A[Image #1]B[Image #2]C',
-              localImageAttachments: <ChatComposerLocalImageAttachment>[
-                ChatComposerLocalImageAttachment(
-                  path: '/tmp/first.png',
+              imageAttachments: <ChatComposerImageAttachment>[
+                ChatComposerImageAttachment(
+                  imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+                  displayName: 'first.png',
                   placeholder: '[Image #1]',
                 ),
-                ChatComposerLocalImageAttachment(
-                  path: '/tmp/second.png',
+                ChatComposerImageAttachment(
+                  imageUrl: 'data:image/png;base64,c2Vjb25k',
+                  displayName: 'second.png',
                   placeholder: '[Image #2]',
                 ),
               ],
             ).normalized(),
             isSendActionEnabled: true,
-            allowsLocalImageAttachment: true,
+            allowsImageAttachment: true,
             placeholder: 'Message Codex',
           ),
           onChanged: (draft) {
@@ -238,10 +252,11 @@ void main() {
       expect(controller.text, 'AB[Image #1]C');
       expect(latestDraft?.text, 'AB[Image #1]C');
       expect(
-        latestDraft?.localImageAttachments,
-        const <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/second.png',
+        latestDraft?.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,c2Vjb25k',
+            displayName: 'second.png',
             placeholder: '[Image #1]',
           ),
         ],
@@ -260,15 +275,16 @@ void main() {
           contract: ChatComposerContract(
             draft: const ChatComposerDraft(
               text: 'A[Image #1]B',
-              localImageAttachments: <ChatComposerLocalImageAttachment>[
-                ChatComposerLocalImageAttachment(
-                  path: '/tmp/first.png',
+              imageAttachments: <ChatComposerImageAttachment>[
+                ChatComposerImageAttachment(
+                  imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+                  displayName: 'first.png',
                   placeholder: '[Image #1]',
                 ),
               ],
             ).normalized(),
             isSendActionEnabled: true,
-            allowsLocalImageAttachment: true,
+            allowsImageAttachment: true,
             placeholder: 'Message Codex',
           ),
           onChanged: (draft) {
@@ -296,10 +312,11 @@ void main() {
       expect(controller.text, 'A[Image #1]xB');
       expect(latestDraft?.text, 'A[Image #1]xB');
       expect(
-        latestDraft?.localImageAttachments,
-        const <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/first.png',
+        latestDraft?.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+            displayName: 'first.png',
             placeholder: '[Image #1]',
           ),
         ],
@@ -464,6 +481,34 @@ void main() {
     },
   );
 
+  testWidgets('enables send for an image-only draft', (tester) async {
+    await tester.pumpWidget(
+      _buildComposerApp(
+        contract: ChatComposerContract(
+          draft: const ChatComposerDraft(
+            text: '[Image #1]',
+            imageAttachments: <ChatComposerImageAttachment>[
+              ChatComposerImageAttachment(
+                imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+                displayName: 'reference.png',
+                placeholder: '[Image #1]',
+              ),
+            ],
+          ).normalized(),
+          isSendActionEnabled: true,
+          allowsImageAttachment: true,
+          placeholder: 'Message Codex',
+        ),
+      ),
+    );
+
+    final sendButton = tester.widget<IconButton>(
+      find.byKey(const ValueKey('send')),
+    );
+
+    expect(sendButton.onPressed, isNotNull);
+  });
+
   testWidgets('uses a compact chat-style input shell', (tester) async {
     await tester.pumpWidget(_buildComposerApp(contract: _composerContract()));
 
@@ -530,7 +575,7 @@ Widget _buildComposerApp({
   TargetPlatform platform = TargetPlatform.android,
   ValueChanged<ChatComposerDraft>? onChanged,
   Future<void> Function()? onSend,
-  Future<String?> Function()? localImagePicker,
+  Future<ChatComposerImageAttachment?> Function()? imageAttachmentPicker,
   bool includeOutsideTapTarget = false,
 }) {
   return MaterialApp(
@@ -552,7 +597,7 @@ Widget _buildComposerApp({
             contract: contract,
             onChanged: onChanged ?? (_) {},
             onSend: onSend ?? () async {},
-            localImagePicker: localImagePicker,
+            imageAttachmentPicker: imageAttachmentPicker,
           ),
         ],
       ),
@@ -563,13 +608,20 @@ Widget _buildComposerApp({
 ChatComposerContract _composerContract({
   String draftText = '',
   bool isSendActionEnabled = true,
-  bool allowsLocalImageAttachment = false,
+  bool allowsImageAttachment = false,
 }) {
   return ChatComposerContract(
     draft: ChatComposerDraft(text: draftText),
     isSendActionEnabled: isSendActionEnabled,
-    allowsLocalImageAttachment: allowsLocalImageAttachment,
+    allowsImageAttachment: allowsImageAttachment,
     placeholder: 'Message Codex',
+  );
+}
+
+ChatComposerImageAttachment _referenceImageAttachment() {
+  return const ChatComposerImageAttachment(
+    imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+    displayName: 'reference.png',
   );
 }
 

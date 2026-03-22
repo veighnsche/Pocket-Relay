@@ -283,7 +283,9 @@ void main() {
             placeholder: '[Image #1]',
           ),
         ],
-        localImagePaths: <String>['/tmp/image.png'],
+        images: <CodexAppServerImageInput>[
+          CodexAppServerImageInput(url: 'data:image/png;base64,aW1hZ2U='),
+        ],
       ),
     );
 
@@ -295,6 +297,10 @@ void main() {
       'threadId': 'thread_123',
       'input': <Object>[
         <String, Object?>{
+          'type': 'image',
+          'url': 'data:image/png;base64,aW1hZ2U=',
+        },
+        <String, Object?>{
           'type': 'text',
           'text': 'Check [Image #1]',
           'text_elements': <Object>[
@@ -304,7 +310,6 @@ void main() {
             },
           ],
         },
-        <String, Object?>{'type': 'localImage', 'path': '/tmp/image.png'},
       ],
     });
 

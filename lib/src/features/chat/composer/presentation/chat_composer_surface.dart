@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 
@@ -15,14 +16,14 @@ class ChatComposerSurface extends StatefulWidget {
     required this.contract,
     required this.onChanged,
     required this.onSend,
-    this.localImagePicker,
+    this.imageAttachmentPicker,
   });
 
   final PocketPlatformBehavior platformBehavior;
   final ChatComposerContract contract;
   final ValueChanged<ChatComposerDraft> onChanged;
   final Future<void> Function() onSend;
-  final Future<String?> Function()? localImagePicker;
+  final Future<ChatComposerImageAttachment?> Function()? imageAttachmentPicker;
 
   @override
   State<ChatComposerSurface> createState() => _ChatComposerSurfaceState();
@@ -41,8 +42,15 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   static const _desktopInsertNewlineIntent = _DesktopInsertNewlineIntent();
   static const _imageTypeGroup = XTypeGroup(
     label: 'images',
-    extensions: <String>['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'heic'],
+    extensions: <String>['png', 'jpg', 'jpeg', 'gif', 'webp'],
+    mimeTypes: <String>[
+      'image/png',
+      'image/jpeg',
+      'image/gif',
+      'image/webp',
+    ],
   );
+  static const _imageAttachmentLoader = ChatComposerImageAttachmentLoader();
   late final TextEditingController _controller;
   late final _AtomicPlaceholderTextInputFormatter _placeholderFormatter;
   late ChatComposerDraft _draft;
@@ -108,9 +116,9 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
                   width: 36,
                   height: 36,
                   child: IconButton(
-                    key: const ValueKey('attach_local_image'),
+                    key: const ValueKey('attach_image'),
                     tooltip: 'Attach image',
-                    onPressed: _handleAttachLocalImageTriggered,
+                    onPressed: _handleAttachImageTriggered,
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.image_outlined, size: 18),
                   ),
@@ -134,7 +142,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   }
 
   Widget _buildInputRegion(BuildContext context) {
-    final attachmentSummaries = _draft.localImageAttachments
+    final attachmentSummaries = _draft.imageAttachments
         .map((attachment) => attachment.summaryLabel)
         .toList(growable: false);
 
@@ -242,13 +250,11 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   }
 
   bool get _showsLocalImageAttachmentAction {
-    return widget.contract.allowsLocalImageAttachment &&
-        widget.platformBehavior.supportsLocalConnectionMode;
+    return widget.contract.allowsImageAttachment;
   }
 
   bool get _isSendActionEnabled {
-    return widget.contract.isSendActionEnabled &&
-        _controller.text.trim().isNotEmpty;
+    return widget.contract.isSendActionEnabled && !_draft.isEmpty;
   }
 
   void _handleChanged(String value) {
@@ -269,27 +275,60 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     await widget.onSend();
   }
 
-  Future<void> _handleAttachLocalImageTriggered() async {
-    final imagePath = await _pickLocalImagePath();
-    if (!mounted || imagePath == null || imagePath.trim().isEmpty) {
-      return;
+  Future<void> _handleAttachImageTriggered() async {
+    try {
+      final imageAttachment = await _pickImageAttachment();
+      if (!mounted || imageAttachment == null) {
+        return;
+      }
+
+      _draft = _draft.copyWith(text: _controller.text).normalized();
+      final currentSelection = _controller.selection;
+      final insertion = _draft.insertImageAttachment(
+        attachment: imageAttachment,
+        selectionStart: currentSelection.start,
+        selectionEnd: currentSelection.end,
+      );
+      _draft = insertion.draft;
+      _controller.value = _controller.value.copyWith(
+        text: _draft.text,
+        selection: TextSelection.collapsed(offset: insertion.selectionOffset),
+        composing: TextRange.empty,
+      );
+      setState(() {});
+      widget.onChanged(_draft);
+    } on ChatComposerImageAttachmentLoadException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showTransientMessage(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showTransientMessage('Could not attach image.');
+    }
+  }
+
+  void _showTransientMessage(String message) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<ChatComposerImageAttachment?> _pickImageAttachment() async {
+    if (widget.imageAttachmentPicker case final picker?) {
+      return picker();
     }
 
-    _draft = _draft.copyWith(text: _controller.text).normalized();
-    final currentSelection = _controller.selection;
-    final insertion = _draft.insertLocalImage(
-      path: imagePath.trim(),
-      selectionStart: currentSelection.start,
-      selectionEnd: currentSelection.end,
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[_imageTypeGroup],
     );
-    _draft = insertion.draft;
-    _controller.value = _controller.value.copyWith(
-      text: _draft.text,
-      selection: TextSelection.collapsed(offset: insertion.selectionOffset),
-      composing: TextRange.empty,
-    );
-    setState(() {});
-    widget.onChanged(_draft);
+    if (file == null) {
+      return null;
+    }
+
+    return _imageAttachmentLoader.loadFromXFile(file);
   }
 
   void _dismissKeyboard() {
@@ -322,16 +361,6 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     widget.onChanged(_draft);
   }
 
-  Future<String?> _pickLocalImagePath() async {
-    if (widget.localImagePicker case final picker?) {
-      return picker();
-    }
-
-    final file = await openFile(
-      acceptedTypeGroups: const <XTypeGroup>[_imageTypeGroup],
-    );
-    return file?.path;
-  }
 }
 
 class _ComposerAttachmentSummary extends StatelessWidget {

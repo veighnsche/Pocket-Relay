@@ -163,13 +163,13 @@ class ChatComposerContract {
   const ChatComposerContract({
     this.draft = const ChatComposerDraft(),
     required this.isSendActionEnabled,
-    this.allowsLocalImageAttachment = false,
+    this.allowsImageAttachment = false,
     required this.placeholder,
   });
 
   final ChatComposerDraft draft;
   final bool isSendActionEnabled;
-  final bool allowsLocalImageAttachment;
+  final bool allowsImageAttachment;
   final String placeholder;
 
   String get draftText => draft.text;

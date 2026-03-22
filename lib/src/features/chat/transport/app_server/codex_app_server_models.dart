@@ -299,7 +299,7 @@ class CodexAppServerTurnInput {
   const CodexAppServerTurnInput({
     this.text = '',
     this.textElements = const <CodexAppServerTextElement>[],
-    this.localImagePaths = const <String>[],
+    this.images = const <CodexAppServerImageInput>[],
   });
 
   const CodexAppServerTurnInput.text(String text)
@@ -307,27 +307,40 @@ class CodexAppServerTurnInput {
 
   final String text;
   final List<CodexAppServerTextElement> textElements;
-  final List<String> localImagePaths;
+  final List<CodexAppServerImageInput> images;
 
   bool get hasText => text.trim().isNotEmpty || textElements.isNotEmpty;
-  bool get hasLocalImages =>
-      localImagePaths.any((path) => path.trim().isNotEmpty);
-  bool get isEmpty => !hasText && !hasLocalImages;
+  bool get hasImages => images.any((image) => image.url.trim().isNotEmpty);
+  bool get isEmpty => !hasText && !hasImages;
 
   @override
   bool operator ==(Object other) {
     return other is CodexAppServerTurnInput &&
         other.text == text &&
         _listEquals(other.textElements, textElements) &&
-        _listEquals(other.localImagePaths, localImagePaths);
+        _listEquals(other.images, images);
   }
 
   @override
   int get hashCode => Object.hash(
     text,
     Object.hashAll(textElements),
-    Object.hashAll(localImagePaths),
+    Object.hashAll(images),
   );
+}
+
+class CodexAppServerImageInput {
+  const CodexAppServerImageInput({required this.url});
+
+  final String url;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerImageInput && other.url == url;
+  }
+
+  @override
+  int get hashCode => url.hashCode;
 }
 
 class CodexAppServerTextElement {

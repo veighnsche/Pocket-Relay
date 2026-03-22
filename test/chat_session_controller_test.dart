@@ -82,27 +82,24 @@ void main() {
   });
 
   test(
-    'sendDraft forwards structured local image input to the app server',
+    'sendDraft forwards structured image input to the app server',
     () async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
 
-      final profile = _configuredProfile().copyWith(
-        connectionMode: ConnectionMode.local,
-      );
+      final profile = _configuredProfile();
       final controller = ChatSessionController(
         profileStore: MemoryCodexProfileStore(
           initialValue: SavedProfile(
             profile: profile,
-            secrets: const ConnectionSecrets(),
+            secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: profile,
-          secrets: const ConnectionSecrets(),
+          secrets: const ConnectionSecrets(password: 'secret'),
         ),
-        supportsLocalConnectionMode: true,
       );
       addTearDown(controller.dispose);
 
@@ -116,9 +113,10 @@ void main() {
               placeholder: '[Image #1]',
             ),
           ],
-          localImageAttachments: <ChatComposerLocalImageAttachment>[
-            ChatComposerLocalImageAttachment(
-              path: '/tmp/reference.png',
+          imageAttachments: <ChatComposerImageAttachment>[
+            ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+              displayName: 'reference.png',
               placeholder: '[Image #1]',
             ),
           ],
@@ -141,9 +139,10 @@ void main() {
               placeholder: '[Image #1]',
             ),
           ],
-          localImageAttachments: <ChatComposerLocalImageAttachment>[
-            ChatComposerLocalImageAttachment(
-              path: '/tmp/reference.png',
+          imageAttachments: <ChatComposerImageAttachment>[
+            ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+              displayName: 'reference.png',
               placeholder: '[Image #1]',
             ),
           ],
@@ -160,7 +159,11 @@ void main() {
               placeholder: '[Image #1]',
             ),
           ],
-          localImagePaths: <String>['/tmp/reference.png'],
+          images: <CodexAppServerImageInput>[
+            CodexAppServerImageInput(
+              url: 'data:image/png;base64,cmVmZXJlbmNl',
+            ),
+          ],
         ),
         text: 'See [Image #1]',
         model: null,
@@ -473,7 +476,7 @@ void main() {
   );
 
   test(
-    'continueFromUserMessage restores a structured local image draft',
+    'continueFromUserMessage restores a structured image draft',
     () async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_123'] = _rewoundConversationThread(
@@ -481,22 +484,19 @@ void main() {
         );
       addTearDown(appServerClient.close);
 
-      final profile = _configuredProfile().copyWith(
-        connectionMode: ConnectionMode.local,
-      );
+      final profile = _configuredProfile();
       final controller = ChatSessionController(
         profileStore: MemoryCodexProfileStore(
           initialValue: SavedProfile(
             profile: profile,
-            secrets: const ConnectionSecrets(),
+            secrets: const ConnectionSecrets(password: 'secret'),
           ),
         ),
         appServerClient: appServerClient,
         initialSavedProfile: SavedProfile(
           profile: profile,
-          secrets: const ConnectionSecrets(),
+          secrets: const ConnectionSecrets(password: 'secret'),
         ),
-        supportsLocalConnectionMode: true,
       );
       addTearDown(controller.dispose);
 
@@ -511,9 +511,10 @@ void main() {
                 placeholder: '[Image #1]',
               ),
             ],
-            localImageAttachments: <ChatComposerLocalImageAttachment>[
-              ChatComposerLocalImageAttachment(
-                path: '/tmp/reference.png',
+            imageAttachments: <ChatComposerImageAttachment>[
+              ChatComposerImageAttachment(
+                imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+                displayName: 'reference.png',
                 placeholder: '[Image #1]',
               ),
             ],
@@ -549,9 +550,10 @@ void main() {
               placeholder: '[Image #1]',
             ),
           ],
-          localImageAttachments: <ChatComposerLocalImageAttachment>[
-            ChatComposerLocalImageAttachment(
-              path: '/tmp/reference.png',
+          imageAttachments: <ChatComposerImageAttachment>[
+            ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+              displayName: 'reference.png',
               placeholder: '[Image #1]',
             ),
           ],

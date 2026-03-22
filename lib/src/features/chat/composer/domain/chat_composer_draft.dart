@@ -4,51 +4,47 @@ class ChatComposerDraft {
   const ChatComposerDraft({
     this.text = '',
     this.textElements = const <ChatComposerTextElement>[],
-    this.localImageAttachments = const <ChatComposerLocalImageAttachment>[],
+    this.imageAttachments = const <ChatComposerImageAttachment>[],
   });
 
   final String text;
   final List<ChatComposerTextElement> textElements;
-  final List<ChatComposerLocalImageAttachment> localImageAttachments;
+  final List<ChatComposerImageAttachment> imageAttachments;
 
   bool get hasTextElements => textElements.isNotEmpty;
-  bool get hasLocalImageAttachments => localImageAttachments.isNotEmpty;
-  bool get hasStructuredDraft => hasTextElements || hasLocalImageAttachments;
-  bool get isEmpty => text.isEmpty && !hasLocalImageAttachments;
+  bool get hasImageAttachments => imageAttachments.isNotEmpty;
+  bool get hasStructuredDraft => hasTextElements || hasImageAttachments;
+  bool get isEmpty => text.trim().isEmpty && !hasImageAttachments;
 
   ChatComposerDraft copyWith({
     String? text,
     List<ChatComposerTextElement>? textElements,
-    List<ChatComposerLocalImageAttachment>? localImageAttachments,
+    List<ChatComposerImageAttachment>? imageAttachments,
   }) {
     return ChatComposerDraft(
       text: text ?? this.text,
       textElements: textElements ?? this.textElements,
-      localImageAttachments:
-          localImageAttachments ?? this.localImageAttachments,
+      imageAttachments: imageAttachments ?? this.imageAttachments,
     );
   }
 
   ChatComposerDraft normalized() {
-    if (localImageAttachments.isEmpty) {
+    if (imageAttachments.isEmpty) {
       if (textElements.isEmpty) {
         return this;
       }
       return copyWith(textElements: const <ChatComposerTextElement>[]);
     }
 
-    final locatedAttachments = _locatedLocalImageAttachments(
-      text,
-      localImageAttachments,
-    );
+    final locatedAttachments = _locatedImageAttachments(text, imageAttachments);
     if (locatedAttachments.isEmpty) {
       return copyWith(
         textElements: const <ChatComposerTextElement>[],
-        localImageAttachments: const <ChatComposerLocalImageAttachment>[],
+        imageAttachments: const <ChatComposerImageAttachment>[],
       );
     }
 
-    final nextAttachments = <ChatComposerLocalImageAttachment>[];
+    final nextAttachments = <ChatComposerImageAttachment>[];
     final nextTextElementRanges =
         <({int start, int end, String placeholder})>[];
     final buffer = StringBuffer();
@@ -59,7 +55,7 @@ class ChatComposerDraft {
         buffer.write(text.substring(cursor, locatedAttachment.start));
       }
 
-      final normalizedPlaceholder = localImagePlaceholder(index + 1);
+      final normalizedPlaceholder = imagePlaceholder(index + 1);
       final placeholderStart = buffer.length;
       buffer.write(normalizedPlaceholder);
       final placeholderEnd = buffer.length;
@@ -91,7 +87,7 @@ class ChatComposerDraft {
         .toList(growable: false);
 
     if (nextText == text &&
-        _listEquals(nextAttachments, localImageAttachments) &&
+        _listEquals(nextAttachments, imageAttachments) &&
         _listEquals(nextTextElements, textElements)) {
       return this;
     }
@@ -99,12 +95,12 @@ class ChatComposerDraft {
     return copyWith(
       text: nextText,
       textElements: nextTextElements,
-      localImageAttachments: nextAttachments,
+      imageAttachments: nextAttachments,
     );
   }
 
-  ChatComposerDraftInsertion insertLocalImage({
-    required String path,
+  ChatComposerDraftInsertion insertImageAttachment({
+    required ChatComposerImageAttachment attachment,
     required int selectionStart,
     required int selectionEnd,
   }) {
@@ -113,8 +109,8 @@ class ChatComposerDraft {
     final safeEnd = _clampOffset(selectionEnd, normalizedDraft.text.length);
     final rangeStart = safeStart <= safeEnd ? safeStart : safeEnd;
     final rangeEnd = safeStart <= safeEnd ? safeEnd : safeStart;
-    final nextNumber = normalizedDraft.nextLocalImagePlaceholderNumber();
-    final placeholder = localImagePlaceholder(nextNumber);
+    final nextNumber = normalizedDraft.nextImagePlaceholderNumber();
+    final placeholder = imagePlaceholder(nextNumber);
     final nextText = normalizedDraft.text.replaceRange(
       rangeStart,
       rangeEnd,
@@ -122,9 +118,9 @@ class ChatComposerDraft {
     );
     final nextDraft = ChatComposerDraft(
       text: nextText,
-      localImageAttachments: <ChatComposerLocalImageAttachment>[
-        ...normalizedDraft.localImageAttachments,
-        ChatComposerLocalImageAttachment(path: path, placeholder: placeholder),
+      imageAttachments: <ChatComposerImageAttachment>[
+        ...normalizedDraft.imageAttachments,
+        attachment.copyWith(placeholder: placeholder),
       ],
     ).normalized();
 
@@ -134,9 +130,9 @@ class ChatComposerDraft {
     );
   }
 
-  int nextLocalImagePlaceholderNumber() {
+  int nextImagePlaceholderNumber() {
     var maxNumber = 0;
-    for (final attachment in localImageAttachments) {
+    for (final attachment in imageAttachments) {
       final placeholderNumber = _placeholderNumber(attachment.placeholder);
       if (placeholderNumber > maxNumber) {
         maxNumber = placeholderNumber;
@@ -145,10 +141,10 @@ class ChatComposerDraft {
     return maxNumber + 1;
   }
 
-  List<ChatComposerLocalImagePlaceholderSpan> placeholderSpans() {
-    return _locatedLocalImageAttachments(text, localImageAttachments)
+  List<ChatComposerImagePlaceholderSpan> placeholderSpans() {
+    return _locatedImageAttachments(text, imageAttachments)
         .map(
-          (locatedAttachment) => ChatComposerLocalImagePlaceholderSpan(
+          (locatedAttachment) => ChatComposerImagePlaceholderSpan(
             start: locatedAttachment.start,
             end: locatedAttachment.end,
             attachment: locatedAttachment.attachment,
@@ -162,14 +158,14 @@ class ChatComposerDraft {
     return other is ChatComposerDraft &&
         other.text == text &&
         _listEquals(other.textElements, textElements) &&
-        _listEquals(other.localImageAttachments, localImageAttachments);
+        _listEquals(other.imageAttachments, imageAttachments);
   }
 
   @override
   int get hashCode => Object.hash(
     text,
     Object.hashAll(textElements),
-    Object.hashAll(localImageAttachments),
+    Object.hashAll(imageAttachments),
   );
 }
 
@@ -196,44 +192,70 @@ class ChatComposerTextElement {
   int get hashCode => Object.hash(start, end, placeholder);
 }
 
-class ChatComposerLocalImageAttachment {
-  const ChatComposerLocalImageAttachment({
-    required this.path,
+class ChatComposerImageAttachment {
+  const ChatComposerImageAttachment({
+    required this.imageUrl,
+    this.displayName,
+    this.mimeType,
+    this.byteLength,
     this.placeholder,
   });
 
-  final String path;
+  final String imageUrl;
+  final String? displayName;
+  final String? mimeType;
+  final int? byteLength;
   final String? placeholder;
-
-  String get fileName => _pathBasename(path);
 
   String get summaryLabel {
     final normalizedPlaceholder = placeholder?.trim();
-    if (normalizedPlaceholder == null || normalizedPlaceholder.isEmpty) {
-      return fileName;
+    final normalizedDisplayName = displayName?.trim();
+    if (normalizedPlaceholder != null && normalizedPlaceholder.isNotEmpty) {
+      if (normalizedDisplayName == null || normalizedDisplayName.isEmpty) {
+        return normalizedPlaceholder;
+      }
+      return '$normalizedPlaceholder $normalizedDisplayName';
     }
-    return '$normalizedPlaceholder $fileName';
+    if (normalizedDisplayName == null || normalizedDisplayName.isEmpty) {
+      return 'Image';
+    }
+    return normalizedDisplayName;
   }
 
-  ChatComposerLocalImageAttachment copyWith({
-    String? path,
+  ChatComposerImageAttachment copyWith({
+    String? imageUrl,
+    String? displayName,
+    String? mimeType,
+    int? byteLength,
     String? placeholder,
   }) {
-    return ChatComposerLocalImageAttachment(
-      path: path ?? this.path,
+    return ChatComposerImageAttachment(
+      imageUrl: imageUrl ?? this.imageUrl,
+      displayName: displayName ?? this.displayName,
+      mimeType: mimeType ?? this.mimeType,
+      byteLength: byteLength ?? this.byteLength,
       placeholder: placeholder ?? this.placeholder,
     );
   }
 
   @override
   bool operator ==(Object other) {
-    return other is ChatComposerLocalImageAttachment &&
-        other.path == path &&
+    return other is ChatComposerImageAttachment &&
+        other.imageUrl == imageUrl &&
+        other.displayName == displayName &&
+        other.mimeType == mimeType &&
+        other.byteLength == byteLength &&
         other.placeholder == placeholder;
   }
 
   @override
-  int get hashCode => Object.hash(path, placeholder);
+  int get hashCode => Object.hash(
+    imageUrl,
+    displayName,
+    mimeType,
+    byteLength,
+    placeholder,
+  );
 }
 
 class ChatComposerDraftInsertion {
@@ -246,8 +268,8 @@ class ChatComposerDraftInsertion {
   final int selectionOffset;
 }
 
-class ChatComposerLocalImagePlaceholderSpan {
-  const ChatComposerLocalImagePlaceholderSpan({
+class ChatComposerImagePlaceholderSpan {
+  const ChatComposerImagePlaceholderSpan({
     required this.start,
     required this.end,
     required this.attachment,
@@ -255,12 +277,12 @@ class ChatComposerLocalImagePlaceholderSpan {
 
   final int start;
   final int end;
-  final ChatComposerLocalImageAttachment attachment;
+  final ChatComposerImageAttachment attachment;
 
   bool containsOffset(int offset) => start < offset && offset < end;
 }
 
-String localImagePlaceholder(int number) => '[Image #$number]';
+String imagePlaceholder(int number) => '[Image #$number]';
 
 int _utf8ByteOffset(String text, int codeUnitOffset) {
   final safeOffset = _clampOffset(codeUnitOffset, text.length);
@@ -286,23 +308,11 @@ int _placeholderNumber(String? placeholder) {
   return int.tryParse(match?.group(1) ?? '') ?? 0;
 }
 
-String _pathBasename(String path) {
-  final normalized = path.replaceAll('\\', '/');
-  final segments = normalized.split('/');
-  for (var index = segments.length - 1; index >= 0; index -= 1) {
-    final segment = segments[index].trim();
-    if (segment.isNotEmpty) {
-      return segment;
-    }
-  }
-  return path;
-}
-
-List<_LocatedLocalImageAttachment> _locatedLocalImageAttachments(
+List<_LocatedImageAttachment> _locatedImageAttachments(
   String text,
-  List<ChatComposerLocalImageAttachment> attachments,
+  List<ChatComposerImageAttachment> attachments,
 ) {
-  final located = <_LocatedLocalImageAttachment>[];
+  final located = <_LocatedImageAttachment>[];
   final usedStarts = <int>{};
   for (final attachment in attachments) {
     final placeholder = attachment.placeholder?.trim();
@@ -315,7 +325,7 @@ List<_LocatedLocalImageAttachment> _locatedLocalImageAttachments(
       continue;
     }
     located.add(
-      _LocatedLocalImageAttachment(
+      _LocatedImageAttachment(
         start: startOffset,
         end: startOffset + placeholder.length,
         attachment: attachment,
@@ -326,8 +336,8 @@ List<_LocatedLocalImageAttachment> _locatedLocalImageAttachments(
   return located;
 }
 
-class _LocatedLocalImageAttachment {
-  const _LocatedLocalImageAttachment({
+class _LocatedImageAttachment {
+  const _LocatedImageAttachment({
     required this.start,
     required this.end,
     required this.attachment,
@@ -335,7 +345,7 @@ class _LocatedLocalImageAttachment {
 
   final int start;
   final int end;
-  final ChatComposerLocalImageAttachment attachment;
+  final ChatComposerImageAttachment attachment;
 }
 
 bool _listEquals<T>(List<T> left, List<T> right) {

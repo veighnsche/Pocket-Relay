@@ -11,14 +11,14 @@ class ChatComposer extends StatelessWidget {
     required this.contract,
     required this.onChanged,
     required this.onSend,
-    this.localImagePicker,
+    this.imageAttachmentPicker,
   });
 
   final PocketPlatformBehavior platformBehavior;
   final ChatComposerContract contract;
   final ValueChanged<ChatComposerDraft> onChanged;
   final Future<void> Function() onSend;
-  final Future<String?> Function()? localImagePicker;
+  final Future<ChatComposerImageAttachment?> Function()? imageAttachmentPicker;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +27,7 @@ class ChatComposer extends StatelessWidget {
       contract: contract,
       onChanged: onChanged,
       onSend: onSend,
-      localImagePicker: localImagePicker,
+      imageAttachmentPicker: imageAttachmentPicker,
     );
   }
 }

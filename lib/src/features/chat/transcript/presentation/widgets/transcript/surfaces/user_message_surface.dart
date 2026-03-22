@@ -41,7 +41,7 @@ class UserMessageSurface extends StatelessWidget {
       ),
     );
     final canContinueAction = canContinueFromHere && onContinueFromHere != null;
-    final attachmentSummaries = block.draft.localImageAttachments
+    final attachmentSummaries = block.draft.imageAttachments
         .map((attachment) => attachment.summaryLabel)
         .toList(growable: false);
     return Align(

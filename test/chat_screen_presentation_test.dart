@@ -64,7 +64,7 @@ void main() {
         );
         expect(contract.composer.draftText, isEmpty);
         expect(contract.composer.isSendActionEnabled, isTrue);
-        expect(contract.composer.allowsLocalImageAttachment, isFalse);
+        expect(contract.composer.allowsImageAttachment, isTrue);
         expect(contract.connectionSettings.initialProfile, same(profile));
         expect(contract.connectionSettings.initialSecrets, same(secrets));
         expect(
@@ -74,7 +74,7 @@ void main() {
       },
     );
 
-    test('enables local image attachment only for local Codex lanes', () {
+    test('enables image attachment for configured lanes', () {
       final contract = presenter.present(
         isLoading: false,
         profile: _configuredProfile().copyWith(
@@ -87,7 +87,7 @@ void main() {
         transcriptFollow: _defaultTranscriptFollowContract,
       );
 
-      expect(contract.composer.allowsLocalImageAttachment, isTrue);
+      expect(contract.composer.allowsImageAttachment, isTrue);
     });
 
     test('uses profile title and live Codex subtitle metadata', () {

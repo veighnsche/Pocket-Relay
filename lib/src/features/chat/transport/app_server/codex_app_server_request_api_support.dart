@@ -25,6 +25,15 @@ CodexAppServerTurnInput _turnInputFor({
 
 List<Object> _turnInputPayload(CodexAppServerTurnInput input) {
   final items = <Object>[];
+  for (final image in input.images) {
+    if (image.url.trim().isEmpty) {
+      continue;
+    }
+    items.add(<String, Object?>{
+      'type': 'image',
+      'url': image.url.trim(),
+    });
+  }
   if (input.hasText) {
     items.add(<String, Object?>{
       'type': 'text',
@@ -32,15 +41,6 @@ List<Object> _turnInputPayload(CodexAppServerTurnInput input) {
       'text_elements': input.textElements
           .map((element) => element.toJson())
           .toList(growable: false),
-    });
-  }
-  for (final imagePath in input.localImagePaths) {
-    if (imagePath.trim().isEmpty) {
-      continue;
-    }
-    items.add(<String, Object?>{
-      'type': 'localImage',
-      'path': imagePath.trim(),
     });
   }
   return items;

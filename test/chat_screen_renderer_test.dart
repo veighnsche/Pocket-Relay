@@ -216,9 +216,10 @@ void main() {
     (tester) async {
       final imageDraft = const ChatComposerDraft(
         text: 'See [Image #1]',
-        localImageAttachments: <ChatComposerLocalImageAttachment>[
-          ChatComposerLocalImageAttachment(
-            path: '/tmp/reference.png',
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
             placeholder: '[Image #1]',
           ),
         ],

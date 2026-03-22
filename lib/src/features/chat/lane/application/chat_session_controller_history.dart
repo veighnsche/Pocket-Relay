@@ -112,8 +112,8 @@ Future<bool> _sendDraftWithAppServerForController(
             ),
           )
           .toList(growable: false),
-      localImagePaths: draft.localImageAttachments
-          .map((attachment) => attachment.path)
+      images: draft.imageAttachments
+          .map((attachment) => CodexAppServerImageInput(url: attachment.imageUrl))
           .toList(growable: false),
     ),
   );
