@@ -62,12 +62,14 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   Widget build(BuildContext context) {
     final requiresReconnect = widget.workspaceController.state
         .requiresReconnect(widget.laneBinding.connectionId);
+    final isLaneBusy = widget.laneBinding.sessionController.sessionState.isBusy;
     final chatRoot = ChatRootAdapter(
       laneBinding: widget.laneBinding,
       platformPolicy: widget.platformPolicy,
       onConnectionSettingsRequested: _handleConnectionSettingsRequested,
       supplementalMenuActions: _supplementalMenuActionsFor(
         requiresReconnect: requiresReconnect,
+        isLaneBusy: isLaneBusy,
       ),
       laneRestartAction: requiresReconnect
           ? ChatLaneRestartActionContract(
@@ -78,7 +80,9 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
               isInProgress: _isApplyingSavedSettings,
             )
           : null,
-      onRestartLane: requiresReconnect ? _applySavedSettings : null,
+      onRestartLane: requiresReconnect && !isLaneBusy
+          ? _applySavedSettings
+          : null,
     );
     return chatRoot;
   }

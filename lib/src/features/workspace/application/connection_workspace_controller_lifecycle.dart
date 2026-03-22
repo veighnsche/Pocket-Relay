@@ -104,6 +104,9 @@ Future<void> _reconnectWorkspaceConnection(
   if (previousBinding == null) {
     return;
   }
+  if (previousBinding.sessionController.sessionState.isBusy) {
+    return;
+  }
 
   final preservedLaneState = _preservedWorkspaceLaneState(previousBinding);
   final nextBinding = await _loadWorkspaceLaneBinding(
@@ -154,6 +157,9 @@ Future<void> _resumeWorkspaceConversation(
     final previousBinding =
         controller._liveBindingsByConnectionId[connectionId];
     if (previousBinding == null) {
+      return;
+    }
+    if (previousBinding.sessionController.sessionState.isBusy) {
       return;
     }
 
@@ -261,52 +267,15 @@ Future<void> _handleWorkspaceAppLifecycleState(
       return;
     case AppLifecycleState.hidden:
     case AppLifecycleState.paused:
-      controller._backgroundReconnectPending =
-          controller.selectedLaneBinding != null;
       await controller._enqueueRecoveryPersistence(
         backgroundedAt: controller._now(),
       );
       return;
     case AppLifecycleState.resumed:
-      if (!controller._backgroundReconnectPending) {
-        return;
-      }
-      if (controller._lifecycleReconnectFuture != null) {
-        await controller._lifecycleReconnectFuture;
-        return;
-      }
-      final future = _restoreWorkspaceAfterBackground(controller);
-      controller._lifecycleReconnectFuture = future.whenComplete(() {
-        controller._lifecycleReconnectFuture = null;
-      });
-      await controller._lifecycleReconnectFuture;
       return;
     case AppLifecycleState.detached:
       return;
   }
-}
-
-Future<void> _restoreWorkspaceAfterBackground(
-  ConnectionWorkspaceController controller,
-) async {
-  controller._backgroundReconnectPending = false;
-  final selectedConnectionId = controller._state.selectedConnectionId;
-  final liveConnectionIds = controller._state.liveConnectionIds;
-  if (selectedConnectionId == null || liveConnectionIds.isEmpty) {
-    return;
-  }
-
-  controller._applyState(
-    controller._state.copyWith(
-      reconnectRequiredConnectionIds: liveConnectionIds.toSet(),
-    ),
-  );
-
-  if (!controller._state.isConnectionLive(selectedConnectionId)) {
-    return;
-  }
-
-  await _reconnectWorkspaceConnection(controller, selectedConnectionId);
 }
 
 ({String? threadId, String draftText}) _preservedWorkspaceLaneState(

@@ -134,6 +134,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
     required this.requiresReconnect,
     required this.isSelected,
     required this.onTap,
+    required this.canClose,
     required this.onClose,
   });
 
@@ -143,6 +144,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
   final bool requiresReconnect;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool canClose;
   final VoidCallback onClose;
 
   @override
@@ -215,7 +217,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
               child: IconButton(
                 key: ValueKey<String>('desktop_close_lane_$connectionId'),
                 visualDensity: VisualDensity.compact,
-                onPressed: onClose,
+                onPressed: canClose ? onClose : null,
                 color: theme.colorScheme.onSurfaceVariant,
                 icon: const Icon(Icons.close),
               ),

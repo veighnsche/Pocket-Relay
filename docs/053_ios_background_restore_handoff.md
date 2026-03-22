@@ -17,6 +17,22 @@ The target issue is the one described in
 
 This work intentionally does not add app-local transcript history caching.
 
+## Correction
+
+Part of the original branch behavior was wrong and is no longer acceptable:
+
+- ordinary app background/resume was treated as reconnect-required
+- the selected live lane was torn down and recreated on `resumed`
+
+That behavior protected the exceptional background-kill path by degrading the
+normal active-turn path, which is a product regression.
+
+The correct rule is narrower:
+
+- snapshot lane recovery state on background risk
+- restore after cold start or confirmed transport/session loss
+- do not force reconnect on routine short app switching
+
 ## What Was Implemented
 
 ### 1. Workspace recovery store
@@ -46,16 +62,13 @@ Extended:
 - [`connection_workspace_controller_lifecycle.dart`](../lib/src/features/workspace/application/connection_workspace_controller_lifecycle.dart)
 - [`connection_workspace_controller_lane.dart`](../lib/src/features/workspace/application/connection_workspace_controller_lane.dart)
 
-New behavior:
+New behavior from the original branch:
 
 - the controller persists recovery state when selected lane state changes
 - on `inactive`, it snapshots the active selected lane without forcing a later
   reconnect by itself
 - on actual background states (`hidden`, `paused`) it snapshots the active
-  selected lane and marks the session as needing foreground recovery
-- on `resumed`, if the app had actually backgrounded, it marks all live lanes as
-  reconnect-required
-- on `resumed`, it actively reconnects the selected live lane
+  selected lane
 - reconnect now preserves:
   - selected thread target
   - composer draft
@@ -116,11 +129,10 @@ New coverage proves:
 - initialization restores the persisted selected lane, draft, and transcript
   target
 - reconnect preserves the composer draft on the recreated lane
-- background then resume reconnects the selected lane, preserves its draft, and
-  marks other live lanes stale
+- background then resume preserves the selected lane without forcing reconnect
 - the lifecycle host snapshots selected lane recovery state on pause
-- the lifecycle host forwards pause/resume through the widget tree and preserves
-  the selected lane draft across reconnect
+- the lifecycle host forwards pause/resume through the widget tree without
+  tearing down the selected live lane
 - the full app boot path still wraps the workspace in the lifecycle host above
   the wake-lock host
 
@@ -141,9 +153,10 @@ Passed:
 
 ## Important Current Behavior
 
-The current implementation restores the selected active lane after
-background/termination. It does not fully cold-restore every previously live
-lane.
+The current implementation persists recovery state for the selected active lane
+and restores that lane after cold restart or explicit recovery flows. It does
+not force lane reconnect on ordinary short background/resume. It also does not
+fully cold-restore every previously live lane.
 
 That was a deliberate scope decision because the document says:
 
@@ -160,10 +173,9 @@ explicit product requirement.
 
 Right now:
 
-- all live lanes are marked reconnect-required after resume
-- only the selected lane is actively reconnected immediately
-- non-selected live lanes remain visible as stale until the user opens or
-  reconnects them
+- active-lane recovery state is persisted
+- the selected lane is the only lane restored automatically on initialization
+- non-selected live lanes are not automatically recreated after cold restart
 
 This is reasonable, but it is still a product decision. If the requirement is
 "restore all open lanes after process death", that needs explicit app-owned
@@ -191,12 +203,12 @@ as:
 
 This handoff branch does not implement that yet.
 
-### 4. Consider whether reconnect-required UX copy should distinguish background recovery from saved-settings reconnect
+### 4. Consider whether reconnect-required UX copy should distinguish recovery after confirmed loss from saved-settings reconnect
 
 Current behavior reuses the existing reconnect-required machinery. Structurally
 that is good because it avoids a second reconnect stack, but the copy and badge
-language may still read like "saved settings changed" rather than "app resumed
-after possible suspension/termination."
+language may still read like "saved settings changed" rather than a true
+transport-loss recovery state.
 
 If changed, keep the scope narrow and do not redesign the surrounding surface.
 

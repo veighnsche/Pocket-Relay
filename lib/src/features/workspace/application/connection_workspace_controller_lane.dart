@@ -95,10 +95,14 @@ void _terminateWorkspaceConnection(
 ) {
   final normalizedConnectionId = connectionId.trim();
   final binding =
-      controller._liveBindingsByConnectionId.remove(normalizedConnectionId);
+      controller._liveBindingsByConnectionId[normalizedConnectionId];
   if (binding == null) {
     return;
   }
+  if (binding.sessionController.sessionState.isBusy) {
+    return;
+  }
+  controller._liveBindingsByConnectionId.remove(normalizedConnectionId);
 
   final currentLiveConnectionIds = controller._state.liveConnectionIds;
   final removalIndex = currentLiveConnectionIds.indexOf(normalizedConnectionId);
@@ -106,12 +110,13 @@ void _terminateWorkspaceConnection(
     controller,
     controller._liveBindingsByConnectionId.keys,
   );
-  final nextSelectedConnectionId = _nextSelectedWorkspaceConnectionIdAfterTermination(
-    controller,
-    removedConnectionId: normalizedConnectionId,
-    removalIndex: removalIndex,
-    nextLiveConnectionIds: nextLiveConnectionIds,
-  );
+  final nextSelectedConnectionId =
+      _nextSelectedWorkspaceConnectionIdAfterTermination(
+        controller,
+        removedConnectionId: normalizedConnectionId,
+        removalIndex: removalIndex,
+        nextLiveConnectionIds: nextLiveConnectionIds,
+      );
   final nextViewport = _nextWorkspaceViewportAfterTermination(
     controller,
     removedConnectionId: normalizedConnectionId,

@@ -44,8 +44,6 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceState _state = const ConnectionWorkspaceState.initial();
   Future<void>? _initializationFuture;
   Future<void> _recoveryPersistence = Future<void>.value();
-  Future<void>? _lifecycleReconnectFuture;
-  bool _backgroundReconnectPending = false;
   bool _isDisposed = false;
 
   ConnectionWorkspaceState get state => _state;

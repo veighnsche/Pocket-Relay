@@ -152,10 +152,15 @@ Do not persist:
 - synthetic local transcript archives
 - fake SSH session state claiming the connection is still alive
 
-### Workstream 3: Reconnect-first foreground recovery
+### Workstream 3: Reconnect-first recovery after confirmed loss
 
-On foreground after background or cold restart, the controller must explicitly
-re-establish transport state instead of assuming the old session survived.
+On foreground after cold restart, confirmed transport loss, or another
+explicitly detected invalidation, the controller must re-establish transport
+state instead of assuming the old session survived.
+
+Ordinary short app switching is not sufficient evidence that the live lane must
+be torn down. A normal `paused`/`resumed` cycle must not sever an active turn
+or stream by default.
 
 Requirements:
 

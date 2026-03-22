@@ -42,6 +42,8 @@ extension on _MaterialDesktopSidebar {
           connectionId,
         );
         final liveProfile = laneBinding?.sessionController.profile;
+        final isBusy =
+            laneBinding?.sessionController.sessionState.isBusy ?? false;
         if (liveProfile == null) {
           return const SizedBox.shrink();
         }
@@ -59,6 +61,7 @@ extension on _MaterialDesktopSidebar {
                 state.isShowingLiveLane &&
                 state.selectedConnectionId == connectionId,
             onTap: () => workspaceController.selectConnection(connectionId),
+            canClose: !isBusy,
             onClose: () =>
                 workspaceController.terminateConnection(connectionId),
           ),

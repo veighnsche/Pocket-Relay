@@ -63,7 +63,7 @@ void main() {
   );
 
   testWidgets(
-    'workspace app lifecycle host reconnects the selected lane on resume and preserves its draft',
+    'workspace app lifecycle host preserves the selected lane on resume without forcing reconnect',
     (tester) async {
       final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
         'conn_primary': <FakeCodexAppServerClient>[],
@@ -132,14 +132,14 @@ void main() {
 
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
-      expect(nextBinding, isNot(same(firstBinding)));
+      expect(nextBinding, same(firstBinding));
       expect(
         nextBinding!.composerDraftHost.draft.text,
         'Persist across resume',
       );
       expect(controller.state.requiresReconnect('conn_primary'), isFalse);
-      expect(controller.state.requiresReconnect('conn_secondary'), isTrue);
-      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
+      expect(controller.state.requiresReconnect('conn_secondary'), isFalse);
+      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 0);
     },
   );
 

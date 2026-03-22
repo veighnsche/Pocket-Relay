@@ -3,6 +3,7 @@ part of 'workspace_live_lane_surface.dart';
 extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   List<ChatChromeMenuAction> _supplementalMenuActionsFor({
     required bool requiresReconnect,
+    required bool isLaneBusy,
   }) {
     final hasWorkspaceHistoryScope = widget
         .laneBinding
@@ -17,7 +18,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         onSelected: () {
           unawaited(_showConversationHistory());
         },
-        isEnabled: hasWorkspaceHistoryScope,
+        isEnabled: hasWorkspaceHistoryScope && !isLaneBusy,
       ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
@@ -31,7 +32,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
           onSelected: () {
             unawaited(_applySavedSettings());
           },
-          isEnabled: !_isApplyingSavedSettings,
+          isEnabled: !_isApplyingSavedSettings && !isLaneBusy,
         ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.closeLaneAction,
@@ -39,7 +40,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
           widget.laneBinding.connectionId,
         ),
         isDestructive: true,
-        isEnabled: hasWorkspaceHistoryScope,
+        isEnabled: hasWorkspaceHistoryScope && !isLaneBusy,
       ),
     ];
   }

@@ -55,6 +55,26 @@ Repo rules for future agents.
   state, existing app behavior, or an approved doc, it must not appear as
   product truth.
 
+## 4A. Active turn continuity is a hard product constraint
+
+- The primary value of Pocket Relay is preserving a live Codex turn and stream
+  while the user is actively using the app.
+- Do not disconnect, dispose, rebuild, reconnect, or mark a live lane stale on
+  ordinary app switching, short backgrounding, or routine
+  `inactive`/`hidden`/`paused`/`resumed` transitions just because the app left
+  the foreground.
+- Background-kill recovery and cold-start restoration are not permission to
+  degrade the normal live-turn path. Those flows must be designed separately.
+- Never trade active-turn continuity for speculative lifecycle safety. If
+  transport loss, process death, or session invalidation has not been
+  confirmed, preserve the live lane.
+- If a proposed change can sever SSH, stop a stream, drop an active turn, or
+  rebuild the lane during ordinary app switching, stop and get explicit user
+  approval before implementing it.
+- A recovery feature that protects against an occasional background kill by
+  breaking the normal active-turn experience is a product regression, not a
+  safety improvement.
+
 ## 5. No speculative product surface area
 
 - Do not invent product states, labels, summaries, UX categories, or review
