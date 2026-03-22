@@ -195,6 +195,40 @@ Future<CodexAppServerThreadListPage> _listThreads(
   );
 }
 
+Future<CodexAppServerModelListPage> _listModels(
+  CodexAppServerRequestApi api,
+  CodexAppServerConnection connection, {
+  String? cursor,
+  int? limit,
+}) async {
+  connection.requireConnected();
+  final normalizedCursor = cursor?.trim();
+  final params = <String, Object?>{};
+  if (normalizedCursor != null && normalizedCursor.isNotEmpty) {
+    params['cursor'] = normalizedCursor;
+  }
+  if (limit != null) {
+    params['limit'] = limit;
+  }
+
+  final response = await connection.sendRequest('model/list', params);
+  final payload = _requireObject(response, 'model/list response');
+  final data = payload['data'];
+  if (data is! List) {
+    throw const CodexAppServerException(
+      'model/list response did not include a model list.',
+    );
+  }
+
+  return CodexAppServerModelListPage(
+    models: data
+        .map(_asModelDescription)
+        .whereType<CodexAppServerModelDescription>()
+        .toList(growable: false),
+    nextCursor: _asString(payload['nextCursor']),
+  );
+}
+
 Future<CodexAppServerThreadSummary> _sendThreadRead(
   CodexAppServerRequestApi api,
   CodexAppServerConnection connection, {

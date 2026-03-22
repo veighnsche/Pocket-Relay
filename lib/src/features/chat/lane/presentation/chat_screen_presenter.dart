@@ -27,6 +27,7 @@ class ChatScreenPresenter {
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     required ChatComposerDraft composerDraft,
+    bool effectiveModelSupportsImages = true,
     required ChatTranscriptFollowContract transcriptFollow,
     ConnectionMode? preferredConnectionMode,
   }) {
@@ -110,7 +111,7 @@ class ChatScreenPresenter {
       composer: ChatComposerContract(
         draft: composerDraft,
         isSendActionEnabled: canSend,
-        allowsImageAttachment: isConfigured,
+        allowsImageAttachment: isConfigured && effectiveModelSupportsImages,
         placeholder: 'Message Codex',
       ),
       connectionSettings: ChatConnectionSettingsLaunchContract(

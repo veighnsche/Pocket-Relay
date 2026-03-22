@@ -96,6 +96,9 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
       _emitSnackBar(validationMessage);
       return false;
     }
+    if (!await _ensureImageInputsSupportedForDraft(normalizedDraft)) {
+      return false;
+    }
 
     final rootThreadId = _sessionState.rootThreadId;
     if (rootThreadId != null && _sessionState.currentThreadId != rootThreadId) {

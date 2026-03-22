@@ -81,13 +81,101 @@ void main() {
     ]);
   });
 
+  test('sendDraft forwards structured image input to the app server', () async {
+    final appServerClient = FakeCodexAppServerClient();
+    addTearDown(appServerClient.close);
+
+    final profile = _configuredProfile();
+    final controller = ChatSessionController(
+      profileStore: MemoryCodexProfileStore(
+        initialValue: SavedProfile(
+          profile: profile,
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      ),
+      appServerClient: appServerClient,
+      initialSavedProfile: SavedProfile(
+        profile: profile,
+        secrets: const ConnectionSecrets(password: 'secret'),
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final sent = await controller.sendDraft(
+      const ChatComposerDraft(
+        text: 'See [Image #1]',
+        textElements: <ChatComposerTextElement>[
+          ChatComposerTextElement(start: 4, end: 14, placeholder: '[Image #1]'),
+        ],
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
+            placeholder: '[Image #1]',
+          ),
+        ],
+      ),
+    );
+
+    expect(sent, isTrue);
+    expect(appServerClient.startSessionCalls, 1);
+    expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+    final messageBlock =
+        controller.transcriptBlocks.first as CodexUserMessageBlock;
+    expect(
+      messageBlock.draft,
+      const ChatComposerDraft(
+        text: 'See [Image #1]',
+        textElements: <ChatComposerTextElement>[
+          ChatComposerTextElement(start: 4, end: 14, placeholder: '[Image #1]'),
+        ],
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
+            placeholder: '[Image #1]',
+          ),
+        ],
+      ),
+    );
+    expect(appServerClient.sentTurns.single, (
+      threadId: 'thread_123',
+      input: const CodexAppServerTurnInput(
+        text: 'See [Image #1]',
+        textElements: <CodexAppServerTextElement>[
+          CodexAppServerTextElement(
+            start: 4,
+            end: 14,
+            placeholder: '[Image #1]',
+          ),
+        ],
+        images: <CodexAppServerImageInput>[
+          CodexAppServerImageInput(url: 'data:image/png;base64,cmVmZXJlbmNl'),
+        ],
+      ),
+      text: 'See [Image #1]',
+      model: null,
+      effort: null,
+    ));
+  });
+
   test(
-    'sendDraft forwards structured image input to the app server',
+    'sendDraft preserves image drafts when the selected model rejects image input',
     () async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
+      appServerClient.listedModels.add(
+        const CodexAppServerModelDescription(
+          id: 'preset_text_only',
+          model: 'gpt-text-only',
+          displayName: 'GPT Text Only',
+          inputModalities: <CodexAppServerInputModality>[
+            CodexAppServerInputModality.text,
+          ],
+        ),
+      );
 
-      final profile = _configuredProfile();
+      final profile = _configuredProfile().copyWith(model: 'gpt-text-only');
       final controller = ChatSessionController(
         profileStore: MemoryCodexProfileStore(
           initialValue: SavedProfile(
@@ -103,6 +191,9 @@ void main() {
       );
       addTearDown(controller.dispose);
 
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
       final sent = await controller.sendDraft(
         const ChatComposerDraft(
           text: 'See [Image #1]',
@@ -123,52 +214,17 @@ void main() {
         ),
       );
 
-      expect(sent, isTrue);
-      expect(appServerClient.startSessionCalls, 1);
-      expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
-      final messageBlock =
-          controller.transcriptBlocks.first as CodexUserMessageBlock;
+      expect(sent, isFalse);
+      expect(appServerClient.connectCalls, 1);
+      expect(appServerClient.listModelCalls, hasLength(1));
+      expect(appServerClient.startSessionCalls, 0);
+      expect(appServerClient.sentTurns, isEmpty);
+      expect(controller.transcriptBlocks, isEmpty);
+      expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
-        messageBlock.draft,
-        const ChatComposerDraft(
-          text: 'See [Image #1]',
-          textElements: <ChatComposerTextElement>[
-            ChatComposerTextElement(
-              start: 4,
-              end: 14,
-              placeholder: '[Image #1]',
-            ),
-          ],
-          imageAttachments: <ChatComposerImageAttachment>[
-            ChatComposerImageAttachment(
-              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
-              displayName: 'reference.png',
-              placeholder: '[Image #1]',
-            ),
-          ],
-        ),
+        await snackBarMessage,
+        'Model gpt-text-only does not support image inputs. Remove images or switch models.',
       );
-      expect(appServerClient.sentTurns.single, (
-        threadId: 'thread_123',
-        input: const CodexAppServerTurnInput(
-          text: 'See [Image #1]',
-          textElements: <CodexAppServerTextElement>[
-            CodexAppServerTextElement(
-              start: 4,
-              end: 14,
-              placeholder: '[Image #1]',
-            ),
-          ],
-          images: <CodexAppServerImageInput>[
-            CodexAppServerImageInput(
-              url: 'data:image/png;base64,cmVmZXJlbmNl',
-            ),
-          ],
-        ),
-        text: 'See [Image #1]',
-        model: null,
-        effort: null,
-      ));
     },
   );
 
@@ -475,72 +531,31 @@ void main() {
     },
   );
 
-  test(
-    'continueFromUserMessage restores a structured image draft',
-    () async {
-      final appServerClient = FakeCodexAppServerClient()
-        ..threadHistoriesById['thread_123'] = _rewoundConversationThread(
-          threadId: 'thread_123',
-        );
-      addTearDown(appServerClient.close);
+  test('continueFromUserMessage restores a structured image draft', () async {
+    final appServerClient = FakeCodexAppServerClient()
+      ..threadHistoriesById['thread_123'] = _rewoundConversationThread(
+        threadId: 'thread_123',
+      );
+    addTearDown(appServerClient.close);
 
-      final profile = _configuredProfile();
-      final controller = ChatSessionController(
-        profileStore: MemoryCodexProfileStore(
-          initialValue: SavedProfile(
-            profile: profile,
-            secrets: const ConnectionSecrets(password: 'secret'),
-          ),
-        ),
-        appServerClient: appServerClient,
-        initialSavedProfile: SavedProfile(
+    final profile = _configuredProfile();
+    final controller = ChatSessionController(
+      profileStore: MemoryCodexProfileStore(
+        initialValue: SavedProfile(
           profile: profile,
           secrets: const ConnectionSecrets(password: 'secret'),
         ),
-      );
-      addTearDown(controller.dispose);
+      ),
+      appServerClient: appServerClient,
+      initialSavedProfile: SavedProfile(
+        profile: profile,
+        secrets: const ConnectionSecrets(password: 'secret'),
+      ),
+    );
+    addTearDown(controller.dispose);
 
-      expect(
-        await controller.sendDraft(
-          const ChatComposerDraft(
-            text: 'See [Image #1]',
-            textElements: <ChatComposerTextElement>[
-              ChatComposerTextElement(
-                start: 4,
-                end: 14,
-                placeholder: '[Image #1]',
-              ),
-            ],
-            imageAttachments: <ChatComposerImageAttachment>[
-              ChatComposerImageAttachment(
-                imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
-                displayName: 'reference.png',
-                placeholder: '[Image #1]',
-              ),
-            ],
-          ),
-        ),
-        isTrue,
-      );
-
-      final selectedBlock = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
-          .single;
-      appServerClient.emit(
-        const CodexAppServerNotificationEvent(
-          method: 'turn/completed',
-          params: <String, Object?>{
-            'threadId': 'thread_123',
-            'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
-          },
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-
-      final draft = await controller.continueFromUserMessage(selectedBlock.id);
-
-      expect(
-        draft,
+    expect(
+      await controller.sendDraft(
         const ChatComposerDraft(
           text: 'See [Image #1]',
           textElements: <ChatComposerTextElement>[
@@ -558,9 +573,43 @@ void main() {
             ),
           ],
         ),
-      );
-    },
-  );
+      ),
+      isTrue,
+    );
+
+    final selectedBlock = controller.transcriptBlocks
+        .whereType<CodexUserMessageBlock>()
+        .single;
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'turn/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final draft = await controller.continueFromUserMessage(selectedBlock.id);
+
+    expect(
+      draft,
+      const ChatComposerDraft(
+        text: 'See [Image #1]',
+        textElements: <ChatComposerTextElement>[
+          ChatComposerTextElement(start: 4, end: 14, placeholder: '[Image #1]'),
+        ],
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
+            placeholder: '[Image #1]',
+          ),
+        ],
+      ),
+    );
+  });
 
   test(
     'branchSelectedConversation forks the selected conversation and restores the forked history',

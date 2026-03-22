@@ -29,10 +29,7 @@ List<Object> _turnInputPayload(CodexAppServerTurnInput input) {
     if (image.url.trim().isEmpty) {
       continue;
     }
-    items.add(<String, Object?>{
-      'type': 'image',
-      'url': image.url.trim(),
-    });
+    items.add(<String, Object?>{'type': 'image', 'url': image.url.trim()});
   }
   if (input.hasText) {
     items.add(<String, Object?>{
@@ -170,6 +167,48 @@ int? _countUserPromptItems(Object? rawTurns) {
 
 int? _asInt(Object? value) {
   return value is num ? value.toInt() : null;
+}
+
+bool? _asBool(Object? value) {
+  return value is bool ? value : null;
+}
+
+CodexAppServerModelDescription? _asModelDescription(Object? value) {
+  final model = _asObject(value);
+  final modelName = _asString(model?['model']) ?? '';
+  if (modelName.isEmpty) {
+    return null;
+  }
+
+  final id = _asString(model?['id']) ?? modelName;
+  final displayName = _asString(model?['displayName']) ?? modelName;
+  return CodexAppServerModelDescription(
+    id: id,
+    model: modelName,
+    displayName: displayName,
+    hidden: _asBool(model?['hidden']) ?? false,
+    inputModalities: _inputModalitiesFromRaw(model?['inputModalities']),
+  );
+}
+
+List<CodexAppServerInputModality> _inputModalitiesFromRaw(Object? value) {
+  if (value is! List) {
+    return const <CodexAppServerInputModality>[];
+  }
+
+  return value
+      .map(_inputModalityFromRaw)
+      .whereType<CodexAppServerInputModality>()
+      .toList(growable: false);
+}
+
+CodexAppServerInputModality? _inputModalityFromRaw(Object? value) {
+  final normalized = _asString(value)?.trim().toLowerCase();
+  return switch (normalized) {
+    'text' => CodexAppServerInputModality.text,
+    'image' => CodexAppServerInputModality.image,
+    _ => null,
+  };
 }
 
 String _approvalPolicyFor(ConnectionProfile profile) {

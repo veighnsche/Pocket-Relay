@@ -160,6 +160,8 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       historicalConversationRestoreState:
           sessionController.historicalConversationRestoreState,
       composerDraft: laneBinding.composerDraftHost.draft,
+      effectiveModelSupportsImages:
+          sessionController.currentModelSupportsImageInput,
       transcriptFollow: laneBinding.transcriptFollowHost.contract,
       preferredConnectionMode: _preferredEmptyStateConnectionMode,
     );

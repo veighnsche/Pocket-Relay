@@ -90,6 +90,24 @@ void main() {
       expect(contract.composer.allowsImageAttachment, isTrue);
     });
 
+    test(
+      'disables image attachment when the effective model metadata rejects image input',
+      () {
+        final contract = presenter.present(
+          isLoading: false,
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          sessionState: CodexSessionState.initial(),
+          conversationRecoveryState: null,
+          composerDraft: const ChatComposerDraft(),
+          effectiveModelSupportsImages: false,
+          transcriptFollow: _defaultTranscriptFollowContract,
+        );
+
+        expect(contract.composer.allowsImageAttachment, isFalse);
+      },
+    );
+
     test('uses profile title and live Codex subtitle metadata', () {
       final sessionState = CodexSessionState.initial().copyWith(
         headerMetadata: const CodexSessionHeaderMetadata(

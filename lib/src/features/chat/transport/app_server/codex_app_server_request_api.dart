@@ -91,6 +91,14 @@ class CodexAppServerRequestApi {
     return _listThreads(this, connection, cursor: cursor, limit: limit);
   }
 
+  Future<CodexAppServerModelListPage> listModels(
+    CodexAppServerConnection connection, {
+    String? cursor,
+    int? limit,
+  }) {
+    return _listModels(this, connection, cursor: cursor, limit: limit);
+  }
+
   Future<CodexAppServerTurn> sendUserMessage(
     CodexAppServerConnection connection, {
     required String threadId,

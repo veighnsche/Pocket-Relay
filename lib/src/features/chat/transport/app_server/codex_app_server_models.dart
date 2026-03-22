@@ -266,6 +266,56 @@ class CodexAppServerThreadListPage {
   final String? nextCursor;
 }
 
+enum CodexAppServerInputModality { text, image }
+
+class CodexAppServerModelDescription {
+  const CodexAppServerModelDescription({
+    required this.id,
+    required this.model,
+    required this.displayName,
+    this.hidden = false,
+    this.inputModalities = const <CodexAppServerInputModality>[],
+  });
+
+  final String id;
+  final String model;
+  final String displayName;
+  final bool hidden;
+  final List<CodexAppServerInputModality> inputModalities;
+
+  bool get supportsImageInput =>
+      inputModalities.contains(CodexAppServerInputModality.image);
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerModelDescription &&
+        other.id == id &&
+        other.model == model &&
+        other.displayName == displayName &&
+        other.hidden == hidden &&
+        _listEquals(other.inputModalities, inputModalities);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    model,
+    displayName,
+    hidden,
+    Object.hashAll(inputModalities),
+  );
+}
+
+class CodexAppServerModelListPage {
+  const CodexAppServerModelListPage({
+    required this.models,
+    required this.nextCursor,
+  });
+
+  final List<CodexAppServerModelDescription> models;
+  final String? nextCursor;
+}
+
 class CodexAppServerSession {
   const CodexAppServerSession({
     required this.threadId,
@@ -322,11 +372,8 @@ class CodexAppServerTurnInput {
   }
 
   @override
-  int get hashCode => Object.hash(
-    text,
-    Object.hashAll(textElements),
-    Object.hashAll(images),
-  );
+  int get hashCode =>
+      Object.hash(text, Object.hashAll(textElements), Object.hashAll(images));
 }
 
 class CodexAppServerImageInput {

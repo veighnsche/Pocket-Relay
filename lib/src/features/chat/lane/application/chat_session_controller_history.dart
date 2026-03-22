@@ -113,7 +113,9 @@ Future<bool> _sendDraftWithAppServerForController(
           )
           .toList(growable: false),
       images: draft.imageAttachments
-          .map((attachment) => CodexAppServerImageInput(url: attachment.imageUrl))
+          .map(
+            (attachment) => CodexAppServerImageInput(url: attachment.imageUrl),
+          )
           .toList(growable: false),
     ),
   );
@@ -251,14 +253,20 @@ void _rememberChatSessionHeaderMetadata(
 Future<void> _ensureChatSessionAppServerConnected(
   ChatSessionController controller,
 ) async {
-  if (controller.appServerClient.isConnected) {
-    return;
+  final wasConnected = controller.appServerClient.isConnected;
+  if (!wasConnected) {
+    await controller.appServerClient.connect(
+      profile: controller._profile,
+      secrets: controller._secrets,
+    );
   }
 
-  await controller.appServerClient.connect(
-    profile: controller._profile,
-    secrets: controller._secrets,
-  );
+  try {
+    await controller._refreshModelCatalogAfterConnect();
+  } catch (_) {
+    // Fail open when model metadata is unavailable; send/attach paths will
+    // re-check the cached capability state if a later hydration succeeds.
+  }
 }
 
 Future<void> _stopChatSessionAppServerTurn(

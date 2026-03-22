@@ -316,6 +316,71 @@ void main() {
     await client.disconnect();
   });
 
+  test('listModels sends model/list and decodes input modalities', () async {
+    late _FakeCodexAppServerProcess process;
+    process = _FakeCodexAppServerProcess(
+      onClientMessage: (message) {
+        switch (message['method']) {
+          case 'initialize':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{'userAgent': 'codex-app-server-test'},
+            });
+          case 'model/list':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'data': <Object>[
+                  <String, Object?>{
+                    'id': 'preset_text',
+                    'model': 'gpt-text-only',
+                    'displayName': 'GPT Text Only',
+                    'hidden': false,
+                    'inputModalities': <Object>['text'],
+                  },
+                  <String, Object?>{
+                    'id': 'preset_vision',
+                    'model': 'gpt-vision',
+                    'displayName': 'GPT Vision',
+                    'hidden': false,
+                    'inputModalities': <Object>['text', 'image'],
+                  },
+                ],
+                'nextCursor': null,
+              },
+            });
+        }
+      },
+    );
+
+    final client = CodexAppServerClient(
+      processLauncher:
+          ({required profile, required secrets, required emitEvent}) async =>
+              process,
+    );
+
+    await client.connect(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+    );
+
+    final page = await client.listModels();
+
+    expect(page.nextCursor, isNull);
+    expect(page.models, hasLength(2));
+    expect(page.models.first.model, 'gpt-text-only');
+    expect(page.models.first.supportsImageInput, isFalse);
+    expect(page.models.last.model, 'gpt-vision');
+    expect(page.models.last.supportsImageInput, isTrue);
+
+    final modelListRequest = process.writtenMessages.firstWhere(
+      (message) => message['method'] == 'model/list',
+    );
+    expect(modelListRequest['params'], isEmpty);
+
+    await client.disconnect();
+  });
+
   test(
     'readThreadWithTurns preserves historical turns from thread/read',
     () async {
