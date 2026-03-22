@@ -50,7 +50,6 @@ Future<CodexAppServerProcess> openLocalCodexAppServerProcess({
   }
 }
 
-@visibleForTesting
 CodexLocalShellInvocation buildLocalCodexAppServerInvocation({
   required ConnectionProfile profile,
   TargetPlatform? platform,
