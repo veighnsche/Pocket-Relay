@@ -14,11 +14,13 @@ Future<ConnectionCatalogState> _secureLoadCatalog(
     return existingCatalog;
   }
 
-  final seededConnection = SavedConnection(
-    id: repository._connectionIdGenerator(),
-    profile: ConnectionProfile.defaults(),
-    secrets: const ConnectionSecrets(),
-  );
+  final seededConnection =
+      await _loadLegacySingletonConnection(repository) ??
+      SavedConnection(
+        id: repository._connectionIdGenerator(),
+        profile: ConnectionProfile.defaults(),
+        secrets: const ConnectionSecrets(),
+      );
   final nextCatalog = ConnectionCatalogState(
     orderedConnectionIds: <String>[seededConnection.id],
     connectionsById: <String, SavedConnectionSummary>{
@@ -193,6 +195,49 @@ Future<String> _readSecret(
   String key,
 ) async {
   return await repository._secureStorage.read(key: key) ?? '';
+}
+
+Future<SavedConnection?> _loadLegacySingletonConnection(
+  SecureCodexConnectionRepository repository,
+) async {
+  final rawProfile = await repository._preferences.getString(
+    SecureCodexConnectionRepository._legacySingletonProfileKey,
+  );
+  final password = await _readSecret(
+    repository,
+    SecureCodexConnectionRepository._legacySingletonPasswordKey,
+  );
+  final privateKeyPem = await _readSecret(
+    repository,
+    SecureCodexConnectionRepository._legacySingletonPrivateKeyKey,
+  );
+  final privateKeyPassphrase = await _readSecret(
+    repository,
+    SecureCodexConnectionRepository._legacySingletonPrivateKeyPassphraseKey,
+  );
+
+  if (rawProfile == null &&
+      password.isEmpty &&
+      privateKeyPem.isEmpty &&
+      privateKeyPassphrase.isEmpty) {
+    return null;
+  }
+
+  final profile = rawProfile == null
+      ? ConnectionProfile.defaults()
+      : ConnectionProfile.fromJson(
+          jsonDecode(rawProfile) as Map<String, dynamic>,
+        );
+
+  return SavedConnection(
+    id: repository._connectionIdGenerator(),
+    profile: profile,
+    secrets: ConnectionSecrets(
+      password: password,
+      privateKeyPem: privateKeyPem,
+      privateKeyPassphrase: privateKeyPassphrase,
+    ),
+  );
 }
 
 Future<void> _deleteConnectionPreferences(

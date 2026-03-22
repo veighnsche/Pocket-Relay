@@ -81,6 +81,12 @@ class SecureCodexConnectionRepository implements CodexConnectionRepository {
   static const _catalogSchemaVersion = 1;
   static const _catalogPreferencesMigrationKey =
       'pocket_relay.connections_async_migration_complete';
+  static const _legacySingletonProfileKey = 'pocket_relay.profile';
+  static const _legacySingletonPasswordKey = 'pocket_relay.secret.password';
+  static const _legacySingletonPrivateKeyKey =
+      'pocket_relay.secret.private_key';
+  static const _legacySingletonPrivateKeyPassphraseKey =
+      'pocket_relay.secret.private_key_passphrase';
   static const _profileKeyPrefix = 'pocket_relay.connection.';
   static const _profileKeySuffix = '.profile';
   static const _secretKeyPrefix = 'pocket_relay.connection.';

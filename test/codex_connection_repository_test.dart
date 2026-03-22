@@ -130,6 +130,53 @@ void main() {
   );
 
   test(
+    'loadCatalog migrates the legacy singleton pocket relay profile into the seeded connection',
+    () async {
+      final legacyProfile = ConnectionProfile.defaults().copyWith(
+        host: 'relay.example.com',
+        username: 'vince',
+        workspaceDir: '/workspace/app',
+        hostFingerprint: 'SHA256:legacyfingerprint',
+      );
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'pocket_relay.profile': jsonEncode(legacyProfile.toJson()),
+      });
+      final secureStorage = _FakeFlutterSecureStorage(<String, String>{
+        'pocket_relay.secret.password': 'secret',
+      });
+      final preferences = SharedPreferencesAsync();
+      final repository = SecureCodexConnectionRepository(
+        secureStorage: secureStorage,
+        preferences: preferences,
+        connectionIdGenerator: () => 'conn_seed',
+      );
+
+      final catalog = await repository.loadCatalog();
+      final connection = await repository.loadConnection('conn_seed');
+
+      expect(catalog.orderedConnectionIds, <String>['conn_seed']);
+      expect(
+        connection,
+        SavedConnection(
+          id: 'conn_seed',
+          profile: legacyProfile,
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      expect(
+        await preferences.getString(
+          'pocket_relay.connection.conn_seed.profile',
+        ),
+        jsonEncode(legacyProfile.toJson()),
+      );
+      expect(
+        secureStorage.data['pocket_relay.connection.conn_seed.secret.password'],
+        'secret',
+      );
+    },
+  );
+
+  test(
     'loadConnection preserves user-entered workspace directories even when they match an old placeholder path',
     () async {
       final preferences = SharedPreferencesAsync();
