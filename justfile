@@ -25,7 +25,7 @@ alias emulator-host-experimental := android-emulator-host
 # Run on a directly connected Android device.
 [private]
 android-device:
-    flutter run -d android
+    flutter run --flavor app -d android -t lib/main.dart
 
 alias run-android := android-dev
 

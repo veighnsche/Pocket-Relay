@@ -304,7 +304,7 @@ run_android_emulator() {
 
   local device
   device="$(require_running_android_emulator)"
-  exec flutter run -d "$device"
+  exec flutter run --flavor app -d "$device" -t lib/main.dart
 }
 
 run_android_dev() {
@@ -315,7 +315,7 @@ run_android_dev() {
 
   local device
   device="$(ensure_booted_android_emulator)"
-  exec flutter run -d "$device"
+  exec flutter run --flavor app -d "$device" -t lib/main.dart
 }
 
 run_ios_simulator() {
