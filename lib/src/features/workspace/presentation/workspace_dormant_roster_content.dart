@@ -26,6 +26,7 @@ class ConnectionWorkspaceDormantRosterContent extends StatefulWidget {
       supportsLocalConnectionMode: false,
       supportsWakeLock: true,
       supportsFiniteBackgroundGrace: false,
+      supportsActiveTurnForegroundService: false,
       usesDesktopKeyboardSubmit: false,
       supportsCollapsibleDesktopSidebar: false,
     ),

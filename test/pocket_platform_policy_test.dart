@@ -9,6 +9,17 @@ void main() {
 
     expect(policy.behavior.experience, PocketPlatformExperience.mobile);
     expect(policy.supportsFiniteBackgroundGrace, isTrue);
+    expect(policy.supportsActiveTurnForegroundService, isFalse);
+  });
+
+  test('resolves active-turn foreground service support from Android', () {
+    final policy = PocketPlatformPolicy.resolve(
+      platform: TargetPlatform.android,
+    );
+
+    expect(policy.behavior.experience, PocketPlatformExperience.mobile);
+    expect(policy.supportsFiniteBackgroundGrace, isFalse);
+    expect(policy.supportsActiveTurnForegroundService, isTrue);
   });
 
   test('resolves desktop behavior from windows', () {
@@ -19,5 +30,6 @@ void main() {
     expect(policy.behavior.experience, PocketPlatformExperience.desktop);
     expect(policy.supportsLocalConnectionMode, isTrue);
     expect(policy.supportsFiniteBackgroundGrace, isFalse);
+    expect(policy.supportsActiveTurnForegroundService, isFalse);
   });
 }

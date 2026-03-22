@@ -619,6 +619,7 @@ const _mobileBehavior = PocketPlatformBehavior(
   supportsLocalConnectionMode: false,
   supportsWakeLock: true,
   supportsFiniteBackgroundGrace: false,
+  supportsActiveTurnForegroundService: false,
   usesDesktopKeyboardSubmit: false,
   supportsCollapsibleDesktopSidebar: false,
 );
@@ -628,6 +629,7 @@ const _desktopBehavior = PocketPlatformBehavior(
   supportsLocalConnectionMode: true,
   supportsWakeLock: false,
   supportsFiniteBackgroundGrace: false,
+  supportsActiveTurnForegroundService: false,
   usesDesktopKeyboardSubmit: true,
   supportsCollapsibleDesktopSidebar: false,
 );

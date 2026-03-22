@@ -25,4 +25,7 @@ class PocketPlatformPolicy {
 
   bool get supportsFiniteBackgroundGrace =>
       behavior.supportsFiniteBackgroundGrace;
+
+  bool get supportsActiveTurnForegroundService =>
+      behavior.supportsActiveTurnForegroundService;
 }

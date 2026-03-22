@@ -13,6 +13,7 @@ import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_app_lifecycle_host.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_background_grace_host.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_foreground_service_host.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -170,7 +171,7 @@ void main() {
   );
 
   testWidgets(
-    'PocketRelayApp keeps the background-grace host above the lifecycle and wake-lock hosts',
+    'PocketRelayApp keeps the foreground-service, background-grace, lifecycle, and wake-lock hosts in place',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
@@ -191,6 +192,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byType(WorkspaceTurnForegroundServiceHost), findsOneWidget);
       expect(find.byType(WorkspaceTurnBackgroundGraceHost), findsOneWidget);
       expect(find.byType(WorkspaceAppLifecycleHost), findsOneWidget);
       expect(find.byType(WorkspaceTurnWakeLockHost), findsOneWidget);

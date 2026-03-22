@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
+import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
@@ -20,6 +21,7 @@ class PocketRelayAppDependencies {
     this.recoveryStore,
     this.appServerClient,
     this.backgroundGraceController,
+    this.foregroundServiceController,
     this.displayWakeLockController,
     this.platformPolicy,
     this.settingsOverlayDelegate =
@@ -33,6 +35,7 @@ class PocketRelayAppDependencies {
   final ConnectionWorkspaceRecoveryStore? recoveryStore;
   final CodexAppServerClient? appServerClient;
   final BackgroundGraceController? backgroundGraceController;
+  final ForegroundServiceController? foregroundServiceController;
   final DisplayWakeLockController? displayWakeLockController;
   final PocketPlatformPolicy? platformPolicy;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;

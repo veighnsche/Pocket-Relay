@@ -66,6 +66,7 @@ class WidgetbookFixtures {
     supportsLocalConnectionMode: false,
     supportsWakeLock: true,
     supportsFiniteBackgroundGrace: false,
+    supportsActiveTurnForegroundService: false,
     usesDesktopKeyboardSubmit: false,
     supportsCollapsibleDesktopSidebar: false,
   );
@@ -75,6 +76,7 @@ class WidgetbookFixtures {
     supportsLocalConnectionMode: true,
     supportsWakeLock: false,
     supportsFiniteBackgroundGrace: false,
+    supportsActiveTurnForegroundService: false,
     usesDesktopKeyboardSubmit: true,
     supportsCollapsibleDesktopSidebar: true,
   );
