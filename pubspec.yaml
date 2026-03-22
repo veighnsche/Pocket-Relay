@@ -37,6 +37,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.7
   wakelock_plus: ^1.5.1
   file_selector: ^1.1.0
+  image: ^4.8.0
   widgetbook: ^3.22.0
   highlight: ^0.7.0
 
