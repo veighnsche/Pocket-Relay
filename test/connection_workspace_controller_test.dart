@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
@@ -58,6 +59,54 @@ void main() {
     expect(controller.selectedLaneBinding?.connectionId, 'conn_primary');
     expect(controller.bindingForConnectionId('conn_secondary'), isNull);
   });
+
+  test(
+    'saveConnectionModelCatalog and loadConnectionModelCatalog use the injected store',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final modelCatalogStore = MemoryConnectionModelCatalogStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      final catalog = ConnectionModelCatalog(
+        connectionId: 'conn_secondary',
+        fetchedAt: DateTime.utc(2026, 3, 22, 12),
+        models: const <ConnectionAvailableModel>[
+          ConnectionAvailableModel(
+            id: 'preset_gpt_54',
+            model: 'gpt-5.4',
+            displayName: 'GPT-5.4',
+            description: 'Latest frontier agentic coding model.',
+            hidden: false,
+            supportedReasoningEfforts:
+                <ConnectionAvailableModelReasoningEffortOption>[
+                  ConnectionAvailableModelReasoningEffortOption(
+                    reasoningEffort: CodexReasoningEffort.medium,
+                    description: 'Balanced default for general work.',
+                  ),
+                ],
+            defaultReasoningEffort: CodexReasoningEffort.medium,
+            inputModalities: <String>['text'],
+            supportsPersonality: true,
+            isDefault: true,
+          ),
+        ],
+      );
+
+      await controller.saveConnectionModelCatalog(catalog);
+
+      expect(
+        await controller.loadConnectionModelCatalog('conn_secondary'),
+        catalog,
+      );
+    },
+  );
 
   test(
     'initialization keeps the first live lane empty until history is explicitly picked',
@@ -832,7 +881,38 @@ void main() {
 
   test('deleteDormantConnection removes the saved definition', () async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
-    final controller = _buildWorkspaceController(clientsById: clientsById);
+    final modelCatalogStore = MemoryConnectionModelCatalogStore(
+      initialCatalogs: <ConnectionModelCatalog>[
+        ConnectionModelCatalog(
+          connectionId: 'conn_secondary',
+          fetchedAt: DateTime.utc(2026, 3, 22, 12),
+          models: const <ConnectionAvailableModel>[
+            ConnectionAvailableModel(
+              id: 'preset_gpt_54',
+              model: 'gpt-5.4',
+              displayName: 'GPT-5.4',
+              description: 'Latest frontier agentic coding model.',
+              hidden: false,
+              supportedReasoningEfforts:
+                  <ConnectionAvailableModelReasoningEffortOption>[
+                    ConnectionAvailableModelReasoningEffortOption(
+                      reasoningEffort: CodexReasoningEffort.medium,
+                      description: 'Balanced default for general work.',
+                    ),
+                  ],
+              defaultReasoningEffort: CodexReasoningEffort.medium,
+              inputModalities: <String>['text'],
+              supportsPersonality: true,
+              isDefault: true,
+            ),
+          ],
+        ),
+      ],
+    );
+    final controller = _buildWorkspaceController(
+      clientsById: clientsById,
+      modelCatalogStore: modelCatalogStore,
+    );
     addTearDown(() async {
       controller.dispose();
       await _closeClients(clientsById);
@@ -845,6 +925,7 @@ void main() {
       'conn_primary',
     ]);
     expect(controller.state.dormantConnectionIds, isEmpty);
+    expect(await modelCatalogStore.load('conn_secondary'), isNull);
   });
 
   test(
@@ -1111,6 +1192,7 @@ void main() {
 ConnectionWorkspaceController _buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   MemoryCodexConnectionRepository? repository,
+  ConnectionModelCatalogStore? modelCatalogStore,
   ConnectionWorkspaceRecoveryStore? recoveryStore,
   WorkspaceNow? now,
 }) {
@@ -1132,6 +1214,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
       );
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
+    modelCatalogStore: modelCatalogStore,
     recoveryStore: recoveryStore,
     now: now,
     laneBindingFactory: ({required connectionId, required connection}) {

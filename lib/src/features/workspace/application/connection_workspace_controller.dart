@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 
@@ -23,16 +24,20 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceController({
     required CodexConnectionRepository connectionRepository,
     required ConnectionLaneBindingFactory laneBindingFactory,
+    ConnectionModelCatalogStore? modelCatalogStore,
     ConnectionWorkspaceRecoveryStore? recoveryStore,
     WorkspaceNow? now,
   }) : _connectionRepository = connectionRepository,
        _laneBindingFactory = laneBindingFactory,
+       _modelCatalogStore =
+           modelCatalogStore ?? const NoopConnectionModelCatalogStore(),
        _recoveryStore =
            recoveryStore ?? const NoopConnectionWorkspaceRecoveryStore(),
        _now = now ?? DateTime.now;
 
   final CodexConnectionRepository _connectionRepository;
   final ConnectionLaneBindingFactory _laneBindingFactory;
+  final ConnectionModelCatalogStore _modelCatalogStore;
   final ConnectionWorkspaceRecoveryStore _recoveryStore;
   final WorkspaceNow _now;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
@@ -98,6 +103,16 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       profile: profile,
       secrets: secrets,
     );
+  }
+
+  Future<ConnectionModelCatalog?> loadConnectionModelCatalog(
+    String connectionId,
+  ) {
+    return _loadWorkspaceConnectionModelCatalog(this, connectionId);
+  }
+
+  Future<void> saveConnectionModelCatalog(ConnectionModelCatalog catalog) {
+    return _saveWorkspaceConnectionModelCatalog(this, catalog);
   }
 
   Future<void> reconnectConnection(String connectionId) {

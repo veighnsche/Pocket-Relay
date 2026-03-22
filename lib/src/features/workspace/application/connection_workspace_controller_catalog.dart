@@ -7,7 +7,9 @@ Future<SavedConnection> _loadWorkspaceSavedConnection(
   final normalizedConnectionId = _normalizeWorkspaceConnectionId(connectionId);
   await controller.initialize();
   _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
-  return controller._connectionRepository.loadConnection(normalizedConnectionId);
+  return controller._connectionRepository.loadConnection(
+    normalizedConnectionId,
+  );
 }
 
 Future<String> _createWorkspaceConnection(
@@ -108,7 +110,8 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
   );
 
   final nextCatalog = await controller._connectionRepository.loadCatalog();
-  final liveBinding = controller._liveBindingsByConnectionId[normalizedConnectionId];
+  final liveBinding =
+      controller._liveBindingsByConnectionId[normalizedConnectionId];
   final shouldRequireReconnect =
       liveBinding == null ||
       liveBinding.sessionController.profile != profile ||
@@ -131,6 +134,34 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
         liveConnectionIds: controller._state.liveConnectionIds,
         reconnectRequiredConnectionIds: nextReconnectRequiredConnectionIds,
       ),
+    ),
+  );
+}
+
+Future<ConnectionModelCatalog?> _loadWorkspaceConnectionModelCatalog(
+  ConnectionWorkspaceController controller,
+  String connectionId,
+) async {
+  final normalizedConnectionId = _normalizeWorkspaceConnectionId(connectionId);
+  await controller.initialize();
+  _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
+  return controller._modelCatalogStore.load(normalizedConnectionId);
+}
+
+Future<void> _saveWorkspaceConnectionModelCatalog(
+  ConnectionWorkspaceController controller,
+  ConnectionModelCatalog catalog,
+) async {
+  final normalizedConnectionId = _normalizeWorkspaceConnectionId(
+    catalog.connectionId,
+  );
+  await controller.initialize();
+  _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
+  await controller._modelCatalogStore.save(
+    ConnectionModelCatalog(
+      connectionId: normalizedConnectionId,
+      fetchedAt: catalog.fetchedAt,
+      models: catalog.models,
     ),
   );
 }
