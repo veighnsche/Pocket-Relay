@@ -20,7 +20,7 @@ class _DormantConnectionsEmptyState extends StatelessWidget {
       backgroundColor: palette.surface.withValues(alpha: 0.86),
       borderColor: palette.surfaceBorder,
       padding: const EdgeInsets.all(PocketSpacing.xxl),
-      radius: PocketRadii.xxl,
+      radius: _dormantRosterPanelRadius,
       boxShadow: <BoxShadow>[
         BoxShadow(
           color: palette.shadowColor,
@@ -95,7 +95,7 @@ class _DormantConnectionItem extends StatelessWidget {
       backgroundColor: palette.surface.withValues(alpha: 0.9),
       borderColor: palette.surfaceBorder,
       padding: PocketSpacing.panelPadding,
-      radius: PocketRadii.xxl,
+      radius: _dormantRosterPanelRadius,
       boxShadow: <BoxShadow>[
         BoxShadow(
           color: palette.shadowColor,

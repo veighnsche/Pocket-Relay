@@ -8,6 +8,7 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
@@ -133,6 +134,26 @@ void main() {
     },
   );
 
+  testWidgets('dormant roster uses tighter panel corners', (tester) async {
+    final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+    final controller = _buildWorkspaceController(clientsById: clientsById);
+    addTearDown(() async {
+      controller.dispose();
+      await _closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await tester.pumpWidget(_buildDormantRosterApp(controller));
+    await tester.pumpAndSettle();
+
+    final panelSurfaces = tester.widgetList<PocketPanelSurface>(
+      find.byType(PocketPanelSurface),
+    );
+
+    expect(panelSurfaces, isNotEmpty);
+    expect(panelSurfaces.every((surface) => surface.radius == 12), isTrue);
+  });
+
   testWidgets(
     'live lane ignores connection settings results after the surface unmounts',
     (tester) async {
@@ -256,25 +277,21 @@ ConnectionWorkspaceController _buildWorkspaceController({
       );
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    laneBindingFactory:
-        ({
-          required connectionId,
-          required connection,
-        }) {
-          return ConnectionLaneBinding(
-            connectionId: connectionId,
-            profileStore: ConnectionScopedProfileStore(
-              connectionId: connectionId,
-              connectionRepository: resolvedRepository,
-            ),
-            appServerClient: clientsById[connectionId]!,
-            initialSavedProfile: SavedProfile(
-              profile: connection.profile,
-              secrets: connection.secrets,
-            ),
-            ownsAppServerClient: false,
-          );
-        },
+    laneBindingFactory: ({required connectionId, required connection}) {
+      return ConnectionLaneBinding(
+        connectionId: connectionId,
+        profileStore: ConnectionScopedProfileStore(
+          connectionId: connectionId,
+          connectionRepository: resolvedRepository,
+        ),
+        appServerClient: clientsById[connectionId]!,
+        initialSavedProfile: SavedProfile(
+          profile: connection.profile,
+          secrets: connection.secrets,
+        ),
+        ownsAppServerClient: false,
+      );
+    },
   );
 }
 

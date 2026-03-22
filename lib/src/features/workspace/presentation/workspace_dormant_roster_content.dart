@@ -15,6 +15,8 @@ import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_
 part 'workspace_dormant_roster_content_items.dart';
 part 'workspace_dormant_roster_content_shell.dart';
 
+const double _dormantRosterPanelRadius = 12;
+
 class ConnectionWorkspaceDormantRosterContent extends StatefulWidget {
   const ConnectionWorkspaceDormantRosterContent({
     super.key,
