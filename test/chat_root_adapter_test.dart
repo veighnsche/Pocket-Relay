@@ -13,7 +13,11 @@ import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
+import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_presenter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
@@ -1009,6 +1013,81 @@ void main() {
       );
     },
   );
+
+  testWidgets('composer draft changes do not rebuild the session projection', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    final overlayDelegate = _FakeChatRootOverlayDelegate();
+    final presenter = _CountingChatScreenPresenter();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      _buildAdapterApp(
+        appServerClient: appServerClient,
+        overlayDelegate: overlayDelegate,
+        screenPresenter: presenter,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final initialSessionPresentCalls = presenter.presentSessionCalls;
+    expect(initialSessionPresentCalls, greaterThan(0));
+    await tester.enterText(
+      find.byKey(const ValueKey('composer_input')),
+      'Draft without transcript reprojection',
+    );
+    await tester.pump();
+
+    expect(presenter.presentSessionCalls, initialSessionPresentCalls);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('composer_input')))
+          .controller
+          ?.text,
+      'Draft without transcript reprojection',
+    );
+  });
+
+  testWidgets(
+    'transcript follow changes do not rebuild the session projection',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      final overlayDelegate = _FakeChatRootOverlayDelegate();
+      final presenter = _CountingChatScreenPresenter();
+      final laneBinding = _buildLaneBinding(
+        appServerClient: appServerClient,
+        savedProfile: _savedProfile(),
+      );
+      addTearDown(() async {
+        laneBinding.dispose();
+        await appServerClient.close();
+      });
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: overlayDelegate,
+          laneBinding: laneBinding,
+          screenPresenter: presenter,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialSessionPresentCalls = presenter.presentSessionCalls;
+      expect(initialSessionPresentCalls, greaterThan(0));
+      laneBinding.transcriptFollowHost.updateAutoFollowEligibility(
+        isNearBottom: false,
+      );
+      await tester.pump();
+
+      expect(presenter.presentSessionCalls, initialSessionPresentCalls);
+      expect(
+        laneBinding.transcriptFollowHost.contract.isAutoFollowEnabled,
+        isFalse,
+      );
+    },
+  );
 }
 
 Widget _buildAdapterApp({
@@ -1021,6 +1100,7 @@ Widget _buildAdapterApp({
   ConnectionLaneBinding? laneBinding,
   CodexProfileStore? profileStore,
   SavedProfile? savedProfile,
+  ChatScreenPresenter? screenPresenter,
   ThemeData? theme,
 }) {
   final resolvedPlatformPolicy =
@@ -1037,6 +1117,7 @@ Widget _buildAdapterApp({
       savedProfile: savedProfile ?? _savedProfile(),
       platformPolicy: resolvedPlatformPolicy,
       overlayDelegate: overlayDelegate,
+      screenPresenter: screenPresenter ?? const ChatScreenPresenter(),
       onConnectionSettingsRequested:
           onConnectionSettingsRequested ?? (_) async {},
     ),
@@ -1362,6 +1443,7 @@ class _ChatRootAdapterHarness extends StatefulWidget {
     required this.savedProfile,
     required this.platformPolicy,
     required this.overlayDelegate,
+    required this.screenPresenter,
     required this.onConnectionSettingsRequested,
     this.laneBinding,
     this.profileStore,
@@ -1371,6 +1453,7 @@ class _ChatRootAdapterHarness extends StatefulWidget {
   final SavedProfile savedProfile;
   final PocketPlatformPolicy platformPolicy;
   final ChatRootOverlayDelegate overlayDelegate;
+  final ChatScreenPresenter screenPresenter;
   final Future<void> Function(ChatConnectionSettingsLaunchContract payload)
   onConnectionSettingsRequested;
   final ConnectionLaneBinding? laneBinding;
@@ -1417,6 +1500,7 @@ class _ChatRootAdapterHarnessState extends State<_ChatRootAdapterHarness> {
       laneBinding: widget.laneBinding ?? _ownedLaneBinding!,
       platformPolicy: widget.platformPolicy,
       onConnectionSettingsRequested: widget.onConnectionSettingsRequested,
+      screenPresenter: widget.screenPresenter,
       overlayDelegate: widget.overlayDelegate,
     );
   }
@@ -1442,6 +1526,34 @@ class _ChatRootAdapterHarnessState extends State<_ChatRootAdapterHarness> {
     final previousLaneBinding = _ownedLaneBinding;
     _ownedLaneBinding = nextLaneBinding;
     previousLaneBinding?.dispose();
+  }
+}
+
+class _CountingChatScreenPresenter extends ChatScreenPresenter {
+  _CountingChatScreenPresenter();
+
+  int presentSessionCalls = 0;
+
+  @override
+  ChatScreenSessionContract presentSession({
+    required bool isLoading,
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required CodexSessionState sessionState,
+    required ChatConversationRecoveryState? conversationRecoveryState,
+    ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
+    ConnectionMode? preferredConnectionMode,
+  }) {
+    presentSessionCalls += 1;
+    return super.presentSession(
+      isLoading: isLoading,
+      profile: profile,
+      secrets: secrets,
+      sessionState: sessionState,
+      conversationRecoveryState: conversationRecoveryState,
+      historicalConversationRestoreState: historicalConversationRestoreState,
+      preferredConnectionMode: preferredConnectionMode,
+    );
   }
 }
 

@@ -204,6 +204,73 @@ class ChatConnectionSettingsLaunchContract {
   final ConnectionSecrets initialSecrets;
 }
 
+class ChatScreenSessionContract {
+  const ChatScreenSessionContract({
+    required this.isLoading,
+    required this.header,
+    required this.actions,
+    this.timelineSummaries = const <ChatTimelineSummaryContract>[],
+    required this.transcriptSurface,
+    required this.connectionSettings,
+    required this.isComposerSendEnabled,
+    this.allowsImageAttachment = false,
+    required this.composerPlaceholder,
+    this.conversationRecoveryNotice,
+    this.historicalConversationRestoreNotice,
+    this.turnIndicator,
+  });
+
+  final bool isLoading;
+  final ChatHeaderContract header;
+  final List<ChatScreenActionContract> actions;
+  final List<ChatTimelineSummaryContract> timelineSummaries;
+  final ChatTranscriptSurfaceContract transcriptSurface;
+  final ChatConnectionSettingsLaunchContract connectionSettings;
+  final bool isComposerSendEnabled;
+  final bool allowsImageAttachment;
+  final String composerPlaceholder;
+  final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
+  final ChatHistoricalConversationRestoreNoticeContract?
+  historicalConversationRestoreNotice;
+  final ChatTurnIndicatorContract? turnIndicator;
+
+  List<ChatScreenActionContract> get toolbarActions => actions
+      .where((action) => action.placement == ChatScreenActionPlacement.toolbar)
+      .toList(growable: false);
+
+  List<ChatScreenActionContract> get menuActions => actions
+      .where((action) => action.placement == ChatScreenActionPlacement.menu)
+      .toList(growable: false);
+
+  ChatComposerContract composerForDraft(ChatComposerDraft composerDraft) {
+    return ChatComposerContract(
+      draft: composerDraft,
+      isSendActionEnabled: isComposerSendEnabled,
+      allowsImageAttachment: allowsImageAttachment,
+      placeholder: composerPlaceholder,
+    );
+  }
+
+  ChatScreenContract compose({
+    required ChatTranscriptFollowContract transcriptFollow,
+    required ChatComposerDraft composerDraft,
+  }) {
+    return ChatScreenContract(
+      isLoading: isLoading,
+      header: header,
+      actions: actions,
+      timelineSummaries: timelineSummaries,
+      transcriptSurface: transcriptSurface,
+      transcriptFollow: transcriptFollow,
+      composer: composerForDraft(composerDraft),
+      connectionSettings: connectionSettings,
+      conversationRecoveryNotice: conversationRecoveryNotice,
+      historicalConversationRestoreNotice: historicalConversationRestoreNotice,
+      turnIndicator: turnIndicator,
+    );
+  }
+}
+
 class ChatScreenContract {
   const ChatScreenContract({
     required this.isLoading,
