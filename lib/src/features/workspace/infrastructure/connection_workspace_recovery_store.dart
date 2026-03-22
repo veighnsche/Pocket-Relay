@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:pocket_relay/src/core/storage/shared_preferences_async_migration.dart';
@@ -26,9 +27,7 @@ class ConnectionWorkspaceRecoveryState {
     };
   }
 
-  factory ConnectionWorkspaceRecoveryState.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory ConnectionWorkspaceRecoveryState.fromJson(Map<String, dynamic> json) {
     return ConnectionWorkspaceRecoveryState(
       connectionId: _normalizedRecoveryString(json['connectionId']) ?? '',
       draftText: json['draftText'] as String? ?? '',
@@ -75,14 +74,19 @@ class MemoryConnectionWorkspaceRecoveryStore
 class SecureConnectionWorkspaceRecoveryStore
     implements ConnectionWorkspaceRecoveryStore {
   static const _recoveryStateKey = 'pocket_relay.workspace.recovery_state';
+  static const _draftTextStorageKey =
+      'pocket_relay.workspace.recovery_state.draft_text';
   static const _legacyDraftTextKey = 'draftText';
   static const _preferencesMigrationKey =
       'pocket_relay.workspace_recovery_async_migration_complete';
 
   SecureConnectionWorkspaceRecoveryStore({
+    FlutterSecureStorage? secureStorage,
     SharedPreferencesAsync? preferences,
-  }) : _preferences = preferences ?? SharedPreferencesAsync();
+  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+       _preferences = preferences ?? SharedPreferencesAsync();
 
+  final FlutterSecureStorage _secureStorage;
   final SharedPreferencesAsync _preferences;
   Future<void>? _preferencesReady;
 
@@ -99,21 +103,34 @@ class SecureConnectionWorkspaceRecoveryStore
       return null;
     }
 
-    if (decoded.containsKey(_legacyDraftTextKey)) {
+    final sanitizedMap = Map<String, dynamic>.from(decoded)
+      ..remove(_legacyDraftTextKey);
+    final hasLegacyDraftText = decoded.containsKey(_legacyDraftTextKey);
+    final legacyDraftText = _recoveryDraftText(decoded[_legacyDraftTextKey]);
+    if (hasLegacyDraftText) {
       await _preferences.setString(
         _recoveryStateKey,
-        jsonEncode(_persistableStateJson(decoded)),
+        jsonEncode(_persistableStateJson(sanitizedMap)),
       );
     }
 
-    final state = ConnectionWorkspaceRecoveryState.fromJson(decoded);
+    final state = ConnectionWorkspaceRecoveryState.fromJson(sanitizedMap);
     if (state.connectionId.isEmpty) {
       return null;
+    }
+    final persistedDraftText = await _readDraftText();
+    final effectiveDraftText = persistedDraftText.isNotEmpty
+        ? persistedDraftText
+        : legacyDraftText;
+    if (hasLegacyDraftText &&
+        persistedDraftText.isEmpty &&
+        legacyDraftText.isNotEmpty) {
+      await _writeDraftText(legacyDraftText);
     }
     return ConnectionWorkspaceRecoveryState(
       connectionId: state.connectionId,
       selectedThreadId: state.selectedThreadId,
-      draftText: '',
+      draftText: effectiveDraftText,
       backgroundedAt: state.backgroundedAt,
     );
   }
@@ -123,6 +140,7 @@ class SecureConnectionWorkspaceRecoveryStore
     await _ensurePreferencesReady();
     if (state == null) {
       await _preferences.remove(_recoveryStateKey);
+      await _deleteDraftText();
       return;
     }
 
@@ -130,12 +148,29 @@ class SecureConnectionWorkspaceRecoveryStore
       _recoveryStateKey,
       jsonEncode(_persistableStateJson(state.toJson())),
     );
+    await _writeDraftText(state.draftText);
   }
 
   Future<void> _ensurePreferencesReady() {
     return _preferencesReady ??= ensureSharedPreferencesAsyncReady(
       migrationCompletedKey: _preferencesMigrationKey,
     );
+  }
+
+  Future<String> _readDraftText() async {
+    return await _secureStorage.read(key: _draftTextStorageKey) ?? '';
+  }
+
+  Future<void> _writeDraftText(String value) async {
+    if (value.isEmpty) {
+      await _deleteDraftText();
+      return;
+    }
+    await _secureStorage.write(key: _draftTextStorageKey, value: value);
+  }
+
+  Future<void> _deleteDraftText() {
+    return _secureStorage.delete(key: _draftTextStorageKey);
   }
 }
 
@@ -162,4 +197,8 @@ String? _normalizedRecoveryString(Object? value) {
   }
   final normalizedValue = value.trim();
   return normalizedValue.isEmpty ? null : normalizedValue;
+}
+
+String _recoveryDraftText(Object? value) {
+  return value is String ? value : '';
 }

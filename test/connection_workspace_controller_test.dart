@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -13,10 +14,15 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test(
     'initializes an empty catalog into the dormant workspace state',
     () async {
@@ -220,6 +226,74 @@ void main() {
       expect(clientsById['conn_secondary']!.readThreadCalls, <String>[
         'thread_saved',
       ]);
+    },
+  );
+
+  test(
+    'initialization restores the persisted selected lane, draft, and transcript target from secure recovery storage',
+    () async {
+      final originalAsyncPlatform = SharedPreferencesAsyncPlatform.instance;
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      addTearDown(() {
+        SharedPreferencesAsyncPlatform.instance = originalAsyncPlatform;
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+      });
+
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_secondary']!.threadHistoriesById['thread_saved'] =
+          _savedConversationThread(threadId: 'thread_saved');
+      final secureStorage = _FakeFlutterSecureStorage(<String, String>{});
+      final preferences = SharedPreferencesAsync();
+      final recoveryStore = SecureConnectionWorkspaceRecoveryStore(
+        secureStorage: secureStorage,
+        preferences: preferences,
+      );
+      await recoveryStore.save(
+        const ConnectionWorkspaceRecoveryState(
+          connectionId: 'conn_secondary',
+          selectedThreadId: 'thread_saved',
+          draftText: 'Restore my draft',
+        ),
+      );
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        recoveryStore: recoveryStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+
+      final binding = controller.selectedLaneBinding;
+      expect(controller.state.selectedConnectionId, 'conn_secondary');
+      expect(binding, isNotNull);
+      expect(binding!.composerDraftHost.draft.text, 'Restore my draft');
+      expect(
+        binding.sessionController.sessionState.rootThreadId,
+        'thread_saved',
+      );
+      expect(
+        binding.sessionController.transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .single
+            .body,
+        'Restored answer',
+      );
+      expect(clientsById['conn_secondary']!.readThreadCalls, <String>[
+        'thread_saved',
+      ]);
+      expect(
+        await preferences.getString('pocket_relay.workspace.recovery_state'),
+        isNot(contains('Restore my draft')),
+      );
+      expect(
+        secureStorage.data['pocket_relay.workspace.recovery_state.draft_text'],
+        'Restore my draft',
+      );
     },
   );
 
@@ -1383,6 +1457,56 @@ Future<void> _startBusyTurn(
   );
   await Future<void>.delayed(Duration.zero);
   expect(binding.sessionController.sessionState.isBusy, isTrue);
+}
+
+class _FakeFlutterSecureStorage extends FlutterSecureStorage {
+  _FakeFlutterSecureStorage(this.data);
+
+  final Map<String, String> data;
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (value == null) {
+      data.remove(key);
+      return;
+    }
+    data[key] = value;
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return data[key];
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    data.remove(key);
+  }
 }
 
 Map<String, FakeCodexAppServerClient> _buildClientsById(
