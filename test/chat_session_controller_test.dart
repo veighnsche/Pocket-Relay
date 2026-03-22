@@ -82,7 +82,7 @@ void main() {
   });
 
   test(
-    'sendPrompt resumes the saved conversation handoff after controller restart',
+    'sendPrompt starts a fresh conversation after controller restart until history is explicitly picked',
     () async {
       final appServerClient = FakeCodexAppServerClient();
       final conversationStateStore = _RecordingConversationHistoryStore(
@@ -119,7 +119,7 @@ void main() {
         })
       >[
         (
-          threadId: 'thread_saved',
+          threadId: 'thread_123',
           text: 'Continue after restart',
           model: null,
           effort: null,
@@ -127,17 +127,17 @@ void main() {
       ]);
       expect(
         appServerClient.startSessionRequests.single.resumeThreadId,
-        'thread_saved',
+        isNull,
       );
       expect(
         (await conversationStateStore.loadState()).normalizedSelectedThreadId,
-        'thread_saved',
+        'thread_123',
       );
     },
   );
 
   test(
-    'initialize hydrates the saved conversation transcript from persisted selectedThreadId',
+    'initialize keeps a fresh lane empty even when a persisted selectedThreadId exists',
     () async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
@@ -169,27 +169,16 @@ void main() {
       await controller.initialize();
 
       expect(appServerClient.startSessionCalls, 0);
-      expect(appServerClient.connectCalls, 1);
-      expect(appServerClient.readThreadCalls, <String>['thread_saved']);
-      expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
-          (block) => block.text,
-        ),
-        contains('Restore this'),
-      );
-      expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
-          (block) => block.body,
-        ),
-        contains('Restored answer'),
-      );
-      expect(controller.sessionState.rootThreadId, 'thread_saved');
+      expect(appServerClient.connectCalls, 0);
+      expect(appServerClient.readThreadCalls, isEmpty);
+      expect(controller.transcriptBlocks, isEmpty);
+      expect(controller.sessionState.rootThreadId, isNull);
       expect(controller.historicalConversationRestoreState, isNull);
     },
   );
 
   test(
-    'sendPrompt resumes the startup-restored conversation before sending',
+    'sendPrompt stays fresh after initialize until history is explicitly picked',
     () async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_saved'] = _savedConversationThread(
@@ -227,10 +216,10 @@ void main() {
       expect(appServerClient.startSessionCalls, 1);
       expect(
         appServerClient.startSessionRequests.single.resumeThreadId,
-        'thread_saved',
+        isNull,
       );
       expect(appServerClient.sentTurns.single, (
-        threadId: 'thread_saved',
+        threadId: 'thread_123',
         text: 'Continue restored startup lane',
         model: null,
         effort: null,
@@ -591,7 +580,7 @@ void main() {
   );
 
   test(
-    'initialize surfaces unavailable history for persisted selectedThreadId without waiting for sendPrompt',
+    'initialize ignores persisted selectedThreadId with unavailable history until the user explicitly resumes',
     () async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_empty'] =
@@ -627,17 +616,22 @@ void main() {
       await controller.initialize();
 
       expect(appServerClient.startSessionCalls, 0);
-      expect(appServerClient.readThreadCalls, <String>['thread_empty']);
-      expect(
-        controller.historicalConversationRestoreState?.phase,
-        ChatHistoricalConversationRestorePhase.unavailable,
-      );
-      expect(controller.sessionState.rootThreadId, 'thread_empty');
+      expect(appServerClient.connectCalls, 0);
+      expect(appServerClient.readThreadCalls, isEmpty);
+      expect(controller.historicalConversationRestoreState, isNull);
+      expect(controller.sessionState.rootThreadId, isNull);
       expect(controller.transcriptBlocks, isEmpty);
       expect(
-        await controller.sendPrompt('blocked after startup empty restore'),
-        isFalse,
+        await controller.sendPrompt('stay fresh after startup'),
+        isTrue,
       );
+      expect(appServerClient.startSessionRequests.single.resumeThreadId, isNull);
+      expect(appServerClient.sentTurns.single, (
+        threadId: 'thread_123',
+        text: 'stay fresh after startup',
+        model: null,
+        effort: null,
+      ));
     },
   );
 

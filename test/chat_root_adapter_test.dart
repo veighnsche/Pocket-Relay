@@ -333,16 +333,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -413,16 +409,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -473,16 +465,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -537,16 +525,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -605,16 +589,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -659,16 +639,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -801,16 +777,12 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: _savedProfile()),
-        conversationStateStore: _RecordingConversationStateStore(
-          initialState: const SavedConnectionConversationState(
-            selectedThreadId: 'thread_saved',
-          ),
-        ),
         appServerClient: appServerClient,
         initialSavedProfile: _savedProfile(),
       );
       addTearDown(appServerClient.close);
       addTearDown(laneBinding.dispose);
+      await _restoreConversationInLane(laneBinding, 'thread_saved');
 
       await tester.pumpWidget(
         _buildAdapterApp(
@@ -1042,6 +1014,14 @@ ConnectionLaneBinding _buildLaneBinding({
     supportsLocalConnectionMode:
         resolvedPlatformPolicy.supportsLocalConnectionMode,
   );
+}
+
+Future<void> _restoreConversationInLane(
+  ConnectionLaneBinding laneBinding,
+  String threadId,
+) async {
+  await laneBinding.initializeSession();
+  await laneBinding.sessionController.selectConversationForResume(threadId);
 }
 
 ConnectionProfile _configuredProfile() {
@@ -1356,24 +1336,6 @@ class _ChatRootAdapterHarness extends StatefulWidget {
   @override
   State<_ChatRootAdapterHarness> createState() =>
       _ChatRootAdapterHarnessState();
-}
-
-class _RecordingConversationStateStore implements CodexConversationStateStore {
-  _RecordingConversationStateStore({
-    SavedConnectionConversationState? initialState,
-  }) : state = initialState ?? const SavedConnectionConversationState();
-
-  SavedConnectionConversationState state;
-
-  @override
-  Future<SavedConnectionConversationState> loadState() async {
-    return state;
-  }
-
-  @override
-  Future<void> saveState(SavedConnectionConversationState nextState) async {
-    state = nextState;
-  }
 }
 
 class _ChatRootAdapterHarnessState extends State<_ChatRootAdapterHarness> {
