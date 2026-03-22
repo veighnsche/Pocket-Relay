@@ -496,6 +496,7 @@ void main() {
       expect(clientsById['conn_primary']!.sentTurns, <
         ({
           String threadId,
+          CodexAppServerTurnInput input,
           String text,
           String? model,
           CodexReasoningEffort? effort,
@@ -503,6 +504,7 @@ void main() {
       >[
         (
           threadId: 'thread_saved',
+          input: const CodexAppServerTurnInput.text('Continue this thread'),
           text: 'Continue this thread',
           model: null,
           effort: null,

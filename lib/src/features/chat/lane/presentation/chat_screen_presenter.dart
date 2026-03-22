@@ -108,7 +108,7 @@ class ChatScreenPresenter {
       ),
       transcriptFollow: transcriptFollow,
       composer: ChatComposerContract(
-        draftText: composerDraft.text,
+        draft: composerDraft,
         isSendActionEnabled: canSend,
         placeholder: 'Message Codex',
       ),

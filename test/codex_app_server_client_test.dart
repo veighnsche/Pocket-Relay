@@ -227,6 +227,90 @@ void main() {
     await client.disconnect();
   });
 
+  test('sendUserMessage supports structured local-image turn input', () async {
+    late _FakeCodexAppServerProcess process;
+    process = _FakeCodexAppServerProcess(
+      onClientMessage: (message) {
+        switch (message['method']) {
+          case 'initialize':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{'userAgent': 'codex-app-server-test'},
+            });
+          case 'thread/start':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'thread': <String, Object?>{'id': 'thread_123'},
+                'cwd': '/workspace',
+                'model': 'gpt-5.3-codex',
+                'modelProvider': 'openai',
+                'approvalPolicy': 'on-request',
+                'sandbox': <String, Object?>{'type': 'workspace-write'},
+              },
+            });
+          case 'turn/start':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'turn': <String, Object?>{'id': 'turn_123'},
+              },
+            });
+        }
+      },
+    );
+
+    final client = CodexAppServerClient(
+      processLauncher:
+          ({required profile, required secrets, required emitEvent}) async =>
+              process,
+    );
+
+    await client.connect(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+    );
+
+    final session = await client.startSession();
+    await client.sendUserMessage(
+      threadId: session.threadId,
+      input: const CodexAppServerTurnInput(
+        text: 'Check [Image #1]',
+        textElements: <CodexAppServerTextElement>[
+          CodexAppServerTextElement(
+            start: 6,
+            end: 16,
+            placeholder: '[Image #1]',
+          ),
+        ],
+        localImagePaths: <String>['/tmp/image.png'],
+      ),
+    );
+
+    final turnStartRequest = process.writtenMessages.firstWhere(
+      (message) => message['method'] == 'turn/start',
+    );
+
+    expect(turnStartRequest['params'], <String, Object?>{
+      'threadId': 'thread_123',
+      'input': <Object>[
+        <String, Object?>{
+          'type': 'text',
+          'text': 'Check [Image #1]',
+          'text_elements': <Object>[
+            <String, Object?>{
+              'byteRange': <String, Object?>{'start': 6, 'end': 16},
+              'placeholder': '[Image #1]',
+            },
+          ],
+        },
+        <String, Object?>{'type': 'localImage', 'path': '/tmp/image.png'},
+      ],
+    });
+
+    await client.disconnect();
+  });
+
   test(
     'readThreadWithTurns preserves historical turns from thread/read',
     () async {

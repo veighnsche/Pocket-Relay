@@ -119,7 +119,8 @@ class CodexAppServerClient {
 
   Future<CodexAppServerTurn> sendUserMessage({
     required String threadId,
-    required String text,
+    String? text,
+    CodexAppServerTurnInput? input,
     String? model,
     CodexReasoningEffort? effort,
   }) async {
@@ -128,6 +129,7 @@ class CodexAppServerClient {
       _connection,
       threadId: threadId,
       text: text,
+      input: input,
       model: model,
       effort: effort,
     );

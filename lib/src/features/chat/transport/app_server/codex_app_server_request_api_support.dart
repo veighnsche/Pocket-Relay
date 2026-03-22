@@ -8,6 +8,44 @@ String _requireThreadId(String threadId) {
   return effectiveThreadId;
 }
 
+CodexAppServerTurnInput _turnInputFor({
+  String? text,
+  CodexAppServerTurnInput? input,
+}) {
+  if (input != null) {
+    return input;
+  }
+  if (text != null) {
+    return CodexAppServerTurnInput.text(text.trim());
+  }
+  throw const CodexAppServerException(
+    'Turn input requires either text or structured input.',
+  );
+}
+
+List<Object> _turnInputPayload(CodexAppServerTurnInput input) {
+  final items = <Object>[];
+  if (input.hasText) {
+    items.add(<String, Object?>{
+      'type': 'text',
+      'text': input.text,
+      'text_elements': input.textElements
+          .map((element) => element.toJson())
+          .toList(growable: false),
+    });
+  }
+  for (final imagePath in input.localImagePaths) {
+    if (imagePath.trim().isEmpty) {
+      continue;
+    }
+    items.add(<String, Object?>{
+      'type': 'localImage',
+      'path': imagePath.trim(),
+    });
+  }
+  return items;
+}
+
 Map<String, dynamic>? _asObject(Object? value) {
   if (value is Map) {
     return Map<String, dynamic>.from(value);

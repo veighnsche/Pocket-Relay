@@ -6,17 +6,21 @@ class ChatComposerDraftHost extends ChangeNotifier {
 
   ChatComposerDraft get draft => _draft;
 
-  void updateText(String text) {
-    if (_draft.text == text) {
+  void updateDraft(ChatComposerDraft draft) {
+    if (_draft == draft) {
       return;
     }
 
-    _draft = ChatComposerDraft(text: text);
+    _draft = draft;
     notifyListeners();
   }
 
+  void updateText(String text) {
+    updateDraft(_draft.copyWith(text: text));
+  }
+
   void clear() {
-    updateText('');
+    updateDraft(const ChatComposerDraft());
   }
 
   void reset() {

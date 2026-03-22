@@ -106,6 +106,7 @@ void main() {
       expect(appServerClient.sentTurns, <
         ({
           String threadId,
+          CodexAppServerTurnInput input,
           String text,
           String? model,
           CodexReasoningEffort? effort,
@@ -113,6 +114,7 @@ void main() {
       >[
         (
           threadId: 'thread_123',
+          input: const CodexAppServerTurnInput.text('Continue after restart'),
           text: 'Continue after restart',
           model: null,
           effort: null,
@@ -197,6 +199,9 @@ void main() {
       );
       expect(appServerClient.sentTurns.single, (
         threadId: 'thread_123',
+        input: const CodexAppServerTurnInput.text(
+          'Continue restored startup lane',
+        ),
         text: 'Continue restored startup lane',
         model: null,
         effort: null,
@@ -569,6 +574,7 @@ void main() {
       );
       expect(appServerClient.sentTurns.single, (
         threadId: 'thread_123',
+        input: const CodexAppServerTurnInput.text('stay fresh after startup'),
         text: 'stay fresh after startup',
         model: null,
         effort: null,
@@ -658,6 +664,7 @@ void main() {
       expect(appServerClient.sentTurns, <
         ({
           String threadId,
+          CodexAppServerTurnInput input,
           String text,
           String? model,
           CodexReasoningEffort? effort,
@@ -665,6 +672,9 @@ void main() {
       >[
         (
           threadId: 'thread_saved',
+          input: const CodexAppServerTurnInput.text(
+            'Continue restored conversation',
+          ),
           text: 'Continue restored conversation',
           model: null,
           effort: null,
@@ -1261,6 +1271,7 @@ void main() {
       );
       expect(appServerClient.sentTurns.last, (
         threadId: 'thread_123',
+        input: const CodexAppServerTurnInput.text('Resume after reconnect'),
         text: 'Resume after reconnect',
         model: null,
         effort: null,

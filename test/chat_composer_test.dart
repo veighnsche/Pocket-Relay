@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer.dart';
 
@@ -304,7 +305,7 @@ ChatComposerContract _composerContract({
   bool isSendActionEnabled = true,
 }) {
   return ChatComposerContract(
-    draftText: draftText,
+    draft: ChatComposerDraft(text: draftText),
     isSendActionEnabled: isSendActionEnabled,
     placeholder: 'Message Codex',
   );

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
@@ -422,7 +423,7 @@ ChatScreenContract _screenContract({
       resumeDistance: 80,
     ),
     composer: const ChatComposerContract(
-      draftText: '',
+      draft: ChatComposerDraft(),
       isSendActionEnabled: true,
       placeholder: 'Message Codex',
     ),

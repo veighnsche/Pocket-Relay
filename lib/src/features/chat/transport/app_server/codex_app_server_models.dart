@@ -295,7 +295,87 @@ class CodexAppServerTurn {
   final String turnId;
 }
 
+class CodexAppServerTurnInput {
+  const CodexAppServerTurnInput({
+    this.text = '',
+    this.textElements = const <CodexAppServerTextElement>[],
+    this.localImagePaths = const <String>[],
+  });
+
+  const CodexAppServerTurnInput.text(String text)
+    : this(text: text, textElements: const <CodexAppServerTextElement>[]);
+
+  final String text;
+  final List<CodexAppServerTextElement> textElements;
+  final List<String> localImagePaths;
+
+  bool get hasText => text.trim().isNotEmpty || textElements.isNotEmpty;
+  bool get hasLocalImages =>
+      localImagePaths.any((path) => path.trim().isNotEmpty);
+  bool get isEmpty => !hasText && !hasLocalImages;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerTurnInput &&
+        other.text == text &&
+        _listEquals(other.textElements, textElements) &&
+        _listEquals(other.localImagePaths, localImagePaths);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    text,
+    Object.hashAll(textElements),
+    Object.hashAll(localImagePaths),
+  );
+}
+
+class CodexAppServerTextElement {
+  const CodexAppServerTextElement({
+    required this.start,
+    required this.end,
+    this.placeholder,
+  });
+
+  final int start;
+  final int end;
+  final String? placeholder;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'byteRange': <String, Object?>{'start': start, 'end': end},
+      if (placeholder != null) 'placeholder': placeholder,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerTextElement &&
+        other.start == start &&
+        other.end == end &&
+        other.placeholder == placeholder;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end, placeholder);
+}
+
 enum CodexAppServerElicitationAction { accept, decline, cancel }
+
+bool _listEquals<T>(List<T> left, List<T> right) {
+  if (identical(left, right)) {
+    return true;
+  }
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 class CodexAppServerException implements Exception {
   const CodexAppServerException(this.message, {this.code, this.data});

@@ -67,6 +67,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   final List<
     ({
       String threadId,
+      CodexAppServerTurnInput input,
       String text,
       String? model,
       CodexReasoningEffort? effort,
@@ -76,6 +77,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       <
         ({
           String threadId,
+          CodexAppServerTurnInput input,
           String text,
           String? model,
           CodexReasoningEffort? effort,
@@ -356,7 +358,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   @override
   Future<CodexAppServerTurn> sendUserMessage({
     required String threadId,
-    required String text,
+    String? text,
+    CodexAppServerTurnInput? input,
     String? model,
     CodexReasoningEffort? effort,
   }) async {
@@ -366,10 +369,12 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     if (sendUserMessageError != null) {
       throw sendUserMessageError!;
     }
-    sentMessages.add(text);
+    final effectiveInput = input ?? CodexAppServerTurnInput.text(text ?? '');
+    sentMessages.add(effectiveInput.text);
     sentTurns.add((
       threadId: threadId,
-      text: text,
+      input: effectiveInput,
+      text: effectiveInput.text,
       model: model,
       effort: effort,
     ));

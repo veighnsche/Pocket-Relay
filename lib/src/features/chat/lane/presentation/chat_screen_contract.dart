@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
@@ -160,14 +161,18 @@ class ChatTranscriptSurfaceContract {
 
 class ChatComposerContract {
   const ChatComposerContract({
-    required this.draftText,
+    this.draft = const ChatComposerDraft(),
     required this.isSendActionEnabled,
     required this.placeholder,
   });
 
-  final String draftText;
+  final ChatComposerDraft draft;
   final bool isSendActionEnabled;
   final String placeholder;
+
+  String get draftText => draft.text;
+  bool get hasStructuredDraft =>
+      draft.hasTextElements || draft.hasLocalImageAttachments;
 }
 
 class ChatTurnIndicatorContract {
