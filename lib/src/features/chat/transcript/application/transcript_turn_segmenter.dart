@@ -230,7 +230,9 @@ class TranscriptTurnArtifactBuilder {
     if (index == -1) {
       nextEntries.add(entry);
     } else {
-      nextEntries[index] = entry;
+      nextEntries
+        ..removeAt(index)
+        ..add(entry);
     }
     final retainedEntries = _retainChangedFilesEntryDiffs(nextEntries);
 
@@ -364,11 +366,10 @@ List<CodexChangedFilesEntry> _retainChangedFilesEntryDiffs(
   for (var index = entries.length - 1; index >= 0; index -= 1) {
     final entry = entries[index];
     final separatorChars = hasRetainedLaterDiff ? 1 : 0;
-    final separatorLines = hasRetainedLaterDiff ? 1 : 0;
     final retainedDiff = _retainUnifiedDiffWithinBudget(
       entry.unifiedDiff,
       maxChars: remainingChars - separatorChars,
-      maxLines: remainingLines - separatorLines,
+      maxLines: remainingLines,
     );
 
     if (retainedDiff != entry.unifiedDiff) {
@@ -382,7 +383,7 @@ List<CodexChangedFilesEntry> _retainChangedFilesEntryDiffs(
     }
 
     remainingChars -= retainedDiff.length + separatorChars;
-    remainingLines -= _lineCount(retainedDiff) + separatorLines;
+    remainingLines -= _lineCount(retainedDiff);
     hasRetainedLaterDiff = true;
   }
 

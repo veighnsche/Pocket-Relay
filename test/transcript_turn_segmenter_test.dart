@@ -8,6 +8,7 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.
 void main() {
   const builder = TranscriptTurnArtifactBuilder();
   final startedAt = DateTime.utc(2026, 1, 1, 12);
+  const unifiedDiffHeaderLineCount = 3;
   int countLines(String text) =>
       text.isEmpty ? 0 : '\n'.allMatches(text).length + 1;
 
@@ -35,6 +36,23 @@ void main() {
       body: body,
       isRunning: isRunning,
     );
+  }
+
+  String changedFilesBody({
+    required String fileName,
+    required int lineCount,
+    required String linePrefix,
+  }) {
+    final diffLines = List<String>.generate(
+      lineCount,
+      (index) => '+$linePrefix line $index',
+    ).join('\n');
+    return '''
+--- a/lib/$fileName.dart
++++ b/lib/$fileName.dart
+@@ -0,0 +1,$lineCount @@
+$diffLines
+''';
   }
 
   test(
@@ -183,4 +201,114 @@ $diffLines
       );
     },
   );
+
+  test(
+    'treats updated changed-file entries as newest when trimming by budget',
+    () {
+      var turn = initialTurn();
+      final retainedLinesPerEntry =
+          TranscriptMemoryBudget.maxUnifiedDiffLines -
+          unifiedDiffHeaderLineCount;
+
+      turn = builder.upsertItem(
+        turn,
+        changedFilesItem(
+          itemId: 'item-a',
+          entryId: 'entry-a',
+          body: changedFilesBody(
+            fileName: 'file_a',
+            lineCount: retainedLinesPerEntry,
+            linePrefix: 'entry a first',
+          ),
+        ),
+      );
+      turn = builder.upsertItem(
+        turn,
+        changedFilesItem(
+          itemId: 'item-b',
+          entryId: 'entry-b',
+          body: changedFilesBody(
+            fileName: 'file_b',
+            lineCount: retainedLinesPerEntry,
+            linePrefix: 'entry b',
+          ),
+        ),
+      );
+      turn = builder.upsertItem(
+        turn,
+        changedFilesItem(
+          itemId: 'item-a',
+          entryId: 'entry-a',
+          body: changedFilesBody(
+            fileName: 'file_a',
+            lineCount: retainedLinesPerEntry,
+            linePrefix: 'entry a latest',
+          ),
+        ),
+      );
+
+      final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
+      final entriesById = <String, CodexChangedFilesEntry>{
+        for (final entry in artifact.entries) entry.id: entry,
+      };
+
+      expect(artifact.entries.map((entry) => entry.id).toList(), <String>[
+        'entry-b',
+        'entry-a',
+      ]);
+      expect(entriesById['entry-b']!.unifiedDiff, isNull);
+      expect(entriesById['entry-a']!.unifiedDiff, isNotNull);
+      expect(entriesById['entry-a']!.unifiedDiff, contains('entry a latest'));
+      expect(artifact.unifiedDiff, contains('entry a latest'));
+      expect(artifact.unifiedDiff, isNot(contains('entry b line 0')));
+    },
+  );
+
+  test('does not spend a line of budget on inter-entry diff separators', () {
+    var turn = initialTurn();
+    final retainedLinesPerEntry =
+        (TranscriptMemoryBudget.maxUnifiedDiffLines ~/ 2) -
+        unifiedDiffHeaderLineCount;
+
+    turn = builder.upsertItem(
+      turn,
+      changedFilesItem(
+        itemId: 'item-1',
+        entryId: 'entry-1',
+        body: changedFilesBody(
+          fileName: 'file_1',
+          lineCount: retainedLinesPerEntry,
+          linePrefix: 'entry 1',
+        ),
+      ),
+    );
+    turn = builder.upsertItem(
+      turn,
+      changedFilesItem(
+        itemId: 'item-2',
+        entryId: 'entry-2',
+        body: changedFilesBody(
+          fileName: 'file_2',
+          lineCount: retainedLinesPerEntry,
+          linePrefix: 'entry 2',
+        ),
+      ),
+    );
+
+    final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
+    final retainedEntryDiffs = artifact.entries
+        .map((entry) => entry.unifiedDiff)
+        .whereType<String>()
+        .toList(growable: false);
+
+    expect(retainedEntryDiffs, hasLength(2));
+    expect(retainedEntryDiffs.map(countLines).toList(growable: false), <int>[
+      retainedLinesPerEntry + unifiedDiffHeaderLineCount,
+      retainedLinesPerEntry + unifiedDiffHeaderLineCount,
+    ]);
+    expect(
+      countLines(artifact.unifiedDiff!),
+      TranscriptMemoryBudget.maxUnifiedDiffLines,
+    );
+  });
 }
