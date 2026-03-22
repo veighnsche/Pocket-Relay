@@ -5,6 +5,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/utils/platform_capabilities.dart';
 import 'package:pocket_relay/src/core/utils/shell_utils.dart';
+import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_conversation_recovery_policy.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
@@ -20,6 +21,7 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 part 'chat_session_controller_events.dart';
 part 'chat_session_controller_history.dart';
 part 'chat_session_controller_init.dart';
+part 'chat_session_controller_model_capabilities.dart';
 part 'chat_session_controller_prompt_flow.dart';
 part 'chat_session_controller_recovery.dart';
 part 'chat_session_controller_support.dart';
@@ -72,16 +74,19 @@ class ChatSessionController extends ChangeNotifier {
   CodexSessionState _sessionState = CodexSessionState.initial();
   ChatConversationRecoveryState? _conversationRecoveryState;
   ChatHistoricalConversationRestoreState? _historicalConversationRestoreState;
+  List<CodexAppServerModel>? _modelCatalog;
 
   bool _isLoading = true;
   bool _isDisposed = false;
   bool _isTrackingSshBootstrapFailures = false;
   bool _sawTrackedSshBootstrapFailure = false;
   bool _suppressTrackedThreadReuse = false;
+  bool _didAttemptModelCatalogHydration = false;
   int _historicalConversationRestoreGeneration = 0;
   final Set<String> _threadMetadataHydrationAttempts = <String>{};
   StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
   Future<void>? _initializationFuture;
+  Future<void>? _modelCatalogHydrationFuture;
 
   Stream<String> get snackBarMessages => _snackBarMessagesController.stream;
 
@@ -93,6 +98,7 @@ class ChatSessionController extends ChangeNotifier {
   ChatHistoricalConversationRestoreState?
   get historicalConversationRestoreState => _historicalConversationRestoreState;
   bool get isLoading => _isLoading;
+  bool get currentModelSupportsImageInput => _currentModelSupportsImageInput();
   List<CodexUiBlock> get transcriptBlocks => _sessionState.transcriptBlocks;
 
   Future<void> initialize() {
@@ -111,6 +117,10 @@ class ChatSessionController extends ChangeNotifier {
 
   Future<bool> sendPrompt(String prompt) {
     return _ChatSessionControllerPromptFlow(this).sendPrompt(prompt);
+  }
+
+  Future<bool> sendDraft(ChatComposerDraft draft) {
+    return _ChatSessionControllerPromptFlow(this).sendDraft(draft);
   }
 
   Future<void> stopActiveTurn() {
@@ -169,7 +179,7 @@ class ChatSessionController extends ChangeNotifier {
     ).retryHistoricalConversationRestore();
   }
 
-  Future<String?> continueFromUserMessage(String blockId) {
+  Future<ChatComposerDraft?> continueFromUserMessage(String blockId) {
     return _ChatSessionControllerRecovery(
       this,
     ).continueFromUserMessage(blockId);
@@ -259,6 +269,10 @@ class ChatSessionController extends ChangeNotifier {
     return _sendPromptWithAppServerForController(this, prompt);
   }
 
+  Future<bool> _sendDraftWithAppServer(ChatComposerDraft draft) async {
+    return _sendDraftWithAppServerForController(this, draft);
+  }
+
   String? _selectedModelOverride() {
     final model = _profile.model.trim();
     return model.isEmpty ? null : model;
@@ -298,5 +312,4 @@ class ChatSessionController extends ChangeNotifier {
   bool _isCurrentHistoricalConversationRestore(int generation) {
     return _historicalConversationRestoreGeneration == generation;
   }
-
 }

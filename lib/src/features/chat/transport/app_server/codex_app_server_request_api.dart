@@ -109,7 +109,8 @@ class CodexAppServerRequestApi {
   Future<CodexAppServerTurn> sendUserMessage(
     CodexAppServerConnection connection, {
     required String threadId,
-    required String text,
+    String? text,
+    CodexAppServerTurnInput? input,
     String? model,
     CodexReasoningEffort? effort,
   }) {
@@ -117,6 +118,7 @@ class CodexAppServerRequestApi {
       connection,
       threadId: threadId,
       text: text,
+      input: input,
       model: model,
       effort: effort,
     );

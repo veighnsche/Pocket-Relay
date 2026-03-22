@@ -12,37 +12,22 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         .workspaceDir
         .trim()
         .isNotEmpty;
-    return <ChatChromeMenuAction>[
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-        onSelected: () {
-          unawaited(_showConversationHistory());
-        },
-        isEnabled: hasWorkspaceHistoryScope && !isLaneBusy,
+    return buildWorkspaceLiveLaneMenuActions(
+      hasWorkspaceHistoryScope: hasWorkspaceHistoryScope,
+      requiresReconnect: requiresReconnect,
+      isLaneBusy: isLaneBusy,
+      isApplyingSavedSettings: _isApplyingSavedSettings,
+      onShowConversationHistory: () {
+        unawaited(_showConversationHistory());
+      },
+      onShowDormantRoster: widget.workspaceController.showDormantRoster,
+      onReconnect: () {
+        unawaited(_applySavedSettings());
+      },
+      onCloseLane: () => widget.workspaceController.terminateConnection(
+        widget.laneBinding.connectionId,
       ),
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
-        onSelected: widget.workspaceController.showDormantRoster,
-      ),
-      if (requiresReconnect)
-        ChatChromeMenuAction(
-          label: _isApplyingSavedSettings
-              ? ConnectionWorkspaceCopy.reconnectMenuProgress
-              : ConnectionWorkspaceCopy.reconnectMenuAction,
-          onSelected: () {
-            unawaited(_applySavedSettings());
-          },
-          isEnabled: !_isApplyingSavedSettings && !isLaneBusy,
-        ),
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.closeLaneAction,
-        onSelected: () => widget.workspaceController.terminateConnection(
-          widget.laneBinding.connectionId,
-        ),
-        isDestructive: true,
-        isEnabled: hasWorkspaceHistoryScope && !isLaneBusy,
-      ),
-    ];
+    );
   }
 
   Future<void> _showConversationHistory() {

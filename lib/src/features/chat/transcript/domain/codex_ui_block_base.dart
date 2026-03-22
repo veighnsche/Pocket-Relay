@@ -125,16 +125,23 @@ final class CodexUserMessageBlock extends CodexUiBlock {
     required super.createdAt,
     required this.text,
     required this.deliveryState,
+    this.structuredDraft,
     this.providerItemId,
   }) : super(kind: CodexUiBlockKind.userMessage);
 
   final String text;
   final CodexUserMessageDeliveryState deliveryState;
+  final ChatComposerDraft? structuredDraft;
   final String? providerItemId;
+
+  ChatComposerDraft get draft =>
+      structuredDraft ?? ChatComposerDraft(text: text);
 
   CodexUserMessageBlock copyWith({
     String? text,
     CodexUserMessageDeliveryState? deliveryState,
+    ChatComposerDraft? structuredDraft,
+    bool clearStructuredDraft = false,
     String? providerItemId,
     bool clearProviderItemId = false,
   }) {
@@ -143,6 +150,9 @@ final class CodexUserMessageBlock extends CodexUiBlock {
       createdAt: createdAt,
       text: text ?? this.text,
       deliveryState: deliveryState ?? this.deliveryState,
+      structuredDraft: clearStructuredDraft
+          ? null
+          : (structuredDraft ?? this.structuredDraft),
       providerItemId: clearProviderItemId
           ? null
           : (providerItemId ?? this.providerItemId),

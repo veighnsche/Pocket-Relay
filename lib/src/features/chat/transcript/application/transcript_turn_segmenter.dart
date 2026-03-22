@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_changed_files_parser.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_block_factory.dart';
+import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_support.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_memory_budget.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
@@ -11,13 +12,16 @@ class TranscriptTurnArtifactBuilder {
         const TranscriptItemBlockFactory(),
     TranscriptChangedFilesParser changedFilesParser =
         const TranscriptChangedFilesParser(),
+    TranscriptItemSupport itemSupport = const TranscriptItemSupport(),
     TranscriptMemoryBudget memoryBudget = const TranscriptMemoryBudget(),
   }) : _blockFactory = blockFactory,
        _changedFilesParser = changedFilesParser,
+       _itemSupport = itemSupport,
        _memoryBudget = memoryBudget;
 
   final TranscriptItemBlockFactory _blockFactory;
   final TranscriptChangedFilesParser _changedFilesParser;
+  final TranscriptItemSupport _itemSupport;
   final TranscriptMemoryBudget _memoryBudget;
 
   CodexActiveTurnState upsertItem(
@@ -224,9 +228,7 @@ class TranscriptTurnArtifactBuilder {
     CodexChangedFilesEntry entry,
   ) {
     final nextEntries = List<CodexChangedFilesEntry>.from(artifact.entries);
-    final index = nextEntries.indexWhere(
-      (existing) => existing.id == entry.id,
-    );
+    final index = nextEntries.indexWhere((existing) => existing.id == entry.id);
     if (index == -1) {
       nextEntries.add(entry);
     } else {
@@ -248,15 +250,24 @@ class TranscriptTurnArtifactBuilder {
   CodexTurnArtifact? _artifactFromItem(CodexSessionActiveItem item) {
     final title = item.title ?? _blockFactory.defaultItemTitle(item.itemType);
     final artifactId = item.entryId;
+    final structuredUserDraft =
+        item.itemType == CodexCanonicalItemType.userMessage
+        ? _itemSupport.extractStructuredUserMessageDraft(item.snapshot)
+        : null;
+    final effectiveUserMessageText = structuredUserDraft?.text ?? item.body;
 
     return switch (item.blockKind) {
-      CodexUiBlockKind.userMessage when item.body.trim().isEmpty => null,
+      CodexUiBlockKind.userMessage
+          when effectiveUserMessageText.trim().isEmpty &&
+              (structuredUserDraft == null || structuredUserDraft.isEmpty) =>
+        null,
       CodexUiBlockKind.userMessage => CodexTurnBlockArtifact(
         block: CodexUserMessageBlock(
           id: artifactId,
           createdAt: item.createdAt,
-          text: item.body,
+          text: effectiveUserMessageText,
           deliveryState: CodexUserMessageDeliveryState.sent,
+          structuredDraft: structuredUserDraft,
           providerItemId: item.itemId,
         ),
       ),

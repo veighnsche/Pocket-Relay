@@ -18,7 +18,7 @@ class FlutterChatComposerRegion extends StatelessWidget {
   final ChatHistoricalConversationRestoreNoticeContract?
   historicalConversationRestoreNotice;
   final ChatComposerContract composer;
-  final ValueChanged<String> onComposerDraftChanged;
+  final ValueChanged<ChatComposerDraft> onComposerDraftChanged;
   final Future<void> Function() onSendPrompt;
   final ValueChanged<ChatConversationRecoveryActionId>
   onConversationRecoveryAction;

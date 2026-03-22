@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 
 class ChatComposerSurface extends StatefulWidget {
@@ -13,12 +16,14 @@ class ChatComposerSurface extends StatefulWidget {
     required this.contract,
     required this.onChanged,
     required this.onSend,
+    this.imageAttachmentPicker,
   });
 
   final PocketPlatformBehavior platformBehavior;
   final ChatComposerContract contract;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<ChatComposerDraft> onChanged;
   final Future<void> Function() onSend;
+  final Future<ChatComposerImageAttachment?> Function()? imageAttachmentPicker;
 
   @override
   State<ChatComposerSurface> createState() => _ChatComposerSurfaceState();
@@ -35,26 +40,43 @@ class _DesktopInsertNewlineIntent extends Intent {
 class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   static const _desktopSendIntent = _DesktopSendIntent();
   static const _desktopInsertNewlineIntent = _DesktopInsertNewlineIntent();
+  static const _imageTypeGroup = XTypeGroup(
+    label: 'images',
+    extensions: <String>['png', 'jpg', 'jpeg', 'gif', 'webp'],
+    mimeTypes: <String>[
+      'image/png',
+      'image/jpeg',
+      'image/gif',
+      'image/webp',
+    ],
+  );
+  static const _imageAttachmentLoader = ChatComposerImageAttachmentLoader();
   late final TextEditingController _controller;
+  late final _AtomicPlaceholderTextInputFormatter _placeholderFormatter;
+  late ChatComposerDraft _draft;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.contract.draftText);
+    _draft = widget.contract.draft.normalized();
+    _placeholderFormatter = _AtomicPlaceholderTextInputFormatter(
+      draftProvider: () => _draft,
+    );
+    _controller = TextEditingController(text: _draft.text);
   }
 
   @override
   void didUpdateWidget(covariant ChatComposerSurface oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_controller.text == widget.contract.draftText) {
+    final nextDraft = widget.contract.draft.normalized();
+    _draft = nextDraft;
+    if (_controller.text == nextDraft.text) {
       return;
     }
 
     _controller.value = _controller.value.copyWith(
-      text: widget.contract.draftText,
-      selection: TextSelection.collapsed(
-        offset: widget.contract.draftText.length,
-      ),
+      text: nextDraft.text,
+      selection: TextSelection.collapsed(offset: nextDraft.text.length),
       composing: TextRange.empty,
     );
   }
@@ -89,27 +111,20 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
         child: _buildContent(
-          input: _wrapInputWithKeyboardSubmit(
-            context,
-            TextField(
-              key: const ValueKey('composer_input'),
-              controller: _controller,
-              minLines: 1,
-              maxLines: 6,
-              textInputAction: TextInputAction.newline,
-              onTapOutside: (_) => _dismissKeyboard(),
-              onChanged: _handleChanged,
-              decoration: InputDecoration(
-                hintText: widget.contract.placeholder,
-                isCollapsed: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-              ),
-            ),
-          ),
+          leadingAction: _showsLocalImageAttachmentAction
+              ? SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: IconButton(
+                    key: const ValueKey('attach_image'),
+                    tooltip: 'Attach image',
+                    onPressed: _handleAttachImageTriggered,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.image_outlined, size: 18),
+                  ),
+                )
+              : null,
+          input: _buildInputRegion(context),
           primaryAction: SizedBox(
             width: 36,
             height: 36,
@@ -126,7 +141,52 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     );
   }
 
+  Widget _buildInputRegion(BuildContext context) {
+    final attachmentSummaries = _draft.imageAttachments
+        .map((attachment) => attachment.summaryLabel)
+        .toList(growable: false);
+
+    return _wrapInputWithKeyboardSubmit(
+      context,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            key: const ValueKey('composer_input'),
+            controller: _controller,
+            minLines: 1,
+            maxLines: 6,
+            textInputAction: TextInputAction.newline,
+            onTapOutside: (_) => _dismissKeyboard(),
+            inputFormatters: <TextInputFormatter>[_placeholderFormatter],
+            onChanged: _handleChanged,
+            decoration: InputDecoration(
+              hintText: widget.contract.placeholder,
+              isCollapsed: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 4),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+            ),
+          ),
+          if (attachmentSummaries.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...attachmentSummaries.indexed.map(
+              (entry) => Padding(
+                padding: EdgeInsets.only(top: entry.$1 == 0 ? 0 : 4),
+                child: _ComposerAttachmentSummary(label: entry.$2),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildContent({
+    Widget? leadingAction,
     required Widget input,
     required Widget primaryAction,
     CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.end,
@@ -135,6 +195,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
       key: const ValueKey('chat_composer_content_row'),
       crossAxisAlignment: crossAxisAlignment,
       children: [
+        if (leadingAction != null) ...[leadingAction, const SizedBox(width: 8)],
         Expanded(child: input),
         const SizedBox(width: 10),
         AnimatedSwitcher(
@@ -188,19 +249,86 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     return _isSendActionEnabled;
   }
 
+  bool get _showsLocalImageAttachmentAction {
+    return widget.contract.allowsImageAttachment;
+  }
+
   bool get _isSendActionEnabled {
-    return widget.contract.isSendActionEnabled &&
-        _controller.text.trim().isNotEmpty;
+    return widget.contract.isSendActionEnabled && !_draft.isEmpty;
   }
 
   void _handleChanged(String value) {
+    _draft = _draft.copyWith(text: value).normalized();
+    if (_controller.text != _draft.text) {
+      _controller.value = _controller.value.copyWith(
+        text: _draft.text,
+        selection: _clampSelection(_controller.selection, _draft.text.length),
+        composing: TextRange.empty,
+      );
+    }
     setState(() {});
-    widget.onChanged(value);
+    widget.onChanged(_draft);
   }
 
   Future<void> _handleSendTriggered() async {
     _dismissKeyboard();
     await widget.onSend();
+  }
+
+  Future<void> _handleAttachImageTriggered() async {
+    try {
+      final imageAttachment = await _pickImageAttachment();
+      if (!mounted || imageAttachment == null) {
+        return;
+      }
+
+      _draft = _draft.copyWith(text: _controller.text).normalized();
+      final currentSelection = _controller.selection;
+      final insertion = _draft.insertImageAttachment(
+        attachment: imageAttachment,
+        selectionStart: currentSelection.start,
+        selectionEnd: currentSelection.end,
+      );
+      _draft = insertion.draft;
+      _controller.value = _controller.value.copyWith(
+        text: _draft.text,
+        selection: TextSelection.collapsed(offset: insertion.selectionOffset),
+        composing: TextRange.empty,
+      );
+      setState(() {});
+      widget.onChanged(_draft);
+    } on ChatComposerImageAttachmentLoadException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showTransientMessage(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showTransientMessage('Could not attach image.');
+    }
+  }
+
+  void _showTransientMessage(String message) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<ChatComposerImageAttachment?> _pickImageAttachment() async {
+    if (widget.imageAttachmentPicker case final picker?) {
+      return picker();
+    }
+
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[_imageTypeGroup],
+    );
+    if (file == null) {
+      return null;
+    }
+
+    return _imageAttachmentLoader.loadFromXFile(file);
   }
 
   void _dismissKeyboard() {
@@ -220,11 +348,188 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     );
     final nextOffset = selection.start + insertedText.length;
 
-    _controller.value = currentValue.copyWith(
+    final proposedValue = currentValue.copyWith(
       text: nextText,
       selection: TextSelection.collapsed(offset: nextOffset),
       composing: TextRange.empty,
     );
-    widget.onChanged(nextText);
+    _controller.value = _placeholderFormatter.formatEditUpdate(
+      currentValue,
+      proposedValue,
+    );
+    _draft = _draft.copyWith(text: _controller.text).normalized();
+    widget.onChanged(_draft);
   }
+
+}
+
+class _ComposerAttachmentSummary extends StatelessWidget {
+  const _ComposerAttachmentSummary({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.image_outlined,
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AtomicPlaceholderTextInputFormatter extends TextInputFormatter {
+  _AtomicPlaceholderTextInputFormatter({required this.draftProvider});
+
+  final ChatComposerDraft Function() draftProvider;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (oldValue.text == newValue.text) {
+      return newValue;
+    }
+
+    final placeholderSpans = draftProvider().normalized().placeholderSpans();
+    if (placeholderSpans.isEmpty) {
+      return newValue;
+    }
+
+    final editDelta = _TextEditDelta.fromValues(oldValue.text, newValue.text);
+    if (editDelta.isInsertionOnly) {
+      final containingSpan = placeholderSpans.where(
+        (span) => span.containsOffset(editDelta.oldStart),
+      );
+      if (containingSpan.isNotEmpty) {
+        final span = containingSpan.first;
+        final adjustedText = oldValue.text.replaceRange(
+          span.end,
+          span.end,
+          editDelta.insertedText,
+        );
+        final nextOffset = span.end + editDelta.insertedText.length;
+        return newValue.copyWith(
+          text: adjustedText,
+          selection: TextSelection.collapsed(offset: nextOffset),
+          composing: TextRange.empty,
+        );
+      }
+      return newValue;
+    }
+
+    final intersectedSpans = placeholderSpans
+        .where(
+          (span) => _rangesIntersect(
+            editDelta.oldStart,
+            editDelta.oldEnd,
+            span.start,
+            span.end,
+          ),
+        )
+        .toList(growable: false);
+    if (intersectedSpans.isEmpty) {
+      return newValue;
+    }
+
+    final expandedStart = intersectedSpans.first.start < editDelta.oldStart
+        ? intersectedSpans.first.start
+        : editDelta.oldStart;
+    final expandedEnd = intersectedSpans.last.end > editDelta.oldEnd
+        ? intersectedSpans.last.end
+        : editDelta.oldEnd;
+    final adjustedText = oldValue.text.replaceRange(
+      expandedStart,
+      expandedEnd,
+      editDelta.insertedText,
+    );
+    final nextOffset = expandedStart + editDelta.insertedText.length;
+    return newValue.copyWith(
+      text: adjustedText,
+      selection: TextSelection.collapsed(offset: nextOffset),
+      composing: TextRange.empty,
+    );
+  }
+}
+
+class _TextEditDelta {
+  const _TextEditDelta({
+    required this.oldStart,
+    required this.oldEnd,
+    required this.insertedText,
+  });
+
+  factory _TextEditDelta.fromValues(String oldText, String newText) {
+    var prefixLength = 0;
+    final minLength = oldText.length < newText.length
+        ? oldText.length
+        : newText.length;
+    while (prefixLength < minLength &&
+        oldText.codeUnitAt(prefixLength) == newText.codeUnitAt(prefixLength)) {
+      prefixLength += 1;
+    }
+
+    var oldSuffixStart = oldText.length;
+    var newSuffixStart = newText.length;
+    while (oldSuffixStart > prefixLength &&
+        newSuffixStart > prefixLength &&
+        oldText.codeUnitAt(oldSuffixStart - 1) ==
+            newText.codeUnitAt(newSuffixStart - 1)) {
+      oldSuffixStart -= 1;
+      newSuffixStart -= 1;
+    }
+
+    return _TextEditDelta(
+      oldStart: prefixLength,
+      oldEnd: oldSuffixStart,
+      insertedText: newText.substring(prefixLength, newSuffixStart),
+    );
+  }
+
+  final int oldStart;
+  final int oldEnd;
+  final String insertedText;
+
+  bool get isInsertionOnly => oldStart == oldEnd && insertedText.isNotEmpty;
+}
+
+TextSelection _clampSelection(TextSelection selection, int textLength) {
+  if (!selection.isValid) {
+    return TextSelection.collapsed(offset: textLength);
+  }
+
+  final baseOffset = selection.baseOffset.clamp(0, textLength);
+  final extentOffset = selection.extentOffset.clamp(0, textLength);
+  return TextSelection(
+    baseOffset: baseOffset,
+    extentOffset: extentOffset,
+    affinity: selection.affinity,
+    isDirectional: selection.isDirectional,
+  );
+}
+
+bool _rangesIntersect(
+  int leftStart,
+  int leftEnd,
+  int rightStart,
+  int rightEnd,
+) {
+  return leftStart < rightEnd && rightStart < leftEnd;
 }

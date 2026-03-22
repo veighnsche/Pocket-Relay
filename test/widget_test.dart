@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
@@ -313,6 +314,7 @@ PocketRelayApp _buildCatalogApp({
           savedProfile: savedProfile ?? _savedProfile(),
           connectionId: 'conn_primary',
         ),
+    modelCatalogStore: MemoryConnectionModelCatalogStore(),
     recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
     displayWakeLockController: displayWakeLockController,
     appServerClient: appServerClient,

@@ -64,12 +64,47 @@ void main() {
         );
         expect(contract.composer.draftText, isEmpty);
         expect(contract.composer.isSendActionEnabled, isTrue);
+        expect(contract.composer.allowsImageAttachment, isTrue);
         expect(contract.connectionSettings.initialProfile, same(profile));
         expect(contract.connectionSettings.initialSecrets, same(secrets));
         expect(
           contract.transcriptFollow,
           same(_defaultTranscriptFollowContract),
         );
+      },
+    );
+
+    test('enables image attachment for configured lanes', () {
+      final contract = presenter.present(
+        isLoading: false,
+        profile: _configuredProfile().copyWith(
+          connectionMode: ConnectionMode.local,
+        ),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        sessionState: CodexSessionState.initial(),
+        conversationRecoveryState: null,
+        composerDraft: const ChatComposerDraft(),
+        transcriptFollow: _defaultTranscriptFollowContract,
+      );
+
+      expect(contract.composer.allowsImageAttachment, isTrue);
+    });
+
+    test(
+      'disables image attachment when the effective model metadata rejects image input',
+      () {
+        final contract = presenter.present(
+          isLoading: false,
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          sessionState: CodexSessionState.initial(),
+          conversationRecoveryState: null,
+          composerDraft: const ChatComposerDraft(),
+          effectiveModelSupportsImages: false,
+          transcriptFollow: _defaultTranscriptFollowContract,
+        );
+
+        expect(contract.composer.allowsImageAttachment, isFalse);
       },
     );
 

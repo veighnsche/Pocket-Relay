@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
@@ -158,6 +159,7 @@ void main() {
             ),
             connectionId: 'conn_primary',
           ),
+          modelCatalogStore: MemoryConnectionModelCatalogStore(),
           recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
           appServerClient: appServerClient,
         ),

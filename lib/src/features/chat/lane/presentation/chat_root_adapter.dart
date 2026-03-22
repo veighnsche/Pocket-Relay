@@ -139,7 +139,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       historicalConversationRestoreNotice:
           screen.historicalConversationRestoreNotice,
       composer: screen.composer,
-      onComposerDraftChanged: widget.laneBinding.composerDraftHost.updateText,
+      onComposerDraftChanged: widget.laneBinding.composerDraftHost.updateDraft,
       onSendPrompt: _sendPrompt,
       onConversationRecoveryAction: _handleConversationRecoveryAction,
       onHistoricalConversationRestoreAction:
@@ -160,6 +160,8 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
       historicalConversationRestoreState:
           sessionController.historicalConversationRestoreState,
       composerDraft: laneBinding.composerDraftHost.draft,
+      effectiveModelSupportsImages:
+          sessionController.currentModelSupportsImageInput,
       transcriptFollow: laneBinding.transcriptFollowHost.contract,
       preferredConnectionMode: _preferredEmptyStateConnectionMode,
     );

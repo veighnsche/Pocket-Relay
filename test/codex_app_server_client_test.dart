@@ -227,6 +227,95 @@ void main() {
     await client.disconnect();
   });
 
+  test('sendUserMessage supports structured local-image turn input', () async {
+    late _FakeCodexAppServerProcess process;
+    process = _FakeCodexAppServerProcess(
+      onClientMessage: (message) {
+        switch (message['method']) {
+          case 'initialize':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{'userAgent': 'codex-app-server-test'},
+            });
+          case 'thread/start':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'thread': <String, Object?>{'id': 'thread_123'},
+                'cwd': '/workspace',
+                'model': 'gpt-5.3-codex',
+                'modelProvider': 'openai',
+                'approvalPolicy': 'on-request',
+                'sandbox': <String, Object?>{'type': 'workspace-write'},
+              },
+            });
+          case 'turn/start':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'turn': <String, Object?>{'id': 'turn_123'},
+              },
+            });
+        }
+      },
+    );
+
+    final client = CodexAppServerClient(
+      processLauncher:
+          ({required profile, required secrets, required emitEvent}) async =>
+              process,
+    );
+
+    await client.connect(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+    );
+
+    final session = await client.startSession();
+    await client.sendUserMessage(
+      threadId: session.threadId,
+      input: const CodexAppServerTurnInput(
+        text: 'Check [Image #1]',
+        textElements: <CodexAppServerTextElement>[
+          CodexAppServerTextElement(
+            start: 6,
+            end: 16,
+            placeholder: '[Image #1]',
+          ),
+        ],
+        images: <CodexAppServerImageInput>[
+          CodexAppServerImageInput(url: 'data:image/png;base64,aW1hZ2U='),
+        ],
+      ),
+    );
+
+    final turnStartRequest = process.writtenMessages.firstWhere(
+      (message) => message['method'] == 'turn/start',
+    );
+
+    expect(turnStartRequest['params'], <String, Object?>{
+      'threadId': 'thread_123',
+      'input': <Object>[
+        <String, Object?>{
+          'type': 'image',
+          'image_url': 'data:image/png;base64,aW1hZ2U=',
+        },
+        <String, Object?>{
+          'type': 'text',
+          'text': 'Check [Image #1]',
+          'text_elements': <Object>[
+            <String, Object?>{
+              'byteRange': <String, Object?>{'start': 6, 'end': 16},
+              'placeholder': '[Image #1]',
+            },
+          ],
+        },
+      ],
+    });
+
+    await client.disconnect();
+  });
+
   test('listModels sends model/list and decodes model metadata', () async {
     late _FakeCodexAppServerProcess process;
     process = _FakeCodexAppServerProcess(
@@ -338,6 +427,92 @@ void main() {
 
     await client.disconnect();
   });
+
+  test(
+    'listModels accepts snake_case model metadata and normalizes modalities',
+    () async {
+      late _FakeCodexAppServerProcess process;
+      process = _FakeCodexAppServerProcess(
+        onClientMessage: (message) {
+          switch (message['method']) {
+            case 'initialize':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'userAgent': 'codex-app-server-test',
+                },
+              });
+            case 'model/list':
+              process.sendStdout(<String, Object?>{
+                'id': message['id'],
+                'result': <String, Object?>{
+                  'data': <Object>[
+                    <String, Object?>{
+                      'id': 'preset_vision_snake',
+                      'model': 'gpt-vision',
+                      'display_name': 'GPT Vision',
+                      'description': 'Vision-capable model.',
+                      'hidden': true,
+                      'supported_reasoning_efforts': <Object>[
+                        <String, Object?>{
+                          'reasoning_effort': 'high',
+                          'description': 'High effort.',
+                        },
+                      ],
+                      'default_reasoning_effort': 'high',
+                      'input_modalities': <Object>['TEXT', 'Image', 'text'],
+                      'supports_personality': false,
+                      'is_default': false,
+                      'upgrade_info': <String, Object?>{
+                        'model': 'gpt-vision-2',
+                        'upgradeCopy': 'Upgrade available',
+                      },
+                      'availability_nux': <String, Object?>{
+                        'message': 'Request access for vision.',
+                      },
+                    },
+                  ],
+                },
+              });
+          }
+        },
+      );
+
+      final client = CodexAppServerClient(
+        processLauncher:
+            ({required profile, required secrets, required emitEvent}) async =>
+                process,
+      );
+
+      await client.connect(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      );
+
+      final page = await client.listModels();
+
+      expect(page.models, hasLength(1));
+      final model = page.models.single;
+      expect(model.displayName, 'GPT Vision');
+      expect(model.hidden, isTrue);
+      expect(model.defaultReasoningEffort, CodexReasoningEffort.high);
+      expect(model.inputModalities, <String>['text', 'image']);
+      expect(model.supportsImageInput, isTrue);
+      expect(
+        model.supportedReasoningEfforts,
+        <CodexAppServerReasoningEffortOption>[
+          const CodexAppServerReasoningEffortOption(
+            reasoningEffort: CodexReasoningEffort.high,
+            description: 'High effort.',
+          ),
+        ],
+      );
+      expect(model.upgradeInfo?.model, 'gpt-vision-2');
+      expect(model.availabilityNuxMessage, 'Request access for vision.');
+
+      await client.disconnect();
+    },
+  );
 
   test(
     'readThreadWithTurns preserves historical turns from thread/read',
