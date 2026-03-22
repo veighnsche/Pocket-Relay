@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_block_factory.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_support.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_turn_segmenter.dart';
+import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
@@ -32,7 +34,12 @@ class TranscriptItemPolicy {
     CodexSessionState state,
     CodexRuntimeItemLifecycleEvent event, {
     required bool removeAfterUpsert,
-  }) => _applyItemLifecycle(this, state, event, removeAfterUpsert: removeAfterUpsert);
+  }) => _applyItemLifecycle(
+    this,
+    state,
+    event,
+    removeAfterUpsert: removeAfterUpsert,
+  );
 
   CodexSessionState applyContentDelta(
     CodexSessionState state,

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 
@@ -3067,6 +3068,7 @@ PocketRelayApp _buildCatalogApp({
           savedProfile: savedProfile ?? _savedProfile(),
           connectionId: 'conn_primary',
         ),
+    modelCatalogStore: MemoryConnectionModelCatalogStore(),
     recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
     appServerClient: appServerClient,
   );

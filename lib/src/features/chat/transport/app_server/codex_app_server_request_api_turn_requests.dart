@@ -3,30 +3,25 @@ part of 'codex_app_server_request_api.dart';
 Future<CodexAppServerTurn> _sendUserMessage(
   CodexAppServerConnection connection, {
   required String threadId,
-  required String text,
+  String? text,
+  CodexAppServerTurnInput? input,
   String? model,
   CodexReasoningEffort? effort,
 }) async {
   connection.requireConnected();
 
   final effectiveThreadId = threadId.trim();
-  final trimmedText = text.trim();
+  final turnInput = _turnInputFor(text: text, input: input);
   if (effectiveThreadId.isEmpty) {
     throw const CodexAppServerException('Thread id cannot be empty.');
   }
-  if (trimmedText.isEmpty) {
+  if (turnInput.isEmpty) {
     throw const CodexAppServerException('Turn input cannot be empty.');
   }
 
   final params = <String, Object?>{
     'threadId': effectiveThreadId,
-    'input': <Object>[
-      <String, Object?>{
-        'type': 'text',
-        'text': trimmedText,
-        'text_elements': const <Object>[],
-      },
-    ],
+    'input': _turnInputPayload(turnInput),
     if (model != null && model.trim().isNotEmpty) 'model': model.trim(),
     if (effort != null) 'effort': effort.name,
   };

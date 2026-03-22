@@ -41,6 +41,9 @@ class UserMessageSurface extends StatelessWidget {
       ),
     );
     final canContinueAction = canContinueFromHere && onContinueFromHere != null;
+    final attachmentSummaries = block.draft.imageAttachments
+        .map((attachment) => attachment.summaryLabel)
+        .toList(growable: false);
     return Align(
       alignment: Alignment.centerRight,
       child: ConstrainedBox(
@@ -83,6 +86,35 @@ class UserMessageSurface extends StatelessWidget {
                         height: 1.35,
                       ),
                     ),
+                    if (attachmentSummaries.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      ...attachmentSummaries.indexed.map(
+                        (entry) => Padding(
+                          padding: EdgeInsets.only(top: entry.$1 == 0 ? 0 : 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.image_outlined,
+                                size: 14,
+                                color: cards.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  entry.$2,
+                                  style: TextStyle(
+                                    color: cards.textSecondary,
+                                    fontSize: 12.5,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

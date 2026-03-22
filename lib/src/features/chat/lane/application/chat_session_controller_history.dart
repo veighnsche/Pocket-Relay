@@ -92,6 +92,40 @@ Future<bool> _sendPromptWithAppServerForController(
   ChatSessionController controller,
   String prompt,
 ) async {
+  return _sendTurnInputWithAppServerForController(controller, text: prompt);
+}
+
+Future<bool> _sendDraftWithAppServerForController(
+  ChatSessionController controller,
+  ChatComposerDraft draft,
+) async {
+  return _sendTurnInputWithAppServerForController(
+    controller,
+    input: CodexAppServerTurnInput(
+      text: draft.text,
+      textElements: draft.textElements
+          .map(
+            (element) => CodexAppServerTextElement(
+              start: element.start,
+              end: element.end,
+              placeholder: element.placeholder,
+            ),
+          )
+          .toList(growable: false),
+      images: draft.imageAttachments
+          .map(
+            (attachment) => CodexAppServerImageInput(url: attachment.imageUrl),
+          )
+          .toList(growable: false),
+    ),
+  );
+}
+
+Future<bool> _sendTurnInputWithAppServerForController(
+  ChatSessionController controller, {
+  String? text,
+  CodexAppServerTurnInput? input,
+}) async {
   controller._isTrackingSshBootstrapFailures = true;
   controller._sawTrackedSshBootstrapFailure = false;
   try {
@@ -104,7 +138,8 @@ Future<bool> _sendPromptWithAppServerForController(
     );
     final turn = await controller.appServerClient.sendUserMessage(
       threadId: threadId,
-      text: prompt,
+      text: text,
+      input: input,
       model: controller._selectedModelOverride(),
       effort: controller._profile.reasoningEffort,
     );
@@ -179,10 +214,10 @@ Future<String> _ensureChatSessionAppServerThread(
   _applyChatSessionRuntimeEvent(
     controller,
     CodexRuntimeThreadStartedEvent(
-        createdAt: DateTime.now(),
-        threadId: session.threadId,
-        providerThreadId: session.threadId,
-        rawMethod: activeThreadId == null
+      createdAt: DateTime.now(),
+      threadId: session.threadId,
+      providerThreadId: session.threadId,
+      rawMethod: activeThreadId == null
           ? 'thread/start(response)'
           : 'thread/resume(response)',
       threadName: session.thread?.name,
@@ -218,14 +253,20 @@ void _rememberChatSessionHeaderMetadata(
 Future<void> _ensureChatSessionAppServerConnected(
   ChatSessionController controller,
 ) async {
-  if (controller.appServerClient.isConnected) {
-    return;
+  final wasConnected = controller.appServerClient.isConnected;
+  if (!wasConnected) {
+    await controller.appServerClient.connect(
+      profile: controller._profile,
+      secrets: controller._secrets,
+    );
   }
 
-  await controller.appServerClient.connect(
-    profile: controller._profile,
-    secrets: controller._secrets,
-  );
+  try {
+    await controller._refreshModelCatalogAfterConnect();
+  } catch (_) {
+    // Fail open when model metadata is unavailable; send/attach paths will
+    // re-check the cached capability state if a later hydration succeeds.
+  }
 }
 
 Future<void> _stopChatSessionAppServerTurn(

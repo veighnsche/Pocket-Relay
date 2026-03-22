@@ -5,6 +5,7 @@ Future<void> _initializeWorkspaceController(
 ) async {
   final catalog = await controller._connectionRepository.loadCatalog();
   final recoveryState = await controller._recoveryStore.load();
+  controller._lastPersistedRecoveryState = recoveryState;
   if (catalog.isEmpty) {
     controller._applyState(
       const ConnectionWorkspaceState(
@@ -13,7 +14,12 @@ Future<void> _initializeWorkspaceController(
         liveConnectionIds: <String>[],
         selectedConnectionId: null,
         viewport: ConnectionWorkspaceViewport.dormantRoster,
-        reconnectRequiredConnectionIds: <String>{},
+        savedSettingsReconnectRequiredConnectionIds: <String>{},
+        transportReconnectRequiredConnectionIds: <String>{},
+        transportRecoveryPhasesByConnectionId:
+            <String, ConnectionWorkspaceTransportRecoveryPhase>{},
+        recoveryDiagnosticsByConnectionId:
+            <String, ConnectionWorkspaceRecoveryDiagnostics>{},
       ),
     );
     return;
@@ -46,7 +52,14 @@ Future<void> _initializeWorkspaceController(
       liveConnectionIds: <String>[firstConnectionId],
       selectedConnectionId: firstConnectionId,
       viewport: ConnectionWorkspaceViewport.liveLane,
-      reconnectRequiredConnectionIds: const <String>{},
+      savedSettingsReconnectRequiredConnectionIds: const <String>{},
+      transportReconnectRequiredConnectionIds: const <String>{},
+      transportRecoveryPhasesByConnectionId:
+          const <String, ConnectionWorkspaceTransportRecoveryPhase>{},
+      recoveryDiagnosticsByConnectionId: _initialWorkspaceRecoveryDiagnostics(
+        connectionId: firstConnectionId,
+        recoveryState: recoveryState,
+      ),
     ),
   );
   await firstBinding.sessionController.initialize();
@@ -56,9 +69,72 @@ Future<void> _initializeWorkspaceController(
     return;
   }
 
+  controller._beginRecoveryAttempt(
+    firstConnectionId,
+    startedAt: controller._now(),
+    origin: ConnectionWorkspaceRecoveryOrigin.coldStart,
+  );
+  controller._applyState(
+    controller._state.copyWith(
+      transportReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: controller._state.catalog,
+            liveConnectionIds: controller._state.liveConnectionIds,
+            reconnectRequiredConnectionIds: <String>{
+              ...controller._state.transportReconnectRequiredConnectionIds,
+              firstConnectionId,
+            },
+          ),
+      transportRecoveryPhasesByConnectionId:
+          _sanitizeWorkspaceTransportRecoveryPhases(
+            catalog: controller._state.catalog,
+            liveConnectionIds: controller._state.liveConnectionIds,
+            transportRecoveryPhasesByConnectionId:
+                <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                  ...controller._state.transportRecoveryPhasesByConnectionId,
+                  firstConnectionId:
+                      ConnectionWorkspaceTransportRecoveryPhase.reconnecting,
+                },
+          ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
+        catalog: controller._state.catalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
+      ),
+    ),
+  );
+  try {
+    await _connectWorkspaceBindingTransport(firstBinding);
+  } catch (_) {
+    if (!controller._isDisposed) {
+      controller._recordFallbackTransportConnectFailure(
+        firstConnectionId,
+        occurredAt: controller._now(),
+      );
+      controller._setTransportRecoveryPhase(
+        firstConnectionId,
+        ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+      );
+      controller._completeRecoveryAttempt(
+        firstConnectionId,
+        completedAt: controller._now(),
+        outcome: ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+      );
+    }
+    return;
+  }
+
   await firstBinding.sessionController.selectConversationForResume(
     recoveryState!.selectedThreadId!,
   );
+  if (!controller._isDisposed) {
+    controller._completeConversationRecoveryAttempt(
+      firstConnectionId,
+      firstBinding,
+      completedAt: controller._now(),
+    );
+  }
 }
 
 Future<void> _instantiateWorkspaceConnection(
@@ -82,11 +158,32 @@ Future<void> _instantiateWorkspaceConnection(
       liveConnectionIds: nextLiveConnectionIds,
       selectedConnectionId: connectionId,
       viewport: ConnectionWorkspaceViewport.liveLane,
-      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+      savedSettingsReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: controller._state.catalog,
+            liveConnectionIds: nextLiveConnectionIds,
+            reconnectRequiredConnectionIds:
+                controller._state.savedSettingsReconnectRequiredConnectionIds,
+          ),
+      transportReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: controller._state.catalog,
+            liveConnectionIds: nextLiveConnectionIds,
+            reconnectRequiredConnectionIds:
+                controller._state.transportReconnectRequiredConnectionIds,
+          ),
+      transportRecoveryPhasesByConnectionId:
+          _sanitizeWorkspaceTransportRecoveryPhases(
+            catalog: controller._state.catalog,
+            liveConnectionIds: nextLiveConnectionIds,
+            transportRecoveryPhasesByConnectionId:
+                controller._state.transportRecoveryPhasesByConnectionId,
+          ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: controller._state.catalog,
         liveConnectionIds: nextLiveConnectionIds,
-        reconnectRequiredConnectionIds:
-            controller._state.reconnectRequiredConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
       ),
     ),
   );
@@ -108,6 +205,9 @@ Future<void> _reconnectWorkspaceConnection(
     return;
   }
 
+  final shouldReconnectTransport = controller._state.requiresTransportReconnect(
+    connectionId,
+  );
   final preservedLaneState = _preservedWorkspaceLaneState(previousBinding);
   final nextBinding = await _loadWorkspaceLaneBinding(
     controller,
@@ -125,14 +225,52 @@ Future<void> _reconnectWorkspaceConnection(
   previousBinding.dispose();
   controller._applyState(
     controller._state.copyWith(
-      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+      savedSettingsReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: controller._state.catalog,
+            liveConnectionIds: controller._state.liveConnectionIds,
+            reconnectRequiredConnectionIds: <String>{
+              ...controller._state.savedSettingsReconnectRequiredConnectionIds,
+            }..remove(connectionId),
+          ),
+      transportReconnectRequiredConnectionIds: shouldReconnectTransport
+          ? controller._state.transportReconnectRequiredConnectionIds
+          : _sanitizeWorkspaceReconnectRequiredIds(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              reconnectRequiredConnectionIds: <String>{
+                ...controller._state.transportReconnectRequiredConnectionIds,
+              }..remove(connectionId),
+            ),
+      transportRecoveryPhasesByConnectionId: shouldReconnectTransport
+          ? _sanitizeWorkspaceTransportRecoveryPhases(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              transportRecoveryPhasesByConnectionId:
+                  <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                    ...controller._state.transportRecoveryPhasesByConnectionId,
+                    connectionId:
+                        ConnectionWorkspaceTransportRecoveryPhase.reconnecting,
+                  },
+            )
+          : _sanitizeWorkspaceTransportRecoveryPhases(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              transportRecoveryPhasesByConnectionId:
+                  <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                    for (final entry
+                        in controller
+                            ._state
+                            .transportRecoveryPhasesByConnectionId
+                            .entries)
+                      if (entry.key != connectionId) entry.key: entry.value,
+                  },
+            ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: controller._state.catalog,
         liveConnectionIds: controller._state.liveConnectionIds,
-        reconnectRequiredConnectionIds: <String>{
-          for (final reconnectConnectionId
-              in controller._state.reconnectRequiredConnectionIds)
-            if (reconnectConnectionId != connectionId) reconnectConnectionId,
-        },
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
       ),
     ),
   );
@@ -140,10 +278,39 @@ Future<void> _reconnectWorkspaceConnection(
   if (controller._isDisposed) {
     return;
   }
+  if (shouldReconnectTransport) {
+    try {
+      await _connectWorkspaceBindingTransport(nextBinding);
+    } catch (_) {
+      if (!controller._isDisposed) {
+        controller._recordFallbackTransportConnectFailure(
+          connectionId,
+          occurredAt: controller._now(),
+        );
+        controller._setTransportRecoveryPhase(
+          connectionId,
+          ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+        );
+        controller._completeRecoveryAttempt(
+          connectionId,
+          completedAt: controller._now(),
+          outcome: ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+        );
+      }
+      return;
+    }
+  }
   if (preservedLaneState.threadId != null) {
     await nextBinding.sessionController.selectConversationForResume(
       preservedLaneState.threadId!,
     );
+    if (!controller._isDisposed && shouldReconnectTransport) {
+      controller._completeConversationRecoveryAttempt(
+        connectionId,
+        nextBinding,
+        completedAt: controller._now(),
+      );
+    }
     return;
   }
 }
@@ -163,6 +330,8 @@ Future<void> _resumeWorkspaceConversation(
       return;
     }
 
+    final shouldReconnectTransport = controller._state
+        .requiresTransportReconnect(connectionId);
     final nextBinding = await _loadWorkspaceLaneBinding(
       controller,
       connectionId,
@@ -178,15 +347,58 @@ Future<void> _resumeWorkspaceConversation(
       controller._state.copyWith(
         selectedConnectionId: connectionId,
         viewport: ConnectionWorkspaceViewport.liveLane,
-        reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
-          catalog: controller._state.catalog,
-          liveConnectionIds: controller._state.liveConnectionIds,
-          reconnectRequiredConnectionIds: <String>{
-            for (final reconnectConnectionId
-                in controller._state.reconnectRequiredConnectionIds)
-              if (reconnectConnectionId != connectionId) reconnectConnectionId,
-          },
-        ),
+        savedSettingsReconnectRequiredConnectionIds:
+            _sanitizeWorkspaceReconnectRequiredIds(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              reconnectRequiredConnectionIds: <String>{
+                ...controller
+                    ._state
+                    .savedSettingsReconnectRequiredConnectionIds,
+              }..remove(connectionId),
+            ),
+        transportReconnectRequiredConnectionIds: shouldReconnectTransport
+            ? controller._state.transportReconnectRequiredConnectionIds
+            : _sanitizeWorkspaceReconnectRequiredIds(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                reconnectRequiredConnectionIds: <String>{
+                  ...controller._state.transportReconnectRequiredConnectionIds,
+                }..remove(connectionId),
+              ),
+        transportRecoveryPhasesByConnectionId: shouldReconnectTransport
+            ? _sanitizeWorkspaceTransportRecoveryPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                transportRecoveryPhasesByConnectionId:
+                    <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                      ...controller
+                          ._state
+                          .transportRecoveryPhasesByConnectionId,
+                      connectionId: ConnectionWorkspaceTransportRecoveryPhase
+                          .reconnecting,
+                    },
+              )
+            : _sanitizeWorkspaceTransportRecoveryPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                transportRecoveryPhasesByConnectionId:
+                    <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                      for (final entry
+                          in controller
+                              ._state
+                              .transportRecoveryPhasesByConnectionId
+                              .entries)
+                        if (entry.key != connectionId) entry.key: entry.value,
+                    },
+              ),
+        recoveryDiagnosticsByConnectionId:
+            _sanitizeWorkspaceRecoveryDiagnostics(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              recoveryDiagnosticsByConnectionId:
+                  controller._state.recoveryDiagnosticsByConnectionId,
+            ),
       ),
     );
     previousBinding.dispose();
@@ -229,11 +441,32 @@ Future<void> _deleteDormantWorkspaceConnection(
     controller._state.copyWith(
       isLoading: false,
       catalog: nextCatalog,
-      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+      savedSettingsReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: nextCatalog,
+            liveConnectionIds: controller._state.liveConnectionIds,
+            reconnectRequiredConnectionIds:
+                controller._state.savedSettingsReconnectRequiredConnectionIds,
+          ),
+      transportReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: nextCatalog,
+            liveConnectionIds: controller._state.liveConnectionIds,
+            reconnectRequiredConnectionIds:
+                controller._state.transportReconnectRequiredConnectionIds,
+          ),
+      transportRecoveryPhasesByConnectionId:
+          _sanitizeWorkspaceTransportRecoveryPhases(
+            catalog: nextCatalog,
+            liveConnectionIds: controller._state.liveConnectionIds,
+            transportRecoveryPhasesByConnectionId:
+                controller._state.transportRecoveryPhasesByConnectionId,
+          ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: nextCatalog,
         liveConnectionIds: controller._state.liveConnectionIds,
-        reconnectRequiredConnectionIds:
-            controller._state.reconnectRequiredConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
       ),
     ),
   );
@@ -262,17 +495,84 @@ Future<void> _handleWorkspaceAppLifecycleState(
 ) async {
   switch (state) {
     case AppLifecycleState.inactive:
+      final selectedConnectionId = controller._state.selectedConnectionId;
+      final backgroundedAt = controller._now();
+      if (selectedConnectionId != null &&
+          controller._state.isConnectionLive(selectedConnectionId)) {
+        controller._recordLifecycleBackgroundSnapshot(
+          selectedConnectionId,
+          occurredAt: backgroundedAt,
+          lifecycleState: ConnectionWorkspaceBackgroundLifecycleState.inactive,
+        );
+      }
       await controller._enqueueRecoveryPersistence(
-        backgroundedAt: controller._now(),
+        backgroundedAt: backgroundedAt,
+        backgroundedLifecycleState:
+            ConnectionWorkspaceBackgroundLifecycleState.inactive,
       );
       return;
     case AppLifecycleState.hidden:
-    case AppLifecycleState.paused:
+      final hiddenConnectionId = controller._state.selectedConnectionId;
+      final hiddenAt = controller._now();
+      if (hiddenConnectionId != null &&
+          controller._state.isConnectionLive(hiddenConnectionId)) {
+        controller._recordLifecycleBackgroundSnapshot(
+          hiddenConnectionId,
+          occurredAt: hiddenAt,
+          lifecycleState: ConnectionWorkspaceBackgroundLifecycleState.hidden,
+        );
+      }
       await controller._enqueueRecoveryPersistence(
-        backgroundedAt: controller._now(),
+        backgroundedAt: hiddenAt,
+        backgroundedLifecycleState:
+            ConnectionWorkspaceBackgroundLifecycleState.hidden,
+      );
+      return;
+    case AppLifecycleState.paused:
+      final pausedConnectionId = controller._state.selectedConnectionId;
+      final pausedAt = controller._now();
+      if (pausedConnectionId != null &&
+          controller._state.isConnectionLive(pausedConnectionId)) {
+        controller._recordLifecycleBackgroundSnapshot(
+          pausedConnectionId,
+          occurredAt: pausedAt,
+          lifecycleState: ConnectionWorkspaceBackgroundLifecycleState.paused,
+        );
+      }
+      await controller._enqueueRecoveryPersistence(
+        backgroundedAt: pausedAt,
+        backgroundedLifecycleState:
+            ConnectionWorkspaceBackgroundLifecycleState.paused,
       );
       return;
     case AppLifecycleState.resumed:
+      final selectedConnectionId = controller._state.selectedConnectionId;
+      final resumedAt = controller._now();
+      if (selectedConnectionId == null ||
+          !controller._state.isConnectionLive(selectedConnectionId)) {
+        return;
+      }
+
+      controller._recordLifecycleResume(
+        selectedConnectionId,
+        occurredAt: resumedAt,
+      );
+      if (!controller._state.requiresTransportReconnect(selectedConnectionId)) {
+        return;
+      }
+
+      final binding =
+          controller._liveBindingsByConnectionId[selectedConnectionId];
+      if (binding == null || binding.sessionController.sessionState.isBusy) {
+        return;
+      }
+
+      controller._beginRecoveryAttempt(
+        selectedConnectionId,
+        startedAt: resumedAt,
+        origin: ConnectionWorkspaceRecoveryOrigin.foregroundResume,
+      );
+      await _reconnectWorkspaceConnection(controller, selectedConnectionId);
       return;
     case AppLifecycleState.detached:
       return;
@@ -301,4 +601,37 @@ String? _normalizedWorkspaceThreadId(String? value) {
     return null;
   }
   return normalizedValue;
+}
+
+Future<void> _connectWorkspaceBindingTransport(ConnectionLaneBinding binding) {
+  if (binding.appServerClient.isConnected) {
+    return Future<void>.value();
+  }
+
+  return binding.appServerClient.connect(
+    profile: binding.sessionController.profile,
+    secrets: binding.sessionController.secrets,
+  );
+}
+
+Map<String, ConnectionWorkspaceRecoveryDiagnostics>
+_initialWorkspaceRecoveryDiagnostics({
+  required String connectionId,
+  required ConnectionWorkspaceRecoveryState? recoveryState,
+}) {
+  if (recoveryState?.connectionId != connectionId) {
+    return const <String, ConnectionWorkspaceRecoveryDiagnostics>{};
+  }
+
+  final diagnostics = ConnectionWorkspaceRecoveryDiagnostics(
+    lastBackgroundedAt: recoveryState?.backgroundedAt,
+    lastBackgroundedLifecycleState: recoveryState?.backgroundedLifecycleState,
+  );
+  if (diagnostics == const ConnectionWorkspaceRecoveryDiagnostics()) {
+    return const <String, ConnectionWorkspaceRecoveryDiagnostics>{};
+  }
+
+  return <String, ConnectionWorkspaceRecoveryDiagnostics>{
+    connectionId: diagnostics,
+  };
 }

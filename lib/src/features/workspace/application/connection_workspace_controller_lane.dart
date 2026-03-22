@@ -132,11 +132,32 @@ void _terminateWorkspaceConnection(
       selectedConnectionId: nextSelectedConnectionId,
       viewport: nextViewport,
       clearSelectedConnectionId: nextSelectedConnectionId == null,
-      reconnectRequiredConnectionIds: _sanitizeWorkspaceReconnectRequiredIds(
+      savedSettingsReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: controller._state.catalog,
+            liveConnectionIds: nextLiveConnectionIds,
+            reconnectRequiredConnectionIds:
+                controller._state.savedSettingsReconnectRequiredConnectionIds,
+          ),
+      transportReconnectRequiredConnectionIds:
+          _sanitizeWorkspaceReconnectRequiredIds(
+            catalog: controller._state.catalog,
+            liveConnectionIds: nextLiveConnectionIds,
+            reconnectRequiredConnectionIds:
+                controller._state.transportReconnectRequiredConnectionIds,
+          ),
+      transportRecoveryPhasesByConnectionId:
+          _sanitizeWorkspaceTransportRecoveryPhases(
+            catalog: controller._state.catalog,
+            liveConnectionIds: nextLiveConnectionIds,
+            transportRecoveryPhasesByConnectionId:
+                controller._state.transportRecoveryPhasesByConnectionId,
+          ),
+      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: controller._state.catalog,
         liveConnectionIds: nextLiveConnectionIds,
-        reconnectRequiredConnectionIds:
-            controller._state.reconnectRequiredConnectionIds,
+        recoveryDiagnosticsByConnectionId:
+            controller._state.recoveryDiagnosticsByConnectionId,
       ),
     ),
   );

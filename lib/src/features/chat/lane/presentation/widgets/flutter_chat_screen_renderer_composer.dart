@@ -4,6 +4,7 @@ class FlutterChatComposerRegion extends StatelessWidget {
   const FlutterChatComposerRegion({
     super.key,
     required this.platformBehavior,
+    this.supplementalNotice,
     required this.conversationRecoveryNotice,
     required this.historicalConversationRestoreNotice,
     required this.composer,
@@ -14,11 +15,12 @@ class FlutterChatComposerRegion extends StatelessWidget {
   });
 
   final PocketPlatformBehavior platformBehavior;
+  final Widget? supplementalNotice;
   final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
   final ChatHistoricalConversationRestoreNoticeContract?
   historicalConversationRestoreNotice;
   final ChatComposerContract composer;
-  final ValueChanged<String> onComposerDraftChanged;
+  final ValueChanged<ChatComposerDraft> onComposerDraftChanged;
   final Future<void> Function() onSendPrompt;
   final ValueChanged<ChatConversationRecoveryActionId>
   onConversationRecoveryAction;
@@ -34,7 +36,11 @@ class FlutterChatComposerRegion extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (historicalConversationRestoreNotice case final notice?) ...[
+            if (supplementalNotice case final notice?) ...[
+              notice,
+              const SizedBox(height: 10),
+            ] else if (historicalConversationRestoreNotice
+                case final notice?) ...[
               _HistoricalConversationRestoreNotice(
                 notice: notice,
                 onAction: onHistoricalConversationRestoreAction,

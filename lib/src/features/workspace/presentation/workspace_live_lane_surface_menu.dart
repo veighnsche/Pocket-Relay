@@ -2,8 +2,9 @@ part of 'workspace_live_lane_surface.dart';
 
 extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   List<ChatChromeMenuAction> _supplementalMenuActionsFor({
-    required bool requiresReconnect,
+    required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
     required bool isLaneBusy,
+    required bool isRestartInProgress,
   }) {
     final hasWorkspaceHistoryScope = widget
         .laneBinding
@@ -24,15 +25,15 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
         onSelected: widget.workspaceController.showDormantRoster,
       ),
-      if (requiresReconnect)
+      if (reconnectRequirement case final requirement?)
         ChatChromeMenuAction(
-          label: _isApplyingSavedSettings
-              ? ConnectionWorkspaceCopy.reconnectMenuProgress
-              : ConnectionWorkspaceCopy.reconnectMenuAction,
+          label: isRestartInProgress
+              ? ConnectionWorkspaceCopy.reconnectMenuProgressFor(requirement)
+              : ConnectionWorkspaceCopy.reconnectMenuActionFor(requirement),
           onSelected: () {
-            unawaited(_applySavedSettings());
+            unawaited(_restartLane());
           },
-          isEnabled: !_isApplyingSavedSettings && !isLaneBusy,
+          isEnabled: !isRestartInProgress && !isLaneBusy,
         ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.closeLaneAction,

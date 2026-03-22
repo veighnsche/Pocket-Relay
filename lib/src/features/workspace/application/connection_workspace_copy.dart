@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 
 abstract final class ConnectionWorkspaceCopy {
   static const String workspaceTitle = 'Connections';
@@ -23,11 +24,28 @@ abstract final class ConnectionWorkspaceCopy {
   static const String deleteProgress = 'Deleting…';
   static const String returnToOpenLaneAction = 'Return to open lane';
   static const String closeLaneAction = 'Close lane';
-  static const String reconnectBadge = 'Restart needed';
-  static const String reconnectAction = 'Restart';
-  static const String reconnectProgress = 'Restarting…';
-  static const String reconnectMenuAction = 'Restart lane';
-  static const String reconnectMenuProgress = 'Restarting lane…';
+  static const String savedSettingsReconnectBadge = 'Changes pending';
+  static const String savedSettingsReconnectAction = 'Apply changes';
+  static const String savedSettingsReconnectProgress = 'Applying changes…';
+  static const String savedSettingsReconnectMenuAction = 'Apply saved settings';
+  static const String savedSettingsReconnectMenuProgress =
+      'Applying saved settings…';
+  static const String transportReconnectBadge = 'Reconnect needed';
+  static const String transportReconnectAction = 'Reconnect';
+  static const String transportReconnectProgress = 'Reconnecting…';
+  static const String transportReconnectMenuAction = 'Reconnect lane';
+  static const String transportReconnectMenuProgress = 'Reconnecting lane…';
+  static const String transportLostNoticeTitle = 'Live transport lost';
+  static const String transportLostNoticeMessage =
+      'Pocket Relay lost the live connection to Codex. Your draft is preserved below until the lane reconnects.';
+  static const String reconnectingNoticeTitle =
+      'Reconnecting to remote session';
+  static const String reconnectingNoticeMessage =
+      'Pocket Relay is reconnecting this lane to Codex before it can continue. Your draft is preserved below.';
+  static const String transportUnavailableNoticeTitle =
+      'Remote session unavailable';
+  static const String transportUnavailableNoticeMessage =
+      'Pocket Relay could not reconnect this lane to Codex. Your draft is preserved below. Try reconnecting again.';
   static const String collapseSidebarAction = 'Collapse sidebar';
   static const String expandSidebarAction = 'Expand sidebar';
   static const String workspaceNotSet = 'Workspace not set';
@@ -81,6 +99,66 @@ abstract final class ConnectionWorkspaceCopy {
       ConnectionMode.remote => remoteConnectionNotConfigured,
       ConnectionMode.local when workspaceDir.isNotEmpty => 'Local Codex',
       ConnectionMode.local => workspaceNotSet,
+    };
+  }
+
+  static String reconnectBadgeFor(
+    ConnectionWorkspaceReconnectRequirement requirement,
+  ) {
+    return switch (requirement) {
+      ConnectionWorkspaceReconnectRequirement.savedSettings =>
+        savedSettingsReconnectBadge,
+      ConnectionWorkspaceReconnectRequirement.transport ||
+      ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
+        transportReconnectBadge,
+    };
+  }
+
+  static String reconnectActionFor(
+    ConnectionWorkspaceReconnectRequirement requirement,
+  ) {
+    return switch (requirement) {
+      ConnectionWorkspaceReconnectRequirement.savedSettings =>
+        savedSettingsReconnectAction,
+      ConnectionWorkspaceReconnectRequirement.transport ||
+      ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
+        transportReconnectAction,
+    };
+  }
+
+  static String reconnectProgressFor(
+    ConnectionWorkspaceReconnectRequirement requirement,
+  ) {
+    return switch (requirement) {
+      ConnectionWorkspaceReconnectRequirement.savedSettings =>
+        savedSettingsReconnectProgress,
+      ConnectionWorkspaceReconnectRequirement.transport ||
+      ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
+        transportReconnectProgress,
+    };
+  }
+
+  static String reconnectMenuActionFor(
+    ConnectionWorkspaceReconnectRequirement requirement,
+  ) {
+    return switch (requirement) {
+      ConnectionWorkspaceReconnectRequirement.savedSettings =>
+        savedSettingsReconnectMenuAction,
+      ConnectionWorkspaceReconnectRequirement.transport ||
+      ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
+        transportReconnectMenuAction,
+    };
+  }
+
+  static String reconnectMenuProgressFor(
+    ConnectionWorkspaceReconnectRequirement requirement,
+  ) {
+    return switch (requirement) {
+      ConnectionWorkspaceReconnectRequirement.savedSettings =>
+        savedSettingsReconnectMenuProgress,
+      ConnectionWorkspaceReconnectRequirement.transport ||
+      ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
+        transportReconnectMenuProgress,
     };
   }
 }

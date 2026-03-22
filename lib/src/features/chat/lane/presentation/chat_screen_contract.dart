@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
@@ -160,14 +161,19 @@ class ChatTranscriptSurfaceContract {
 
 class ChatComposerContract {
   const ChatComposerContract({
-    required this.draftText,
+    this.draft = const ChatComposerDraft(),
     required this.isSendActionEnabled,
+    this.allowsImageAttachment = false,
     required this.placeholder,
   });
 
-  final String draftText;
+  final ChatComposerDraft draft;
   final bool isSendActionEnabled;
+  final bool allowsImageAttachment;
   final String placeholder;
+
+  String get draftText => draft.text;
+  bool get hasStructuredDraft => draft.hasStructuredDraft;
 }
 
 class ChatTurnIndicatorContract {
@@ -196,6 +202,73 @@ class ChatConnectionSettingsLaunchContract {
 
   final ConnectionProfile initialProfile;
   final ConnectionSecrets initialSecrets;
+}
+
+class ChatScreenSessionContract {
+  const ChatScreenSessionContract({
+    required this.isLoading,
+    required this.header,
+    required this.actions,
+    this.timelineSummaries = const <ChatTimelineSummaryContract>[],
+    required this.transcriptSurface,
+    required this.connectionSettings,
+    required this.isComposerSendEnabled,
+    this.allowsImageAttachment = false,
+    required this.composerPlaceholder,
+    this.conversationRecoveryNotice,
+    this.historicalConversationRestoreNotice,
+    this.turnIndicator,
+  });
+
+  final bool isLoading;
+  final ChatHeaderContract header;
+  final List<ChatScreenActionContract> actions;
+  final List<ChatTimelineSummaryContract> timelineSummaries;
+  final ChatTranscriptSurfaceContract transcriptSurface;
+  final ChatConnectionSettingsLaunchContract connectionSettings;
+  final bool isComposerSendEnabled;
+  final bool allowsImageAttachment;
+  final String composerPlaceholder;
+  final ChatConversationRecoveryNoticeContract? conversationRecoveryNotice;
+  final ChatHistoricalConversationRestoreNoticeContract?
+  historicalConversationRestoreNotice;
+  final ChatTurnIndicatorContract? turnIndicator;
+
+  List<ChatScreenActionContract> get toolbarActions => actions
+      .where((action) => action.placement == ChatScreenActionPlacement.toolbar)
+      .toList(growable: false);
+
+  List<ChatScreenActionContract> get menuActions => actions
+      .where((action) => action.placement == ChatScreenActionPlacement.menu)
+      .toList(growable: false);
+
+  ChatComposerContract composerForDraft(ChatComposerDraft composerDraft) {
+    return ChatComposerContract(
+      draft: composerDraft,
+      isSendActionEnabled: isComposerSendEnabled,
+      allowsImageAttachment: allowsImageAttachment,
+      placeholder: composerPlaceholder,
+    );
+  }
+
+  ChatScreenContract compose({
+    required ChatTranscriptFollowContract transcriptFollow,
+    required ChatComposerDraft composerDraft,
+  }) {
+    return ChatScreenContract(
+      isLoading: isLoading,
+      header: header,
+      actions: actions,
+      timelineSummaries: timelineSummaries,
+      transcriptSurface: transcriptSurface,
+      transcriptFollow: transcriptFollow,
+      composer: composerForDraft(composerDraft),
+      connectionSettings: connectionSettings,
+      conversationRecoveryNotice: conversationRecoveryNotice,
+      historicalConversationRestoreNotice: historicalConversationRestoreNotice,
+      turnIndicator: turnIndicator,
+    );
+  }
 }
 
 class ChatScreenContract {

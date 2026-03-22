@@ -540,8 +540,42 @@ void main() {
 
       expect(controller.state.requiresReconnect('conn_primary'), isTrue);
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
-      expect(find.text('Saved settings are pending'), findsNothing);
-      expect(find.text('Restart needed'), findsOneWidget);
+      expect(find.text('Changes pending'), findsOneWidget);
+      expect(find.text('Apply changes'), findsOneWidget);
+      expect(find.byKey(const ValueKey('restart_lane')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'transport loss shows reconnect copy instead of saved-settings copy',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      await clientsById['conn_primary']!.connect(
+        profile: ConnectionProfile.defaults(),
+        secrets: const ConnectionSecrets(),
+      );
+      await tester.pump();
+
+      await clientsById['conn_primary']!.disconnect();
+      await tester.pump();
+
+      expect(
+        controller.state.requiresTransportReconnect('conn_primary'),
+        isTrue,
+      );
+      expect(find.text('Reconnect'), findsOneWidget);
+      expect(find.text('Changes pending'), findsNothing);
+      expect(find.text('Apply changes'), findsNothing);
       expect(find.byKey(const ValueKey('restart_lane')), findsOneWidget);
     },
   );
@@ -625,7 +659,7 @@ void main() {
 
       expect(controller.state.requiresReconnect('conn_primary'), isFalse);
       expect(clientsById['conn_primary']?.disconnectCalls, 1);
-      expect(find.text('Restart needed'), findsNothing);
+      expect(find.text('Changes pending'), findsNothing);
       expect(find.text('Primary Renamed'), findsOneWidget);
       expect(find.text('primary.changed'), findsOneWidget);
     },

@@ -2,6 +2,7 @@ import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
@@ -64,6 +65,8 @@ class WidgetbookFixtures {
     experience: PocketPlatformExperience.mobile,
     supportsLocalConnectionMode: false,
     supportsWakeLock: true,
+    supportsFiniteBackgroundGrace: false,
+    supportsActiveTurnForegroundService: false,
     usesDesktopKeyboardSubmit: false,
     supportsCollapsibleDesktopSidebar: false,
   );
@@ -72,6 +75,8 @@ class WidgetbookFixtures {
     experience: PocketPlatformExperience.desktop,
     supportsLocalConnectionMode: true,
     supportsWakeLock: false,
+    supportsFiniteBackgroundGrace: false,
+    supportsActiveTurnForegroundService: false,
     usesDesktopKeyboardSubmit: true,
     supportsCollapsibleDesktopSidebar: true,
   );
@@ -696,9 +701,11 @@ class WidgetbookFixtures {
         resumeDistance: 72,
       ),
       composer: ChatComposerContract(
-        draftText: platformBehavior.usesDesktopKeyboardSubmit
-            ? 'Summarize the lane and call out the highest-risk state.'
-            : '',
+        draft: ChatComposerDraft(
+          text: platformBehavior.usesDesktopKeyboardSubmit
+              ? 'Summarize the lane and call out the highest-risk state.'
+              : '',
+        ),
         isSendActionEnabled: true,
         placeholder: 'Message Pocket Relay',
       ),

@@ -83,6 +83,48 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
     return _sendPromptWithAppServer(normalizedPrompt);
   }
 
+  Future<bool> sendDraft(ChatComposerDraft draft) async {
+    final normalizedDraft = draft.normalized();
+    if (normalizedDraft.isEmpty ||
+        _conversationRecoveryState != null ||
+        _historicalConversationRestoreState != null) {
+      return false;
+    }
+
+    final validationMessage = _validateProfileForSend();
+    if (validationMessage != null) {
+      _emitSnackBar(validationMessage);
+      return false;
+    }
+    if (!await _ensureImageInputsSupportedForDraft(normalizedDraft)) {
+      return false;
+    }
+
+    final rootThreadId = _sessionState.rootThreadId;
+    if (rootThreadId != null && _sessionState.currentThreadId != rootThreadId) {
+      selectTimeline(rootThreadId);
+    }
+
+    final recoveryState = _conversationRecoveryPolicy.preflightRecoveryState(
+      sessionState: _sessionState,
+      activeThreadId: _activeConversationThreadId(),
+      trackedThreadId: _trackedThreadReuseCandidate(),
+    );
+    if (recoveryState != null) {
+      _setConversationRecovery(recoveryState);
+      return false;
+    }
+
+    _applySessionState(
+      _sessionReducer.addUserMessage(
+        _sessionState,
+        text: normalizedDraft.text,
+        draft: normalizedDraft,
+      ),
+    );
+    return _sendDraftWithAppServer(normalizedDraft);
+  }
+
   Future<void> stopActiveTurn() async {
     await _stopAppServerTurn();
   }

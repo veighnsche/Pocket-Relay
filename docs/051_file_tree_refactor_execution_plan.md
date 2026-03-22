@@ -17,7 +17,7 @@ that:
 
 This plan assumes the target structure described in:
 
-- `docs/049_codebase_audit_and_file_tree_proposal.md`
+- `docs/050_codebase_audit_and_file_tree_proposal.md`
 
 ## Refactor Strategy
 

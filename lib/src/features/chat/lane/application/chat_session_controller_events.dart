@@ -4,6 +4,9 @@ void _handleChatSessionAppServerEvent(
   ChatSessionController controller,
   CodexAppServerEvent event,
 ) {
+  if (event is CodexAppServerDisconnectedEvent) {
+    controller._resetModelCatalogHydration();
+  }
   if (event is CodexAppServerRequestEvent &&
       controller._isUnsupportedHostRequest(event.method)) {
     unawaited(_handleUnsupportedChatSessionHostRequest(controller, event));

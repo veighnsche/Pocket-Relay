@@ -137,7 +137,8 @@ Useful alternatives:
 You can also run Flutter directly:
 
 ```bash
-flutter run -t lib/main.dart
+flutter run -d ios -t lib/main.dart
+flutter run --flavor app -d android -t lib/main.dart
 ```
 
 ## Running Widgetbook

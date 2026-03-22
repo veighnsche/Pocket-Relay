@@ -54,9 +54,10 @@ void _handleChatScreenAction(
 Future<void> _sendChatPrompt(_ChatRootAdapterState state) async {
   final laneBinding = state.widget.laneBinding;
   final controller = laneBinding.sessionController;
-  final sent = await controller.sendPrompt(
-    laneBinding.composerDraftHost.draft.text,
-  );
+  final draft = laneBinding.composerDraftHost.draft.normalized();
+  final sent = draft.hasStructuredDraft
+      ? await controller.sendDraft(draft)
+      : await controller.sendPrompt(draft.text);
   if (!state.mounted || laneBinding != state.widget.laneBinding || !sent) {
     return;
   }
@@ -104,16 +105,16 @@ Future<void> _continueChatFromUserMessage(
   }
 
   final laneBinding = state.widget.laneBinding;
-  final draftText = await laneBinding.sessionController.continueFromUserMessage(
+  final draft = await laneBinding.sessionController.continueFromUserMessage(
     blockId,
   );
   if (!state.mounted ||
       laneBinding != state.widget.laneBinding ||
-      draftText == null) {
+      draft == null) {
     return;
   }
 
-  laneBinding.composerDraftHost.updateText(draftText);
+  laneBinding.composerDraftHost.updateDraft(draft);
   laneBinding.transcriptFollowHost.requestFollow(
     source: ChatTranscriptFollowRequestSource.clearTranscript,
   );
@@ -127,9 +128,8 @@ void _startFreshChatConversation(_ChatRootAdapterState state) {
 }
 
 Future<void> _branchChatConversation(_ChatRootAdapterState state) async {
-  final branched =
-      await state.widget.laneBinding.sessionController
-          .branchSelectedConversation();
+  final branched = await state.widget.laneBinding.sessionController
+      .branchSelectedConversation();
   if (!branched) {
     return;
   }

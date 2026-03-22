@@ -3,16 +3,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_app_lifecycle_host.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_background_grace_host.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_foreground_service_host.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late SharedPreferencesAsyncPlatform? originalAsyncPlatform;
+
+  setUp(() {
+    originalAsyncPlatform = SharedPreferencesAsyncPlatform.instance;
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
+  tearDown(() {
+    SharedPreferencesAsyncPlatform.instance = originalAsyncPlatform;
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   testWidgets(
     'workspace app lifecycle host snapshots the selected lane state on pause',
     (tester) async {
@@ -59,6 +82,10 @@ void main() {
       expect(recoveryState.selectedThreadId, 'thread_saved');
       expect(recoveryState.draftText, 'Recover this draft');
       expect(recoveryState.backgroundedAt, snapshotTime);
+      expect(
+        recoveryState.backgroundedLifecycleState,
+        ConnectionWorkspaceBackgroundLifecycleState.paused,
+      );
     },
   );
 
@@ -144,7 +171,7 @@ void main() {
   );
 
   testWidgets(
-    'PocketRelayApp keeps the lifecycle host above the wake-lock host',
+    'PocketRelayApp keeps the foreground-service, background-grace, lifecycle, and wake-lock hosts in place',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
@@ -158,12 +185,15 @@ void main() {
             ),
             connectionId: 'conn_primary',
           ),
+          modelCatalogStore: MemoryConnectionModelCatalogStore(),
           recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
           appServerClient: appServerClient,
         ),
       );
       await tester.pumpAndSettle();
 
+      expect(find.byType(WorkspaceTurnForegroundServiceHost), findsOneWidget);
+      expect(find.byType(WorkspaceTurnBackgroundGraceHost), findsOneWidget);
       expect(find.byType(WorkspaceAppLifecycleHost), findsOneWidget);
       expect(find.byType(WorkspaceTurnWakeLockHost), findsOneWidget);
     },

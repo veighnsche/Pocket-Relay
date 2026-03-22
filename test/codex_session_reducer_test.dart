@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
+import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
@@ -350,6 +351,81 @@ void main() {
       expect(
         state.transcriptBlocks.whereType<CodexUserMessageBlock>(),
         hasLength(2),
+      );
+    },
+  );
+
+  test(
+    'matches same-text provider echoes by structured image content instead of text alone',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.addUserMessage(
+        CodexSessionState.initial(),
+        text: 'See [Image #1]',
+        draft: _imageDraft(
+          imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+          displayName: 'first.png',
+        ),
+        createdAt: now,
+      );
+      final firstBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+
+      state = reducer.addUserMessage(
+        state,
+        text: 'See [Image #1]',
+        draft: _imageDraft(
+          imageUrl: 'data:image/png;base64,c2Vjb25k',
+          displayName: 'second.png',
+        ),
+        createdAt: now.add(const Duration(milliseconds: 1)),
+      );
+      final secondBlockId = (state.blocks.last as CodexUserMessageBlock).id;
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemCompletedEvent(
+          createdAt: now.add(const Duration(milliseconds: 2)),
+          itemType: CodexCanonicalItemType.userMessage,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'item_user_second',
+          status: CodexRuntimeItemStatus.completed,
+          snapshot: const <String, Object?>{
+            'type': 'userMessage',
+            'content': <Object>[
+              <String, Object?>{
+                'type': 'image',
+                'url': 'data:image/png;base64,c2Vjb25k',
+              },
+              <String, Object?>{
+                'type': 'text',
+                'text': 'See [Image #1]',
+                'text_elements': <Object>[
+                  <String, Object?>{
+                    'byteRange': <String, Object?>{'start': 4, 'end': 14},
+                    'placeholder': '[Image #1]',
+                  },
+                ],
+              },
+            ],
+          },
+        ),
+      );
+
+      expect(
+        state.localUserMessageProviderBindings['item_user_second'],
+        secondBlockId,
+      );
+      expect(state.pendingLocalUserMessageBlockIds, <String>[firstBlockId]);
+      final userMessages = state.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .toList(growable: false);
+      expect(userMessages, hasLength(2));
+      expect(userMessages.last.id, secondBlockId);
+      expect(
+        userMessages.last.draft.imageAttachments.single.imageUrl,
+        'data:image/png;base64,c2Vjb25k',
       );
     },
   );
@@ -3276,4 +3352,23 @@ void main() {
       CodexAgentLifecycleState.running,
     );
   });
+}
+
+ChatComposerDraft _imageDraft({
+  required String imageUrl,
+  required String displayName,
+}) {
+  return ChatComposerDraft(
+    text: 'See [Image #1]',
+    textElements: const <ChatComposerTextElement>[
+      ChatComposerTextElement(start: 4, end: 14, placeholder: '[Image #1]'),
+    ],
+    imageAttachments: <ChatComposerImageAttachment>[
+      ChatComposerImageAttachment(
+        imageUrl: imageUrl,
+        displayName: displayName,
+        placeholder: '[Image #1]',
+      ),
+    ],
+  );
 }

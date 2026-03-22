@@ -1,5 +1,1 @@
-class ChatComposerDraft {
-  const ChatComposerDraft({this.text = ''});
-
-  final String text;
-}
+export '../domain/chat_composer_draft.dart';

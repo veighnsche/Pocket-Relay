@@ -21,6 +21,7 @@ CodexSessionState _applyItemLifecycle(
     existing: existing,
   );
   final suppressedState = _suppressedLocalUserMessageState(
+    policy,
     state,
     activeTurn,
     nextItem,
@@ -48,7 +49,11 @@ CodexSessionActiveItem _activeItemFromLifecycle(
 }) {
   final blockKind = policy._blockFactory.blockKindForItemType(event.itemType);
   final title = _itemTitle(policy, event, existing?.title);
-  final aggregatedBody = _itemBody(policy, event, existing?.aggregatedBody ?? '');
+  final aggregatedBody = _itemBody(
+    policy,
+    event,
+    existing?.aggregatedBody ?? '',
+  );
   final exitCode = _extractExitCode(event.snapshot) ?? existing?.exitCode;
   final forkArtifact = _shouldForkVisibleArtifact(
     activeTurn,
@@ -126,7 +131,9 @@ String _itemBody(
   CodexRuntimeItemLifecycleEvent event,
   String currentBody,
 ) {
-  final snapshotText = policy._itemSupport.extractTextFromSnapshot(event.snapshot);
+  final snapshotText = policy._itemSupport.extractTextFromSnapshot(
+    event.snapshot,
+  );
   if (event.itemType == CodexCanonicalItemType.commandExecution) {
     if (snapshotText != null && snapshotText.isNotEmpty) {
       return snapshotText;
@@ -149,7 +156,8 @@ String _itemBody(
   if (currentBody.isNotEmpty) {
     return currentBody;
   }
-  return policy._itemSupport.defaultLifecycleBody(event.itemType) ?? currentBody;
+  return policy._itemSupport.defaultLifecycleBody(event.itemType) ??
+      currentBody;
 }
 
 CodexActiveTurnState? _nextActiveTurnForLifecycle(

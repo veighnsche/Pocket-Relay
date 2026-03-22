@@ -32,6 +32,9 @@ android {
 
     flavorDimensions += "surface"
     productFlavors {
+        create("app") {
+            dimension = "surface"
+        }
         create("widgetbook") {
             dimension = "surface"
             applicationIdSuffix = ".widgetbook"

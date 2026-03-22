@@ -70,6 +70,7 @@ String _visibleBodyForArtifact(
 }
 
 CodexSessionState? _suppressedLocalUserMessageState(
+  TranscriptItemPolicy policy,
   CodexSessionState state,
   CodexActiveTurnState? activeTurn,
   CodexSessionActiveItem item,
@@ -90,8 +91,11 @@ CodexSessionState? _suppressedLocalUserMessageState(
     return null;
   }
 
+  final providerDraft = policy._itemSupport.extractStructuredUserMessageDraft(
+    item.snapshot,
+  );
   final text = item.body.trim();
-  if (text.isEmpty) {
+  if (text.isEmpty && providerDraft == null) {
     return null;
   }
 
@@ -99,6 +103,7 @@ CodexSessionState? _suppressedLocalUserMessageState(
     state.blocks,
     state.pendingLocalUserMessageBlockIds,
     text: text,
+    providerDraft: providerDraft,
   );
   if (pendingMatch == null) {
     return null;
@@ -129,7 +134,8 @@ CodexSessionState _stateAfterSuppressedLocalUserMessage(
       itemId: itemId,
     ),
     pendingLocalUserMessageBlockIds:
-        pendingLocalUserMessageBlockIds ?? state.pendingLocalUserMessageBlockIds,
+        pendingLocalUserMessageBlockIds ??
+        state.pendingLocalUserMessageBlockIds,
     localUserMessageProviderBindings:
         localUserMessageProviderBindings ??
         state.localUserMessageProviderBindings,
@@ -152,8 +158,11 @@ CodexUserMessageBlock? _userMessageBlockById(
   List<CodexUiBlock> blocks,
   List<String> pendingBlockIds, {
   required String text,
+  ChatComposerDraft? providerDraft,
 }) {
   final nextPendingBlockIds = <String>[];
+  final requiresStructuredMatch =
+      providerDraft != null && providerDraft.hasStructuredDraft;
 
   for (var index = 0; index < pendingBlockIds.length; index += 1) {
     final blockId = pendingBlockIds[index];
@@ -161,7 +170,11 @@ CodexUserMessageBlock? _userMessageBlockById(
     if (block == null) {
       continue;
     }
-    if (block.text.trim() == text) {
+    final matchesProviderDraft =
+        providerDraft != null &&
+        _draftsMatchForProviderBinding(block.draft, providerDraft);
+    if (matchesProviderDraft ||
+        (!requiresStructuredMatch && block.text.trim() == text)) {
       nextPendingBlockIds.addAll(pendingBlockIds.skip(index + 1));
       return (block, nextPendingBlockIds);
     }
@@ -169,6 +182,48 @@ CodexUserMessageBlock? _userMessageBlockById(
   }
 
   return null;
+}
+
+bool _draftsMatchForProviderBinding(
+  ChatComposerDraft localDraft,
+  ChatComposerDraft providerDraft,
+) {
+  final normalizedLocal = localDraft.normalized();
+  final normalizedProvider = providerDraft.normalized();
+  if (normalizedLocal.text != normalizedProvider.text) {
+    return false;
+  }
+  if (!listEquals(
+    normalizedLocal.textElements,
+    normalizedProvider.textElements,
+  )) {
+    return false;
+  }
+  return _imageAttachmentsEqualForProviderBinding(
+    normalizedLocal.imageAttachments,
+    normalizedProvider.imageAttachments,
+  );
+}
+
+bool _imageAttachmentsEqualForProviderBinding(
+  List<ChatComposerImageAttachment> left,
+  List<ChatComposerImageAttachment> right,
+) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    final leftAttachment = left[index];
+    final rightAttachment = right[index];
+    if (leftAttachment.imageUrl != rightAttachment.imageUrl) {
+      return false;
+    }
+    if (leftAttachment.placeholder?.trim() !=
+        rightAttachment.placeholder?.trim()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 CodexActiveTurnState? _activeTurnAfterSuppressedLocalUserMessage(

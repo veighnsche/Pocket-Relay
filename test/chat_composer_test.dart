@@ -3,10 +3,133 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer.dart';
 
 void main() {
+  test('image text elements use UTF-8 byte offsets', () {
+    final draft = const ChatComposerDraft(
+      text: 'é [Image #1]',
+      imageAttachments: <ChatComposerImageAttachment>[
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+          displayName: 'reference.png',
+          placeholder: '[Image #1]',
+        ),
+      ],
+    ).normalized();
+
+    expect(draft.textElements, const <ChatComposerTextElement>[
+      ChatComposerTextElement(start: 3, end: 13, placeholder: '[Image #1]'),
+    ]);
+  });
+
+  test('normalizes image placeholders by text order and renumbers them', () {
+    final draft = const ChatComposerDraft(
+      text: '[Image #2] then [Image #1]',
+      imageAttachments: <ChatComposerImageAttachment>[
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,c2Vjb25k',
+          displayName: 'second.png',
+          placeholder: '[Image #1]',
+        ),
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+          displayName: 'first.png',
+          placeholder: '[Image #2]',
+        ),
+      ],
+    ).normalized();
+
+    expect(draft.text, '[Image #1] then [Image #2]');
+    expect(draft.imageAttachments, const <ChatComposerImageAttachment>[
+      ChatComposerImageAttachment(
+        imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+        displayName: 'first.png',
+        placeholder: '[Image #1]',
+      ),
+      ChatComposerImageAttachment(
+        imageUrl: 'data:image/png;base64,c2Vjb25k',
+        displayName: 'second.png',
+        placeholder: '[Image #2]',
+      ),
+    ]);
+  });
+
+  test(
+    'insertImageAttachment preserves placeholder order when inserting before an existing image',
+    () {
+      final insertion =
+          const ChatComposerDraft(
+            text: 'Before [Image #1]',
+            imageAttachments: <ChatComposerImageAttachment>[
+              ChatComposerImageAttachment(
+                imageUrl: 'data:image/png;base64,ZXhpc3Rpbmc=',
+                displayName: 'existing.png',
+                placeholder: '[Image #1]',
+              ),
+            ],
+          ).insertImageAttachment(
+            attachment: const ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,ZWFybGllcg==',
+              displayName: 'earlier.png',
+            ),
+            selectionStart: 0,
+            selectionEnd: 0,
+          );
+
+      expect(insertion.draft.text, '[Image #1]Before [Image #2]');
+      expect(
+        insertion.draft.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,ZWFybGllcg==',
+            displayName: 'earlier.png',
+            placeholder: '[Image #1]',
+          ),
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,ZXhpc3Rpbmc=',
+            displayName: 'existing.png',
+            placeholder: '[Image #2]',
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
+    'insertImageAttachment avoids reusing a user-typed placeholder token',
+    () {
+      final insertion =
+          const ChatComposerDraft(
+            text: 'Manual [Image #1] token ',
+          ).insertImageAttachment(
+            attachment: const ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+              displayName: 'reference.png',
+            ),
+            selectionStart: 24,
+            selectionEnd: 24,
+          );
+
+      expect(insertion.draft.text, 'Manual [Image #1] token [Image #2]');
+      expect(
+        insertion.draft.imageAttachments,
+        const <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
+            placeholder: '[Image #2]',
+          ),
+        ],
+      );
+      expect(insertion.draft.textElements, const <ChatComposerTextElement>[
+        ChatComposerTextElement(start: 24, end: 34, placeholder: '[Image #2]'),
+      ]);
+    },
+  );
+
   testWidgets('resyncs displayed text from the composer contract', (
     tester,
   ) async {
@@ -32,21 +155,191 @@ void main() {
   testWidgets('forwards text changes without owning draft state', (
     tester,
   ) async {
-    String? latestValue;
+    ChatComposerDraft? latestDraft;
 
     await tester.pumpWidget(
       _buildComposerApp(
         contract: _composerContract(),
-        onChanged: (value) {
-          latestValue = value;
+        onChanged: (draft) {
+          latestDraft = draft;
         },
       ),
     );
 
     await tester.enterText(find.byType(TextField), 'Composer draft');
 
-    expect(latestValue, 'Composer draft');
+    expect(latestDraft?.text, 'Composer draft');
   });
+
+  testWidgets(
+    'attach inserts an image placeholder at the current caret position',
+    (tester) async {
+      ChatComposerDraft? latestDraft;
+
+      await tester.pumpWidget(
+        _buildComposerApp(
+          platform: TargetPlatform.macOS,
+          contract: _composerContract(allowsImageAttachment: true),
+          onChanged: (draft) {
+            latestDraft = draft;
+          },
+          imageAttachmentPicker: () async => _referenceImageAttachment(),
+        ),
+      );
+
+      final fieldFinder = find.byType(TextField);
+      await tester.enterText(fieldFinder, 'See  for details');
+      await tester.pump();
+
+      final controller = tester.widget<TextField>(fieldFinder).controller!;
+      controller.selection = const TextSelection.collapsed(offset: 4);
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('attach_image')));
+      await tester.pump();
+
+      expect(controller.text, 'See [Image #1] for details');
+      expect(find.text('[Image #1] reference.png'), findsOneWidget);
+      expect(latestDraft?.text, 'See [Image #1] for details');
+      expect(latestDraft?.imageAttachments, const <ChatComposerImageAttachment>[
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+          displayName: 'reference.png',
+          placeholder: '[Image #1]',
+        ),
+      ]);
+      expect(latestDraft?.textElements, const <ChatComposerTextElement>[
+        ChatComposerTextElement(start: 4, end: 14, placeholder: '[Image #1]'),
+      ]);
+    },
+  );
+
+  testWidgets('composer hides the image attach action when disallowed', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildComposerApp(contract: _composerContract()));
+
+    expect(find.byKey(const ValueKey('attach_image')), findsNothing);
+  });
+
+  testWidgets(
+    'backspace deletes an inline image placeholder atomically and renumbers survivors',
+    (tester) async {
+      ChatComposerDraft? latestDraft;
+
+      await tester.pumpWidget(
+        _buildComposerApp(
+          platform: TargetPlatform.macOS,
+          contract: ChatComposerContract(
+            draft: const ChatComposerDraft(
+              text: 'A[Image #1]B[Image #2]C',
+              imageAttachments: <ChatComposerImageAttachment>[
+                ChatComposerImageAttachment(
+                  imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+                  displayName: 'first.png',
+                  placeholder: '[Image #1]',
+                ),
+                ChatComposerImageAttachment(
+                  imageUrl: 'data:image/png;base64,c2Vjb25k',
+                  displayName: 'second.png',
+                  placeholder: '[Image #2]',
+                ),
+              ],
+            ).normalized(),
+            isSendActionEnabled: true,
+            allowsImageAttachment: true,
+            placeholder: 'Message Codex',
+          ),
+          onChanged: (draft) {
+            latestDraft = draft;
+          },
+        ),
+      );
+
+      final fieldFinder = find.byType(TextField);
+      await tester.tap(fieldFinder);
+      await tester.pump();
+
+      final controller = tester.widget<TextField>(fieldFinder).controller!;
+      controller.selection = const TextSelection.collapsed(offset: 11);
+      await tester.pump();
+
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'A[Image #1B[Image #2]C',
+          selection: TextSelection.collapsed(offset: 10),
+        ),
+      );
+      await tester.pump();
+
+      expect(controller.text, 'AB[Image #1]C');
+      expect(latestDraft?.text, 'AB[Image #1]C');
+      expect(latestDraft?.imageAttachments, const <ChatComposerImageAttachment>[
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,c2Vjb25k',
+          displayName: 'second.png',
+          placeholder: '[Image #1]',
+        ),
+      ]);
+    },
+  );
+
+  testWidgets(
+    'typing inside an inline image placeholder moves the text insertion outside the placeholder',
+    (tester) async {
+      ChatComposerDraft? latestDraft;
+
+      await tester.pumpWidget(
+        _buildComposerApp(
+          platform: TargetPlatform.macOS,
+          contract: ChatComposerContract(
+            draft: const ChatComposerDraft(
+              text: 'A[Image #1]B',
+              imageAttachments: <ChatComposerImageAttachment>[
+                ChatComposerImageAttachment(
+                  imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+                  displayName: 'first.png',
+                  placeholder: '[Image #1]',
+                ),
+              ],
+            ).normalized(),
+            isSendActionEnabled: true,
+            allowsImageAttachment: true,
+            placeholder: 'Message Codex',
+          ),
+          onChanged: (draft) {
+            latestDraft = draft;
+          },
+        ),
+      );
+
+      final fieldFinder = find.byType(TextField);
+      await tester.tap(fieldFinder);
+      await tester.pump();
+
+      final controller = tester.widget<TextField>(fieldFinder).controller!;
+      controller.selection = const TextSelection.collapsed(offset: 4);
+      await tester.pump();
+
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'A[Ixmage #1]B',
+          selection: TextSelection.collapsed(offset: 5),
+        ),
+      );
+      await tester.pump();
+
+      expect(controller.text, 'A[Image #1]xB');
+      expect(latestDraft?.text, 'A[Image #1]xB');
+      expect(latestDraft?.imageAttachments, const <ChatComposerImageAttachment>[
+        ChatComposerImageAttachment(
+          imageUrl: 'data:image/png;base64,Zmlyc3Q=',
+          displayName: 'first.png',
+          placeholder: '[Image #1]',
+        ),
+      ]);
+    },
+  );
 
   testWidgets('desktop enter sends the draft', (tester) async {
     var sendCalls = 0;
@@ -205,6 +498,34 @@ void main() {
     },
   );
 
+  testWidgets('enables send for an image-only draft', (tester) async {
+    await tester.pumpWidget(
+      _buildComposerApp(
+        contract: ChatComposerContract(
+          draft: const ChatComposerDraft(
+            text: '[Image #1]',
+            imageAttachments: <ChatComposerImageAttachment>[
+              ChatComposerImageAttachment(
+                imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+                displayName: 'reference.png',
+                placeholder: '[Image #1]',
+              ),
+            ],
+          ).normalized(),
+          isSendActionEnabled: true,
+          allowsImageAttachment: true,
+          placeholder: 'Message Codex',
+        ),
+      ),
+    );
+
+    final sendButton = tester.widget<IconButton>(
+      find.byKey(const ValueKey('send')),
+    );
+
+    expect(sendButton.onPressed, isNotNull);
+  });
+
   testWidgets('uses a compact chat-style input shell', (tester) async {
     await tester.pumpWidget(_buildComposerApp(contract: _composerContract()));
 
@@ -269,8 +590,9 @@ void main() {
 Widget _buildComposerApp({
   required ChatComposerContract contract,
   TargetPlatform platform = TargetPlatform.android,
-  ValueChanged<String>? onChanged,
+  ValueChanged<ChatComposerDraft>? onChanged,
   Future<void> Function()? onSend,
+  Future<ChatComposerImageAttachment?> Function()? imageAttachmentPicker,
   bool includeOutsideTapTarget = false,
 }) {
   return MaterialApp(
@@ -292,6 +614,7 @@ Widget _buildComposerApp({
             contract: contract,
             onChanged: onChanged ?? (_) {},
             onSend: onSend ?? () async {},
+            imageAttachmentPicker: imageAttachmentPicker,
           ),
         ],
       ),
@@ -302,11 +625,20 @@ Widget _buildComposerApp({
 ChatComposerContract _composerContract({
   String draftText = '',
   bool isSendActionEnabled = true,
+  bool allowsImageAttachment = false,
 }) {
   return ChatComposerContract(
-    draftText: draftText,
+    draft: ChatComposerDraft(text: draftText),
     isSendActionEnabled: isSendActionEnabled,
+    allowsImageAttachment: allowsImageAttachment,
     placeholder: 'Message Codex',
+  );
+}
+
+ChatComposerImageAttachment _referenceImageAttachment() {
+  return const ChatComposerImageAttachment(
+    imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+    displayName: 'reference.png',
   );
 }
 

@@ -25,6 +25,8 @@ class ConnectionWorkspaceDormantRosterContent extends StatefulWidget {
       experience: PocketPlatformExperience.mobile,
       supportsLocalConnectionMode: false,
       supportsWakeLock: true,
+      supportsFiniteBackgroundGrace: false,
+      supportsActiveTurnForegroundService: false,
       usesDesktopKeyboardSubmit: false,
       supportsCollapsibleDesktopSidebar: false,
     ),

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Pocket Relay</string>
+    <string name="active_turn_notification_channel_name">Active turn</string>
+    <string name="active_turn_notification_channel_description">Keeps a live Codex turn running while you leave Pocket Relay.</string>
+    <string name="active_turn_notification_title">Pocket Relay active turn</string>
+    <string name="active_turn_notification_body">A live Codex turn is still running.</string>
 </resources>

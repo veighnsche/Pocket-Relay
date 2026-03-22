@@ -331,7 +331,9 @@ void main() {
           );
       expect(reasoningField.initialValue, CodexReasoningEffort.xhigh);
       expect(
-        find.text('Saved reasoning effort outside the available backend options.'),
+        find.text(
+          'Saved reasoning effort outside the available backend options.',
+        ),
         findsOneWidget,
       );
 
@@ -616,6 +618,8 @@ const _mobileBehavior = PocketPlatformBehavior(
   experience: PocketPlatformExperience.mobile,
   supportsLocalConnectionMode: false,
   supportsWakeLock: true,
+  supportsFiniteBackgroundGrace: false,
+  supportsActiveTurnForegroundService: false,
   usesDesktopKeyboardSubmit: false,
   supportsCollapsibleDesktopSidebar: false,
 );
@@ -624,6 +628,8 @@ const _desktopBehavior = PocketPlatformBehavior(
   experience: PocketPlatformExperience.desktop,
   supportsLocalConnectionMode: true,
   supportsWakeLock: false,
+  supportsFiniteBackgroundGrace: false,
+  supportsActiveTurnForegroundService: false,
   usesDesktopKeyboardSubmit: true,
   supportsCollapsibleDesktopSidebar: false,
 );

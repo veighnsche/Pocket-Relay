@@ -19,15 +19,14 @@ class ChatScreenPresenter {
   final ChatTranscriptSurfaceProjector _transcriptSurfaceProjector;
   final ChatLaneHeaderProjector _headerProjector;
 
-  ChatScreenContract present({
+  ChatScreenSessionContract presentSession({
     required bool isLoading,
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     required CodexSessionState sessionState,
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
-    required ChatComposerDraft composerDraft,
-    required ChatTranscriptFollowContract transcriptFollow,
+    bool effectiveModelSupportsImages = true,
     ConnectionMode? preferredConnectionMode,
   }) {
     final isConfigured = profile.isReady;
@@ -70,7 +69,7 @@ class ChatScreenPresenter {
         ? profile
         : profile.copyWith(connectionMode: displayConnectionMode);
 
-    return ChatScreenContract(
+    return ChatScreenSessionContract(
       isLoading: isLoading,
       header: header,
       actions: <ChatScreenActionContract>[
@@ -106,16 +105,13 @@ class ChatScreenPresenter {
         sessionState: sessionState,
         emptyStateConnectionMode: displayConnectionMode,
       ),
-      transcriptFollow: transcriptFollow,
-      composer: ChatComposerContract(
-        draftText: composerDraft.text,
-        isSendActionEnabled: canSend,
-        placeholder: 'Message Codex',
-      ),
       connectionSettings: ChatConnectionSettingsLaunchContract(
         initialProfile: connectionSettingsProfile,
         initialSecrets: secrets,
       ),
+      isComposerSendEnabled: canSend,
+      allowsImageAttachment: isConfigured && effectiveModelSupportsImages,
+      composerPlaceholder: 'Message Codex',
       conversationRecoveryNotice: conversationRecoveryNotice,
       historicalConversationRestoreNotice: historicalConversationRestoreNotice,
       turnIndicator: switch (sessionState.activeTurn?.timer) {
@@ -124,6 +120,34 @@ class ChatScreenPresenter {
         ),
         _ => null,
       },
+    );
+  }
+
+  ChatScreenContract present({
+    required bool isLoading,
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required CodexSessionState sessionState,
+    required ChatConversationRecoveryState? conversationRecoveryState,
+    ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
+    required ChatComposerDraft composerDraft,
+    bool effectiveModelSupportsImages = true,
+    required ChatTranscriptFollowContract transcriptFollow,
+    ConnectionMode? preferredConnectionMode,
+  }) {
+    final session = presentSession(
+      isLoading: isLoading,
+      profile: profile,
+      secrets: secrets,
+      sessionState: sessionState,
+      conversationRecoveryState: conversationRecoveryState,
+      historicalConversationRestoreState: historicalConversationRestoreState,
+      effectiveModelSupportsImages: effectiveModelSupportsImages,
+      preferredConnectionMode: preferredConnectionMode,
+    );
+    return session.compose(
+      transcriptFollow: transcriptFollow,
+      composerDraft: composerDraft,
     );
   }
 

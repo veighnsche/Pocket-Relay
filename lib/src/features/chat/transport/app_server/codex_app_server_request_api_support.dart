@@ -8,6 +8,41 @@ String _requireThreadId(String threadId) {
   return effectiveThreadId;
 }
 
+CodexAppServerTurnInput _turnInputFor({
+  String? text,
+  CodexAppServerTurnInput? input,
+}) {
+  if (input != null) {
+    return input;
+  }
+  if (text != null) {
+    return CodexAppServerTurnInput.text(text.trim());
+  }
+  throw const CodexAppServerException(
+    'Turn input requires either text or structured input.',
+  );
+}
+
+List<Object> _turnInputPayload(CodexAppServerTurnInput input) {
+  final items = <Object>[];
+  for (final image in input.images) {
+    if (image.url.isEmpty) {
+      continue;
+    }
+    items.add(<String, Object?>{'type': 'image', 'image_url': image.url});
+  }
+  if (input.hasText) {
+    items.add(<String, Object?>{
+      'type': 'text',
+      'text': input.text,
+      'text_elements': input.textElements
+          .map((element) => element.toJson())
+          .toList(growable: false),
+    });
+  }
+  return items;
+}
+
 Map<String, dynamic>? _asObject(Object? value) {
   if (value is Map) {
     return Map<String, dynamic>.from(value);
@@ -74,13 +109,16 @@ CodexAppServerModel? _asModel(Object? value) {
   final id = _asString(model?['id'])?.trim() ?? '';
   final modelName = _asString(model?['model'])?.trim() ?? '';
   final defaultReasoningEffort = codexReasoningEffortFromWireValue(
-    _asString(model?['defaultReasoningEffort']),
+    _asString(model?['defaultReasoningEffort']) ??
+        _asString(model?['default_reasoning_effort']),
   );
   if (id.isEmpty || modelName.isEmpty || defaultReasoningEffort == null) {
     return null;
   }
 
-  final displayName = _asString(model?['displayName'])?.trim();
+  final displayName =
+      _asString(model?['displayName'])?.trim() ??
+      _asString(model?['display_name'])?.trim();
   return CodexAppServerModel(
     id: id,
     model: modelName,
@@ -90,16 +128,39 @@ CodexAppServerModel? _asModel(Object? value) {
     description: _asString(model?['description']) ?? '',
     hidden: _asBool(model?['hidden']) ?? false,
     supportedReasoningEfforts: _reasoningEffortOptions(
-      model?['supportedReasoningEfforts'],
+      model?['supportedReasoningEfforts'] ??
+          model?['supported_reasoning_efforts'],
     ),
     defaultReasoningEffort: defaultReasoningEffort,
-    inputModalities: _stringList(model?['inputModalities']),
-    supportsPersonality: _asBool(model?['supportsPersonality']) ?? false,
-    isDefault: _asBool(model?['isDefault']) ?? false,
+    inputModalities: _normalizedInputModalities(
+      model?['inputModalities'] ?? model?['input_modalities'],
+    ),
+    supportsPersonality:
+        _asBool(model?['supportsPersonality']) ??
+        _asBool(model?['supports_personality']) ??
+        false,
+    isDefault:
+        _asBool(model?['isDefault']) ?? _asBool(model?['is_default']) ?? false,
     upgrade: _asString(model?['upgrade']),
-    upgradeInfo: _asModelUpgradeInfo(model?['upgradeInfo']),
-    availabilityNuxMessage: _availabilityNuxMessage(model?['availabilityNux']),
+    upgradeInfo: _asModelUpgradeInfo(
+      model?['upgradeInfo'] ?? model?['upgrade_info'],
+    ),
+    availabilityNuxMessage: _availabilityNuxMessage(
+      model?['availabilityNux'] ?? model?['availability_nux'],
+    ),
   );
+}
+
+List<String> _normalizedInputModalities(Object? value) {
+  final normalized = <String>[];
+  for (final entry in _stringList(value)) {
+    final modality = entry.toLowerCase();
+    if (normalized.contains(modality)) {
+      continue;
+    }
+    normalized.add(modality);
+  }
+  return List<String>.unmodifiable(normalized);
 }
 
 List<CodexAppServerReasoningEffortOption> _reasoningEffortOptions(Object? raw) {

@@ -1,10 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
+import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_app_lifecycle_host.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_background_grace_host.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_foreground_service_host.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
 
 import 'pocket_relay_dependencies.dart';
@@ -48,12 +52,12 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     _workspaceController = _createWorkspaceController();
     setState(() {});
     unawaited(_workspaceController.initialize());
-    previousWorkspaceController.dispose();
+    unawaited(_flushAndDisposeWorkspaceController(previousWorkspaceController));
   }
 
   @override
   void dispose() {
-    _workspaceController.dispose();
+    unawaited(_flushAndDisposeWorkspaceController(_workspaceController));
     super.dispose();
   }
 
@@ -65,25 +69,47 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     return bootstrap.workspaceController;
   }
 
+  Future<void> _flushAndDisposeWorkspaceController(
+    ConnectionWorkspaceController controller,
+  ) async {
+    await controller.flushRecoveryPersistence();
+    controller.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final dependencies = widget.dependencies;
     final platformPolicy = dependencies.resolvedPlatformPolicy;
 
-    return WorkspaceAppLifecycleHost(
+    return WorkspaceTurnForegroundServiceHost(
       workspaceController: _workspaceController,
-      child: WorkspaceTurnWakeLockHost(
+      foregroundServiceController:
+          dependencies.foregroundServiceController ??
+          const MethodChannelForegroundServiceController(),
+      supportsForegroundService:
+          platformPolicy.supportsActiveTurnForegroundService,
+      child: WorkspaceTurnBackgroundGraceHost(
         workspaceController: _workspaceController,
-        displayWakeLockController:
-            dependencies.displayWakeLockController ??
-            const WakelockPlusDisplayWakeLockController(),
-        supportsWakeLock: platformPolicy.supportsWakeLock,
-        child: PocketRelayShell(
+        backgroundGraceController:
+            dependencies.backgroundGraceController ??
+            const MethodChannelBackgroundGraceController(),
+        supportsBackgroundGrace: platformPolicy.supportsFiniteBackgroundGrace,
+        child: WorkspaceAppLifecycleHost(
           workspaceController: _workspaceController,
-          platformPolicy: platformPolicy,
-          conversationHistoryRepository:
-              dependencies.conversationHistoryRepository,
-          settingsOverlayDelegate: dependencies.settingsOverlayDelegate,
+          child: WorkspaceTurnWakeLockHost(
+            workspaceController: _workspaceController,
+            displayWakeLockController:
+                dependencies.displayWakeLockController ??
+                const WakelockPlusDisplayWakeLockController(),
+            supportsWakeLock: platformPolicy.supportsWakeLock,
+            child: PocketRelayShell(
+              workspaceController: _workspaceController,
+              platformPolicy: platformPolicy,
+              conversationHistoryRepository:
+                  dependencies.conversationHistoryRepository,
+              settingsOverlayDelegate: dependencies.settingsOverlayDelegate,
+            ),
+          ),
         ),
       ),
     );

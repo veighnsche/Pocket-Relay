@@ -278,6 +278,19 @@ class CodexAppServerModelUpgradeInfo {
   final String? upgradeCopy;
   final String? modelLink;
   final String? migrationMarkdown;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerModelUpgradeInfo &&
+        other.model == model &&
+        other.upgradeCopy == upgradeCopy &&
+        other.modelLink == modelLink &&
+        other.migrationMarkdown == migrationMarkdown;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(model, upgradeCopy, modelLink, migrationMarkdown);
 }
 
 class CodexAppServerReasoningEffortOption {
@@ -288,6 +301,16 @@ class CodexAppServerReasoningEffortOption {
 
   final CodexReasoningEffort reasoningEffort;
   final String description;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerReasoningEffortOption &&
+        other.reasoningEffort == reasoningEffort &&
+        other.description == description;
+  }
+
+  @override
+  int get hashCode => Object.hash(reasoningEffort, description);
 }
 
 class CodexAppServerModel {
@@ -320,6 +343,46 @@ class CodexAppServerModel {
   final String? upgrade;
   final CodexAppServerModelUpgradeInfo? upgradeInfo;
   final String? availabilityNuxMessage;
+
+  bool get supportsImageInput => inputModalities.contains('image');
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerModel &&
+        other.id == id &&
+        other.model == model &&
+        other.displayName == displayName &&
+        other.description == description &&
+        other.hidden == hidden &&
+        _listEquals(
+          other.supportedReasoningEfforts,
+          supportedReasoningEfforts,
+        ) &&
+        other.defaultReasoningEffort == defaultReasoningEffort &&
+        _listEquals(other.inputModalities, inputModalities) &&
+        other.supportsPersonality == supportsPersonality &&
+        other.isDefault == isDefault &&
+        other.upgrade == upgrade &&
+        other.upgradeInfo == upgradeInfo &&
+        other.availabilityNuxMessage == availabilityNuxMessage;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    model,
+    displayName,
+    description,
+    hidden,
+    Object.hashAll(supportedReasoningEfforts),
+    defaultReasoningEffort,
+    Object.hashAll(inputModalities),
+    supportsPersonality,
+    isDefault,
+    upgrade,
+    upgradeInfo,
+    availabilityNuxMessage,
+  );
 }
 
 class CodexAppServerModelListPage {
@@ -361,7 +424,97 @@ class CodexAppServerTurn {
   final String turnId;
 }
 
+class CodexAppServerTurnInput {
+  const CodexAppServerTurnInput({
+    this.text = '',
+    this.textElements = const <CodexAppServerTextElement>[],
+    this.images = const <CodexAppServerImageInput>[],
+  });
+
+  const CodexAppServerTurnInput.text(String text)
+    : this(text: text, textElements: const <CodexAppServerTextElement>[]);
+
+  final String text;
+  final List<CodexAppServerTextElement> textElements;
+  final List<CodexAppServerImageInput> images;
+
+  bool get hasText => text.trim().isNotEmpty || textElements.isNotEmpty;
+  bool get hasImages => images.any((image) => image.url.trim().isNotEmpty);
+  bool get isEmpty => !hasText && !hasImages;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerTurnInput &&
+        other.text == text &&
+        _listEquals(other.textElements, textElements) &&
+        _listEquals(other.images, images);
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(text, Object.hashAll(textElements), Object.hashAll(images));
+}
+
+class CodexAppServerImageInput {
+  const CodexAppServerImageInput({required this.url});
+
+  final String url;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerImageInput && other.url == url;
+  }
+
+  @override
+  int get hashCode => url.hashCode;
+}
+
+class CodexAppServerTextElement {
+  const CodexAppServerTextElement({
+    required this.start,
+    required this.end,
+    this.placeholder,
+  });
+
+  final int start;
+  final int end;
+  final String? placeholder;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'byteRange': <String, Object?>{'start': start, 'end': end},
+      if (placeholder != null) 'placeholder': placeholder,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CodexAppServerTextElement &&
+        other.start == start &&
+        other.end == end &&
+        other.placeholder == placeholder;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end, placeholder);
+}
+
 enum CodexAppServerElicitationAction { accept, decline, cancel }
+
+bool _listEquals<T>(List<T> left, List<T> right) {
+  if (identical(left, right)) {
+    return true;
+  }
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 class CodexAppServerException implements Exception {
   const CodexAppServerException(this.message, {this.code, this.data});

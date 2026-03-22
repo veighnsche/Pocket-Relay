@@ -1,6 +1,7 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_policy.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_request_policy.dart';
+import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/core/utils/duration_utils.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
@@ -26,14 +27,16 @@ class TranscriptPolicy {
   CodexSessionState addUserMessage(
     CodexSessionState state, {
     required String text,
+    ChatComposerDraft? draft,
     DateTime? createdAt,
   }) {
     final eventTime = createdAt ?? DateTime.now();
     final block = CodexUserMessageBlock(
       id: _support.eventEntryId('user', eventTime),
       createdAt: eventTime,
-      text: text,
+      text: draft?.text ?? text,
       deliveryState: CodexUserMessageDeliveryState.sent,
+      structuredDraft: draft,
     );
 
     return _support.appendBlock(

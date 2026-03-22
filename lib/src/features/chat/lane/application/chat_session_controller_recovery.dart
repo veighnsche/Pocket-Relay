@@ -80,7 +80,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     await _restoreConversationTranscript(threadId);
   }
 
-  Future<String?> continueFromUserMessage(String blockId) async {
+  Future<ChatComposerDraft?> continueFromUserMessage(String blockId) async {
     final normalizedBlockId = blockId.trim();
     if (normalizedBlockId.isEmpty) {
       return null;
@@ -137,7 +137,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
       return null;
     }
 
-    return targetBlock.text;
+    return targetBlock.draft;
   }
 
   Future<bool> branchSelectedConversation() async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/chat_app_chrome.dart';

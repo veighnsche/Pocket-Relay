@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -209,10 +211,57 @@ void main() {
     expect(selectedTimelines, <String>['thread_child']);
   });
 
+  testWidgets(
+    'transcript region shows attached local image filenames for user messages',
+    (tester) async {
+      final imageDraft = const ChatComposerDraft(
+        text: 'See [Image #1]',
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+            displayName: 'reference.png',
+            placeholder: '[Image #1]',
+          ),
+        ],
+      ).normalized();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Scaffold(
+            body: FlutterChatTranscriptRegion(
+              screen: _screenContract(
+                mainItems: <ChatTranscriptItemContract>[
+                  ChatUserMessageItemContract(
+                    block: CodexUserMessageBlock(
+                      id: 'user_1',
+                      createdAt: DateTime(2026, 3, 22, 12),
+                      text: imageDraft.text,
+                      deliveryState: CodexUserMessageDeliveryState.sent,
+                      structuredDraft: imageDraft,
+                    ),
+                  ),
+                ],
+              ),
+              platformBehavior: PocketPlatformBehavior.resolve(),
+              onScreenAction: (_) {},
+              onSelectTimeline: (_) {},
+              onSelectConnectionMode: (_) {},
+              onAutoFollowEligibilityChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('See [Image #1]'), findsOneWidget);
+      expect(find.text('[Image #1] reference.png'), findsOneWidget);
+    },
+  );
+
   testWidgets('forwards composer interactions through composer region', (
     tester,
   ) async {
-    final draftValues = <String>[];
+    final draftValues = <ChatComposerDraft>[];
     var sendCalls = 0;
 
     await tester.pumpWidget(
@@ -240,7 +289,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('send')));
     await tester.pumpAndSettle();
 
-    expect(draftValues, <String>['Plan phase 6']);
+    expect(
+      draftValues.map((draft) => draft.text).toList(growable: false),
+      <String>['Plan phase 6'],
+    );
     expect(sendCalls, 1);
   });
 
@@ -376,6 +428,10 @@ void main() {
 ChatScreenContract _screenContract({
   bool isConfigured = true,
   ChatEmptyStateContract? emptyState,
+  List<ChatTranscriptItemContract> mainItems =
+      const <ChatTranscriptItemContract>[],
+  List<ChatTranscriptItemContract> pinnedItems =
+      const <ChatTranscriptItemContract>[],
   List<ChatTimelineSummaryContract> timelineSummaries =
       const <ChatTimelineSummaryContract>[],
   ChatTurnIndicatorContract? turnIndicator,
@@ -408,8 +464,8 @@ ChatScreenContract _screenContract({
     timelineSummaries: timelineSummaries,
     transcriptSurface: ChatTranscriptSurfaceContract(
       isConfigured: isConfigured,
-      mainItems: const <ChatTranscriptItemContract>[],
-      pinnedItems: const <ChatTranscriptItemContract>[],
+      mainItems: mainItems,
+      pinnedItems: pinnedItems,
       pendingRequestPlacement: ChatPendingRequestPlacementContract(
         visibleApprovalRequest: null,
         visibleUserInputRequest: null,
@@ -422,7 +478,7 @@ ChatScreenContract _screenContract({
       resumeDistance: 80,
     ),
     composer: const ChatComposerContract(
-      draftText: '',
+      draft: ChatComposerDraft(),
       isSendActionEnabled: true,
       placeholder: 'Message Codex',
     ),

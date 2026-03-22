@@ -42,6 +42,19 @@ class ConnectionWorkspaceRecoveryState {
       ),
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ConnectionWorkspaceRecoveryState &&
+        other.connectionId == connectionId &&
+        other.draftText == draftText &&
+        other.selectedThreadId == selectedThreadId &&
+        other.backgroundedAt == backgroundedAt;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(connectionId, draftText, selectedThreadId, backgroundedAt);
 }
 
 abstract interface class ConnectionWorkspaceRecoveryStore {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
@@ -117,6 +118,205 @@ void main() {
       expect(assistantBlocks.last.body, '<text_10>');
     },
   );
+
+  test(
+    'restores structured remote-image user messages from history snapshots',
+    () {
+      final conversation = CodexHistoricalConversation(
+        threadId: 'thread_images',
+        createdAt: DateTime(2026, 3, 20, 10),
+        turns: <CodexHistoricalTurn>[
+          CodexHistoricalTurn(
+            id: 'turn_images',
+            threadId: 'thread_images',
+            createdAt: DateTime(2026, 3, 20, 10, 1),
+            completedAt: DateTime(2026, 3, 20, 10, 2),
+            state: CodexRuntimeTurnState.completed,
+            entries: <CodexHistoricalEntry>[
+              CodexHistoricalEntry(
+                id: 'item_user_image',
+                threadId: 'thread_images',
+                turnId: 'turn_images',
+                createdAt: DateTime(2026, 3, 20, 10, 1),
+                itemType: CodexCanonicalItemType.userMessage,
+                status: CodexRuntimeItemStatus.completed,
+                title: 'You',
+                detail: 'See [Image #1]',
+                snapshot: const <String, dynamic>{
+                  'type': 'userMessage',
+                  'content': <Object>[
+                    <String, Object?>{
+                      'type': 'image',
+                      'image_url': 'data:image/png;base64,cmVmZXJlbmNl',
+                    },
+                    <String, Object?>{
+                      'type': 'text',
+                      'text': 'See [Image #1]',
+                      'text_elements': <Object>[
+                        <String, Object?>{
+                          'byteRange': <String, Object?>{'start': 4, 'end': 14},
+                          'placeholder': '[Image #1]',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final restoredState = restorer.restore(conversation);
+
+      final block = restoredState.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .single;
+      expect(
+        block.draft,
+        const ChatComposerDraft(
+          text: 'See [Image #1]',
+          textElements: <ChatComposerTextElement>[
+            ChatComposerTextElement(
+              start: 4,
+              end: 14,
+              placeholder: '[Image #1]',
+            ),
+          ],
+          imageAttachments: <ChatComposerImageAttachment>[
+            ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+              placeholder: '[Image #1]',
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  test(
+    'restores mixed text and remote-image user messages when history omits placeholder spans',
+    () {
+      final conversation = CodexHistoricalConversation(
+        threadId: 'thread_mixed_remote_images',
+        createdAt: DateTime(2026, 3, 20, 10),
+        turns: <CodexHistoricalTurn>[
+          CodexHistoricalTurn(
+            id: 'turn_mixed_remote_images',
+            threadId: 'thread_mixed_remote_images',
+            createdAt: DateTime(2026, 3, 20, 10, 1),
+            completedAt: DateTime(2026, 3, 20, 10, 2),
+            state: CodexRuntimeTurnState.completed,
+            entries: <CodexHistoricalEntry>[
+              CodexHistoricalEntry(
+                id: 'item_user_mixed_remote_images',
+                threadId: 'thread_mixed_remote_images',
+                turnId: 'turn_mixed_remote_images',
+                createdAt: DateTime(2026, 3, 20, 10, 1),
+                itemType: CodexCanonicalItemType.userMessage,
+                status: CodexRuntimeItemStatus.completed,
+                title: 'You',
+                detail: 'See reference',
+                snapshot: const <String, dynamic>{
+                  'type': 'userMessage',
+                  'content': <Object>[
+                    <String, Object?>{
+                      'type': 'image',
+                      'image_url': 'data:image/png;base64,cmVmZXJlbmNl',
+                    },
+                    <String, Object?>{'type': 'text', 'text': 'See reference'},
+                  ],
+                },
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final restoredState = restorer.restore(conversation);
+
+      final block = restoredState.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .single;
+      expect(
+        block.draft,
+        const ChatComposerDraft(
+          text: 'See reference\n[Image #1]',
+          textElements: <ChatComposerTextElement>[
+            ChatComposerTextElement(
+              start: 14,
+              end: 24,
+              placeholder: '[Image #1]',
+            ),
+          ],
+          imageAttachments: <ChatComposerImageAttachment>[
+            ChatComposerImageAttachment(
+              imageUrl: 'data:image/png;base64,cmVmZXJlbmNl',
+              placeholder: '[Image #1]',
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  test('restores image-only user messages as inline image placeholders', () {
+    final conversation = CodexHistoricalConversation(
+      threadId: 'thread_image_only',
+      createdAt: DateTime(2026, 3, 20, 10),
+      turns: <CodexHistoricalTurn>[
+        CodexHistoricalTurn(
+          id: 'turn_image_only',
+          threadId: 'thread_image_only',
+          createdAt: DateTime(2026, 3, 20, 10, 1),
+          completedAt: DateTime(2026, 3, 20, 10, 2),
+          state: CodexRuntimeTurnState.completed,
+          entries: <CodexHistoricalEntry>[
+            CodexHistoricalEntry(
+              id: 'item_user_image_only',
+              threadId: 'thread_image_only',
+              turnId: 'turn_image_only',
+              createdAt: DateTime(2026, 3, 20, 10, 1),
+              itemType: CodexCanonicalItemType.userMessage,
+              status: CodexRuntimeItemStatus.completed,
+              title: 'You',
+              snapshot: const <String, dynamic>{
+                'type': 'userMessage',
+                'content': <Object>[
+                  <String, Object?>{
+                    'type': 'image',
+                    'url': 'data:image/png;base64,cmFnZQ==',
+                  },
+                ],
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final restoredState = restorer.restore(conversation);
+
+    final block = restoredState.transcriptBlocks
+        .whereType<CodexUserMessageBlock>()
+        .single;
+    expect(block.text, '[Image #1]');
+    expect(
+      block.draft,
+      const ChatComposerDraft(
+        text: '[Image #1]',
+        textElements: <ChatComposerTextElement>[
+          ChatComposerTextElement(start: 0, end: 10, placeholder: '[Image #1]'),
+        ],
+        imageAttachments: <ChatComposerImageAttachment>[
+          ChatComposerImageAttachment(
+            imageUrl: 'data:image/png;base64,cmFnZQ==',
+            placeholder: '[Image #1]',
+          ),
+        ],
+      ),
+    );
+  });
 }
 
 Map<String, dynamic> _loadFixture(String path) {

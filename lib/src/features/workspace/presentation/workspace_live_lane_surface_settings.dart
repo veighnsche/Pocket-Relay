@@ -18,7 +18,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
 
     try {
       final shouldPreferCachedModelCatalog = widget.workspaceController.state
-          .requiresReconnect(connectionId);
+          .requiresSavedSettingsReconnect(connectionId);
       final initialSettingsFuture = _resolveInitialSettings(
         request: request,
         workspaceController: workspaceController,
@@ -91,8 +91,8 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     }
   }
 
-  Future<void> _applySavedSettings() async {
-    if (_isApplyingSavedSettings) {
+  Future<void> _restartLane() async {
+    if (_isRestartingLane) {
       return;
     }
 
@@ -103,7 +103,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       return;
     }
 
-    _setApplyingSavedSettings(true);
+    _setRestartingLane(true);
 
     try {
       await workspaceController.reconnectConnection(connectionId);
@@ -111,7 +111,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       if (mounted &&
           widget.workspaceController == workspaceController &&
           widget.laneBinding.connectionId == connectionId) {
-        _setApplyingSavedSettings(false);
+        _setRestartingLane(false);
       }
     }
   }
@@ -121,7 +121,9 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     required ConnectionWorkspaceController workspaceController,
     required String connectionId,
   }) async {
-    if (!workspaceController.state.requiresReconnect(connectionId)) {
+    if (!workspaceController.state.requiresSavedSettingsReconnect(
+      connectionId,
+    )) {
       return (request.initialProfile, request.initialSecrets);
     }
 
@@ -131,10 +133,8 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     return (savedConnection.profile, savedConnection.secrets);
   }
 
-  Future<(
-    ConnectionModelCatalog?,
-    ConnectionSettingsModelCatalogSource?
-  )> _resolveAvailableModelCatalog({
+  Future<(ConnectionModelCatalog?, ConnectionSettingsModelCatalogSource?)>
+  _resolveAvailableModelCatalog({
     required ConnectionWorkspaceController workspaceController,
     required String connectionId,
     required bool preferConnectionCatalog,

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
+import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
@@ -13,11 +15,30 @@ import 'package:pocket_relay/src/features/connection_settings/presentation/conne
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_desktop_shell.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 import 'support/fake_connection_settings_overlay_delegate.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late SharedPreferencesAsyncPlatform? originalAsyncPlatform;
+
+  setUp(() {
+    originalAsyncPlatform = SharedPreferencesAsyncPlatform.instance;
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
+  tearDown(() {
+    SharedPreferencesAsyncPlatform.instance = originalAsyncPlatform;
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   testWidgets(
     'keeps the display awake only while a turn is actively ticking',
     (tester) async {
@@ -303,6 +324,7 @@ PocketRelayApp _buildCatalogApp({
   SavedProfile? savedProfile,
   CodexConnectionRepository? connectionRepository,
   DisplayWakeLockController? displayWakeLockController,
+  BackgroundGraceController? backgroundGraceController,
   CodexAppServerClient? appServerClient,
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
 }) {
@@ -313,8 +335,10 @@ PocketRelayApp _buildCatalogApp({
           savedProfile: savedProfile ?? _savedProfile(),
           connectionId: 'conn_primary',
         ),
+    modelCatalogStore: MemoryConnectionModelCatalogStore(),
     recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
     displayWakeLockController: displayWakeLockController,
+    backgroundGraceController: backgroundGraceController,
     appServerClient: appServerClient,
     settingsOverlayDelegate:
         settingsOverlayDelegate ??

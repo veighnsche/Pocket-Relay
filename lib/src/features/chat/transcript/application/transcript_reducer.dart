@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy_support.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
@@ -22,11 +23,17 @@ class TranscriptReducer {
   CodexSessionState addUserMessage(
     CodexSessionState state, {
     required String text,
+    ChatComposerDraft? draft,
     DateTime? createdAt,
   }) {
     final rootThreadId = state.rootThreadId;
     if (rootThreadId == null) {
-      return _policy.addUserMessage(state, text: text, createdAt: createdAt);
+      return _policy.addUserMessage(
+        state,
+        text: text,
+        draft: draft,
+        createdAt: createdAt,
+      );
     }
 
     return _reduceTimelineStateImpl(
@@ -37,6 +44,7 @@ class TranscriptReducer {
       reducerFn: (projectedState) => _policy.addUserMessage(
         projectedState,
         text: text,
+        draft: draft,
         createdAt: createdAt,
       ),
       lifecycleOverride: CodexAgentLifecycleState.running,

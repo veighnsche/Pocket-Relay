@@ -56,7 +56,7 @@ extension on _MaterialDesktopSidebar {
             connectionId: connectionId,
             title: liveProfile.label,
             subtitle: connectionSubtitleBuilder(liveProfile),
-            requiresReconnect: state.requiresReconnect(connectionId),
+            reconnectRequirement: state.reconnectRequirementFor(connectionId),
             isSelected:
                 state.isShowingLiveLane &&
                 state.selectedConnectionId == connectionId,

@@ -131,7 +131,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
     required this.connectionId,
     required this.title,
     required this.subtitle,
-    required this.requiresReconnect,
+    required this.reconnectRequirement,
     required this.isSelected,
     required this.onTap,
     required this.canClose,
@@ -141,7 +141,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
   final String connectionId;
   final String title;
   final String subtitle;
-  final bool requiresReconnect;
+  final ConnectionWorkspaceReconnectRequirement? reconnectRequirement;
   final bool isSelected;
   final VoidCallback onTap;
   final bool canClose;
@@ -194,7 +194,7 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      if (requiresReconnect) ...[
+                      if (reconnectRequirement case final requirement?) ...[
                         const SizedBox(height: 8),
                         DefaultTextStyle(
                           style: theme.textTheme.labelSmall!.copyWith(
@@ -202,7 +202,9 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                           child: PocketTintBadge(
-                            label: ConnectionWorkspaceCopy.reconnectBadge,
+                            label: ConnectionWorkspaceCopy.reconnectBadgeFor(
+                              requirement,
+                            ),
                             color: theme.colorScheme.primary,
                           ),
                         ),
