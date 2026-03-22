@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_app_lifecycle_host.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
 
 import 'pocket_relay_dependencies.dart';
@@ -69,18 +70,21 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     final dependencies = widget.dependencies;
     final platformPolicy = dependencies.resolvedPlatformPolicy;
 
-    return WorkspaceTurnWakeLockHost(
+    return WorkspaceAppLifecycleHost(
       workspaceController: _workspaceController,
-      displayWakeLockController:
-          dependencies.displayWakeLockController ??
-          const WakelockPlusDisplayWakeLockController(),
-      supportsWakeLock: platformPolicy.supportsWakeLock,
-      child: PocketRelayShell(
+      child: WorkspaceTurnWakeLockHost(
         workspaceController: _workspaceController,
-        platformPolicy: platformPolicy,
-        conversationHistoryRepository:
-            dependencies.conversationHistoryRepository,
-        settingsOverlayDelegate: dependencies.settingsOverlayDelegate,
+        displayWakeLockController:
+            dependencies.displayWakeLockController ??
+            const WakelockPlusDisplayWakeLockController(),
+        supportsWakeLock: platformPolicy.supportsWakeLock,
+        child: PocketRelayShell(
+          workspaceController: _workspaceController,
+          platformPolicy: platformPolicy,
+          conversationHistoryRepository:
+              dependencies.conversationHistoryRepository,
+          settingsOverlayDelegate: dependencies.settingsOverlayDelegate,
+        ),
       ),
     );
   }

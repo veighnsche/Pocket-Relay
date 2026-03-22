@@ -4,6 +4,7 @@ Future<void> _initializeWorkspaceController(
   ConnectionWorkspaceController controller,
 ) async {
   final catalog = await controller._connectionRepository.loadCatalog();
+  final recoveryState = await controller._recoveryStore.load();
   if (catalog.isEmpty) {
     controller._applyState(
       const ConnectionWorkspaceState(
@@ -18,10 +19,18 @@ Future<void> _initializeWorkspaceController(
     return;
   }
 
-  final firstConnectionId = catalog.orderedConnectionIds.first;
+  final restoredConnectionId = recoveryState?.connectionId;
+  final firstConnectionId =
+      restoredConnectionId != null &&
+          catalog.connectionForId(restoredConnectionId) != null
+      ? restoredConnectionId
+      : catalog.orderedConnectionIds.first;
   final firstBinding = await _loadWorkspaceLaneBinding(
     controller,
     firstConnectionId,
+    initialDraftText: recoveryState?.connectionId == firstConnectionId
+        ? recoveryState?.draftText
+        : null,
   );
   if (controller._isDisposed) {
     firstBinding.dispose();
@@ -29,6 +38,7 @@ Future<void> _initializeWorkspaceController(
   }
 
   controller._liveBindingsByConnectionId[firstConnectionId] = firstBinding;
+  controller._registerLiveBinding(firstConnectionId, firstBinding);
   controller._applyState(
     ConnectionWorkspaceState(
       isLoading: false,
@@ -40,6 +50,15 @@ Future<void> _initializeWorkspaceController(
     ),
   );
   await firstBinding.sessionController.initialize();
+  if (controller._isDisposed ||
+      recoveryState?.connectionId != firstConnectionId ||
+      recoveryState?.selectedThreadId == null) {
+    return;
+  }
+
+  await firstBinding.sessionController.selectConversationForResume(
+    recoveryState!.selectedThreadId!,
+  );
 }
 
 Future<void> _instantiateWorkspaceConnection(
@@ -52,6 +71,7 @@ Future<void> _instantiateWorkspaceConnection(
     return;
   }
   controller._liveBindingsByConnectionId[connectionId] = binding;
+  controller._registerLiveBinding(connectionId, binding);
   final nextLiveConnectionIds = _orderWorkspaceLiveConnectionIds(
     controller,
     controller._liveBindingsByConnectionId.keys,
@@ -85,20 +105,20 @@ Future<void> _reconnectWorkspaceConnection(
     return;
   }
 
-  final preservedThreadId = _normalizedWorkspaceThreadId(
-    previousBinding.sessionController.sessionState.rootThreadId ??
-        previousBinding
-            .sessionController
-            .historicalConversationRestoreState
-            ?.threadId,
+  final preservedLaneState = _preservedWorkspaceLaneState(previousBinding);
+  final nextBinding = await _loadWorkspaceLaneBinding(
+    controller,
+    connectionId,
+    initialDraftText: preservedLaneState.draftText,
   );
-  final nextBinding = await _loadWorkspaceLaneBinding(controller, connectionId);
   if (controller._isDisposed) {
     nextBinding.dispose();
     return;
   }
 
   controller._liveBindingsByConnectionId[connectionId] = nextBinding;
+  controller._unregisterLiveBinding(connectionId);
+  controller._registerLiveBinding(connectionId, nextBinding);
   previousBinding.dispose();
   controller._applyState(
     controller._state.copyWith(
@@ -117,9 +137,9 @@ Future<void> _reconnectWorkspaceConnection(
   if (controller._isDisposed) {
     return;
   }
-  if (preservedThreadId != null) {
+  if (preservedLaneState.threadId != null) {
     await nextBinding.sessionController.selectConversationForResume(
-      preservedThreadId,
+      preservedLaneState.threadId!,
     );
     return;
   }
@@ -146,6 +166,8 @@ Future<void> _resumeWorkspaceConversation(
       return;
     }
     controller._liveBindingsByConnectionId[connectionId] = nextBinding;
+    controller._unregisterLiveBinding(connectionId);
+    controller._registerLiveBinding(connectionId, nextBinding);
     final didNotifyStateChange = controller._applyState(
       controller._state.copyWith(
         selectedConnectionId: connectionId,
@@ -212,13 +234,92 @@ Future<void> _deleteDormantWorkspaceConnection(
 
 Future<ConnectionLaneBinding> _loadWorkspaceLaneBinding(
   ConnectionWorkspaceController controller,
-  String connectionId,
+  String connectionId, {
+  String? initialDraftText,
+}
 ) async {
-  return controller._laneBindingFactory(
+  final binding = controller._laneBindingFactory(
     connectionId: connectionId,
     connection: await controller._connectionRepository.loadConnection(
       connectionId,
     ),
+  );
+  if (initialDraftText != null && initialDraftText.isNotEmpty) {
+    binding.restoreComposerDraft(initialDraftText);
+  }
+  return binding;
+}
+
+Future<void> _handleWorkspaceAppLifecycleState(
+  ConnectionWorkspaceController controller,
+  AppLifecycleState state,
+) async {
+  switch (state) {
+    case AppLifecycleState.inactive:
+      await controller._enqueueRecoveryPersistence(
+        backgroundedAt: DateTime.now(),
+      );
+      return;
+    case AppLifecycleState.hidden:
+    case AppLifecycleState.paused:
+      controller._backgroundReconnectPending =
+          controller.selectedLaneBinding != null;
+      await controller._enqueueRecoveryPersistence(
+        backgroundedAt: DateTime.now(),
+      );
+      return;
+    case AppLifecycleState.resumed:
+      if (!controller._backgroundReconnectPending) {
+        return;
+      }
+      if (controller._lifecycleReconnectFuture != null) {
+        await controller._lifecycleReconnectFuture;
+        return;
+      }
+      final future = _restoreWorkspaceAfterBackground(controller);
+      controller._lifecycleReconnectFuture = future.whenComplete(() {
+        controller._lifecycleReconnectFuture = null;
+      });
+      await controller._lifecycleReconnectFuture;
+      return;
+    case AppLifecycleState.detached:
+      return;
+  }
+}
+
+Future<void> _restoreWorkspaceAfterBackground(
+  ConnectionWorkspaceController controller,
+) async {
+  controller._backgroundReconnectPending = false;
+  final selectedConnectionId = controller._state.selectedConnectionId;
+  final liveConnectionIds = controller._state.liveConnectionIds;
+  if (selectedConnectionId == null || liveConnectionIds.isEmpty) {
+    return;
+  }
+
+  controller._applyState(
+    controller._state.copyWith(
+      reconnectRequiredConnectionIds: liveConnectionIds.toSet(),
+    ),
+  );
+
+  if (!controller._state.isConnectionLive(selectedConnectionId)) {
+    return;
+  }
+
+  await _reconnectWorkspaceConnection(controller, selectedConnectionId);
+}
+
+({String? threadId, String draftText}) _preservedWorkspaceLaneState(
+  ConnectionLaneBinding binding,
+) {
+  return (
+    threadId: _normalizedWorkspaceThreadId(
+      binding.sessionController.sessionState.currentThreadId ??
+          binding.sessionController.sessionState.rootThreadId ??
+          binding.sessionController.historicalConversationRestoreState?.threadId,
+    ),
+    draftText: binding.composerDraftHost.draft.text,
   );
 }
 
