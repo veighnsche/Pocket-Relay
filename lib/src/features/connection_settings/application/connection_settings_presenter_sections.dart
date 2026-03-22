@@ -410,13 +410,23 @@ String _refreshActionHelperText(_ConnectionSettingsPresentationState state) {
     return 'Refreshing available models from the backend.';
   }
 
+  final cachedCatalogStatus = state.availableModelCatalog == null
+      ? null
+      : 'Showing cached models from the last backend refresh.';
+
   if (state.draft.workspaceDir.trim().isEmpty) {
-    return 'Set a workspace directory to enable model refresh.';
+    return cachedCatalogStatus == null
+        ? 'Set a workspace directory to enable model refresh.'
+        : '$cachedCatalogStatus Set a workspace directory to enable model refresh.';
   }
 
   if (!state.supportsModelCatalogRefresh) {
-    return 'Model refresh is available when this settings sheet is opened from a live backend connection.';
+    return cachedCatalogStatus == null
+        ? 'Model refresh is available when this settings sheet is opened from a live backend connection.'
+        : '$cachedCatalogStatus Model refresh is available when this settings sheet is opened from a live backend connection.';
   }
 
-  return 'Refresh available models and reasoning efforts from the backend.';
+  return cachedCatalogStatus == null
+      ? 'Refresh available models and reasoning efforts from the backend.'
+      : '$cachedCatalogStatus Use Refresh models to update from the backend.';
 }

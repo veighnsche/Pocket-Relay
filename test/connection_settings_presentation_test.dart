@@ -331,6 +331,32 @@ void main() {
       },
     );
 
+    test(
+      'calls out cached model catalogs explicitly in the refresh helper text',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          availableModelCatalog: codexReferenceModelCatalog(
+            connectionId: 'presenter-cache-copy-test',
+          ),
+        );
+
+        expect(
+          contract.modelSection.refreshActionHelperText,
+          'Showing cached models from the last backend refresh. Model refresh is available when this settings sheet is opened from a live backend connection.',
+        );
+      },
+    );
+
     test('disables refresh when the workspace directory is empty', () {
       final initialProfile = _configuredProfile().copyWith(workspaceDir: '');
       const initialSecrets = ConnectionSecrets(password: 'secret');

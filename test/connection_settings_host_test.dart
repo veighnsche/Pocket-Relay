@@ -340,6 +340,25 @@ void main() {
   );
 
   testWidgets(
+    'shared host calls out cached model catalogs explicitly in the refresh helper text',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          availableModelCatalog: _backendAvailableModelCatalog(),
+        ),
+      );
+
+      expect(
+        find.text(
+          'Showing cached models from the last backend refresh. Model refresh is available when this settings sheet is opened from a live backend connection.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'shared host refresh action loads backend catalog explicitly and updates the pickers',
     (tester) async {
       var refreshCalls = 0;
