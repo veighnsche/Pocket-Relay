@@ -216,7 +216,7 @@ ConnectionSettingsModelSectionContract _buildModelSection(
       ConnectionSettingsModelOptionContract(
         modelId: selectedModelId,
         label: selectedCatalogModel == null
-            ? selectedModelId!
+            ? selectedModelId
             : _catalogModelLabel(selectedCatalogModel),
         description: 'Saved model outside the available picker list.',
       ),
@@ -250,23 +250,24 @@ ConnectionSettingsModelSectionContract _buildModelSection(
           ),
         ),
       ];
-  final hasSelectedReasoningEffortOption =
-      selectedReasoningEffort == null ||
-      reasoningEffortOptions.any(
-        (option) => option.effort == selectedReasoningEffort,
-      );
-  if (!hasSelectedReasoningEffortOption && selectedReasoningEffort != null) {
+  final hasSelectedReasoningEffortOption = switch (selectedReasoningEffort) {
+    null => true,
+    final selectedEffort => reasoningEffortOptions.any(
+      (option) => option.effort == selectedEffort,
+    ),
+  };
+  if (!hasSelectedReasoningEffortOption) {
+    final selectedEffort = selectedReasoningEffort!;
     reasoningEffortOptions.insert(
       1,
       ConnectionSettingsReasoningEffortOptionContract(
-        effort: selectedReasoningEffort,
-        label: _reasoningEffortLabel(selectedReasoningEffort),
+        effort: selectedEffort,
+        label: _reasoningEffortLabel(selectedEffort),
         description: 'Saved reasoning effort outside the available backend options.',
       ),
     );
   }
-  final reasoningEffortHelperText = !hasSelectedReasoningEffortOption &&
-          selectedReasoningEffort != null
+  final reasoningEffortHelperText = !hasSelectedReasoningEffortOption
       ? 'Saved reasoning effort outside the available backend options.'
       : selectedCatalogModel != null
       ? 'Available efforts follow ${_catalogModelLabel(selectedCatalogModel)}.'
