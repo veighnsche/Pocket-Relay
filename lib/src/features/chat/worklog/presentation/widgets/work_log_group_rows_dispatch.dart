@@ -18,6 +18,16 @@ class _WorkLogEntryRow extends StatelessWidget {
         accent: tealAccent(Theme.of(context).brightness),
         icon: Icons.description_outlined,
       ),
+      final ChatTypeReadWorkLogEntryContract readEntry => _ReadWorkLogEntryRow(
+        entry: readEntry,
+        accent: redAccent(Theme.of(context).brightness),
+        icon: Icons.text_snippet_outlined,
+      ),
+      final ChatMoreReadWorkLogEntryContract readEntry => _ReadWorkLogEntryRow(
+        entry: readEntry,
+        accent: amberAccent(Theme.of(context).brightness),
+        icon: Icons.read_more_outlined,
+      ),
       final ChatHeadReadWorkLogEntryContract readEntry => _ReadWorkLogEntryRow(
         entry: readEntry,
         accent: amberAccent(Theme.of(context).brightness),
@@ -34,6 +44,11 @@ class _WorkLogEntryRow extends StatelessWidget {
           accent: violetAccent(Theme.of(context).brightness),
           icon: Icons.subject_outlined,
         ),
+      final ChatAwkReadWorkLogEntryContract readEntry => _ReadWorkLogEntryRow(
+        entry: readEntry,
+        accent: violetAccent(Theme.of(context).brightness),
+        icon: Icons.code_outlined,
+      ),
       final ChatRipgrepSearchWorkLogEntryContract searchEntry =>
         _SearchWorkLogEntryRow(
           entry: searchEntry,

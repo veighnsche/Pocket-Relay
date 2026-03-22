@@ -66,6 +66,44 @@ final class ChatCatReadWorkLogEntryContract
   String get summaryLabel => 'Reading full file';
 }
 
+final class ChatTypeReadWorkLogEntryContract
+    extends ChatFileReadWorkLogEntryContract {
+  const ChatTypeReadWorkLogEntryContract({
+    required super.id,
+    required super.commandText,
+    required super.fileName,
+    required super.filePath,
+    super.turnId,
+    super.isRunning = false,
+    super.exitCode,
+  });
+
+  @override
+  String get commandLabel => 'type';
+
+  @override
+  String get summaryLabel => 'Reading full file';
+}
+
+final class ChatMoreReadWorkLogEntryContract
+    extends ChatFileReadWorkLogEntryContract {
+  const ChatMoreReadWorkLogEntryContract({
+    required super.id,
+    required super.commandText,
+    required super.fileName,
+    required super.filePath,
+    super.turnId,
+    super.isRunning = false,
+    super.exitCode,
+  });
+
+  @override
+  String get commandLabel => 'more';
+
+  @override
+  String get summaryLabel => 'Reading full file';
+}
+
 final class ChatHeadReadWorkLogEntryContract
     extends ChatFileReadWorkLogEntryContract {
   const ChatHeadReadWorkLogEntryContract({
@@ -112,7 +150,35 @@ final class ChatTailReadWorkLogEntryContract
       lineCount == 1 ? 'Reading last line' : 'Reading last $lineCount lines';
 }
 
-enum ChatGetContentReadMode { fullFile, firstLines, lastLines }
+final class ChatAwkReadWorkLogEntryContract
+    extends ChatFileReadWorkLogEntryContract {
+  const ChatAwkReadWorkLogEntryContract({
+    required super.id,
+    required super.commandText,
+    required super.fileName,
+    required super.filePath,
+    required this.lineStart,
+    required this.lineEnd,
+    super.turnId,
+    super.isRunning = false,
+    super.exitCode,
+  });
+
+  final int lineStart;
+  final int lineEnd;
+
+  bool get isSingleLine => lineStart == lineEnd;
+
+  @override
+  String get commandLabel => 'awk';
+
+  @override
+  String get summaryLabel => isSingleLine
+      ? 'Reading line $lineStart'
+      : 'Reading lines $lineStart to $lineEnd';
+}
+
+enum ChatGetContentReadMode { fullFile, firstLines, lastLines, lineRange }
 
 final class ChatGetContentReadWorkLogEntryContract
     extends ChatFileReadWorkLogEntryContract {
@@ -123,6 +189,8 @@ final class ChatGetContentReadWorkLogEntryContract
     required super.filePath,
     required this.mode,
     this.lineCount,
+    this.lineStart,
+    this.lineEnd,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -130,6 +198,8 @@ final class ChatGetContentReadWorkLogEntryContract
 
   final ChatGetContentReadMode mode;
   final int? lineCount;
+  final int? lineStart;
+  final int? lineEnd;
 
   @override
   String get commandLabel => 'Get-Content';
@@ -141,5 +211,9 @@ final class ChatGetContentReadWorkLogEntryContract
       lineCount == 1 ? 'Reading first line' : 'Reading first $lineCount lines',
     ChatGetContentReadMode.lastLines =>
       lineCount == 1 ? 'Reading last line' : 'Reading last $lineCount lines',
+    ChatGetContentReadMode.lineRange =>
+      lineStart == lineEnd
+          ? 'Reading line $lineStart'
+          : 'Reading lines $lineStart to $lineEnd',
   };
 }

@@ -1,7 +1,20 @@
 part of 'chat_work_log_item_projector.dart';
 
 _ParsedReadCommand? _tryParseReadCommand(String commandText) {
-  if (commandText.isEmpty || _containsShellOperators(commandText)) {
+  if (commandText.isEmpty) {
+    return null;
+  }
+
+  final numberedSedRead = _tryParseNumberedSedReadCommand(commandText);
+  if (numberedSedRead != null) {
+    return numberedSedRead;
+  }
+  final selectObjectRead = _tryParseSelectObjectReadCommand(commandText);
+  if (selectObjectRead != null) {
+    return selectObjectRead;
+  }
+
+  if (_containsShellOperators(commandText)) {
     return null;
   }
 
@@ -53,8 +66,11 @@ _ParsedReadCommand? _tryParseReadCommandTokens(
   return switch (commandName) {
     'sed' => _tryParseSedReadCommand(tokens),
     'cat' => _tryParseCatReadCommand(tokens),
+    'type' => _tryParseTypeReadCommand(tokens),
+    'more' => _tryParseMoreReadCommand(tokens),
     'head' => _tryParseHeadReadCommand(tokens),
     'tail' => _tryParseTailReadCommand(tokens),
+    'awk' => _tryParseAwkReadCommand(tokens),
     'get-content' => _tryParseGetContentReadCommand(tokens),
     _ => null,
   };
@@ -145,6 +161,14 @@ class _ParsedCatReadCommand extends _ParsedReadCommand {
   const _ParsedCatReadCommand({required super.path});
 }
 
+class _ParsedTypeReadCommand extends _ParsedReadCommand {
+  const _ParsedTypeReadCommand({required super.path});
+}
+
+class _ParsedMoreReadCommand extends _ParsedReadCommand {
+  const _ParsedMoreReadCommand({required super.path});
+}
+
 class _ParsedHeadReadCommand extends _ParsedReadCommand {
   const _ParsedHeadReadCommand({required super.path, required this.lineCount});
 
@@ -168,11 +192,26 @@ class _ParsedGetContentReadCommand extends _ParsedReadCommand {
   const _ParsedGetContentReadCommand({
     required super.path,
     required this.mode,
-    required this.lineCount,
+    this.lineCount,
+    this.lineStart,
+    this.lineEnd,
   });
 
   final ChatGetContentReadMode mode;
   final int? lineCount;
+  final int? lineStart;
+  final int? lineEnd;
+}
+
+class _ParsedAwkReadCommand extends _ParsedReadCommand {
+  const _ParsedAwkReadCommand({
+    required super.path,
+    required this.lineStart,
+    required this.lineEnd,
+  });
+
+  final int lineStart;
+  final int lineEnd;
 }
 
 class _ParsedPatternSearchCommand {

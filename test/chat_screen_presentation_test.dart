@@ -1196,6 +1196,31 @@ void main() {
       expect(entry.summaryLabel, 'Reading lines 5 to 25');
     });
 
+    test('projects nl piped into sed reads into read work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_nl_sed',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_nl_sed',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: "nl -ba lib/src/app/pocket_relay_app.dart | sed -n '5,25p'",
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatSedReadWorkLogEntryContract;
+
+      expect(entry.lineStart, 5);
+      expect(entry.lineEnd, 25);
+      expect(entry.fileName, 'pocket_relay_app.dart');
+      expect(entry.filePath, 'lib/src/app/pocket_relay_app.dart');
+      expect(entry.summaryLabel, 'Reading lines 5 to 25');
+    });
+
     test('keeps chained sed commands as generic work-log entries', () {
       final groupBlock = CodexWorkLogGroupBlock(
         id: 'worklog_sed_chain',
@@ -1257,6 +1282,52 @@ void main() {
 
       expect(entry.fileName, 'README.md');
       expect(entry.filePath, 'README.md');
+      expect(entry.summaryLabel, 'Reading full file');
+    });
+
+    test('projects type reads into command-specific work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_type',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_type',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: r'type C:\repo\README.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatTypeReadWorkLogEntryContract;
+
+      expect(entry.fileName, 'README.md');
+      expect(entry.filePath, r'C:\repo\README.md');
+      expect(entry.summaryLabel, 'Reading full file');
+    });
+
+    test('projects more reads into command-specific work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_more',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_more',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: 'more docs/021_codebase-handoff.md',
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatMoreReadWorkLogEntryContract;
+
+      expect(entry.fileName, '021_codebase-handoff.md');
+      expect(entry.filePath, 'docs/021_codebase-handoff.md');
       expect(entry.summaryLabel, 'Reading full file');
     });
 
@@ -1359,6 +1430,161 @@ void main() {
         expect(entry.summaryLabel, 'Reading first 25 lines');
       },
     );
+
+    test(
+      'projects Get-Content piped through Select-Object first-lines reads into command-specific work-log entries',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_get_content_select_first',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_get_content_select_first',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title:
+                  r'Get-Content -Path C:\repo\README.md | Select-Object -First 25',
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+        final entry =
+            item.entries.single as ChatGetContentReadWorkLogEntryContract;
+
+        expect(entry.mode, ChatGetContentReadMode.firstLines);
+        expect(entry.lineCount, 25);
+        expect(entry.filePath, r'C:\repo\README.md');
+        expect(entry.summaryLabel, 'Reading first 25 lines');
+      },
+    );
+
+    test(
+      'projects Get-Content piped through Select-Object range reads into command-specific work-log entries',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_get_content_select_range',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_get_content_select_range',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title:
+                  r'Get-Content -Path C:\repo\README.md | Select-Object -Skip 4 -First 21',
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+        final entry =
+            item.entries.single as ChatGetContentReadWorkLogEntryContract;
+
+        expect(entry.mode, ChatGetContentReadMode.lineRange);
+        expect(entry.lineStart, 5);
+        expect(entry.lineEnd, 25);
+        expect(entry.summaryLabel, 'Reading lines 5 to 25');
+      },
+    );
+
+    test(
+      'projects Get-Content piped through Select-Object last-lines reads into command-specific work-log entries',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_get_content_select_last',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_get_content_select_last',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title:
+                  r'Get-Content -Path C:\repo\README.md | Select-Object -Last 10',
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+        final entry =
+            item.entries.single as ChatGetContentReadWorkLogEntryContract;
+
+        expect(entry.mode, ChatGetContentReadMode.lastLines);
+        expect(entry.lineCount, 10);
+        expect(entry.summaryLabel, 'Reading last 10 lines');
+      },
+    );
+
+    test('projects awk range reads into command-specific work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_awk',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_awk',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title:
+                "awk 'NR>=5 && NR<=25 {print}' lib/src/app/pocket_relay_app.dart",
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+      final entry = item.entries.single as ChatAwkReadWorkLogEntryContract;
+
+      expect(entry.lineStart, 5);
+      expect(entry.lineEnd, 25);
+      expect(entry.fileName, 'pocket_relay_app.dart');
+      expect(entry.summaryLabel, 'Reading lines 5 to 25');
+    });
+
+    test(
+      'keeps unsupported Get-Content Select-Object pipelines as generic work-log entries',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_get_content_select_skip_only',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_get_content_select_skip_only',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title:
+                  r'Get-Content -Path C:\repo\README.md | Select-Object -Skip 4',
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+
+        expect(item.entries.single, isA<ChatGenericWorkLogEntryContract>());
+      },
+    );
+
+    test('keeps unsupported awk scripts as generic work-log entries', () {
+      final groupBlock = CodexWorkLogGroupBlock(
+        id: 'worklog_awk_unsupported',
+        createdAt: DateTime(2026, 3, 15, 12),
+        entries: <CodexWorkLogEntry>[
+          CodexWorkLogEntry(
+            id: 'entry_awk_unsupported',
+            createdAt: DateTime(2026, 3, 15, 12),
+            entryKind: CodexWorkLogEntryKind.commandExecution,
+            title: "awk '{print \$1}' lib/src/app/pocket_relay_app.dart",
+          ),
+        ],
+      );
+
+      final item =
+          projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+
+      expect(item.entries.single, isA<ChatGenericWorkLogEntryContract>());
+    });
 
     test('projects rg searches into command-specific work-log entries', () {
       final groupBlock = CodexWorkLogGroupBlock(

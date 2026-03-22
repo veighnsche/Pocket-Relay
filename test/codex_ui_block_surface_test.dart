@@ -1604,6 +1604,73 @@ void main() {
   );
 
   testWidgets(
+    'renders type, more, awk, and Select-Object-piped Get-Content reads as command-specific work-log rows',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: _entrySurface(
+            block: CodexWorkLogGroupBlock(
+              id: 'worklog_more_reads',
+              createdAt: DateTime(2026, 3, 14, 12),
+              entries: <CodexWorkLogEntry>[
+                CodexWorkLogEntry(
+                  id: 'entry_type',
+                  createdAt: DateTime(2026, 3, 14, 12),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: r'type C:\repo\README.md',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_more',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: 'more docs/021_codebase-handoff.md',
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_awk',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 2),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title: "awk 'NR>=5 && NR<=25 {print}' lib/main.dart",
+                ),
+                CodexWorkLogEntry(
+                  id: 'entry_get_content_select_range',
+                  createdAt: DateTime(2026, 3, 14, 12, 0, 3),
+                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  title:
+                      r'Get-Content -Path C:\repo\README.md | Select-Object -Skip 4 -First 21',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('4 total · 1 hidden'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reading full file'), findsNWidgets(2));
+      expect(find.text('README.md'), findsAtLeastNWidgets(2));
+      expect(find.text('021_codebase-handoff.md'), findsOneWidget);
+
+      expect(find.text('Reading lines 5 to 25'), findsNWidgets(2));
+      expect(find.text('main.dart'), findsOneWidget);
+      expect(find.text(r'C:\repo\README.md'), findsAtLeastNWidgets(2));
+
+      expect(find.text(r'type C:\repo\README.md'), findsNothing);
+      expect(find.text('more docs/021_codebase-handoff.md'), findsNothing);
+      expect(
+        find.text("awk 'NR>=5 && NR<=25 {print}' lib/main.dart"),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          r'Get-Content -Path C:\repo\README.md | Select-Object -Skip 4 -First 21',
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'renders rg, grep, Select-String, and findstr searches as command-specific work-log rows',
     (tester) async {
       await tester.pumpWidget(

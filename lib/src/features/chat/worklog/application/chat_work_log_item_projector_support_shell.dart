@@ -43,6 +43,7 @@ bool _looksLikeCommandExecution(String value) {
 }
 
 const Set<String> _structuredCommandNames = <String>{
+  'awk',
   'cat',
   'findstr',
   'get-content',
@@ -125,6 +126,105 @@ bool _containsShellOperators(String commandText) {
   }
 
   return false;
+}
+
+class _PipeCommand {
+  const _PipeCommand({required this.leftCommand, required this.rightCommand});
+
+  final String leftCommand;
+  final String rightCommand;
+}
+
+_PipeCommand? _splitSinglePipeCommand(String commandText) {
+  var inSingleQuote = false;
+  var inDoubleQuote = false;
+  var escaping = false;
+  int? pipeIndex;
+
+  for (var index = 0; index < commandText.length; index++) {
+    final char = commandText[index];
+
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+    if (inSingleQuote) {
+      if (char == "'") {
+        inSingleQuote = false;
+      }
+      continue;
+    }
+    if (inDoubleQuote) {
+      if (char == '\\') {
+        escaping = true;
+        continue;
+      }
+      if (char == '"') {
+        inDoubleQuote = false;
+      }
+      continue;
+    }
+
+    if (char == "'") {
+      inSingleQuote = true;
+      continue;
+    }
+    if (char == '"') {
+      inDoubleQuote = true;
+      continue;
+    }
+    if (char == '\\') {
+      final next = index + 1 < commandText.length
+          ? commandText[index + 1]
+          : null;
+      if (next != null &&
+          (RegExp(r'\s').hasMatch(next) ||
+              next == '"' ||
+              next == "'" ||
+              next == '\\' ||
+              next == ';' ||
+              next == '&' ||
+              next == '|' ||
+              next == '>' ||
+              next == '<' ||
+              next == '`')) {
+        escaping = true;
+        continue;
+      }
+    }
+    if (char == '\n' ||
+        char == ';' ||
+        char == '&' ||
+        char == '>' ||
+        char == '<' ||
+        char == '`') {
+      return null;
+    }
+    if (char != '|') {
+      continue;
+    }
+    final previous = index > 0 ? commandText[index - 1] : null;
+    final next = index + 1 < commandText.length ? commandText[index + 1] : null;
+    if (previous == '|' || next == '|') {
+      return null;
+    }
+    if (pipeIndex != null) {
+      return null;
+    }
+    pipeIndex = index;
+  }
+
+  if (pipeIndex == null) {
+    return null;
+  }
+
+  final leftCommand = commandText.substring(0, pipeIndex).trim();
+  final rightCommand = commandText.substring(pipeIndex + 1).trim();
+  if (leftCommand.isEmpty || rightCommand.isEmpty) {
+    return null;
+  }
+
+  return _PipeCommand(leftCommand: leftCommand, rightCommand: rightCommand);
 }
 
 List<String>? _tokenizeShellCommand(String commandText) {

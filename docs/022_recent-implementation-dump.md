@@ -140,10 +140,15 @@ read commands seen in this codebase and in cross-platform shells.
 Supported specialized entries:
 
 - `sed`
+- `nl | sed`
 - `cat`
+- `type`
+- `more`
 - `head`
 - `tail`
+- `awk`
 - PowerShell `Get-Content`
+- PowerShell `Get-Content | Select-Object`
 
 Each of these gets:
 
@@ -159,10 +164,15 @@ Each of these gets:
 Current summaries:
 
 - `sed`: `Reading line ...` / `Reading lines ... to ...`
+- `nl | sed`: `Reading line ...` / `Reading lines ... to ...`
 - `cat`: `Reading full file`
+- `type`: `Reading full file`
+- `more`: `Reading full file`
 - `head`: `Reading first N lines`
 - `tail`: `Reading last N lines`
+- `awk`: `Reading line ...` / `Reading lines ... to ...`
 - `Get-Content`: full-file / first-lines / last-lines variants
+- `Get-Content | Select-Object`: first-lines / last-lines / line-range variants
 
 ### Supported command forms
 
@@ -171,6 +181,9 @@ Supported `sed` forms:
 - `sed -n '1,120p' file`
 - `sed -ne '1,120p' file`
 - `sed -n -e '1,120p' file`
+- `nl -ba file | sed -n '1,120p'`
+- `nl -b a file | sed -n '1,120p'`
+- `nl --body-numbering=a file | sed -n '1,120p'`
 
 Supported `head`/`tail` forms:
 
@@ -180,6 +193,18 @@ Supported `head`/`tail` forms:
 - `head -40 file`
 - same shape for `tail`
 
+Supported full-file read forms:
+
+- `type file`
+- `more file`
+
+Supported `awk` forms:
+
+- `awk 'NR==N {print}' file`
+- `awk 'NR==N' file`
+- `awk 'NR>=A && NR<=B {print}' file`
+- `awk 'NR>=A && NR<=B' file`
+
 Supported `Get-Content` forms:
 
 - `Get-Content file`
@@ -188,6 +213,9 @@ Supported `Get-Content` forms:
 - `Get-Content -TotalCount N`
 - `Get-Content -Tail N`
 - `Get-Content -Raw`
+- `Get-Content file | Select-Object -First N`
+- `Get-Content file | Select-Object -Last N`
+- `Get-Content file | Select-Object -Skip N -First M`
 
 Supported wrapper normalization:
 
@@ -208,7 +236,7 @@ command row.
 That fallback applies to:
 
 - chained commands
-- pipes
+- unsupported pipes
 - redirects
 - semicolons
 - subshell-ish shell operators
@@ -270,8 +298,8 @@ Still open:
 - true multi-send / overlapping turn semantics are still not implemented
 - work-log grouping is still mostly adjacency-based, not semantic-task-based
 - only common read commands are specialized so far
-- other useful read/search forms such as `awk`, `more`, `less`, and PowerShell
-  pipeline-based reads still fall back to the generic row
+- broader `awk` scripts, `less`, and unsupported PowerShell `Select-Object`
+  combinations still fall back to the generic row
 
 There is also one unrelated pre-existing test issue worth remembering:
 

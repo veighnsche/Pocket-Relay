@@ -2,6 +2,12 @@ part of 'chat_work_log_item_projector.dart';
 
 final RegExp _sedPrintRangePattern = RegExp(r'^(\d+)(?:,(\d+))?p$');
 final RegExp _shortHeadTailCountPattern = RegExp(r'^-(\d+)$');
+final RegExp _awkSingleLineReadPattern = RegExp(
+  r'^NR\s*==\s*(\d+)(?:\s*\{\s*print\s*\})?$',
+);
+final RegExp _awkRangeReadPattern = RegExp(
+  r'^NR\s*>=\s*(\d+)\s*&&\s*NR\s*<=\s*(\d+)(?:\s*\{\s*print\s*\})?$',
+);
 
 String _normalizeCompactToolLabel(String value) {
   return value
@@ -158,6 +164,14 @@ bool _isSearchScopeTarget(String token) {
 int? _parsePositiveInt(String value) {
   final parsed = int.tryParse(value.trim());
   if (parsed == null || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+int? _parseNonNegativeInt(String value) {
+  final parsed = int.tryParse(value.trim());
+  if (parsed == null || parsed < 0) {
     return null;
   }
   return parsed;
