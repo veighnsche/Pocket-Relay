@@ -26,6 +26,9 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     required ConnectionLaneBindingFactory laneBindingFactory,
     ConnectionModelCatalogStore? modelCatalogStore,
     ConnectionWorkspaceRecoveryStore? recoveryStore,
+    Duration recoveryPersistenceDebounceDuration = const Duration(
+      milliseconds: 250,
+    ),
     WorkspaceNow? now,
   }) : _connectionRepository = connectionRepository,
        _laneBindingFactory = laneBindingFactory,
@@ -33,12 +36,15 @@ class ConnectionWorkspaceController extends ChangeNotifier {
            modelCatalogStore ?? const NoopConnectionModelCatalogStore(),
        _recoveryStore =
            recoveryStore ?? const NoopConnectionWorkspaceRecoveryStore(),
+       _recoveryPersistenceDebounceDuration =
+           recoveryPersistenceDebounceDuration,
        _now = now ?? DateTime.now;
 
   final CodexConnectionRepository _connectionRepository;
   final ConnectionLaneBindingFactory _laneBindingFactory;
   final ConnectionModelCatalogStore _modelCatalogStore;
   final ConnectionWorkspaceRecoveryStore _recoveryStore;
+  final Duration _recoveryPersistenceDebounceDuration;
   final WorkspaceNow _now;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
       <String, ConnectionLaneBinding>{};
@@ -49,6 +55,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceState _state = const ConnectionWorkspaceState.initial();
   Future<void>? _initializationFuture;
   Future<void> _recoveryPersistence = Future<void>.value();
+  Timer? _recoveryPersistenceDebounceTimer;
+  ConnectionWorkspaceRecoveryState? _pendingRecoveryPersistenceState;
+  ConnectionWorkspaceRecoveryState? _lastPersistedRecoveryState;
+  bool _isPersistingRecoveryState = false;
   bool _isDisposed = false;
 
   ConnectionWorkspaceState get state => _state;
@@ -170,6 +180,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       return;
     }
     _isDisposed = true;
+    _recoveryPersistenceDebounceTimer?.cancel();
 
     final liveBindingEntries = _liveBindingsByConnectionId.entries.toList();
     _liveBindingsByConnectionId.clear();
@@ -210,7 +221,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   ) {
     _unregisterLiveBinding(connectionId);
     void listener() {
-      unawaited(_enqueueRecoveryPersistence());
+      if (_state.selectedConnectionId != connectionId) {
+        return;
+      }
+      _scheduleRecoveryPersistence();
     }
 
     _bindingRecoveryRegistrationsByConnectionId[connectionId] = (
@@ -237,18 +251,75 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
   }
 
+  void _scheduleRecoveryPersistence() {
+    if (_isDisposed) {
+      return;
+    }
+    _recoveryPersistenceDebounceTimer?.cancel();
+    _recoveryPersistenceDebounceTimer = Timer(
+      _recoveryPersistenceDebounceDuration,
+      () {
+        _recoveryPersistenceDebounceTimer = null;
+        unawaited(_queueRecoveryPersistenceSnapshot());
+      },
+    );
+  }
+
   Future<void> _enqueueRecoveryPersistence({DateTime? backgroundedAt}) {
-    _recoveryPersistence = _recoveryPersistence
-        .then((_) async {
-          if (_isDisposed) {
-            return;
-          }
-          await _recoveryStore.save(
-            _selectedRecoveryStateSnapshot(backgroundedAt: backgroundedAt),
-          );
-        })
-        .catchError((_) {});
+    _recoveryPersistenceDebounceTimer?.cancel();
+    _recoveryPersistenceDebounceTimer = null;
+    return _queueRecoveryPersistenceSnapshot(backgroundedAt: backgroundedAt);
+  }
+
+  Future<void> _queueRecoveryPersistenceSnapshot({DateTime? backgroundedAt}) {
+    if (_isDisposed) {
+      return _recoveryPersistence;
+    }
+
+    final snapshot = _selectedRecoveryStateSnapshot(
+      backgroundedAt: backgroundedAt,
+    );
+    if (snapshot == _lastPersistedRecoveryState ||
+        snapshot == _pendingRecoveryPersistenceState) {
+      return _recoveryPersistence;
+    }
+
+    _pendingRecoveryPersistenceState = snapshot;
+    if (_isPersistingRecoveryState) {
+      return _recoveryPersistence;
+    }
+
+    _isPersistingRecoveryState = true;
+    _recoveryPersistence = _drainRecoveryPersistenceQueue();
     return _recoveryPersistence;
+  }
+
+  Future<void> _drainRecoveryPersistenceQueue() async {
+    try {
+      while (!_isDisposed) {
+        final snapshot = _pendingRecoveryPersistenceState;
+        _pendingRecoveryPersistenceState = null;
+        if (snapshot == _lastPersistedRecoveryState) {
+          if (_pendingRecoveryPersistenceState == null) {
+            break;
+          }
+          continue;
+        }
+        try {
+          await _recoveryStore.save(snapshot);
+          _lastPersistedRecoveryState = snapshot;
+        } catch (_) {}
+        if (_pendingRecoveryPersistenceState == null) {
+          break;
+        }
+      }
+    } finally {
+      _isPersistingRecoveryState = false;
+      if (_pendingRecoveryPersistenceState != null && !_isDisposed) {
+        _isPersistingRecoveryState = true;
+        _recoveryPersistence = _drainRecoveryPersistenceQueue();
+      }
+    }
   }
 
   ConnectionWorkspaceRecoveryState? _selectedRecoveryStateSnapshot({

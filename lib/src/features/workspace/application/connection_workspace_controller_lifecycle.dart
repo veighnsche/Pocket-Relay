@@ -5,6 +5,7 @@ Future<void> _initializeWorkspaceController(
 ) async {
   final catalog = await controller._connectionRepository.loadCatalog();
   final recoveryState = await controller._recoveryStore.load();
+  controller._lastPersistedRecoveryState = recoveryState;
   if (catalog.isEmpty) {
     controller._applyState(
       const ConnectionWorkspaceState(
