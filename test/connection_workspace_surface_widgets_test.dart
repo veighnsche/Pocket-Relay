@@ -562,6 +562,7 @@ void main() {
       expect(refreshedCatalog.visibleModels.single.model, 'gpt-live-default');
       expect(client.listModelCalls, hasLength(1));
       expect(client.listModelCalls.single.includeHidden, isTrue);
+      expect(client.listModelCalls.single.limit, 100);
       expect(
         await controller.loadConnectionModelCatalog('conn_primary'),
         refreshedCatalog,
@@ -570,6 +571,76 @@ void main() {
         await controller.loadLastKnownConnectionModelCatalog(),
         refreshedCatalog,
       );
+
+      settingsOverlayDelegate.complete(null);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'live lane model refresh aborts when pagination exceeds the safety cap',
+    (tester) async {
+      final client = _SequencedModelListFakeCodexAppServerClient(
+        pages: List<CodexAppServerModelListPage>.generate(
+          20,
+          (index) => CodexAppServerModelListPage(
+            models: <CodexAppServerModel>[
+              _listedModel('gpt-page-$index'),
+            ],
+            nextCursor: 'cursor_${index + 1}',
+          ),
+        ),
+      );
+      final clientsById = <String, FakeCodexAppServerClient>{
+        'conn_primary': client,
+      };
+      final modelCatalogStore = MemoryConnectionModelCatalogStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      final settingsOverlayDelegate =
+          _DeferredConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final laneBinding = controller.selectedLaneBinding!;
+
+      await tester.pumpWidget(
+        _buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Connection settings'));
+      await tester.pump();
+
+      final refreshCallback =
+          settingsOverlayDelegate.launchedRefreshCallbacks.single;
+      final refreshedCatalog = await refreshCallback!(
+        ConnectionSettingsDraft.fromConnection(
+          profile: settingsOverlayDelegate.launchedSettings.single.$1,
+          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+        ),
+      );
+
+      expect(refreshedCatalog, isNull);
+      expect(client.listModelCalls, hasLength(20));
+      expect(
+        client.listModelCalls.every((call) => call.limit == 100),
+        isTrue,
+      );
+      expect(
+        await controller.loadConnectionModelCatalog('conn_primary'),
+        isNull,
+      );
+      expect(await controller.loadLastKnownConnectionModelCatalog(), isNull);
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
@@ -831,6 +902,53 @@ Future<void> _closeClients(
 ) async {
   for (final client in clientsById.values) {
     await client.close();
+  }
+}
+
+CodexAppServerModel _listedModel(String model) {
+  return CodexAppServerModel(
+    id: '${model}_id',
+    model: model,
+    displayName: model,
+    description: '$model description',
+    hidden: false,
+    supportedReasoningEfforts: const <
+      CodexAppServerModelReasoningEffortOption
+    >[],
+    defaultReasoningEffort: null,
+    inputModalities: const <String>['text'],
+    supportsPersonality: false,
+    isDefault: false,
+  );
+}
+
+class _SequencedModelListFakeCodexAppServerClient
+    extends FakeCodexAppServerClient {
+  _SequencedModelListFakeCodexAppServerClient({
+    required List<CodexAppServerModelListPage> pages,
+  }) : _pages = pages;
+
+  final List<CodexAppServerModelListPage> _pages;
+  int _pageIndex = 0;
+
+  @override
+  Future<CodexAppServerModelListPage> listModels({
+    String? cursor,
+    int? limit,
+    bool? includeHidden,
+  }) async {
+    listModelCalls.add((
+      cursor: cursor,
+      limit: limit,
+      includeHidden: includeHidden,
+    ));
+    if (_pageIndex >= _pages.length) {
+      return const CodexAppServerModelListPage(
+        models: <CodexAppServerModel>[],
+        nextCursor: null,
+      );
+    }
+    return _pages[_pageIndex++];
   }
 }
 
