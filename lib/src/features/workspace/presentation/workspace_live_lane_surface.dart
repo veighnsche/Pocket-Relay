@@ -16,6 +16,9 @@ import 'package:pocket_relay/src/features/workspace/application/connection_works
 
 import 'workspace_conversation_history_sheet.dart';
 
+part 'workspace_live_lane_surface_menu.dart';
+part 'workspace_live_lane_surface_settings.dart';
+
 class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
   const ConnectionWorkspaceLiveLaneSurface({
     super.key,
@@ -42,6 +45,18 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     extends State<ConnectionWorkspaceLiveLaneSurface> {
   bool _isOpeningConnectionSettings = false;
   bool _isApplyingSavedSettings = false;
+
+  void _setOpeningConnectionSettings(bool value) {
+    setState(() {
+      _isOpeningConnectionSettings = value;
+    });
+  }
+
+  void _setApplyingSavedSettings(bool value) {
+    setState(() {
+      _isApplyingSavedSettings = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,292 +85,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         ),
         Expanded(child: chatRoot),
       ],
-    );
-  }
-
-  List<ChatChromeMenuAction> _supplementalMenuActionsFor({
-    required bool requiresReconnect,
-  }) {
-    final hasWorkspaceHistoryScope = widget
-        .laneBinding
-        .sessionController
-        .profile
-        .workspaceDir
-        .trim()
-        .isNotEmpty;
-    return <ChatChromeMenuAction>[
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-        onSelected: () {
-          unawaited(_showConversationHistory());
-        },
-        isEnabled: hasWorkspaceHistoryScope,
-      ),
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
-        onSelected: widget.workspaceController.showDormantRoster,
-      ),
-      if (requiresReconnect)
-        ChatChromeMenuAction(
-          label: _isApplyingSavedSettings
-              ? ConnectionWorkspaceCopy.reconnectMenuProgress
-              : ConnectionWorkspaceCopy.reconnectMenuAction,
-          onSelected: () {
-            unawaited(_applySavedSettings());
-          },
-          isEnabled: hasWorkspaceHistoryScope,
-        ),
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.closeLaneAction,
-        onSelected: () => widget.workspaceController.terminateConnection(
-          widget.laneBinding.connectionId,
-        ),
-        isDestructive: true,
-        isEnabled: hasWorkspaceHistoryScope,
-      ),
-    ];
-  }
-
-  Future<void> _handleConnectionSettingsRequested(
-    ChatConnectionSettingsLaunchContract request,
-  ) async {
-    if (_isOpeningConnectionSettings) {
-      return;
-    }
-
-    final workspaceController = widget.workspaceController;
-    final laneBinding = widget.laneBinding;
-    final settingsOverlayDelegate = widget.settingsOverlayDelegate;
-    final platformPolicy = widget.platformPolicy;
-    final connectionId = laneBinding.connectionId;
-
-    setState(() {
-      _isOpeningConnectionSettings = true;
-    });
-
-    try {
-      final initialSettings = await _resolveInitialSettings(
-        request: request,
-        workspaceController: workspaceController,
-        connectionId: connectionId,
-      );
-      if (!_matchesLiveRequestContext(
-        workspaceController: workspaceController,
-        laneBinding: laneBinding,
-        settingsOverlayDelegate: settingsOverlayDelegate,
-        platformPolicy: platformPolicy,
-      )) {
-        return;
-      }
-      if (!mounted) {
-        return;
-      }
-
-      final result = await settingsOverlayDelegate.openConnectionSettings(
-        context: context,
-        initialProfile: initialSettings.$1,
-        initialSecrets: initialSettings.$2,
-        platformBehavior: platformPolicy.behavior,
-      );
-      if (!_matchesLiveRequestContext(
-            workspaceController: workspaceController,
-            laneBinding: laneBinding,
-            settingsOverlayDelegate: settingsOverlayDelegate,
-            platformPolicy: platformPolicy,
-          ) ||
-          result == null) {
-        return;
-      }
-
-      if (result.profile == initialSettings.$1 &&
-          result.secrets == initialSettings.$2) {
-        return;
-      }
-
-      await workspaceController.saveLiveConnectionEdits(
-        connectionId: connectionId,
-        profile: result.profile,
-        secrets: result.secrets,
-      );
-    } finally {
-      if (mounted &&
-          widget.workspaceController == workspaceController &&
-          widget.laneBinding.connectionId == connectionId) {
-        setState(() {
-          _isOpeningConnectionSettings = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _applySavedSettings() async {
-    if (_isApplyingSavedSettings) {
-      return;
-    }
-
-    final workspaceController = widget.workspaceController;
-    final laneBinding = widget.laneBinding;
-    final connectionId = laneBinding.connectionId;
-    if (!workspaceController.state.requiresReconnect(connectionId)) {
-      return;
-    }
-
-    setState(() {
-      _isApplyingSavedSettings = true;
-    });
-
-    try {
-      await workspaceController.reconnectConnection(connectionId);
-    } finally {
-      if (mounted &&
-          widget.workspaceController == workspaceController &&
-          widget.laneBinding.connectionId == connectionId) {
-        setState(() {
-          _isApplyingSavedSettings = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _showConversationHistory() {
-    final repository =
-        widget.conversationHistoryRepository ??
-        const CodexAppServerConversationHistoryRepository();
-    final sessionController = widget.laneBinding.sessionController;
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.82,
-          child: ConnectionWorkspaceConversationHistorySheet(
-            title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-            future: repository.loadWorkspaceConversations(
-              profile: sessionController.profile,
-              secrets: sessionController.secrets,
-            ),
-            onResumeConversation: (conversation) {
-              unawaited(_resumeConversation(conversation));
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _resumeConversation(
-    CodexWorkspaceConversationSummary conversation,
-  ) async {
-    if (!mounted) {
-      return;
-    }
-
-    Navigator.of(context).pop();
-    await widget.workspaceController.resumeConversation(
-      connectionId: widget.laneBinding.connectionId,
-      threadId: conversation.normalizedThreadId,
-    );
-  }
-
-  Future<(ConnectionProfile, ConnectionSecrets)> _resolveInitialSettings({
-    required ChatConnectionSettingsLaunchContract request,
-    required ConnectionWorkspaceController workspaceController,
-    required String connectionId,
-  }) async {
-    if (!workspaceController.state.requiresReconnect(connectionId)) {
-      return (request.initialProfile, request.initialSecrets);
-    }
-
-    final savedConnection = await workspaceController.loadSavedConnection(
-      connectionId,
-    );
-    return (savedConnection.profile, savedConnection.secrets);
-  }
-
-  bool _matchesLiveRequestContext({
-    required ConnectionWorkspaceController workspaceController,
-    required ConnectionLaneBinding laneBinding,
-    required ConnectionSettingsOverlayDelegate settingsOverlayDelegate,
-    required PocketPlatformPolicy platformPolicy,
-  }) {
-    return mounted &&
-        widget.workspaceController == workspaceController &&
-        widget.laneBinding == laneBinding &&
-        widget.settingsOverlayDelegate == settingsOverlayDelegate &&
-        widget.platformPolicy == platformPolicy &&
-        widget.workspaceController.state.isConnectionLive(
-          laneBinding.connectionId,
-        );
-  }
-}
-
-class _SavedSettingsNotice extends StatelessWidget {
-  const _SavedSettingsNotice({required this.isApplying, required this.onApply});
-
-  final bool isApplying;
-  final Future<void> Function() onApply;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = context.pocketPalette;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: palette.surfaceBorder),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadowColor,
-            blurRadius: 16,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          children: [
-            Icon(Icons.sync, color: theme.colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ConnectionWorkspaceCopy.reconnectNoticeTitle,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    ConnectionWorkspaceCopy.reconnectNoticeBody,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            FilledButton(
-              key: const ValueKey('apply_saved_settings'),
-              onPressed: isApplying
-                  ? null
-                  : () {
-                      unawaited(onApply());
-                    },
-              child: Text(
-                isApplying
-                    ? ConnectionWorkspaceCopy.reconnectProgress
-                    : ConnectionWorkspaceCopy.reconnectAction,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
