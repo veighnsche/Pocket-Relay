@@ -250,7 +250,25 @@ ConnectionSettingsModelSectionContract _buildModelSection(
           ),
         ),
       ];
-  final reasoningEffortHelperText = selectedCatalogModel != null
+  final hasSelectedReasoningEffortOption =
+      selectedReasoningEffort == null ||
+      reasoningEffortOptions.any(
+        (option) => option.effort == selectedReasoningEffort,
+      );
+  if (!hasSelectedReasoningEffortOption && selectedReasoningEffort != null) {
+    reasoningEffortOptions.insert(
+      1,
+      ConnectionSettingsReasoningEffortOptionContract(
+        effort: selectedReasoningEffort,
+        label: _reasoningEffortLabel(selectedReasoningEffort),
+        description: 'Saved reasoning effort outside the available backend options.',
+      ),
+    );
+  }
+  final reasoningEffortHelperText = !hasSelectedReasoningEffortOption &&
+          selectedReasoningEffort != null
+      ? 'Saved reasoning effort outside the available backend options.'
+      : selectedCatalogModel != null
       ? 'Available efforts follow ${_catalogModelLabel(selectedCatalogModel)}.'
       : effectiveCatalogModel == null
       ? 'Available efforts follow the backend default model.'

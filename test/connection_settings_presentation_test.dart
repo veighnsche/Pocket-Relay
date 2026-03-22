@@ -307,6 +307,50 @@ void main() {
     );
 
     test(
+      'preserves a saved reasoning effort when the backend catalog has no matching effort options',
+      () {
+        final initialProfile = _configuredProfile().copyWith(
+          model: 'saved-model-only',
+          reasoningEffort: CodexReasoningEffort.xhigh,
+        );
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          availableModelCatalog: ConnectionModelCatalog(
+            connectionId: 'empty-catalog',
+            fetchedAt: DateTime.utc(2026, 3, 22),
+            models: <ConnectionAvailableModel>[],
+          ),
+        );
+        final payload = contract.saveAction.submitPayload;
+
+        expect(
+          contract.modelSection.reasoningEffortOptions.map(
+            (option) => option.label,
+          ),
+          <String>['Default', 'XHigh'],
+        );
+        expect(
+          contract.modelSection.reasoningEffortHelperText,
+          'Saved reasoning effort outside the available backend options.',
+        );
+        expect(
+          contract.modelSection.selectedReasoningEffort,
+          CodexReasoningEffort.xhigh,
+        );
+        expect(payload, isNotNull);
+        expect(payload!.profile.reasoningEffort, CodexReasoningEffort.xhigh);
+      },
+    );
+
+    test(
       'enables refresh when backend refresh is available and the workspace directory is set',
       () {
         final initialProfile = _configuredProfile();

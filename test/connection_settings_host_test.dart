@@ -306,6 +306,52 @@ void main() {
   );
 
   testWidgets(
+    'shared host preserves a saved reasoning effort when the backend catalog is empty',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          initialProfile: _configuredProfile().copyWith(
+            model: 'saved-model-only',
+            reasoningEffort: CodexReasoningEffort.xhigh,
+          ),
+          availableModelCatalog: ConnectionModelCatalog(
+            connectionId: 'empty-catalog',
+            fetchedAt: DateTime.utc(2026, 3, 22),
+            models: <ConnectionAvailableModel>[],
+          ),
+        ),
+      );
+
+      final reasoningField = tester
+          .widget<DropdownButtonFormField<CodexReasoningEffort?>>(
+            find.byKey(
+              const ValueKey<String>('connection_settings_reasoning_effort'),
+            ),
+          );
+      expect(reasoningField.initialValue, CodexReasoningEffort.xhigh);
+      expect(
+        find.text('Saved reasoning effort outside the available backend options.'),
+        findsOneWidget,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(
+          const ValueKey<String>('connection_settings_reasoning_effort'),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('connection_settings_reasoning_effort'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('XHigh').last, findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'shared host enables refresh only when a workspace directory is set',
     (tester) async {
       await tester.pumpWidget(
