@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
@@ -134,6 +135,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   String? startSessionReasoningEffort;
   String? startSessionCwd;
   String? listModelsNextCursor;
+  int? listModelsDefaultPageSize;
   final List<CodexAppServerModelListPage> listedModelPages =
       <CodexAppServerModelListPage>[];
   int disconnectCalls = 0;
@@ -376,6 +378,27 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     ));
     if (listedModelPages.isNotEmpty) {
       return listedModelPages.removeAt(0);
+    }
+    final defaultPageSize = listModelsDefaultPageSize;
+    if (defaultPageSize != null) {
+      final effectivePageSize = limit != null && limit > 0
+          ? limit
+          : defaultPageSize;
+      final startIndex = int.tryParse(cursor ?? '') ?? 0;
+      final boundedStartIndex = math.min(
+        math.max(startIndex, 0),
+        listedModels.length,
+      );
+      final endIndex = math.min(
+        boundedStartIndex + effectivePageSize,
+        listedModels.length,
+      );
+      return CodexAppServerModelListPage(
+        models: List<CodexAppServerModel>.from(
+          listedModels.sublist(boundedStartIndex, endIndex),
+        ),
+        nextCursor: endIndex < listedModels.length ? '$endIndex' : null,
+      );
     }
     return CodexAppServerModelListPage(
       models: List<CodexAppServerModel>.from(listedModels),

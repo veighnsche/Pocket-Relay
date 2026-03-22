@@ -1,6 +1,7 @@
 part of 'workspace_live_lane_surface.dart';
 
 const int _maxLiveModelCatalogPages = 100;
+const int _liveModelCatalogPageSize = 100;
 
 extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   Future<void> _handleConnectionSettingsRequested(
@@ -133,10 +134,8 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     return (savedConnection.profile, savedConnection.secrets);
   }
 
-  Future<(
-    ConnectionModelCatalog?,
-    ConnectionSettingsModelCatalogSource?
-  )> _resolveAvailableModelCatalog({
+  Future<(ConnectionModelCatalog?, ConnectionSettingsModelCatalogSource?)>
+  _resolveAvailableModelCatalog({
     required ConnectionWorkspaceController workspaceController,
     required String connectionId,
     required bool preferConnectionCatalog,
@@ -207,6 +206,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       while (true) {
         final page = await laneBinding.appServerClient.listModels(
           cursor: cursor,
+          limit: _liveModelCatalogPageSize,
           includeHidden: true,
         );
         pageCount += 1;
@@ -214,17 +214,14 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
           page.models.map(_connectionAvailableModelFromAppServerModel),
         );
         final nextCursor = page.nextCursor?.trim();
-        final normalizedCursor = nextCursor == null || nextCursor.isEmpty
-            ? null
-            : nextCursor;
-        if (normalizedCursor == null) {
+        if (nextCursor == null || nextCursor.isEmpty) {
           break;
         }
         if (pageCount >= _maxLiveModelCatalogPages ||
-            !seenCursors.add(normalizedCursor)) {
-          break;
+            !seenCursors.add(nextCursor)) {
+          return null;
         }
-        cursor = normalizedCursor;
+        cursor = nextCursor;
       }
 
       final catalog = ConnectionModelCatalog(
