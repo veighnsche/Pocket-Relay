@@ -588,6 +588,7 @@ void main() {
         isTrue,
       );
       await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(clientsById['conn_primary']!.startSessionCalls, 1);
       expect(
