@@ -193,7 +193,7 @@ bool _draftsMatchForProviderBinding(
   if (normalizedLocal.text != normalizedProvider.text) {
     return false;
   }
-  if (!_textElementsEqual(
+  if (!listEquals(
     normalizedLocal.textElements,
     normalizedProvider.textElements,
   )) {
@@ -203,21 +203,6 @@ bool _draftsMatchForProviderBinding(
     normalizedLocal.imageAttachments,
     normalizedProvider.imageAttachments,
   );
-}
-
-bool _textElementsEqual(
-  List<ChatComposerTextElement> left,
-  List<ChatComposerTextElement> right,
-) {
-  if (left.length != right.length) {
-    return false;
-  }
-  for (var index = 0; index < left.length; index += 1) {
-    if (left[index] != right[index]) {
-      return false;
-    }
-  }
-  return true;
 }
 
 bool _imageAttachmentsEqualForProviderBinding(

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 class ChatComposerDraft {
   const ChatComposerDraft({
     this.text = '',
@@ -87,8 +89,8 @@ class ChatComposerDraft {
         .toList(growable: false);
 
     if (nextText == text &&
-        _listEquals(nextAttachments, imageAttachments) &&
-        _listEquals(nextTextElements, textElements)) {
+        listEquals(nextAttachments, imageAttachments) &&
+        listEquals(nextTextElements, textElements)) {
       return this;
     }
 
@@ -157,8 +159,8 @@ class ChatComposerDraft {
   bool operator ==(Object other) {
     return other is ChatComposerDraft &&
         other.text == text &&
-        _listEquals(other.textElements, textElements) &&
-        _listEquals(other.imageAttachments, imageAttachments);
+        listEquals(other.textElements, textElements) &&
+        listEquals(other.imageAttachments, imageAttachments);
   }
 
   @override
@@ -249,13 +251,8 @@ class ChatComposerImageAttachment {
   }
 
   @override
-  int get hashCode => Object.hash(
-    imageUrl,
-    displayName,
-    mimeType,
-    byteLength,
-    placeholder,
-  );
+  int get hashCode =>
+      Object.hash(imageUrl, displayName, mimeType, byteLength, placeholder);
 }
 
 class ChatComposerDraftInsertion {
@@ -346,19 +343,4 @@ class _LocatedImageAttachment {
   final int start;
   final int end;
   final ChatComposerImageAttachment attachment;
-}
-
-bool _listEquals<T>(List<T> left, List<T> right) {
-  if (identical(left, right)) {
-    return true;
-  }
-  if (left.length != right.length) {
-    return false;
-  }
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) {
-      return false;
-    }
-  }
-  return true;
 }

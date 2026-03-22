@@ -26,10 +26,10 @@ CodexAppServerTurnInput _turnInputFor({
 List<Object> _turnInputPayload(CodexAppServerTurnInput input) {
   final items = <Object>[];
   for (final image in input.images) {
-    if (image.url.trim().isEmpty) {
+    if (image.url.isEmpty) {
       continue;
     }
-    items.add(<String, Object?>{'type': 'image', 'url': image.url.trim()});
+    items.add(<String, Object?>{'type': 'image', 'url': image.url});
   }
   if (input.hasText) {
     items.add(<String, Object?>{
