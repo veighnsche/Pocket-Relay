@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_local_process.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_thread_read_fixture_sanitizer.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_json_rpc_codec.dart';
 
@@ -147,18 +150,27 @@ Future<void> main(List<String> args) async {
   }
 }
 
-CodexLaunchInvocation buildCodexLaunchInvocation(String launcherCommand) {
-  final tokens = _tokenizeCommand(launcherCommand.trim());
-  if (tokens == null || tokens.isEmpty) {
-    throw const FormatException(
-      'Codex launch command must be a plain executable plus optional '
-      'arguments.',
-    );
+CodexLaunchInvocation buildCodexLaunchInvocation(
+  String launcherCommand, {
+  TargetPlatform? platform,
+}) {
+  final normalizedLauncherCommand = launcherCommand.trim();
+  if (normalizedLauncherCommand.isEmpty) {
+    throw const FormatException('Codex launch command must not be empty.');
   }
 
+  final invocation = buildLocalCodexAppServerInvocation(
+    profile: ConnectionProfile.defaults().copyWith(
+      connectionMode: ConnectionMode.local,
+      codexPath: normalizedLauncherCommand,
+      workspaceDir: '.',
+    ),
+    platform: platform,
+  );
+
   return CodexLaunchInvocation(
-    executable: tokens.first,
-    arguments: tokens.sublist(1),
+    executable: invocation.executable,
+    arguments: invocation.arguments,
   );
 }
 
@@ -386,98 +398,6 @@ String? _normalizeOptionalString(String? value) {
   }
   final normalized = value.trim();
   return normalized.isEmpty ? null : normalized;
-}
-
-List<String>? _tokenizeCommand(String commandText) {
-  final tokens = <String>[];
-  final buffer = StringBuffer();
-  String? quote;
-  var escaping = false;
-
-  void flushBuffer() {
-    if (buffer.isEmpty) {
-      return;
-    }
-    tokens.add(buffer.toString());
-    buffer.clear();
-  }
-
-  for (var index = 0; index < commandText.length; index += 1) {
-    final char = commandText[index];
-    if (escaping) {
-      buffer.write(char);
-      escaping = false;
-      continue;
-    }
-
-    if (quote == "'") {
-      if (char == "'") {
-        quote = null;
-      } else {
-        buffer.write(char);
-      }
-      continue;
-    }
-
-    if (quote == '"') {
-      if (char == '"') {
-        quote = null;
-      } else if (char == '\\') {
-        final next = index + 1 < commandText.length
-            ? commandText[index + 1]
-            : null;
-        if (next != null &&
-            (RegExp(r'\s').hasMatch(next) ||
-                next == '"' ||
-                next == "'" ||
-                next == '\\')) {
-          escaping = true;
-          continue;
-        }
-        buffer.write(char);
-      } else {
-        buffer.write(char);
-      }
-      continue;
-    }
-
-    if (char == "'") {
-      quote = "'";
-      continue;
-    }
-    if (char == '"') {
-      quote = '"';
-      continue;
-    }
-    if (char == '\\') {
-      final next = index + 1 < commandText.length
-          ? commandText[index + 1]
-          : null;
-      if (next != null &&
-          (RegExp(r'\s').hasMatch(next) ||
-              next == '"' ||
-              next == "'" ||
-              next == '\\')) {
-        escaping = true;
-        continue;
-      }
-      buffer.write(char);
-      continue;
-    }
-    if (RegExp(r'\s').hasMatch(char)) {
-      flushBuffer();
-      continue;
-    }
-
-    buffer.write(char);
-  }
-
-  if (escaping || quote != null) {
-    return null;
-  }
-
-  flushBuffer();
-  return tokens.isEmpty ? null : tokens;
 }
 
 Future<void> _writeJsonFile({
