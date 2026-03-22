@@ -23,10 +23,11 @@ String? _secondaryLabel(ChatChangedFileRowContract row) {
 }
 
 String _tertiaryLabel(ChatChangedFileRowContract row) {
-  final details = <String>[
-    row.languageLabel ?? 'Plain text',
-    row.operationLabel.toLowerCase(),
-  ];
+  final details = <String>[];
+  if (row.languageLabel case final language?) {
+    details.add(language);
+  }
+  details.add(row.operationLabel.toLowerCase());
   if (!row.canOpenDiff) {
     details.add('patch unavailable');
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/changed_file_syntax_highlighter.dart';
@@ -24,7 +25,7 @@ class ChangedFilesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = ConversationCardPalette.of(context);
-    final accent = amberAccent(cards.brightness);
+    final accent = amberAccent(Theme.of(context).brightness);
 
     return TranscriptAnnotation(
       accent: accent,
@@ -32,7 +33,9 @@ class ChangedFilesCard extends StatelessWidget {
         icon: Icons.drive_file_rename_outline,
         label: item.title,
         accent: accent,
-        trailing: item.isRunning ? _LiveUpdateLabel(accent: accent) : null,
+        trailing: item.isRunning
+            ? const InlinePulseChip(label: 'updating')
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,42 +48,28 @@ class ChangedFilesCard extends StatelessWidget {
               height: 1.35,
             ),
           ),
-          const SizedBox(height: PocketSpacing.sm),
+          const SizedBox(height: PocketSpacing.xs),
           if (item.rows.isEmpty)
             Text(
               'Waiting for changed files…',
               style: TextStyle(color: cards.textMuted),
             )
           else
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: cards.surface,
-                borderRadius: PocketRadii.circular(PocketRadii.lg),
-                border: Border.all(
-                  color: cards.neutralBorder.withValues(alpha: 0.86),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: cards.shadow.withValues(
-                      alpha: cards.isDark ? 0.16 : 0.06,
-                    ),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: item.rows.indexed
-                    .map(
-                      (entry) => _ChangedFileRow(
+            Column(
+              children: item.rows.indexed
+                  .map(
+                    (entry) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: entry.$1 == item.rows.length - 1 ? 0 : 6,
+                      ),
+                      child: _ChangedFileRow(
                         row: entry.$2,
                         cards: cards,
-                        isLast: entry.$1 == item.rows.length - 1,
                         onOpenDiff: onOpenDiff,
                       ),
-                    )
-                    .toList(growable: false),
-              ),
+                    ),
+                  )
+                  .toList(growable: false),
             ),
         ],
       ),

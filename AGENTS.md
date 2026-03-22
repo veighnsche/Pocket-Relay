@@ -20,6 +20,16 @@ Repo rules for future agents.
   make that true in structure and ownership.
 - If there are multiple plausible interpretations, stop and state the
   ambiguity before building the wrong one.
+- If the user names a specific sub-surface such as a drawer body, modal
+  contents, row layout, header, footer, or interaction, scope the work to that
+  sub-surface unless they explicitly authorize broader redesign.
+- A request to change one part of a surface is not permission to restyle its
+  surrounding chrome, parent container, sibling widgets, or adjacent flows.
+- If the requested target is narrower than the currently convenient edit
+  boundary, keep the implementation narrow anyway. Do not widen scope to match
+  the easiest refactor.
+- Before editing UI, restate in concrete terms what is allowed to change and
+  what must remain untouched whenever there is any risk of collateral redesign.
 
 ## 3. Ownership is the first design decision
 
@@ -55,6 +65,11 @@ Repo rules for future agents.
   narratives or design-review theater.
 - If the reference is incomplete, stay literal and conservative. Do not fill
   gaps with speculation.
+- Do not add visual polish, chrome, hierarchy changes, spacing passes, card
+  redesigns, or information panels unless they are part of the requested
+  behavior.
+- Do not convert a targeted bug fix or scoped UI request into a general
+  redesign of the broader feature surface.
 
 ## 6. Widgetbook is downstream only
 
@@ -122,6 +137,12 @@ Repo rules for future agents.
 - Delete the wrong layer instead of renaming or cosmetically justifying it.
 - Do not layer new work on top of a speculative foundation to avoid admitting
   churn.
+- If implementation work starts drifting into unrelated surface changes, stop,
+  revert the widened plan mentally, and return to the smallest boundary that
+  satisfies the request.
+- If an agent has changed surrounding UI without explicit approval while the
+  requested sub-surface is still materially unchanged, that work is wrong work
+  and must not be defended as progress.
 
 ## 11. Communication
 
@@ -129,6 +150,11 @@ Repo rules for future agents.
 - If a shortcut caused churn, say so directly and correct it.
 - Do not defend a bad tradeoff after the problem is clear.
 - Do not claim something is implemented if it is only approximated.
+- If the agent intends to change anything outside the user-named target, it
+  must say so before editing and explain why that broader scope is necessary.
+- If the agent cannot improve the requested target without broader redesign, it
+  must stop and ask instead of silently redesigning the easier surrounding
+  surface.
 
 ## 12. Definition of done
 
@@ -137,6 +163,9 @@ Repo rules for future agents.
 - The solution reduces future churn instead of deferring it.
 - The verification matches the risk.
 - The final explanation accurately describes what is truly implemented.
+- For scoped UI requests, done also means the untouched surrounding surfaces are
+  still materially the same unless the user explicitly asked for broader visual
+  change.
 
 ## 13. Docs naming
 
@@ -165,3 +194,28 @@ Repo rules for future agents.
 - If historical conversation content is missing on screen, investigate the real
   upstream `thread/read` payload and the restore mapper first. Do not paper
   over missing upstream history with a local substitute.
+
+## 15. No Card Regression
+
+- If the user says to avoid card design, boxed design, panel design, framed
+  design, or similar containerized UI treatment, that is a hard visual
+  constraint, not a stylistic preference.
+- Do not introduce or reintroduce cards, card-like wrappers, panel shells,
+  tinted boxes, framed sections, review containers, or pseudo-card surfaces
+  unless the user explicitly asks for them.
+- Existing card patterns elsewhere in the app are not permission to spread card
+  styling to new or modified surfaces.
+- A wrapper added "just for spacing", "just for hierarchy", "just for
+  readability", or "temporarily" still counts as a card regression if it
+  materially recreates the deprecated boxed treatment.
+- For scoped UI work, preserving the existing non-card visual language is part
+  of correctness. Reintroducing card chrome is a bug even if the underlying
+  behavior is correct.
+- Do not solve layout ambiguity by adding another container. First try to
+  express the change within the existing visual structure.
+- If a design system or prior user direction removed card treatments from a
+  surface, future edits must preserve that removal unless the user explicitly
+  reverses it.
+- Before any UI edit on an existing surface, state in concrete terms which
+  visual patterns must remain absent, including card/panel/boxed treatments
+  whenever relevant.

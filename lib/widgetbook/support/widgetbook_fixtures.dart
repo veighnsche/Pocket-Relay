@@ -160,6 +160,16 @@ class WidgetbookFixtures {
     );
   }
 
+  static CodexStatusBlock contextCompactedBlock() {
+    return CodexStatusBlock(
+      id: 'status_compaction',
+      createdAt: timestamp,
+      title: 'Context compacted',
+      body: 'Older transcript context was compacted upstream.',
+      statusKind: CodexStatusBlockKind.compaction,
+    );
+  }
+
   static CodexErrorBlock errorBlock() {
     return CodexErrorBlock(
       id: 'error_message',
@@ -518,6 +528,20 @@ class WidgetbookFixtures {
     );
   }
 
+  static ChatExecCommandItemContract execCommandItem({bool isRunning = true}) {
+    return ChatExecCommandItemContract(
+      entry: ChatCommandExecutionWorkLogEntryContract(
+        id: 'exec_command_single',
+        commandText:
+            'ssh relay-dev.internal "cd /workspace/Pocket-Relay && pocket-relay app-server --stdio"',
+        outputPreview: isRunning
+            ? 'Connecting to relay-dev.internal...\nOpening remote workspace...'
+            : 'Connected to relay-dev.internal.\nRemote app-server started.',
+        isRunning: isRunning,
+      ),
+    );
+  }
+
   static CodexUsageBlock usageBlock() {
     return CodexUsageBlock(
       id: 'usage_block',
@@ -614,6 +638,7 @@ class WidgetbookFixtures {
           id: 'lane_work_log',
           entries: workLogGroupItem().entries,
         ),
+        execCommandItem(),
         ChatChangedFilesItemContract(
           id: 'lane_changed_files',
           title: changedFilesItem().title,
@@ -628,6 +653,7 @@ class WidgetbookFixtures {
           ),
         ),
         ChatSshItemContract(block: sshRemoteLaunchFailedBlock()),
+        ChatContextCompactedItemContract(block: contextCompactedBlock()),
         ChatStatusItemContract(block: statusBlock()),
         ChatUsageItemContract(block: usageBlock()),
         ChatTurnBoundaryItemContract(block: turnBoundaryBlock()),

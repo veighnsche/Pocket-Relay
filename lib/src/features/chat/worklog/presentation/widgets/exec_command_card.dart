@@ -15,17 +15,16 @@ class ExecCommandCard extends StatelessWidget {
     final accent = blueAccent(brightness);
     final cards = ConversationCardPalette.of(context);
 
-    return TranscriptBlocker(
+    return TranscriptAnnotation(
       accent: accent,
+      header: TranscriptAnnotationHeader(
+        icon: Icons.terminal_outlined,
+        label: entry.activityLabel,
+        accent: accent,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TranscriptAnnotationHeader(
-            icon: Icons.terminal_outlined,
-            label: entry.activityLabel,
-            accent: accent,
-          ),
-          const SizedBox(height: 10),
           Text(
             entry.commandText,
             style: TextStyle(
@@ -66,18 +65,17 @@ class ExecWaitCard extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.tertiary;
     final cards = ConversationCardPalette.of(context);
 
-    return TranscriptBlocker(
+    return TranscriptAnnotation(
       accent: accent,
+      header: TranscriptAnnotationHeader(
+        icon: Icons.hourglass_top_rounded,
+        label: entry.activityLabel,
+        accent: accent,
+        trailing: TranscriptBadge(label: 'waiting', color: accent),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TranscriptAnnotationHeader(
-            icon: Icons.hourglass_top_rounded,
-            label: entry.activityLabel,
-            accent: accent,
-            trailing: TranscriptBadge(label: 'waiting', color: accent),
-          ),
-          const SizedBox(height: 10),
           Text(
             entry.commandText,
             style: TextStyle(

@@ -42,11 +42,23 @@ class ContextCompactedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final accent = blueAccent(brightness);
+    final cards = ConversationCardPalette.of(context);
 
-    return _SessionStatusBlocker(
-      block: block,
+    return TranscriptAnnotation(
       accent: accent,
-      icon: Icons.compress_outlined,
+      header: TranscriptAnnotationHeader(
+        icon: Icons.compress_outlined,
+        label: block.title,
+        accent: accent,
+      ),
+      child: SelectableText(
+        block.body,
+        style: TextStyle(
+          color: cards.textSecondary,
+          fontSize: 12.5,
+          height: 1.3,
+        ),
+      ),
     );
   }
 }
