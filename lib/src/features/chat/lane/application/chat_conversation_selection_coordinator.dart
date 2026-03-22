@@ -12,7 +12,6 @@ class ChatConversationSelectionCoordinator {
   bool _suppressTrackedThreadReuse = false;
   bool _hasHydratedPersistedSelection = false;
   Future<void>? _hydrationFuture;
-  bool _persistedInitialSelection = false;
   Future<void> _pendingPersistence = Future<void>.value();
   int _persistenceGeneration = 0;
   int _selectionVersion = 0;
@@ -33,22 +32,6 @@ class ChatConversationSelectionCoordinator {
     }
 
     return _normalizeThreadId(_resumeThreadId);
-  }
-
-  Future<void> persistInitialSelectionIfNeeded({
-    required bool ephemeralSession,
-  }) async {
-    if (_persistedInitialSelection) {
-      return;
-    }
-
-    _persistedInitialSelection = true;
-    final selectedThreadId = resumeThreadId(ephemeralSession: ephemeralSession);
-    if (selectedThreadId == null) {
-      return;
-    }
-
-    await _scheduleConversationSelectionPersistence(selectedThreadId);
   }
 
   Future<void> selectConversationForResume(
