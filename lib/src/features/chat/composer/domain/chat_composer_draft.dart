@@ -205,6 +205,16 @@ class ChatComposerLocalImageAttachment {
   final String path;
   final String? placeholder;
 
+  String get fileName => _pathBasename(path);
+
+  String get summaryLabel {
+    final normalizedPlaceholder = placeholder?.trim();
+    if (normalizedPlaceholder == null || normalizedPlaceholder.isEmpty) {
+      return fileName;
+    }
+    return '$normalizedPlaceholder $fileName';
+  }
+
   ChatComposerLocalImageAttachment copyWith({
     String? path,
     String? placeholder,
@@ -274,6 +284,18 @@ int _placeholderNumber(String? placeholder) {
 
   final match = RegExp(r'^\[Image #(\d+)\]$').firstMatch(placeholder.trim());
   return int.tryParse(match?.group(1) ?? '') ?? 0;
+}
+
+String _pathBasename(String path) {
+  final normalized = path.replaceAll('\\', '/');
+  final segments = normalized.split('/');
+  for (var index = segments.length - 1; index >= 0; index -= 1) {
+    final segment = segments[index].trim();
+    if (segment.isNotEmpty) {
+      return segment;
+    }
+  }
+  return path;
 }
 
 List<_LocatedLocalImageAttachment> _locatedLocalImageAttachments(

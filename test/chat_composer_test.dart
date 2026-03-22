@@ -162,6 +162,7 @@ void main() {
       await tester.pump();
 
       expect(controller.text, 'See [Image #1] for details');
+      expect(find.text('[Image #1] reference.png'), findsOneWidget);
       expect(latestDraft?.text, 'See [Image #1] for details');
       expect(
         latestDraft?.localImageAttachments,

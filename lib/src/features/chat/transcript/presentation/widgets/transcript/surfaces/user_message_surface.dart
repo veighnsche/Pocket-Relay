@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
@@ -43,7 +42,7 @@ class UserMessageSurface extends StatelessWidget {
     );
     final canContinueAction = canContinueFromHere && onContinueFromHere != null;
     final attachmentSummaries = block.draft.localImageAttachments
-        .map(_attachmentSummary)
+        .map((attachment) => attachment.summaryLabel)
         .toList(growable: false);
     return Align(
       alignment: Alignment.centerRight,
@@ -238,24 +237,3 @@ class UserMessageSurface extends StatelessWidget {
 }
 
 enum _UserMessageSurfaceAction { copyPrompt, continueFromHere }
-
-String _attachmentSummary(ChatComposerLocalImageAttachment attachment) {
-  final fileName = _pathBasename(attachment.path.trim());
-  final placeholder = attachment.placeholder?.trim();
-  if (placeholder == null || placeholder.isEmpty) {
-    return fileName;
-  }
-  return '$placeholder $fileName';
-}
-
-String _pathBasename(String path) {
-  final normalized = path.replaceAll('\\', '/');
-  final segments = normalized.split('/');
-  for (var index = segments.length - 1; index >= 0; index -= 1) {
-    final segment = segments[index].trim();
-    if (segment.isNotEmpty) {
-      return segment;
-    }
-  }
-  return path;
-}

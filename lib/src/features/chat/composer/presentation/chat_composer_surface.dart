@@ -116,28 +116,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
                   ),
                 )
               : null,
-          input: _wrapInputWithKeyboardSubmit(
-            context,
-            TextField(
-              key: const ValueKey('composer_input'),
-              controller: _controller,
-              minLines: 1,
-              maxLines: 6,
-              textInputAction: TextInputAction.newline,
-              onTapOutside: (_) => _dismissKeyboard(),
-              inputFormatters: <TextInputFormatter>[_placeholderFormatter],
-              onChanged: _handleChanged,
-              decoration: InputDecoration(
-                hintText: widget.contract.placeholder,
-                isCollapsed: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-              ),
-            ),
-          ),
+          input: _buildInputRegion(context),
           primaryAction: SizedBox(
             width: 36,
             height: 36,
@@ -150,6 +129,50 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
           ),
           crossAxisAlignment: CrossAxisAlignment.center,
         ),
+      ),
+    );
+  }
+
+  Widget _buildInputRegion(BuildContext context) {
+    final attachmentSummaries = _draft.localImageAttachments
+        .map((attachment) => attachment.summaryLabel)
+        .toList(growable: false);
+
+    return _wrapInputWithKeyboardSubmit(
+      context,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            key: const ValueKey('composer_input'),
+            controller: _controller,
+            minLines: 1,
+            maxLines: 6,
+            textInputAction: TextInputAction.newline,
+            onTapOutside: (_) => _dismissKeyboard(),
+            inputFormatters: <TextInputFormatter>[_placeholderFormatter],
+            onChanged: _handleChanged,
+            decoration: InputDecoration(
+              hintText: widget.contract.placeholder,
+              isCollapsed: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 4),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+            ),
+          ),
+          if (attachmentSummaries.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...attachmentSummaries.indexed.map(
+              (entry) => Padding(
+                padding: EdgeInsets.only(top: entry.$1 == 0 ? 0 : 4),
+                child: _ComposerAttachmentSummary(label: entry.$2),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -308,6 +331,37 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
       acceptedTypeGroups: const <XTypeGroup>[_imageTypeGroup],
     );
     return file?.path;
+  }
+}
+
+class _ComposerAttachmentSummary extends StatelessWidget {
+  const _ComposerAttachmentSummary({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.image_outlined,
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
