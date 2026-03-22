@@ -90,7 +90,8 @@ class ForegroundServiceHost extends StatefulWidget {
   State<ForegroundServiceHost> createState() => _ForegroundServiceHostState();
 }
 
-class _ForegroundServiceHostState extends State<ForegroundServiceHost> {
+class _ForegroundServiceHostState extends State<ForegroundServiceHost>
+    with WidgetsBindingObserver {
   bool _requestedForegroundServiceEnabled = false;
   bool _isRequestingNotificationPermission = false;
   bool _notificationPermissionDeniedForCurrentRequest = false;
@@ -108,6 +109,7 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _syncForegroundService();
   }
 
@@ -133,11 +135,23 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_requestedForegroundServiceEnabled) {
       _requestedForegroundServiceEnabled = false;
       unawaited(_setEnabledSafely(widget.foregroundServiceController, false));
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed ||
+        !_notificationPermissionDeniedForCurrentRequest) {
+      return;
+    }
+
+    _notificationPermissionDeniedForCurrentRequest = false;
+    _syncForegroundService();
   }
 
   @override

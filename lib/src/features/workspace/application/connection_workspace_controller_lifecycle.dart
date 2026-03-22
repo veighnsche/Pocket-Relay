@@ -330,6 +330,8 @@ Future<void> _resumeWorkspaceConversation(
       return;
     }
 
+    final shouldReconnectTransport = controller._state
+        .requiresTransportReconnect(connectionId);
     final nextBinding = await _loadWorkspaceLaneBinding(
       controller,
       connectionId,
@@ -355,28 +357,41 @@ Future<void> _resumeWorkspaceConversation(
                     .savedSettingsReconnectRequiredConnectionIds,
               }..remove(connectionId),
             ),
-        transportReconnectRequiredConnectionIds:
-            _sanitizeWorkspaceReconnectRequiredIds(
-              catalog: controller._state.catalog,
-              liveConnectionIds: controller._state.liveConnectionIds,
-              reconnectRequiredConnectionIds: <String>{
-                ...controller._state.transportReconnectRequiredConnectionIds,
-              }..remove(connectionId),
-            ),
-        transportRecoveryPhasesByConnectionId:
-            _sanitizeWorkspaceTransportRecoveryPhases(
-              catalog: controller._state.catalog,
-              liveConnectionIds: controller._state.liveConnectionIds,
-              transportRecoveryPhasesByConnectionId:
-                  <String, ConnectionWorkspaceTransportRecoveryPhase>{
-                    for (final entry
-                        in controller
-                            ._state
-                            .transportRecoveryPhasesByConnectionId
-                            .entries)
-                      if (entry.key != connectionId) entry.key: entry.value,
-                  },
-            ),
+        transportReconnectRequiredConnectionIds: shouldReconnectTransport
+            ? controller._state.transportReconnectRequiredConnectionIds
+            : _sanitizeWorkspaceReconnectRequiredIds(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                reconnectRequiredConnectionIds: <String>{
+                  ...controller._state.transportReconnectRequiredConnectionIds,
+                }..remove(connectionId),
+              ),
+        transportRecoveryPhasesByConnectionId: shouldReconnectTransport
+            ? _sanitizeWorkspaceTransportRecoveryPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                transportRecoveryPhasesByConnectionId:
+                    <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                      ...controller
+                          ._state
+                          .transportRecoveryPhasesByConnectionId,
+                      connectionId: ConnectionWorkspaceTransportRecoveryPhase
+                          .reconnecting,
+                    },
+              )
+            : _sanitizeWorkspaceTransportRecoveryPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                transportRecoveryPhasesByConnectionId:
+                    <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                      for (final entry
+                          in controller
+                              ._state
+                              .transportRecoveryPhasesByConnectionId
+                              .entries)
+                        if (entry.key != connectionId) entry.key: entry.value,
+                    },
+              ),
         recoveryDiagnosticsByConnectionId:
             _sanitizeWorkspaceRecoveryDiagnostics(
               catalog: controller._state.catalog,

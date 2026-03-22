@@ -132,6 +132,46 @@ void main() {
       expect(controller.enabledStates, <bool>[true]);
     },
   );
+
+  testWidgets(
+    'rechecks notification permission on resume after an initial denial',
+    (tester) async {
+      final controller = _FakeForegroundServiceController();
+      final permissionController = _FakeNotificationPermissionController(
+        isGrantedValue: false,
+        requestPermissionValue: false,
+      );
+      addTearDown(() {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ForegroundServiceHost(
+            foregroundServiceController: controller,
+            notificationPermissionController: permissionController,
+            supportsForegroundService: true,
+            child: const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(permissionController.requestCalls, 1);
+      expect(controller.enabledStates, isEmpty);
+
+      permissionController.isGrantedValue = true;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
+      expect(permissionController.requestCalls, 1);
+      expect(controller.enabledStates, <bool>[true]);
+    },
+  );
 }
 
 class _FakeForegroundServiceController implements ForegroundServiceController {
@@ -150,8 +190,8 @@ class _FakeNotificationPermissionController
     this.requestPermissionValue = true,
   });
 
-  final bool isGrantedValue;
-  final bool requestPermissionValue;
+  bool isGrantedValue;
+  bool requestPermissionValue;
   int requestCalls = 0;
 
   @override
