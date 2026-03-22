@@ -60,7 +60,7 @@ void main() {
   });
 
   test(
-    'initialization restores persisted historical transcript into the first live lane',
+    'initialization keeps the first live lane empty even when a persisted selectedThreadId exists',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
@@ -87,21 +87,10 @@ void main() {
 
       await binding!.sessionController.initialize();
 
-      expect(clientsById['conn_primary']?.connectCalls, 1);
-      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
-        'thread_saved',
-      ]);
-      expect(
-        binding.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
-            .single
-            .body,
-        'Restored answer',
-      );
-      expect(
-        binding.sessionController.sessionState.rootThreadId,
-        'thread_saved',
-      );
+      expect(clientsById['conn_primary']?.connectCalls, 0);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+      expect(binding.sessionController.transcriptBlocks, isEmpty);
+      expect(binding.sessionController.sessionState.rootThreadId, isNull);
       expect(
         (await historyStore.loadState(
           'conn_primary',
@@ -112,7 +101,7 @@ void main() {
   );
 
   test(
-    'instantiating a dormant connection restores its persisted historical transcript',
+    'instantiating a dormant connection keeps the lane empty until history is explicitly picked',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_secondary']!.threadHistoriesById['thread_saved'] =
@@ -154,18 +143,13 @@ void main() {
           .bindingForConnectionId('conn_secondary')!
           .sessionController
           .initialize();
-      expect(clientsById['conn_secondary']?.readThreadCalls, <String>[
-        'thread_saved',
-      ]);
+      expect(clientsById['conn_secondary']?.readThreadCalls, isEmpty);
       expect(
         controller
             .bindingForConnectionId('conn_secondary')
             ?.sessionController
-            .transcriptBlocks
-            .whereType<CodexTextBlock>()
-            .single
-            .body,
-        'Restored answer',
+            .transcriptBlocks,
+        isEmpty,
       );
       expect(
         (await historyStore.loadState(

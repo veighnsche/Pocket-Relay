@@ -55,7 +55,7 @@ void main() {
   });
 
   testWidgets(
-    'desktop shell restores a persisted selectedThreadId into the live lane',
+    'desktop shell keeps the live lane empty on startup even when a persisted selectedThreadId exists',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
@@ -81,10 +81,8 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Restored answer'), findsOneWidget);
-      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
-        'thread_saved',
-      ]);
+      expect(find.text('Restored answer'), findsNothing);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
       expect(
         (await conversationStateStore.loadState(
           'conn_primary',
@@ -95,7 +93,7 @@ void main() {
   );
 
   testWidgets(
-    'desktop shell surfaces unavailable-history chrome for a persisted selectedThreadId with no transcript',
+    'desktop shell does not surface unavailable-history chrome on startup from a persisted selectedThreadId',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
@@ -126,11 +124,9 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Transcript history unavailable'), findsOneWidget);
-      expect(find.text('Retry load'), findsOneWidget);
-      expect(clientsById['conn_primary']?.readThreadCalls, <String>[
-        'thread_empty',
-      ]);
+      expect(find.text('Transcript history unavailable'), findsNothing);
+      expect(find.text('Retry load'), findsNothing);
+      expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
       expect(
         (await conversationStateStore.loadState(
           'conn_primary',
@@ -429,6 +425,69 @@ void main() {
             .single
             .body,
         'Restored answer',
+      );
+    },
+  );
+
+  testWidgets(
+    'desktop conversation history row surfaces unavailable-history chrome when the selected transcript is empty',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      clientsById['conn_primary']!.threadHistoriesById['thread_empty'] =
+          const CodexAppServerThreadHistory(
+            id: 'thread_empty',
+            name: 'Empty conversation',
+            sourceKind: 'app-server',
+            turns: <CodexAppServerHistoryTurn>[],
+          );
+      final conversationStateStore =
+          MemoryCodexConnectionConversationStateStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        conversationStateStore: conversationStateStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          conversationHistoryRepository:
+              FakeCodexWorkspaceConversationHistoryRepository(
+                conversations: <CodexWorkspaceConversationSummary>[
+                  CodexWorkspaceConversationSummary(
+                    threadId: 'thread_empty',
+                    preview: 'Empty backend thread',
+                    cwd: '/workspace',
+                    promptCount: 0,
+                    firstPromptAt: null,
+                    lastActivityAt: DateTime(2026, 3, 20, 11),
+                  ),
+                ],
+              ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Conversation history'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('workspace_conversation_thread_empty')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Transcript history unavailable'), findsOneWidget);
+      expect(find.text('Retry load'), findsOneWidget);
+      expect(
+        (await conversationStateStore.loadState(
+          'conn_primary',
+        )).normalizedSelectedThreadId,
+        'thread_empty',
       );
     },
   );
