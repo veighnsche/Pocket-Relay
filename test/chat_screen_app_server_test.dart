@@ -210,7 +210,7 @@ void main() {
   );
 
   testWidgets(
-    'startup restores a persisted saved conversation before sending',
+    'startup keeps the lane fresh until the user explicitly picks conversation history',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient()
         ..threadHistoriesById['thread_old'] = const CodexAppServerThreadHistory(
@@ -291,7 +291,7 @@ void main() {
       );
 
       await _pumpAppReady(tester);
-      expect(find.text('Restored answer'), findsOneWidget);
+      expect(find.text('Restored answer'), findsNothing);
 
       final composerField = find.byKey(const ValueKey('composer_input'));
       await tester.enterText(composerField, 'Start fresh from this lane');
@@ -303,7 +303,7 @@ void main() {
       expect(appServerClient.startSessionCalls, 1);
       expect(
         appServerClient.startSessionRequests.single.resumeThreadId,
-        'thread_old',
+        isNull,
       );
       expect(appServerClient.sentMessages, <String>[
         'Start fresh from this lane',
