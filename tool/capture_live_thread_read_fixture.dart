@@ -5,6 +5,16 @@ import 'dart:io';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_thread_read_fixture_sanitizer.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_json_rpc_codec.dart';
 
+final class CodexLaunchInvocation {
+  const CodexLaunchInvocation({
+    required this.executable,
+    required this.arguments,
+  });
+
+  final String executable;
+  final List<String> arguments;
+}
+
 Future<void> main(List<String> args) async {
   final options = _parseArgs(args);
   if (options == null) {
@@ -52,16 +62,23 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final command = '$codexPath app-server --listen stdio://';
-  stderr.writeln('Launching app-server from $workingDirectory...');
-
-  final process = await Process.start('bash', <String>[
-    '-lc',
-    command,
-  ], workingDirectory: workingDirectory);
-
-  final client = _JsonRpcProcessClient(process);
+  _JsonRpcProcessClient? client;
   try {
+    final invocation = buildCodexLaunchInvocation(codexPath);
+    stderr.writeln('Launching app-server from $workingDirectory...');
+
+    final process = await Process.start(
+      invocation.executable,
+      <String>[
+        ...invocation.arguments,
+        'app-server',
+        '--listen',
+        'stdio://',
+      ],
+      workingDirectory: workingDirectory,
+    );
+
+    client = _JsonRpcProcessClient(process);
     final initializeTimeout = Duration(
       seconds: options.initializeTimeoutSeconds,
     );
@@ -97,7 +114,7 @@ Future<void> main(List<String> args) async {
     );
   } on TimeoutException catch (error) {
     stderr.writeln('Capture timed out: $error');
-    final stderrTail = await client.stderrTail();
+    final stderrTail = await client?.stderrTail() ?? '';
     if (stderrTail.isNotEmpty) {
       stderr.writeln(stderrTail);
     }
@@ -107,7 +124,7 @@ Future<void> main(List<String> args) async {
     if (error.data != null) {
       stderr.writeln(jsonEncode(error.data));
     }
-    final stderrTail = await client.stderrTail();
+    final stderrTail = await client?.stderrTail() ?? '';
     if (stderrTail.isNotEmpty) {
       stderr.writeln(stderrTail);
     }
@@ -115,16 +132,34 @@ Future<void> main(List<String> args) async {
   } on ProcessException catch (error) {
     stderr.writeln('Failed to launch Codex app-server: $error');
     exitCode = 1;
+  } on FormatException catch (error) {
+    stderr.writeln('Invalid Codex launch command: ${error.message}');
+    exitCode = 64;
   } on Object catch (error) {
     stderr.writeln('Capture failed: $error');
-    final stderrTail = await client.stderrTail();
+    final stderrTail = await client?.stderrTail() ?? '';
     if (stderrTail.isNotEmpty) {
       stderr.writeln(stderrTail);
     }
     exitCode = 1;
   } finally {
-    await client.close();
+    await client?.close();
   }
+}
+
+CodexLaunchInvocation buildCodexLaunchInvocation(String launcherCommand) {
+  final tokens = _tokenizeCommand(launcherCommand.trim());
+  if (tokens == null || tokens.isEmpty) {
+    throw const FormatException(
+      'Codex launch command must be a plain executable plus optional '
+      'arguments.',
+    );
+  }
+
+  return CodexLaunchInvocation(
+    executable: tokens.first,
+    arguments: tokens.sublist(1),
+  );
 }
 
 typedef _CaptureOptions = ({
@@ -351,6 +386,98 @@ String? _normalizeOptionalString(String? value) {
   }
   final normalized = value.trim();
   return normalized.isEmpty ? null : normalized;
+}
+
+List<String>? _tokenizeCommand(String commandText) {
+  final tokens = <String>[];
+  final buffer = StringBuffer();
+  String? quote;
+  var escaping = false;
+
+  void flushBuffer() {
+    if (buffer.isEmpty) {
+      return;
+    }
+    tokens.add(buffer.toString());
+    buffer.clear();
+  }
+
+  for (var index = 0; index < commandText.length; index += 1) {
+    final char = commandText[index];
+    if (escaping) {
+      buffer.write(char);
+      escaping = false;
+      continue;
+    }
+
+    if (quote == "'") {
+      if (char == "'") {
+        quote = null;
+      } else {
+        buffer.write(char);
+      }
+      continue;
+    }
+
+    if (quote == '"') {
+      if (char == '"') {
+        quote = null;
+      } else if (char == '\\') {
+        final next = index + 1 < commandText.length
+            ? commandText[index + 1]
+            : null;
+        if (next != null &&
+            (RegExp(r'\s').hasMatch(next) ||
+                next == '"' ||
+                next == "'" ||
+                next == '\\')) {
+          escaping = true;
+          continue;
+        }
+        buffer.write(char);
+      } else {
+        buffer.write(char);
+      }
+      continue;
+    }
+
+    if (char == "'") {
+      quote = "'";
+      continue;
+    }
+    if (char == '"') {
+      quote = '"';
+      continue;
+    }
+    if (char == '\\') {
+      final next = index + 1 < commandText.length
+          ? commandText[index + 1]
+          : null;
+      if (next != null &&
+          (RegExp(r'\s').hasMatch(next) ||
+              next == '"' ||
+              next == "'" ||
+              next == '\\')) {
+        escaping = true;
+        continue;
+      }
+      buffer.write(char);
+      continue;
+    }
+    if (RegExp(r'\s').hasMatch(char)) {
+      flushBuffer();
+      continue;
+    }
+
+    buffer.write(char);
+  }
+
+  if (escaping || quote != null) {
+    return null;
+  }
+
+  flushBuffer();
+  return tokens.isEmpty ? null : tokens;
 }
 
 Future<void> _writeJsonFile({
