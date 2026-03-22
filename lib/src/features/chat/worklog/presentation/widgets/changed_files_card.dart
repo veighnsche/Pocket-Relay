@@ -10,6 +10,8 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 
 part 'changed_files_card_diff_sheet.dart';
+part 'changed_files_card_diff_sheet_code_frame.dart';
+part 'changed_files_card_diff_sheet_header.dart';
 part 'changed_files_card_row.dart';
 part 'changed_files_card_support.dart';
 
