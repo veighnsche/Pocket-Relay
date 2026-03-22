@@ -62,8 +62,6 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
       return false;
     }
 
-    await _conversationSelection.hydratePersistedSelection();
-
     final rootThreadId = _sessionState.rootThreadId;
     if (rootThreadId != null && _sessionState.currentThreadId != rootThreadId) {
       selectTimeline(rootThreadId);

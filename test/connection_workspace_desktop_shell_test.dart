@@ -419,6 +419,7 @@ void main() {
       expect(clientsById['conn_primary']?.disconnectCalls, 1);
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
+      expect(find.text('Restored answer'), findsOneWidget);
       expect(
         controller.selectedLaneBinding!.sessionController.transcriptBlocks
             .whereType<CodexTextBlock>()

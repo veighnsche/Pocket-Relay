@@ -60,7 +60,7 @@ class ConnectionLaneBinding {
       return;
     }
 
-    await sessionController.prepareSelectedConversationForContinuation();
+    await sessionController.activatePersistedConversation();
   }
 
   void dispose() {

@@ -148,12 +148,21 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     await _initializeWorkspaceController(this);
   }
 
-  void _applyState(ConnectionWorkspaceState nextState) {
+  bool _applyState(ConnectionWorkspaceState nextState) {
     if (_isDisposed || nextState == _state) {
-      return;
+      return false;
     }
 
     _state = nextState;
+    notifyListeners();
+    return true;
+  }
+
+  void _notifyBindingChange() {
+    if (_isDisposed) {
+      return;
+    }
+
     notifyListeners();
   }
 }
