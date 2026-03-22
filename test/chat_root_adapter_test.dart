@@ -1542,6 +1542,7 @@ class _CountingChatScreenPresenter extends ChatScreenPresenter {
     required CodexSessionState sessionState,
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
+    bool effectiveModelSupportsImages = true,
     ConnectionMode? preferredConnectionMode,
   }) {
     presentSessionCalls += 1;
@@ -1552,6 +1553,7 @@ class _CountingChatScreenPresenter extends ChatScreenPresenter {
       sessionState: sessionState,
       conversationRecoveryState: conversationRecoveryState,
       historicalConversationRestoreState: historicalConversationRestoreState,
+      effectiveModelSupportsImages: effectiveModelSupportsImages,
       preferredConnectionMode: preferredConnectionMode,
     );
   }
