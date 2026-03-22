@@ -171,13 +171,11 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost> {
 
   Future<void> _requestNotificationPermissionAndEnable(int requestEpoch) async {
     try {
-      var notificationPermissionGranted = await widget
-          .notificationPermissionController
-          .isGranted();
+      var notificationPermissionGranted =
+          await _isNotificationPermissionGrantedSafely();
       if (!notificationPermissionGranted) {
-        notificationPermissionGranted = await widget
-            .notificationPermissionController
-            .requestPermission();
+        notificationPermissionGranted =
+            await _requestNotificationPermissionSafely();
       }
 
       if (!mounted || requestEpoch != _notificationPermissionRequestEpoch) {
@@ -198,6 +196,22 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost> {
       if (mounted && requestEpoch == _notificationPermissionRequestEpoch) {
         _isRequestingNotificationPermission = false;
       }
+    }
+  }
+
+  Future<bool> _isNotificationPermissionGrantedSafely() async {
+    try {
+      return await widget.notificationPermissionController.isGranted();
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<bool> _requestNotificationPermissionSafely() async {
+    try {
+      return await widget.notificationPermissionController.requestPermission();
+    } catch (_) {
+      return true;
     }
   }
 

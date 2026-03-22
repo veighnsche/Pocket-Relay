@@ -1,7 +1,7 @@
 import Flutter
 import UIKit
 
-private final class BackgroundExecutionCoordinator {
+final class BackgroundExecutionCoordinator {
   static let shared = BackgroundExecutionCoordinator()
 
   private init() {}

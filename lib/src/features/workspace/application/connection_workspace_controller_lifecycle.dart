@@ -542,10 +542,7 @@ Future<void> _handleWorkspaceAppLifecycleState(
         selectedConnectionId,
         occurredAt: resumedAt,
       );
-      if (!controller._state.requiresTransportReconnect(selectedConnectionId) ||
-          controller._state.requiresSavedSettingsReconnect(
-            selectedConnectionId,
-          )) {
+      if (!controller._state.requiresTransportReconnect(selectedConnectionId)) {
         return;
       }
 

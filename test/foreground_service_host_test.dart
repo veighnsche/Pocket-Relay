@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
 
@@ -108,6 +109,29 @@ void main() {
       expect(controller.enabledStates, isEmpty);
     },
   );
+
+  testWidgets(
+    'permission-channel failures fail open and still attempt to enable the service',
+    (tester) async {
+      final controller = _FakeForegroundServiceController();
+      final permissionController = _ThrowingNotificationPermissionController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ForegroundServiceHost(
+            foregroundServiceController: controller,
+            notificationPermissionController: permissionController,
+            supportsForegroundService: true,
+            child: const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(permissionController.requestCalls, 1);
+      expect(controller.enabledStates, <bool>[true]);
+    },
+  );
 }
 
 class _FakeForegroundServiceController implements ForegroundServiceController {
@@ -137,5 +161,19 @@ class _FakeNotificationPermissionController
   Future<bool> requestPermission() async {
     requestCalls += 1;
     return requestPermissionValue;
+  }
+}
+
+class _ThrowingNotificationPermissionController
+    implements NotificationPermissionController {
+  int requestCalls = 0;
+
+  @override
+  Future<bool> isGranted() async => false;
+
+  @override
+  Future<bool> requestPermission() {
+    requestCalls += 1;
+    throw MissingPluginException('notification permission channel missing');
   }
 }
