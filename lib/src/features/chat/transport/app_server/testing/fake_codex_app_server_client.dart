@@ -134,6 +134,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   String? startSessionReasoningEffort;
   String? startSessionCwd;
   String? listModelsNextCursor;
+  final List<CodexAppServerModelListPage> listedModelPages =
+      <CodexAppServerModelListPage>[];
   int disconnectCalls = 0;
   String? connectedThreadId;
   Completer<void>? sendUserMessageGate;
@@ -372,6 +374,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       limit: limit,
       includeHidden: includeHidden,
     ));
+    if (listedModelPages.isNotEmpty) {
+      return listedModelPages.removeAt(0);
+    }
     return CodexAppServerModelListPage(
       models: List<CodexAppServerModel>.from(listedModels),
       nextCursor: listModelsNextCursor,

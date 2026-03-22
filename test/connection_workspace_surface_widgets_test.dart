@@ -133,7 +133,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: <String>['text'],
+            inputModalities: const <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -200,7 +200,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: <String>['text'],
+            inputModalities: const <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -270,7 +270,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: <String>['text'],
+            inputModalities: const <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -431,7 +431,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: <String>['text'],
+            inputModalities: const <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -509,7 +509,7 @@ void main() {
             ),
           ],
           defaultReasoningEffort: CodexReasoningEffort.xhigh,
-          inputModalities: <String>['text'],
+          inputModalities: const <String>['text'],
           supportsPersonality: false,
           isDefault: true,
         ),
@@ -570,6 +570,182 @@ void main() {
         await controller.loadLastKnownConnectionModelCatalog(),
         refreshedCatalog,
       );
+
+      settingsOverlayDelegate.complete(null);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'live lane refresh stops paginating when the backend repeats a cursor',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!;
+      client.listedModelPages.addAll(<CodexAppServerModelListPage>[
+        const CodexAppServerModelListPage(
+          models: const <CodexAppServerModel>[
+            CodexAppServerModel(
+              id: 'preset_page_1',
+              model: 'gpt-page-1',
+              displayName: 'GPT Page 1',
+              description: 'First paginated model.',
+              hidden: false,
+              supportedReasoningEfforts: const <CodexAppServerReasoningEffortOption>[],
+              defaultReasoningEffort: CodexReasoningEffort.medium,
+              inputModalities: const <String>['text'],
+              supportsPersonality: false,
+              isDefault: true,
+            ),
+          ],
+          nextCursor: 'repeat-cursor',
+        ),
+        const CodexAppServerModelListPage(
+          models: const <CodexAppServerModel>[
+            CodexAppServerModel(
+              id: 'preset_page_2',
+              model: 'gpt-page-2',
+              displayName: 'GPT Page 2',
+              description: 'Second paginated model.',
+              hidden: false,
+              supportedReasoningEfforts: const <CodexAppServerReasoningEffortOption>[],
+              defaultReasoningEffort: CodexReasoningEffort.medium,
+              inputModalities: const <String>['text'],
+              supportsPersonality: false,
+              isDefault: false,
+            ),
+          ],
+          nextCursor: 'repeat-cursor',
+        ),
+      ]);
+      await client.connect(
+        profile: _profile('Primary Box', 'primary.local'),
+        secrets: const ConnectionSecrets(password: 'secret-1'),
+      );
+
+      final modelCatalogStore = MemoryConnectionModelCatalogStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      final settingsOverlayDelegate =
+          _DeferredConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final laneBinding = controller.selectedLaneBinding!;
+
+      await tester.pumpWidget(
+        _buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Connection settings'));
+      await tester.pump();
+
+      final refreshCallback =
+          settingsOverlayDelegate.launchedRefreshCallbacks.single;
+      final refreshedCatalog = await refreshCallback!(
+        ConnectionSettingsDraft.fromConnection(
+          profile: settingsOverlayDelegate.launchedSettings.single.$1,
+          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+        ),
+      );
+
+      expect(client.listModelCalls, hasLength(2));
+      expect(client.listModelCalls.first.cursor, isNull);
+      expect(client.listModelCalls.last.cursor, 'repeat-cursor');
+      expect(
+        refreshedCatalog?.visibleModels.map((model) => model.model).toList(),
+        <String>['gpt-page-1', 'gpt-page-2'],
+      );
+
+      settingsOverlayDelegate.complete(null);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'live lane refresh caps backend model pagination to a fixed number of pages',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!;
+      client.listedModelPages.addAll(
+        List<CodexAppServerModelListPage>.generate(
+          101,
+          (index) => CodexAppServerModelListPage(
+            models: <CodexAppServerModel>[
+              CodexAppServerModel(
+                id: 'preset_page_${index + 1}',
+                model: 'gpt-page-${index + 1}',
+                displayName: 'GPT Page ${index + 1}',
+                description: 'Paginated model ${index + 1}.',
+                hidden: false,
+                supportedReasoningEfforts:
+                    const <CodexAppServerReasoningEffortOption>[],
+                defaultReasoningEffort: CodexReasoningEffort.medium,
+                inputModalities: const <String>['text'],
+                supportsPersonality: false,
+                isDefault: index == 0,
+              ),
+            ],
+            nextCursor: 'cursor-${index + 1}',
+          ),
+        ),
+      );
+      await client.connect(
+        profile: _profile('Primary Box', 'primary.local'),
+        secrets: const ConnectionSecrets(password: 'secret-1'),
+      );
+
+      final modelCatalogStore = MemoryConnectionModelCatalogStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      final settingsOverlayDelegate =
+          _DeferredConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final laneBinding = controller.selectedLaneBinding!;
+
+      await tester.pumpWidget(
+        _buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Connection settings'));
+      await tester.pump();
+
+      final refreshCallback =
+          settingsOverlayDelegate.launchedRefreshCallbacks.single;
+      final refreshedCatalog = await refreshCallback!(
+        ConnectionSettingsDraft.fromConnection(
+          profile: settingsOverlayDelegate.launchedSettings.single.$1,
+          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+        ),
+      );
+
+      expect(client.listModelCalls, hasLength(100));
+      expect(refreshedCatalog, isNotNull);
+      expect(refreshedCatalog!.models, hasLength(100));
+      expect(refreshedCatalog.models.first.model, 'gpt-page-1');
+      expect(refreshedCatalog.models.last.model, 'gpt-page-100');
+      expect(client.listedModelPages, hasLength(1));
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
@@ -666,7 +842,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.high,
-            inputModalities: <String>['text'],
+            inputModalities: const <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),

@@ -1,5 +1,7 @@
 part of 'workspace_live_lane_surface.dart';
 
+const int _maxLiveModelCatalogPages = 100;
+
 extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   Future<void> _handleConnectionSettingsRequested(
     ChatConnectionSettingsLaunchContract request,
@@ -199,18 +201,31 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
 
     try {
       String? cursor;
+      var pageCount = 0;
+      final seenCursors = <String>{};
       final models = <ConnectionAvailableModel>[];
-      do {
+      while (true) {
         final page = await laneBinding.appServerClient.listModels(
           cursor: cursor,
           includeHidden: true,
         );
+        pageCount += 1;
         models.addAll(
           page.models.map(_connectionAvailableModelFromAppServerModel),
         );
         final nextCursor = page.nextCursor?.trim();
-        cursor = nextCursor == null || nextCursor.isEmpty ? null : nextCursor;
-      } while (cursor != null);
+        final normalizedCursor = nextCursor == null || nextCursor.isEmpty
+            ? null
+            : nextCursor;
+        if (normalizedCursor == null) {
+          break;
+        }
+        if (pageCount >= _maxLiveModelCatalogPages ||
+            !seenCursors.add(normalizedCursor)) {
+          break;
+        }
+        cursor = normalizedCursor;
+      }
 
       final catalog = ConnectionModelCatalog(
         connectionId: connectionId,
