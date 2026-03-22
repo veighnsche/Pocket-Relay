@@ -44,6 +44,8 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
       initialSecrets: connectionSettings.initialSecrets,
       platformBehavior: platformBehavior,
       availableModelCatalog: null,
+      allowReferenceModelFallback: false,
+      onRefreshModelCatalog: null,
     );
   }
 

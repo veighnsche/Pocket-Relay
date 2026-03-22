@@ -11,6 +11,10 @@ abstract interface class ConnectionModelCatalogStore {
   Future<void> save(ConnectionModelCatalog catalog);
 
   Future<void> delete(String connectionId);
+
+  Future<ConnectionModelCatalog?> loadLastKnown();
+
+  Future<void> saveLastKnown(ConnectionModelCatalog catalog);
 }
 
 class NoopConnectionModelCatalogStore implements ConnectionModelCatalogStore {
@@ -24,18 +28,29 @@ class NoopConnectionModelCatalogStore implements ConnectionModelCatalogStore {
 
   @override
   Future<void> delete(String connectionId) async {}
+
+  @override
+  Future<ConnectionModelCatalog?> loadLastKnown() async => null;
+
+  @override
+  Future<void> saveLastKnown(ConnectionModelCatalog catalog) async {}
 }
 
 class MemoryConnectionModelCatalogStore implements ConnectionModelCatalogStore {
   MemoryConnectionModelCatalogStore({
     Iterable<ConnectionModelCatalog> initialCatalogs =
         const <ConnectionModelCatalog>[],
+    ConnectionModelCatalog? initialLastKnownCatalog,
   }) : _catalogsByConnectionId = <String, ConnectionModelCatalog>{
          for (final catalog in initialCatalogs)
            catalog.connectionId.trim(): catalog,
-       };
+       },
+       _lastKnownCatalog = initialLastKnownCatalog == null
+           ? null
+           : _normalizeCatalog(initialLastKnownCatalog);
 
   final Map<String, ConnectionModelCatalog> _catalogsByConnectionId;
+  ConnectionModelCatalog? _lastKnownCatalog;
 
   @override
   Future<ConnectionModelCatalog?> load(String connectionId) async {
@@ -52,11 +67,21 @@ class MemoryConnectionModelCatalogStore implements ConnectionModelCatalogStore {
   Future<void> delete(String connectionId) async {
     _catalogsByConnectionId.remove(_normalizeCatalogConnectionId(connectionId));
   }
+
+  @override
+  Future<ConnectionModelCatalog?> loadLastKnown() async => _lastKnownCatalog;
+
+  @override
+  Future<void> saveLastKnown(ConnectionModelCatalog catalog) async {
+    _lastKnownCatalog = _normalizeCatalog(catalog);
+  }
 }
 
 class SecureConnectionModelCatalogStore implements ConnectionModelCatalogStore {
   static const _keyPrefix = 'pocket_relay.connection.';
   static const _keySuffix = '.model_catalog';
+  static const _lastKnownKey =
+      'pocket_relay.connection_model_catalog.last_known';
   static const _preferencesMigrationKey =
       'pocket_relay.connection_model_catalog_async_migration_complete';
 
@@ -105,6 +130,36 @@ class SecureConnectionModelCatalogStore implements ConnectionModelCatalogStore {
     await _ensurePreferencesReady();
     await _preferences.remove(
       _catalogKey(_normalizeCatalogConnectionId(connectionId)),
+    );
+  }
+
+  @override
+  Future<ConnectionModelCatalog?> loadLastKnown() async {
+    await _ensurePreferencesReady();
+    final rawCatalog = await _preferences.getString(_lastKnownKey);
+    if (rawCatalog == null || rawCatalog.trim().isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(rawCatalog);
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final catalog = ConnectionModelCatalog.fromJson(decoded);
+    if (catalog.connectionId.isEmpty) {
+      return null;
+    }
+    return catalog;
+  }
+
+  @override
+  Future<void> saveLastKnown(ConnectionModelCatalog catalog) async {
+    await _ensurePreferencesReady();
+    final normalizedCatalog = _normalizeCatalog(catalog);
+    await _preferences.setString(
+      _lastKnownKey,
+      jsonEncode(normalizedCatalog.toJson()),
     );
   }
 

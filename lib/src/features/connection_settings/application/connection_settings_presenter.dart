@@ -13,6 +13,9 @@ class ConnectionSettingsPresenter {
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
     ConnectionModelCatalog? availableModelCatalog,
+    bool allowReferenceModelFallback = true,
+    bool supportsModelCatalogRefresh = false,
+    bool isRefreshingModelCatalog = false,
     bool supportsLocalConnectionMode = false,
   }) {
     final presentationState = _ConnectionSettingsPresentationState.fromForm(
@@ -20,6 +23,9 @@ class ConnectionSettingsPresenter {
       initialSecrets: initialSecrets,
       formState: formState,
       availableModelCatalog: availableModelCatalog,
+      allowReferenceModelFallback: allowReferenceModelFallback,
+      supportsModelCatalogRefresh: supportsModelCatalogRefresh,
+      isRefreshingModelCatalog: isRefreshingModelCatalog,
     );
 
     return ConnectionSettingsContract(

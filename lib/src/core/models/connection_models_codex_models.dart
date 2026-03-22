@@ -188,6 +188,7 @@ CodexReasoningEffort? codexNormalizedReasoningEffortForModel(
   String? modelId,
   CodexReasoningEffort? effort, {
   ConnectionModelCatalog? availableModelCatalog,
+  bool allowReferenceModelFallback = true,
 }) {
   if (effort == null) {
     return null;
@@ -205,6 +206,10 @@ CodexReasoningEffort? codexNormalizedReasoningEffortForModel(
     }
 
     return availableModel.defaultReasoningEffort;
+  }
+
+  if (!allowReferenceModelFallback) {
+    return effort;
   }
 
   final model = codexEffectiveReferenceModelForId(modelId);

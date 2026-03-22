@@ -109,6 +109,51 @@ void main() {
   );
 
   test(
+    'saveLastKnownConnectionModelCatalog and loadLastKnownConnectionModelCatalog use the injected store',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final modelCatalogStore = MemoryConnectionModelCatalogStore();
+      final controller = _buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      final catalog = ConnectionModelCatalog(
+        connectionId: 'conn_primary',
+        fetchedAt: DateTime.utc(2026, 3, 22, 12, 30),
+        models: const <ConnectionAvailableModel>[
+          ConnectionAvailableModel(
+            id: 'preset_gpt_54',
+            model: 'gpt-5.4',
+            displayName: 'GPT-5.4',
+            description: 'Latest frontier agentic coding model.',
+            hidden: false,
+            supportedReasoningEfforts:
+                <ConnectionAvailableModelReasoningEffortOption>[
+                  ConnectionAvailableModelReasoningEffortOption(
+                    reasoningEffort: CodexReasoningEffort.medium,
+                    description: 'Balanced default for general work.',
+                  ),
+                ],
+            defaultReasoningEffort: CodexReasoningEffort.medium,
+            inputModalities: <String>['text'],
+            supportsPersonality: true,
+            isDefault: true,
+          ),
+        ],
+      );
+
+      await controller.saveLastKnownConnectionModelCatalog(catalog);
+
+      expect(await controller.loadLastKnownConnectionModelCatalog(), catalog);
+    },
+  );
+
+  test(
     'initialization keeps the first live lane empty until history is explicitly picked',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');

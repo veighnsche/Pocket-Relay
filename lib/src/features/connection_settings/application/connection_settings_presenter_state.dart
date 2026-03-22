@@ -4,6 +4,9 @@ class _ConnectionSettingsPresentationState {
   const _ConnectionSettingsPresentationState({
     required this.draft,
     required this.availableModelCatalog,
+    required this.allowReferenceModelFallback,
+    required this.supportsModelCatalogRefresh,
+    required this.isRefreshingModelCatalog,
     required this.isRemote,
     required this.hasChanges,
     required this.canSubmit,
@@ -22,6 +25,9 @@ class _ConnectionSettingsPresentationState {
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
     ConnectionModelCatalog? availableModelCatalog,
+    bool allowReferenceModelFallback = true,
+    bool supportsModelCatalogRefresh = false,
+    bool isRefreshingModelCatalog = false,
   }) {
     final draft = formState.draft;
     final isRemote = draft.connectionMode == ConnectionMode.remote;
@@ -94,6 +100,9 @@ class _ConnectionSettingsPresentationState {
     return _ConnectionSettingsPresentationState(
       draft: draft,
       availableModelCatalog: availableModelCatalog,
+      allowReferenceModelFallback: allowReferenceModelFallback,
+      supportsModelCatalogRefresh: supportsModelCatalogRefresh,
+      isRefreshingModelCatalog: isRefreshingModelCatalog,
       isRemote: isRemote,
       hasChanges: hasChanges,
       canSubmit: !hasChanges || !hasValidationErrors,
@@ -110,6 +119,9 @@ class _ConnectionSettingsPresentationState {
 
   final ConnectionSettingsDraft draft;
   final ConnectionModelCatalog? availableModelCatalog;
+  final bool allowReferenceModelFallback;
+  final bool supportsModelCatalogRefresh;
+  final bool isRefreshingModelCatalog;
   final bool isRemote;
   final bool hasChanges;
   final bool canSubmit;

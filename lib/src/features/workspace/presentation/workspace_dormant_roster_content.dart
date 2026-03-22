@@ -119,9 +119,16 @@ class _ConnectionWorkspaceDormantRosterContentState
     });
 
     try {
+      final availableModelCatalog = await widget.workspaceController
+          .loadLastKnownConnectionModelCatalog();
+      if (!mounted) {
+        return;
+      }
       final payload = await _openConnectionSettings(
         profile: ConnectionProfile.defaults(),
         secrets: const ConnectionSecrets(),
+        availableModelCatalog: availableModelCatalog,
+        allowReferenceModelFallback: false,
       );
       if (!mounted || payload == null) {
         return;
@@ -155,8 +162,11 @@ class _ConnectionWorkspaceDormantRosterContentState
           .loadSavedConnection(connectionId);
       final cachedModelCatalogFuture = widget.workspaceController
           .loadConnectionModelCatalog(connectionId);
+      final lastKnownModelCatalogFuture = widget.workspaceController
+          .loadLastKnownConnectionModelCatalog();
       final savedConnection = await savedConnectionFuture;
       final cachedModelCatalog = await cachedModelCatalogFuture;
+      final lastKnownModelCatalog = await lastKnownModelCatalogFuture;
       if (!mounted) {
         return;
       }
@@ -164,7 +174,8 @@ class _ConnectionWorkspaceDormantRosterContentState
       final payload = await _openConnectionSettings(
         profile: savedConnection.profile,
         secrets: savedConnection.secrets,
-        availableModelCatalog: cachedModelCatalog,
+        availableModelCatalog: cachedModelCatalog ?? lastKnownModelCatalog,
+        allowReferenceModelFallback: false,
       );
       if (!mounted || payload == null) {
         return;
@@ -218,6 +229,7 @@ class _ConnectionWorkspaceDormantRosterContentState
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     ConnectionModelCatalog? availableModelCatalog,
+    bool allowReferenceModelFallback = true,
   }) {
     return widget.settingsOverlayDelegate.openConnectionSettings(
       context: context,
@@ -225,6 +237,7 @@ class _ConnectionWorkspaceDormantRosterContentState
       initialSecrets: secrets,
       platformBehavior: widget.platformBehavior,
       availableModelCatalog: availableModelCatalog,
+      allowReferenceModelFallback: allowReferenceModelFallback,
     );
   }
 }

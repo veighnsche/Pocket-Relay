@@ -250,6 +250,99 @@ void main() {
         );
       },
     );
+
+    test(
+      'disables model editing and preserves saved model semantics when backend-only mode has no catalog',
+      () {
+        final initialProfile = _configuredProfile().copyWith(
+          model: 'saved-model-only',
+          reasoningEffort: CodexReasoningEffort.xhigh,
+        );
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          allowReferenceModelFallback: false,
+        );
+        final payload = contract.saveAction.submitPayload;
+
+        expect(contract.modelSection.selectedModelId, 'saved-model-only');
+        expect(contract.modelSection.isModelEnabled, isFalse);
+        expect(
+          contract.modelSection.selectedReasoningEffort,
+          CodexReasoningEffort.xhigh,
+        );
+        expect(contract.modelSection.isReasoningEffortEnabled, isFalse);
+        expect(
+          contract.modelSection.modelOptions.map((option) => option.label),
+          <String>['saved-model-only'],
+        );
+        expect(
+          contract.modelSection.reasoningEffortOptions.map(
+            (option) => option.label,
+          ),
+          <String>['XHigh'],
+        );
+        expect(payload, isNotNull);
+        expect(payload!.profile.model, 'saved-model-only');
+        expect(payload.profile.reasoningEffort, CodexReasoningEffort.xhigh);
+      },
+    );
+
+    test(
+      'enables refresh when backend refresh is available and the workspace directory is set',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          allowReferenceModelFallback: false,
+          supportsModelCatalogRefresh: true,
+        );
+
+        expect(contract.modelSection.isRefreshActionEnabled, isTrue);
+        expect(
+          contract.modelSection.refreshActionHelperText,
+          contains('Refresh'),
+        );
+      },
+    );
+
+    test('disables refresh when the workspace directory is empty', () {
+      final initialProfile = _configuredProfile().copyWith(workspaceDir: '');
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState = ConnectionSettingsFormState.initial(
+        profile: initialProfile,
+        secrets: initialSecrets,
+      );
+
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        allowReferenceModelFallback: false,
+        supportsModelCatalogRefresh: true,
+      );
+
+      expect(contract.modelSection.isRefreshActionEnabled, isFalse);
+      expect(
+        contract.modelSection.refreshActionHelperText,
+        'Set a workspace directory to enable model refresh.',
+      );
+    });
   });
 }
 

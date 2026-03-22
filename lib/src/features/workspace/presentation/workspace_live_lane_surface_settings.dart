@@ -26,9 +26,8 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       );
       final availableModelCatalogFuture = _resolveAvailableModelCatalog(
         workspaceController: workspaceController,
-        laneBinding: laneBinding,
         connectionId: connectionId,
-        preferCachedCatalog: shouldPreferCachedModelCatalog,
+        preferConnectionCatalog: shouldPreferCachedModelCatalog,
       );
       final initialSettings = await initialSettingsFuture;
       final availableModelCatalog = await availableModelCatalogFuture;
@@ -44,12 +43,24 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         return;
       }
 
+      final onRefreshModelCatalog = laneBinding.appServerClient.isConnected
+          ? (ConnectionSettingsDraft draft) {
+              return _refreshAvailableModelCatalog(
+                workspaceController: workspaceController,
+                laneBinding: laneBinding,
+                connectionId: connectionId,
+                draft: draft,
+              );
+            }
+          : null;
       final result = await settingsOverlayDelegate.openConnectionSettings(
         context: context,
         initialProfile: initialSettings.$1,
         initialSecrets: initialSettings.$2,
         platformBehavior: platformPolicy.behavior,
         availableModelCatalog: availableModelCatalog,
+        allowReferenceModelFallback: false,
+        onRefreshModelCatalog: onRefreshModelCatalog,
       );
       if (!_matchesLiveRequestContext(
             workspaceController: workspaceController,
@@ -122,30 +133,18 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
 
   Future<ConnectionModelCatalog?> _resolveAvailableModelCatalog({
     required ConnectionWorkspaceController workspaceController,
-    required ConnectionLaneBinding laneBinding,
     required String connectionId,
-    required bool preferCachedCatalog,
+    required bool preferConnectionCatalog,
   }) async {
-    if (preferCachedCatalog) {
-      return _loadCachedModelCatalog(
-        workspaceController: workspaceController,
-        connectionId: connectionId,
-      );
-    }
-
-    final freshCatalog = await _fetchAndCacheLiveModelCatalog(
-      workspaceController: workspaceController,
-      laneBinding: laneBinding,
-      connectionId: connectionId,
-    );
-    if (freshCatalog != null) {
-      return freshCatalog;
-    }
-
-    return _loadCachedModelCatalog(
+    final connectionCatalog = await _loadCachedModelCatalog(
       workspaceController: workspaceController,
       connectionId: connectionId,
     );
+    if (connectionCatalog != null || preferConnectionCatalog) {
+      return connectionCatalog;
+    }
+
+    return _loadLastKnownModelCatalog(workspaceController: workspaceController);
   }
 
   Future<ConnectionModelCatalog?> _loadCachedModelCatalog({
@@ -159,11 +158,25 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     }
   }
 
-  Future<ConnectionModelCatalog?> _fetchAndCacheLiveModelCatalog({
+  Future<ConnectionModelCatalog?> _loadLastKnownModelCatalog({
+    required ConnectionWorkspaceController workspaceController,
+  }) async {
+    try {
+      return await workspaceController.loadLastKnownConnectionModelCatalog();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ConnectionModelCatalog?> _refreshAvailableModelCatalog({
     required ConnectionWorkspaceController workspaceController,
     required ConnectionLaneBinding laneBinding,
     required String connectionId,
+    required ConnectionSettingsDraft draft,
   }) async {
+    if (draft.workspaceDir.trim().isEmpty) {
+      return null;
+    }
     if (!laneBinding.appServerClient.isConnected) {
       return null;
     }
@@ -190,6 +203,9 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       );
       try {
         await workspaceController.saveConnectionModelCatalog(catalog);
+      } catch (_) {}
+      try {
+        await workspaceController.saveLastKnownConnectionModelCatalog(catalog);
       } catch (_) {}
       return catalog;
     } catch (_) {

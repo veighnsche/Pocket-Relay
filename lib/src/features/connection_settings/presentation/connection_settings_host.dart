@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
@@ -18,6 +20,8 @@ class ConnectionSettingsHost extends StatefulWidget {
     required this.initialProfile,
     required this.initialSecrets,
     this.availableModelCatalog,
+    this.allowReferenceModelFallback = true,
+    this.onRefreshModelCatalog,
     required this.onCancel,
     required this.onSubmit,
     required this.builder,
@@ -27,6 +31,9 @@ class ConnectionSettingsHost extends StatefulWidget {
   final ConnectionProfile initialProfile;
   final ConnectionSecrets initialSecrets;
   final ConnectionModelCatalog? availableModelCatalog;
+  final bool allowReferenceModelFallback;
+  final Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+  onRefreshModelCatalog;
   final VoidCallback onCancel;
   final ValueChanged<ConnectionSettingsSubmitPayload> onSubmit;
   final ConnectionSettingsHostBuilder builder;
@@ -40,6 +47,8 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
   final _presenter = const ConnectionSettingsPresenter();
   late final Map<ConnectionSettingsFieldId, TextEditingController> _controllers;
   late ConnectionSettingsFormState _formState;
+  ConnectionModelCatalog? _availableModelCatalog;
+  bool _isRefreshingModelCatalog = false;
 
   @override
   void initState() {
@@ -48,6 +57,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       profile: widget.initialProfile,
       secrets: widget.initialSecrets,
     );
+    _availableModelCatalog = widget.availableModelCatalog;
     final draft = _formState.draft;
     _controllers = <ConnectionSettingsFieldId, TextEditingController>{
       for (final fieldId in ConnectionSettingsFieldId.values)
@@ -78,6 +88,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
         onConnectionModeChanged: _updateConnectionMode,
         onAuthModeChanged: _updateAuthMode,
         onReasoningEffortChanged: _updateReasoningEffort,
+        onRefreshModelCatalog: _refreshModelCatalog,
         onToggleChanged: _updateToggle,
         onCancel: widget.onCancel,
         onSave: _save,
@@ -92,7 +103,10 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       initialProfile: widget.initialProfile,
       initialSecrets: widget.initialSecrets,
       formState: formState ?? _formState,
-      availableModelCatalog: widget.availableModelCatalog,
+      availableModelCatalog: _availableModelCatalog,
+      allowReferenceModelFallback: widget.allowReferenceModelFallback,
+      supportsModelCatalogRefresh: widget.onRefreshModelCatalog != null,
+      isRefreshingModelCatalog: _isRefreshingModelCatalog,
       supportsLocalConnectionMode:
           widget.platformBehavior.supportsLocalConnectionMode,
     );
@@ -143,7 +157,8 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
     final nextEffort = codexNormalizedReasoningEffortForModel(
       normalizedModel.isEmpty ? null : normalizedModel,
       _formState.draft.reasoningEffort,
-      availableModelCatalog: widget.availableModelCatalog,
+      availableModelCatalog: _availableModelCatalog,
+      allowReferenceModelFallback: widget.allowReferenceModelFallback,
     );
     setState(() {
       _formState = _formState.copyWith(
@@ -153,6 +168,46 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
         ),
       );
     });
+  }
+
+  Future<void> _refreshModelCatalog() async {
+    final onRefreshModelCatalog = widget.onRefreshModelCatalog;
+    if (onRefreshModelCatalog == null || _isRefreshingModelCatalog) {
+      return;
+    }
+
+    setState(() {
+      _isRefreshingModelCatalog = true;
+    });
+
+    try {
+      final refreshedCatalog = await onRefreshModelCatalog(_formState.draft);
+      if (!mounted || refreshedCatalog == null) {
+        return;
+      }
+
+      final selectedModelId = _formState.draft.model.trim().isEmpty
+          ? null
+          : _formState.draft.model.trim();
+      final nextEffort = codexNormalizedReasoningEffortForModel(
+        selectedModelId,
+        _formState.draft.reasoningEffort,
+        availableModelCatalog: refreshedCatalog,
+        allowReferenceModelFallback: widget.allowReferenceModelFallback,
+      );
+      setState(() {
+        _availableModelCatalog = refreshedCatalog;
+        _formState = _formState.copyWith(
+          draft: _formState.draft.copyWith(reasoningEffort: nextEffort),
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshingModelCatalog = false;
+        });
+      }
+    }
   }
 
   void _save() {
@@ -200,6 +255,7 @@ class ConnectionSettingsHostActions {
     required this.onConnectionModeChanged,
     required this.onAuthModeChanged,
     required this.onReasoningEffortChanged,
+    required this.onRefreshModelCatalog,
     required this.onToggleChanged,
     required this.onCancel,
     required this.onSave,
@@ -211,6 +267,7 @@ class ConnectionSettingsHostActions {
   final ValueChanged<ConnectionMode> onConnectionModeChanged;
   final ValueChanged<AuthMode> onAuthModeChanged;
   final ValueChanged<CodexReasoningEffort?> onReasoningEffortChanged;
+  final Future<void> Function() onRefreshModelCatalog;
   final void Function(ConnectionSettingsToggleId toggleId, bool value)
   onToggleChanged;
   final VoidCallback onCancel;

@@ -148,19 +148,31 @@ class ConnectionSettingsModelSectionContract {
     required this.selectedModelId,
     required this.modelOptions,
     required this.modelHelperText,
+    required this.isModelEnabled,
     required this.selectedReasoningEffort,
     required this.reasoningEffortOptions,
     required this.reasoningEffortHelperText,
+    required this.isReasoningEffortEnabled,
+    required this.refreshActionLabel,
+    required this.refreshActionHelperText,
+    required this.isRefreshActionEnabled,
+    required this.isRefreshActionInProgress,
   });
 
   final String title;
   final String? selectedModelId;
   final List<ConnectionSettingsModelOptionContract> modelOptions;
   final String modelHelperText;
+  final bool isModelEnabled;
   final CodexReasoningEffort? selectedReasoningEffort;
   final List<ConnectionSettingsReasoningEffortOptionContract>
   reasoningEffortOptions;
   final String reasoningEffortHelperText;
+  final bool isReasoningEffortEnabled;
+  final String refreshActionLabel;
+  final String refreshActionHelperText;
+  final bool isRefreshActionEnabled;
+  final bool isRefreshActionInProgress;
 }
 
 class ConnectionSettingsToggleContract {

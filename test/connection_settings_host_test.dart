@@ -4,6 +4,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
 
@@ -243,6 +244,142 @@ void main() {
       expect(payload!.profile.reasoningEffort, CodexReasoningEffort.minimal);
     },
   );
+
+  testWidgets(
+    'shared host disables model and reasoning pickers when backend-only mode has no catalog',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          initialProfile: _configuredProfile().copyWith(
+            model: 'saved-model-only',
+            reasoningEffort: CodexReasoningEffort.xhigh,
+          ),
+          allowReferenceModelFallback: false,
+        ),
+      );
+
+      expect(
+        find.text(
+          'Use Refresh models after the first successful backend connection to update available models. Showing the saved model value only.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Use Refresh models after the first successful backend connection to update supported reasoning efforts. Showing the saved effort only.',
+        ),
+        findsOneWidget,
+      );
+
+      final modelField = tester.widget<DropdownButtonFormField<String?>>(
+        find.byKey(const ValueKey<String>('connection_settings_model')),
+      );
+      final reasoningField = tester
+          .widget<DropdownButtonFormField<CodexReasoningEffort?>>(
+            find.byKey(
+              const ValueKey<String>('connection_settings_reasoning_effort'),
+            ),
+          );
+
+      expect(modelField.onChanged, isNull);
+      expect(modelField.initialValue, 'saved-model-only');
+      expect(reasoningField.onChanged, isNull);
+      expect(reasoningField.initialValue, CodexReasoningEffort.xhigh);
+
+      final refreshButton = tester.widget<OutlinedButton>(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      expect(refreshButton.onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'shared host enables refresh only when a workspace directory is set',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          onRefreshModelCatalog: (draft) async =>
+              _backendAvailableModelCatalog(),
+          initialProfile: _configuredProfile().copyWith(workspaceDir: ''),
+          allowReferenceModelFallback: false,
+        ),
+      );
+
+      final refreshButtonBefore = tester.widget<OutlinedButton>(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      expect(refreshButtonBefore.onPressed, isNull);
+
+      await tester.enterText(
+        _materialTextField('Workspace directory'),
+        '/repo',
+      );
+      await tester.pump();
+
+      final refreshButtonAfter = tester.widget<OutlinedButton>(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      expect(refreshButtonAfter.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'shared host refresh action loads backend catalog explicitly and updates the pickers',
+    (tester) async {
+      var refreshCalls = 0;
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          allowReferenceModelFallback: false,
+          onRefreshModelCatalog: (draft) async {
+            refreshCalls += 1;
+            return _backendAvailableModelCatalog();
+          },
+        ),
+      );
+
+      expect(find.text('GPT Live Default'), findsNothing);
+
+      await tester.ensureVisible(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(refreshCalls, 1);
+
+      final modelField = tester.widget<DropdownButtonFormField<String?>>(
+        find.byKey(const ValueKey<String>('connection_settings_model')),
+      );
+      expect(modelField.onChanged, isNotNull);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('connection_settings_model')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('connection_settings_model')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('GPT Live Default').last, findsOneWidget);
+    },
+  );
 }
 
 Widget _buildMaterialSettingsApp({
@@ -250,6 +387,10 @@ Widget _buildMaterialSettingsApp({
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
   PocketPlatformBehavior platformBehavior = _mobileBehavior,
   ConnectionModelCatalog? availableModelCatalog,
+  ConnectionProfile? initialProfile,
+  bool allowReferenceModelFallback = true,
+  Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+  onRefreshModelCatalog,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(brightness),
@@ -260,6 +401,9 @@ Widget _buildMaterialSettingsApp({
         onSubmit: onSubmit,
         platformBehavior: platformBehavior,
         availableModelCatalog: availableModelCatalog,
+        initialProfile: initialProfile,
+        allowReferenceModelFallback: allowReferenceModelFallback,
+        onRefreshModelCatalog: onRefreshModelCatalog,
         builder: (context, viewModel, actions) {
           return ConnectionSheet(viewModel: viewModel, actions: actions);
         },
@@ -273,11 +417,17 @@ Widget _buildHost({
   required ConnectionSettingsHostBuilder builder,
   PocketPlatformBehavior platformBehavior = _mobileBehavior,
   ConnectionModelCatalog? availableModelCatalog,
+  ConnectionProfile? initialProfile,
+  bool allowReferenceModelFallback = true,
+  Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+  onRefreshModelCatalog,
 }) {
   return ConnectionSettingsHost(
-    initialProfile: _configuredProfile(),
+    initialProfile: initialProfile ?? _configuredProfile(),
     initialSecrets: const ConnectionSecrets(password: 'secret'),
     availableModelCatalog: availableModelCatalog,
+    allowReferenceModelFallback: allowReferenceModelFallback,
+    onRefreshModelCatalog: onRefreshModelCatalog,
     platformBehavior: platformBehavior,
     onCancel: () {},
     onSubmit: onSubmit,

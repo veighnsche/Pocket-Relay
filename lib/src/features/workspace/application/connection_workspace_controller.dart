@@ -115,6 +115,16 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     return _saveWorkspaceConnectionModelCatalog(this, catalog);
   }
 
+  Future<ConnectionModelCatalog?> loadLastKnownConnectionModelCatalog() {
+    return _loadWorkspaceLastKnownConnectionModelCatalog(this);
+  }
+
+  Future<void> saveLastKnownConnectionModelCatalog(
+    ConnectionModelCatalog catalog,
+  ) {
+    return _saveWorkspaceLastKnownConnectionModelCatalog(this, catalog);
+  }
+
   Future<void> reconnectConnection(String connectionId) {
     return _reconnectWorkspaceLane(this, connectionId);
   }

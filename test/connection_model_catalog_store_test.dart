@@ -39,6 +39,18 @@ void main() {
     expect(await store.load('conn_primary'), isNull);
   });
 
+  test('memory store saves and loads the last known catalog', () async {
+    final store = MemoryConnectionModelCatalogStore();
+    final catalog = _catalog(
+      connectionId: 'conn_primary',
+      fetchedAt: DateTime.utc(2026, 3, 22, 12, 1),
+    );
+
+    await store.saveLastKnown(catalog);
+
+    expect(await store.loadLastKnown(), catalog);
+  });
+
   test('secure store round-trips the persisted catalog', () async {
     final preferences = SharedPreferencesAsync();
     final store = SecureConnectionModelCatalogStore(preferences: preferences);
@@ -76,6 +88,25 @@ void main() {
       ),
       isNull,
     );
+  });
+
+  test('secure store round-trips the persisted last known catalog', () async {
+    final preferences = SharedPreferencesAsync();
+    final store = SecureConnectionModelCatalogStore(preferences: preferences);
+    final catalog = _catalog(
+      connectionId: 'conn_primary',
+      fetchedAt: DateTime.utc(2026, 3, 22, 12, 45),
+    );
+
+    await store.saveLastKnown(catalog);
+
+    expect(
+      await preferences.getString(
+        'pocket_relay.connection_model_catalog.last_known',
+      ),
+      isNotNull,
+    );
+    expect(await store.loadLastKnown(), catalog);
   });
 
   test(

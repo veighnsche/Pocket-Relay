@@ -166,6 +166,30 @@ Future<void> _saveWorkspaceConnectionModelCatalog(
   );
 }
 
+Future<ConnectionModelCatalog?> _loadWorkspaceLastKnownConnectionModelCatalog(
+  ConnectionWorkspaceController controller,
+) async {
+  await controller.initialize();
+  return controller._modelCatalogStore.loadLastKnown();
+}
+
+Future<void> _saveWorkspaceLastKnownConnectionModelCatalog(
+  ConnectionWorkspaceController controller,
+  ConnectionModelCatalog catalog,
+) async {
+  final normalizedConnectionId = _normalizeWorkspaceConnectionId(
+    catalog.connectionId,
+  );
+  await controller.initialize();
+  await controller._modelCatalogStore.saveLastKnown(
+    ConnectionModelCatalog(
+      connectionId: normalizedConnectionId,
+      fetchedAt: catalog.fetchedAt,
+      models: catalog.models,
+    ),
+  );
+}
+
 Future<void> _deleteWorkspaceDormantConnection(
   ConnectionWorkspaceController controller,
   String connectionId,

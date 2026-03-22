@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 
 import '../domain/connection_settings_contract.dart';
 import 'connection_settings_host.dart';
@@ -13,6 +14,9 @@ abstract interface class ConnectionSettingsOverlayDelegate {
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
     ConnectionModelCatalog? availableModelCatalog,
+    bool allowReferenceModelFallback = true,
+    Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+    onRefreshModelCatalog,
   });
 }
 
@@ -27,6 +31,9 @@ class ModalConnectionSettingsOverlayDelegate
     required ConnectionSecrets initialSecrets,
     required PocketPlatformBehavior platformBehavior,
     ConnectionModelCatalog? availableModelCatalog,
+    bool allowReferenceModelFallback = true,
+    Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
+    onRefreshModelCatalog,
   }) {
     return showModalBottomSheet<ConnectionSettingsSubmitPayload>(
       context: context,
@@ -38,6 +45,8 @@ class ModalConnectionSettingsOverlayDelegate
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
           availableModelCatalog: availableModelCatalog,
+          allowReferenceModelFallback: allowReferenceModelFallback,
+          onRefreshModelCatalog: onRefreshModelCatalog,
           platformBehavior: platformBehavior,
           onCancel: () => Navigator.of(sheetContext).pop(),
           onSubmit: (payload) {

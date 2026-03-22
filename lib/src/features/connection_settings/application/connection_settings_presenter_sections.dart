@@ -170,7 +170,24 @@ ConnectionSettingsModelSectionContract _buildModelSection(
 ) {
   final draft = state.draft;
   final availableModelCatalog = state.availableModelCatalog;
+  final allowReferenceModelFallback = state.allowReferenceModelFallback;
+  final refreshActionLabel = state.isRefreshingModelCatalog
+      ? 'Refreshing models...'
+      : 'Refresh models';
+  final isRefreshActionEnabled =
+      state.supportsModelCatalogRefresh &&
+      draft.workspaceDir.trim().isNotEmpty &&
+      !state.isRefreshingModelCatalog;
+  final refreshActionHelperText = _refreshActionHelperText(state);
   final selectedModelId = _selectedModelIdForDraft(draft);
+  if (availableModelCatalog == null && !allowReferenceModelFallback) {
+    return _buildUnavailableModelSection(
+      state: state,
+      selectedModelId: selectedModelId,
+      selectedReasoningEffort: draft.reasoningEffort,
+    );
+  }
+
   final selectedCatalogModel = codexCatalogModelForModel(
     availableModelCatalog,
     selectedModelId,
@@ -194,6 +211,7 @@ ConnectionSettingsModelSectionContract _buildModelSection(
     selectedModelId,
     draft.reasoningEffort,
     availableModelCatalog: availableModelCatalog,
+    allowReferenceModelFallback: allowReferenceModelFallback,
   );
   final modelOptions = availableModelCatalog == null
       ? <ConnectionSettingsModelOptionContract>[
@@ -298,9 +316,15 @@ ConnectionSettingsModelSectionContract _buildModelSection(
     selectedModelId: selectedModelId,
     modelOptions: modelOptions,
     modelHelperText: modelHelperText,
+    isModelEnabled: true,
     selectedReasoningEffort: selectedReasoningEffort,
     reasoningEffortOptions: reasoningEffortOptions,
     reasoningEffortHelperText: reasoningEffortHelperText,
+    isReasoningEffortEnabled: true,
+    refreshActionLabel: refreshActionLabel,
+    refreshActionHelperText: refreshActionHelperText,
+    isRefreshActionEnabled: isRefreshActionEnabled,
+    isRefreshActionInProgress: state.isRefreshingModelCatalog,
   );
 }
 
@@ -352,6 +376,7 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
         _selectedModelIdForDraft(draft),
         draft.reasoningEffort,
         availableModelCatalog: state.availableModelCatalog,
+        allowReferenceModelFallback: state.allowReferenceModelFallback,
       ),
       authMode: draft.authMode,
       hostFingerprint: draft.hostFingerprint.trim(),
@@ -369,4 +394,86 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
 String _catalogModelLabel(ConnectionAvailableModel model) {
   final displayName = model.displayName.trim();
   return displayName.isEmpty ? model.model : displayName;
+}
+
+ConnectionSettingsModelSectionContract _buildUnavailableModelSection({
+  required _ConnectionSettingsPresentationState state,
+  required String? selectedModelId,
+  required CodexReasoningEffort? selectedReasoningEffort,
+}) {
+  final hasSavedModel = selectedModelId != null;
+  final hasSavedReasoningEffort = selectedReasoningEffort != null;
+
+  return ConnectionSettingsModelSectionContract(
+    title: 'Model defaults',
+    selectedModelId: selectedModelId,
+    modelOptions: hasSavedModel
+        ? <ConnectionSettingsModelOptionContract>[
+            ConnectionSettingsModelOptionContract(
+              modelId: selectedModelId,
+              label: selectedModelId,
+              description:
+                  'Saved model value. Use Refresh models after the first successful backend connection to update the available list.',
+            ),
+          ]
+        : const <ConnectionSettingsModelOptionContract>[
+            ConnectionSettingsModelOptionContract(
+              modelId: null,
+              label: 'Unavailable',
+              description:
+                  'Use Refresh models after the first successful backend connection to load available models from the backend.',
+            ),
+          ],
+    modelHelperText: hasSavedModel
+        ? 'Use Refresh models after the first successful backend connection to update available models. Showing the saved model value only.'
+        : 'Use Refresh models after the first successful backend connection to load available models.',
+    isModelEnabled: false,
+    selectedReasoningEffort: selectedReasoningEffort,
+    reasoningEffortOptions: hasSavedReasoningEffort
+        ? <ConnectionSettingsReasoningEffortOptionContract>[
+            ConnectionSettingsReasoningEffortOptionContract(
+              effort: selectedReasoningEffort,
+              label: _reasoningEffortLabel(selectedReasoningEffort),
+              description:
+                  'Saved reasoning effort. Use Refresh models after the first successful backend connection to update supported options.',
+            ),
+          ]
+        : const <ConnectionSettingsReasoningEffortOptionContract>[
+            ConnectionSettingsReasoningEffortOptionContract(
+              effort: null,
+              label: 'Unavailable',
+              description:
+                  'Use Refresh models after the first successful backend connection to load supported reasoning efforts from the backend.',
+            ),
+          ],
+    reasoningEffortHelperText: hasSavedReasoningEffort
+        ? 'Use Refresh models after the first successful backend connection to update supported reasoning efforts. Showing the saved effort only.'
+        : 'Use Refresh models after the first successful backend connection to load supported reasoning efforts.',
+    isReasoningEffortEnabled: false,
+    refreshActionLabel: state.isRefreshingModelCatalog
+        ? 'Refreshing models...'
+        : 'Refresh models',
+    refreshActionHelperText: _refreshActionHelperText(state),
+    isRefreshActionEnabled:
+        state.supportsModelCatalogRefresh &&
+        state.draft.workspaceDir.trim().isNotEmpty &&
+        !state.isRefreshingModelCatalog,
+    isRefreshActionInProgress: state.isRefreshingModelCatalog,
+  );
+}
+
+String _refreshActionHelperText(_ConnectionSettingsPresentationState state) {
+  if (state.isRefreshingModelCatalog) {
+    return 'Refreshing available models from the backend.';
+  }
+
+  if (state.draft.workspaceDir.trim().isEmpty) {
+    return 'Set a workspace directory to enable model refresh.';
+  }
+
+  if (!state.supportsModelCatalogRefresh) {
+    return 'Model refresh is available when this settings sheet is opened from a live backend connection.';
+  }
+
+  return 'Refresh available models and reasoning efforts from the backend.';
 }

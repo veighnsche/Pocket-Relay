@@ -197,7 +197,9 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             ),
           )
           .toList(growable: false),
-      onChanged: actions.onReasoningEffortChanged,
+      onChanged: section.isReasoningEffortEnabled
+          ? actions.onReasoningEffortChanged
+          : null,
     );
   }
 
@@ -220,7 +222,39 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             ),
           )
           .toList(growable: false),
-      onChanged: actions.onModelChanged,
+      onChanged: section.isModelEnabled ? actions.onModelChanged : null,
+    );
+  }
+
+  Widget _buildRefreshModelsAction(
+    BuildContext context,
+    ConnectionSettingsModelSectionContract section,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OutlinedButton.icon(
+          key: const ValueKey<String>('connection_settings_refresh_models'),
+          onPressed: section.isRefreshActionEnabled
+              ? actions.onRefreshModelCatalog
+              : null,
+          icon: section.isRefreshActionInProgress
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh),
+          label: Text(section.refreshActionLabel),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          section.refreshActionHelperText,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 
@@ -319,6 +353,8 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
               _buildModelPicker(context, contract.modelSection),
               const SizedBox(height: 14),
               _buildReasoningEffortPicker(context, contract.modelSection),
+              const SizedBox(height: 14),
+              _buildRefreshModelsAction(context, contract.modelSection),
             ],
           ),
         ),
