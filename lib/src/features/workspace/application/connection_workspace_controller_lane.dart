@@ -118,6 +118,7 @@ void _terminateWorkspaceConnection(
     nextSelectedConnectionId: nextSelectedConnectionId,
   );
 
+  controller._unregisterLiveBinding(normalizedConnectionId);
   binding.dispose();
   controller._applyState(
     controller._state.copyWith(

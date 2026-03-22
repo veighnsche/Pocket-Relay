@@ -1057,6 +1057,83 @@ void main() {
   );
 
   testWidgets(
+    'shows a top-of-transcript limit notice when older items are hidden',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: SizedBox(
+            height: 200,
+            child: TranscriptList(
+              surface: _surfaceContract(
+                mainItems: <CodexUiBlock>[
+                  CodexTextBlock(
+                    id: 'assistant_latest_1',
+                    kind: CodexUiBlockKind.assistantMessage,
+                    createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+                    title: 'Codex',
+                    body: 'Latest message 1',
+                  ),
+                  CodexTextBlock(
+                    id: 'assistant_latest_2',
+                    kind: CodexUiBlockKind.assistantMessage,
+                    createdAt: DateTime(2026, 3, 14, 12, 0, 2),
+                    title: 'Codex',
+                    body: 'Latest message 2',
+                  ),
+                ],
+                totalMainItemCount: 5,
+              ),
+              followBehavior: _defaultFollowBehavior,
+              platformBehavior: PocketPlatformBehavior.resolve(),
+              onConfigure: () {},
+              onAutoFollowEligibilityChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.text(
+          'Showing the most recent 2 of 5 transcript items. Older activity is not shown in this view.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'does not show a transcript limit notice when nothing is hidden',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: SizedBox(
+            height: 200,
+            child: TranscriptList(
+              surface: _surfaceContract(
+                mainItems: <CodexUiBlock>[
+                  CodexTextBlock(
+                    id: 'assistant_latest_1',
+                    kind: CodexUiBlockKind.assistantMessage,
+                    createdAt: DateTime(2026, 3, 14, 12, 0, 1),
+                    title: 'Codex',
+                    body: 'Latest message 1',
+                  ),
+                ],
+              ),
+              followBehavior: _defaultFollowBehavior,
+              platformBehavior: PocketPlatformBehavior.resolve(),
+              onConfigure: () {},
+              onAutoFollowEligibilityChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Showing the most recent'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'renders proposed plans with extracted title and collapse control',
     (tester) async {
       final markdownLines = <String>[
@@ -2363,6 +2440,7 @@ ChatTranscriptSurfaceContract _surfaceContract({
   List<CodexUiBlock> mainItems = const <CodexUiBlock>[],
   List<CodexUiBlock> pinnedItems = const <CodexUiBlock>[],
   Set<String>? activePendingUserInputRequestIds,
+  int? totalMainItemCount,
   ChatEmptyStateContract? emptyState,
 }) {
   return ChatTranscriptSurfaceContract(
@@ -2381,6 +2459,7 @@ ChatTranscriptSurfaceContract _surfaceContract({
           mainItems: mainItems,
           pinnedItems: pinnedItems,
         ),
+    totalMainItemCount: totalMainItemCount,
     emptyState: emptyState,
   );
 }

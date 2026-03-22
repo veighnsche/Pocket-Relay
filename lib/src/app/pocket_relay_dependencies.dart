@@ -7,12 +7,14 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 
 class PocketRelayAppDependencies {
   const PocketRelayAppDependencies({
     this.connectionRepository,
     this.conversationHistoryRepository,
+    this.recoveryStore,
     this.appServerClient,
     this.displayWakeLockController,
     this.platformPolicy,
@@ -23,6 +25,7 @@ class PocketRelayAppDependencies {
   final CodexConnectionRepository? connectionRepository;
   final CodexWorkspaceConversationHistoryRepository?
   conversationHistoryRepository;
+  final ConnectionWorkspaceRecoveryStore? recoveryStore;
   final CodexAppServerClient? appServerClient;
   final DisplayWakeLockController? displayWakeLockController;
   final PocketPlatformPolicy? platformPolicy;
@@ -43,6 +46,8 @@ class PocketRelayAppDependencies {
 
     final workspaceController = ConnectionWorkspaceController(
       connectionRepository: resolvedConnectionRepository,
+      recoveryStore:
+          recoveryStore ?? SecureConnectionWorkspaceRecoveryStore(),
       laneBindingFactory:
           ({
             required String connectionId,

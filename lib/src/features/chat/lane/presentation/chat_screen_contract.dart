@@ -139,17 +139,23 @@ class ChatTranscriptSurfaceContract {
     required this.pinnedItems,
     required this.pendingRequestPlacement,
     required this.activePendingUserInputRequestIds,
+    int? totalMainItemCount,
     this.emptyState,
-  });
+  }) : totalMainItemCount = totalMainItemCount ?? mainItems.length,
+       assert((totalMainItemCount ?? mainItems.length) >= mainItems.length);
 
   final bool isConfigured;
   final List<ChatTranscriptItemContract> mainItems;
   final List<ChatTranscriptItemContract> pinnedItems;
   final ChatPendingRequestPlacementContract pendingRequestPlacement;
   final Set<String> activePendingUserInputRequestIds;
+  final int totalMainItemCount;
   final ChatEmptyStateContract? emptyState;
 
   bool get showsEmptyState => emptyState != null;
+  int get visibleMainItemCount => mainItems.length;
+  int get hiddenOlderMainItemCount => totalMainItemCount - mainItems.length;
+  bool get hasHiddenOlderMainItems => hiddenOlderMainItemCount > 0;
 }
 
 class ChatComposerContract {

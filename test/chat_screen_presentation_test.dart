@@ -400,6 +400,39 @@ void main() {
       },
     );
 
+    test('limits the main transcript projection to the newest window', () {
+      final projector = ChatTranscriptSurfaceProjector(
+        mainTranscriptItemLimit: 3,
+      );
+      final transcriptBlocks = List<CodexUiBlock>.generate(
+        5,
+        (index) => CodexTextBlock(
+          id: 'assistant_$index',
+          kind: CodexUiBlockKind.assistantMessage,
+          createdAt: DateTime(2026, 3, 15, 12, 0, index),
+          title: 'Codex',
+          body: 'Assistant message $index',
+        ),
+      );
+      final sessionState = CodexSessionState.initial()
+          .copyWithProjectedTranscript(blocks: transcriptBlocks);
+
+      final surface = projector.project(
+        profile: _configuredProfile(),
+        sessionState: sessionState,
+      );
+
+      expect(surface.totalMainItemCount, 5);
+      expect(surface.visibleMainItemCount, 3);
+      expect(surface.hiddenOlderMainItemCount, 2);
+      expect(
+        surface.mainItems
+            .map((item) => (item as ChatAssistantMessageItemContract).block.id)
+            .toList(growable: false),
+        <String>['assistant_2', 'assistant_3', 'assistant_4'],
+      );
+    });
+
     test(
       'keeps active pending user-input ids limited to the visible request when multiple pending inputs exist',
       () {
@@ -458,6 +491,8 @@ void main() {
         expect(surface.emptyState?.isConfigured, isFalse);
         expect(surface.mainItems, isEmpty);
         expect(surface.pinnedItems, isEmpty);
+        expect(surface.totalMainItemCount, 0);
+        expect(surface.hiddenOlderMainItemCount, 0);
         expect(surface.pendingRequestPlacement.hasVisibleRequests, isFalse);
         expect(surface.activePendingUserInputRequestIds, isEmpty);
       },

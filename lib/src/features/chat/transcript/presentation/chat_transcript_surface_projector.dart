@@ -8,13 +8,18 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_tran
 
 class ChatTranscriptSurfaceProjector {
   const ChatTranscriptSurfaceProjector({
+    this.mainTranscriptItemLimit = defaultMainTranscriptItemLimit,
     ChatTranscriptItemProjector itemProjector =
         const ChatTranscriptItemProjector(),
     ChatPendingRequestPlacementProjector pendingRequestPlacementProjector =
         const ChatPendingRequestPlacementProjector(),
-  }) : _itemProjector = itemProjector,
+  }) : assert(mainTranscriptItemLimit > 0),
+       _itemProjector = itemProjector,
        _pendingRequestPlacementProjector = pendingRequestPlacementProjector;
 
+  static const int defaultMainTranscriptItemLimit = 160;
+
+  final int mainTranscriptItemLimit;
   final ChatTranscriptItemProjector _itemProjector;
   final ChatPendingRequestPlacementProjector _pendingRequestPlacementProjector;
 
@@ -27,7 +32,14 @@ class ChatTranscriptSurfaceProjector {
         sessionState.rootThreadId != null &&
         sessionState.currentThreadId == sessionState.rootThreadId &&
         !sessionState.isBusy;
-    final mainItems = sessionState.transcriptBlocks
+    final transcriptBlocks = sessionState.transcriptBlocks;
+    final visibleTranscriptBlocks =
+        transcriptBlocks.length <= mainTranscriptItemLimit
+        ? transcriptBlocks
+        : transcriptBlocks.sublist(
+            transcriptBlocks.length - mainTranscriptItemLimit,
+          );
+    final mainItems = visibleTranscriptBlocks
         .map(
           (block) => _itemProjector.project(
             block,
@@ -55,6 +67,7 @@ class ChatTranscriptSurfaceProjector {
       pinnedItems: pinnedItems,
       pendingRequestPlacement: pendingRequestPlacement,
       activePendingUserInputRequestIds: activePendingUserInputRequestIds,
+      totalMainItemCount: transcriptBlocks.length,
       emptyState: hasVisibleConversation
           ? null
           : ChatEmptyStateContract(

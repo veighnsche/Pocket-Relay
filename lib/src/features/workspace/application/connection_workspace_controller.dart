@@ -1,7 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 
 import '../domain/connection_workspace_state.dart';
 
@@ -14,21 +17,35 @@ typedef ConnectionLaneBindingFactory =
       required String connectionId,
       required SavedConnection connection,
     });
+typedef WorkspaceNow = DateTime Function();
 
 class ConnectionWorkspaceController extends ChangeNotifier {
   ConnectionWorkspaceController({
     required CodexConnectionRepository connectionRepository,
     required ConnectionLaneBindingFactory laneBindingFactory,
+    ConnectionWorkspaceRecoveryStore? recoveryStore,
+    WorkspaceNow? now,
   }) : _connectionRepository = connectionRepository,
-       _laneBindingFactory = laneBindingFactory;
+       _laneBindingFactory = laneBindingFactory,
+       _recoveryStore =
+           recoveryStore ?? const NoopConnectionWorkspaceRecoveryStore(),
+       _now = now ?? DateTime.now;
 
   final CodexConnectionRepository _connectionRepository;
   final ConnectionLaneBindingFactory _laneBindingFactory;
+  final ConnectionWorkspaceRecoveryStore _recoveryStore;
+  final WorkspaceNow _now;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
       <String, ConnectionLaneBinding>{};
+  final Map<String, ({ConnectionLaneBinding binding, VoidCallback listener})>
+  _bindingRecoveryRegistrationsByConnectionId =
+      <String, ({ConnectionLaneBinding binding, VoidCallback listener})>{};
 
   ConnectionWorkspaceState _state = const ConnectionWorkspaceState.initial();
   Future<void>? _initializationFuture;
+  Future<void> _recoveryPersistence = Future<void>.value();
+  Future<void>? _lifecycleReconnectFuture;
+  bool _backgroundReconnectPending = false;
   bool _isDisposed = false;
 
   ConnectionWorkspaceState get state => _state;
@@ -56,11 +73,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) {
-    return _createWorkspaceConnection(
-      this,
-      profile: profile,
-      secrets: secrets,
-    );
+    return _createWorkspaceConnection(this, profile: profile, secrets: secrets);
   }
 
   Future<void> saveDormantConnection({
@@ -91,6 +104,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
   Future<void> reconnectConnection(String connectionId) {
     return _reconnectWorkspaceLane(this, connectionId);
+  }
+
+  Future<void> handleAppLifecycleStateChanged(AppLifecycleState state) {
+    return _handleWorkspaceAppLifecycleState(this, state);
   }
 
   Future<void> resumeConversation({
@@ -131,10 +148,11 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     }
     _isDisposed = true;
 
-    final liveBindings = _liveBindingsByConnectionId.values.toList();
+    final liveBindingEntries = _liveBindingsByConnectionId.entries.toList();
     _liveBindingsByConnectionId.clear();
-    for (final binding in liveBindings) {
-      binding.dispose();
+    for (final entry in liveBindingEntries) {
+      _unregisterLiveBinding(entry.key);
+      entry.value.dispose();
     }
     super.dispose();
   }
@@ -150,6 +168,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
     _state = nextState;
     notifyListeners();
+    unawaited(_enqueueRecoveryPersistence());
     return true;
   }
 
@@ -159,5 +178,84 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     }
 
     notifyListeners();
+    unawaited(_enqueueRecoveryPersistence());
+  }
+
+  void _registerLiveBinding(
+    String connectionId,
+    ConnectionLaneBinding binding,
+  ) {
+    _unregisterLiveBinding(connectionId);
+    void listener() {
+      unawaited(_enqueueRecoveryPersistence());
+    }
+
+    _bindingRecoveryRegistrationsByConnectionId[connectionId] = (
+      binding: binding,
+      listener: listener,
+    );
+    binding.sessionController.addListener(listener);
+    binding.composerDraftHost.addListener(listener);
+  }
+
+  void _unregisterLiveBinding(String connectionId) {
+    final registration = _bindingRecoveryRegistrationsByConnectionId.remove(
+      connectionId,
+    );
+    if (registration == null) {
+      return;
+    }
+
+    registration.binding.sessionController.removeListener(
+      registration.listener,
+    );
+    registration.binding.composerDraftHost.removeListener(
+      registration.listener,
+    );
+  }
+
+  Future<void> _enqueueRecoveryPersistence({DateTime? backgroundedAt}) {
+    _recoveryPersistence = _recoveryPersistence
+        .then((_) async {
+          if (_isDisposed) {
+            return;
+          }
+          await _recoveryStore.save(
+            _selectedRecoveryStateSnapshot(backgroundedAt: backgroundedAt),
+          );
+        })
+        .catchError((_) {});
+    return _recoveryPersistence;
+  }
+
+  ConnectionWorkspaceRecoveryState? _selectedRecoveryStateSnapshot({
+    DateTime? backgroundedAt,
+  }) {
+    final selectedConnectionId = _state.selectedConnectionId;
+    if (selectedConnectionId == null ||
+        !_state.isConnectionLive(selectedConnectionId)) {
+      return null;
+    }
+
+    final binding = _liveBindingsByConnectionId[selectedConnectionId];
+    if (binding == null) {
+      return null;
+    }
+
+    final selectedThreadId = _normalizedWorkspaceThreadId(
+      binding.sessionController.sessionState.currentThreadId ??
+          binding.sessionController.sessionState.rootThreadId ??
+          binding
+              .sessionController
+              .historicalConversationRestoreState
+              ?.threadId,
+    );
+
+    return ConnectionWorkspaceRecoveryState(
+      connectionId: selectedConnectionId,
+      selectedThreadId: selectedThreadId,
+      draftText: binding.composerDraftHost.draft.text,
+      backgroundedAt: backgroundedAt,
+    );
   }
 }

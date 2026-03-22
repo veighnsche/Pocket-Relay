@@ -45,6 +45,10 @@ class ConnectionLaneBinding {
 
   Stream<ChatScreenEffect> get screenEffects => _screenEffectsController.stream;
 
+  void restoreComposerDraft(String text) {
+    composerDraftHost.updateText(text);
+  }
+
   void dispose() {
     if (_isDisposed) {
       return;
