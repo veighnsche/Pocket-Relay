@@ -48,12 +48,12 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     _workspaceController = _createWorkspaceController();
     setState(() {});
     unawaited(_workspaceController.initialize());
-    previousWorkspaceController.dispose();
+    unawaited(_flushAndDisposeWorkspaceController(previousWorkspaceController));
   }
 
   @override
   void dispose() {
-    _workspaceController.dispose();
+    unawaited(_flushAndDisposeWorkspaceController(_workspaceController));
     super.dispose();
   }
 
@@ -63,6 +63,13 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     );
     _ownedConnectionRepository = bootstrap.ownedConnectionRepository;
     return bootstrap.workspaceController;
+  }
+
+  Future<void> _flushAndDisposeWorkspaceController(
+    ConnectionWorkspaceController controller,
+  ) async {
+    await controller.flushRecoveryPersistence();
+    controller.dispose();
   }
 
   @override
