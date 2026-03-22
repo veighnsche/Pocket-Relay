@@ -3,6 +3,8 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 
 enum ConnectionWorkspaceViewport { liveLane, dormantRoster }
 
+enum ConnectionWorkspaceBackgroundLifecycleState { inactive, hidden, paused }
+
 class ConnectionWorkspaceState {
   const ConnectionWorkspaceState({
     required this.isLoading,

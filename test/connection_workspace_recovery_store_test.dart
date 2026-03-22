@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -28,12 +29,17 @@ void main() {
       'draftText': 'Draft',
       'selectedThreadId': '   ',
       'backgroundedAt': '2026-03-22T10:00:00.000Z',
+      'backgroundedLifecycleState': 'paused',
     });
 
     expect(state.connectionId, 'conn_primary');
     expect(state.draftText, 'Draft');
     expect(state.selectedThreadId, isNull);
     expect(state.backgroundedAt, isNotNull);
+    expect(
+      state.backgroundedLifecycleState,
+      ConnectionWorkspaceBackgroundLifecycleState.paused,
+    );
   });
 
   test(
