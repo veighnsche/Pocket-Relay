@@ -87,6 +87,24 @@ Future<void> _reconnectWorkspaceConnection(
     return;
   }
 
+  final preservedThreadId = _normalizedWorkspaceThreadId(
+    previousBinding.sessionController.sessionState.rootThreadId ??
+        previousBinding
+            .sessionController
+            .historicalConversationRestoreState
+            ?.threadId,
+  );
+  if (preservedThreadId != null) {
+    final nextConversationState =
+        (await controller._connectionConversationStateStore.loadState(
+          connectionId,
+        )).copyWith(selectedThreadId: preservedThreadId);
+    await controller._connectionConversationStateStore.saveState(
+      connectionId,
+      nextConversationState,
+    );
+  }
+
   final nextBinding = await _loadWorkspaceLaneBinding(controller, connectionId);
   if (controller._isDisposed) {
     nextBinding.dispose();
@@ -108,6 +126,11 @@ Future<void> _reconnectWorkspaceConnection(
       ),
     ),
   );
+  if (preservedThreadId != null) {
+    await nextBinding.activatePersistedConversation();
+    return;
+  }
+
   await nextBinding.initializeSession();
 }
 
@@ -132,7 +155,7 @@ Future<void> _resumeWorkspaceConversation(
       return;
     }
     controller._liveBindingsByConnectionId[connectionId] = nextBinding;
-    controller._applyState(
+    final didNotifyStateChange = controller._applyState(
       controller._state.copyWith(
         selectedConnectionId: connectionId,
         viewport: ConnectionWorkspaceViewport.liveLane,
@@ -148,6 +171,9 @@ Future<void> _resumeWorkspaceConversation(
       ),
     );
     previousBinding.dispose();
+    if (!didNotifyStateChange) {
+      controller._notifyBindingChange();
+    }
     await nextBinding.activatePersistedConversation();
     return;
   }
@@ -194,4 +220,12 @@ Future<ConnectionLaneBinding> _loadWorkspaceLaneBinding(
       connectionId,
     ),
   );
+}
+
+String? _normalizedWorkspaceThreadId(String? value) {
+  final normalizedValue = value?.trim();
+  if (normalizedValue == null || normalizedValue.isEmpty) {
+    return null;
+  }
+  return normalizedValue;
 }

@@ -57,6 +57,26 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     await _restoreConversationTranscript(threadId.trim());
   }
 
+  Future<void> activatePersistedConversation() async {
+    await _conversationSelection.hydratePersistedSelection();
+
+    final threadId = _resumeConversationThreadId();
+    if (threadId == null) {
+      return;
+    }
+
+    if (_historicalConversationRestoreState == null &&
+        _sessionState.rootThreadId == null &&
+        _sessionState.transcriptBlocks.isEmpty) {
+      await _restoreConversationTranscript(threadId);
+    }
+    if (_isDisposed || _historicalConversationRestoreState != null) {
+      return;
+    }
+
+    await prepareSelectedConversationForContinuation();
+  }
+
   Future<void> retryHistoricalConversationRestore() async {
     final threadId = _historicalConversationRestoreState?.threadId.trim();
     if (threadId == null || threadId.isEmpty) {
@@ -160,8 +180,6 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     if (_historicalConversationRestoreState != null) {
       return;
     }
-
-    await _conversationSelection.hydratePersistedSelection();
 
     final targetThreadId =
         _activeConversationThreadId() ?? _resumeConversationThreadId();

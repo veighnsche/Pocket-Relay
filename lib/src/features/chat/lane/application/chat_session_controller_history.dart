@@ -1,22 +1,5 @@
 part of 'chat_session_controller.dart';
 
-Future<void> _restoreInitialConversationIfNeededForController(
-  ChatSessionController controller,
-) async {
-  await controller._conversationSelection.persistInitialSelectionIfNeeded(
-    ephemeralSession: controller._profile.ephemeralSession,
-  );
-  final threadId = controller._resumeConversationThreadId();
-  if (threadId == null ||
-      controller._historicalConversationRestoreState != null ||
-      controller._sessionState.rootThreadId != null ||
-      controller._sessionState.transcriptBlocks.isNotEmpty) {
-    return;
-  }
-
-  await _restoreConversationTranscriptForController(controller, threadId);
-}
-
 Future<void> _restoreConversationTranscriptForController(
   ChatSessionController controller,
   String threadId,
@@ -171,7 +154,6 @@ Future<bool> _sendPromptWithAppServerForController(
 Future<String> _ensureChatSessionAppServerThread(
   ChatSessionController controller,
 ) async {
-  await controller._conversationSelection.hydratePersistedSelection();
   await _ensureChatSessionAppServerConnected(controller);
 
   final activeThreadId = controller._activeConversationThreadId();

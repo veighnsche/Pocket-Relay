@@ -258,6 +258,7 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.initialize();
+      await controller.selectConversationForResume('thread_saved');
       expect(
         controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
           (b) => b.text,
@@ -329,6 +330,7 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.initialize();
+      await controller.selectConversationForResume('thread_saved');
       expect(await controller.sendPrompt('Keep running'), isTrue);
 
       final selectedBlock = controller.transcriptBlocks
@@ -376,6 +378,7 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.initialize();
+      await controller.selectConversationForResume('thread_saved');
       final originalUserTexts = controller.transcriptBlocks
           .whereType<CodexUserMessageBlock>()
           .map((block) => block.text)
@@ -457,6 +460,7 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.initialize();
+      await controller.selectConversationForResume('thread_saved');
 
       final branched = await controller.branchSelectedConversation();
 
@@ -513,6 +517,7 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.initialize();
+      await controller.selectConversationForResume('thread_saved');
       expect(await controller.sendPrompt('Keep running'), isTrue);
 
       final branched = await controller.branchSelectedConversation();
@@ -554,6 +559,7 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.initialize();
+      await controller.selectConversationForResume('thread_saved');
       final originalUserTexts = controller.transcriptBlocks
           .whereType<CodexUserMessageBlock>()
           .map((block) => block.text)

@@ -191,6 +191,10 @@ class ChatSessionController extends ChangeNotifier {
     ).prepareSelectedConversationForContinuation();
   }
 
+  Future<void> activatePersistedConversation() {
+    return _ChatSessionControllerRecovery(this).activatePersistedConversation();
+  }
+
   Future<void> approveRequest(String requestId) {
     return _resolveApproval(requestId, approved: true);
   }
@@ -247,10 +251,6 @@ class ChatSessionController extends ChangeNotifier {
   bool _isUnsupportedHostRequest(String method) {
     return method == 'account/chatgptAuthTokens/refresh' ||
         method == 'item/tool/call';
-  }
-
-  Future<void> _restoreInitialConversationIfNeeded() async {
-    await _restoreInitialConversationIfNeededForController(this);
   }
 
   Future<void> _restoreConversationTranscript(String threadId) async {
