@@ -1,5 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_changed_files_parser.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_block_factory.dart';
+import 'package:pocket_relay/src/features/chat/transcript/application/transcript_memory_budget.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
@@ -10,11 +11,14 @@ class TranscriptTurnArtifactBuilder {
         const TranscriptItemBlockFactory(),
     TranscriptChangedFilesParser changedFilesParser =
         const TranscriptChangedFilesParser(),
+    TranscriptMemoryBudget memoryBudget = const TranscriptMemoryBudget(),
   }) : _blockFactory = blockFactory,
-       _changedFilesParser = changedFilesParser;
+       _changedFilesParser = changedFilesParser,
+       _memoryBudget = memoryBudget;
 
   final TranscriptItemBlockFactory _blockFactory;
   final TranscriptChangedFilesParser _changedFilesParser;
+  final TranscriptMemoryBudget _memoryBudget;
 
   CodexActiveTurnState upsertItem(
     CodexActiveTurnState turn,
@@ -70,7 +74,10 @@ class TranscriptTurnArtifactBuilder {
       preview: _blockFactory.workLogPreview(item),
       isRunning: item.isRunning,
       exitCode: item.exitCode,
-      snapshot: item.snapshot,
+      snapshot: _memoryBudget.retainWorkLogSnapshot(
+        item.itemType,
+        item.snapshot,
+      ),
     );
     var nextArtifacts = List<CodexTurnArtifact>.from(turn.artifacts);
     String artifactId;
@@ -167,12 +174,15 @@ class TranscriptTurnArtifactBuilder {
       );
       artifactId = last.id;
     } else {
+      final nextEntries = <CodexChangedFilesEntry>[entry];
       final nextArtifact = CodexTurnChangedFilesArtifact(
         id: 'changed_files_group_${item.entryId}',
         createdAt: item.createdAt,
         title: item.title ?? _blockFactory.defaultItemTitle(item.itemType),
         itemId: item.itemId,
-        entries: <CodexChangedFilesEntry>[entry],
+        files: _mergeChangedFilesForEntries(nextEntries),
+        unifiedDiff: _mergedRetainedUnifiedDiff(nextEntries, _memoryBudget),
+        entries: nextEntries,
         isStreaming: item.isRunning,
       );
       nextArtifacts = appendCodexTurnArtifact(nextArtifacts, nextArtifact);
@@ -199,9 +209,11 @@ class TranscriptTurnArtifactBuilder {
         snapshot: item.snapshot,
         body: item.body,
       ),
-      unifiedDiff: _changedFilesParser.unifiedDiffFromSources(
-        snapshot: item.snapshot,
-        body: item.body,
+      unifiedDiff: _memoryBudget.retainUnifiedDiff(
+        _changedFilesParser.unifiedDiffFromSources(
+          snapshot: item.snapshot,
+          body: item.body,
+        ),
       ),
       isRunning: item.isRunning,
     );
@@ -212,7 +224,9 @@ class TranscriptTurnArtifactBuilder {
     CodexChangedFilesEntry entry,
   ) {
     final nextEntries = List<CodexChangedFilesEntry>.from(artifact.entries);
-    final index = nextEntries.indexWhere((existing) => existing.id == entry.id);
+    final index = nextEntries.indexWhere(
+      (existing) => existing.id == entry.id,
+    );
     if (index == -1) {
       nextEntries.add(entry);
     } else {
@@ -224,6 +238,8 @@ class TranscriptTurnArtifactBuilder {
       createdAt: artifact.createdAt,
       title: artifact.title,
       itemId: entry.itemId,
+      files: _mergeChangedFilesForEntries(nextEntries),
+      unifiedDiff: _mergedRetainedUnifiedDiff(nextEntries, _memoryBudget),
       entries: nextEntries,
       isStreaming: entry.isRunning,
     );
@@ -298,4 +314,41 @@ class TranscriptTurnArtifactBuilder {
       _ => false,
     };
   }
+}
+
+List<CodexChangedFile> _mergeChangedFilesForEntries(
+  Iterable<CodexChangedFilesEntry> entries,
+) {
+  final mergedByPath = <String, CodexChangedFile>{};
+
+  for (final entry in entries) {
+    for (final file in entry.files) {
+      mergedByPath[file.path] = file;
+    }
+  }
+
+  return mergedByPath.values.toList(growable: false);
+}
+
+String? _mergedRetainedUnifiedDiff(
+  Iterable<CodexChangedFilesEntry> entries,
+  TranscriptMemoryBudget memoryBudget,
+) {
+  return memoryBudget.retainUnifiedDiff(
+    _joinUnifiedDiffFragments(
+      entries.map((entry) => entry.unifiedDiff).toList(growable: false),
+    ),
+  );
+}
+
+String? _joinUnifiedDiffFragments(Iterable<String?> parts) {
+  final retainedParts = parts
+      .map((part) => part?.trim())
+      .whereType<String>()
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (retainedParts.isEmpty) {
+    return null;
+  }
+  return retainedParts.join('\n');
 }
