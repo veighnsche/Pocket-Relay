@@ -5,8 +5,11 @@ import 'package:pocket_relay/src/features/connection_settings/domain/connection_
 
 Future<ConnectionRemoteRuntimeState> probeConnectionSettingsRemoteRuntime({
   required ConnectionSettingsSubmitPayload payload,
+  String? ownerId,
   CodexRemoteAppServerHostProbe hostProbe =
       const CodexSshRemoteAppServerHostProbe(),
+  CodexRemoteAppServerOwnerInspector ownerInspector =
+      const CodexSshRemoteAppServerOwnerInspector(),
 }) async {
   if (payload.profile.connectionMode != ConnectionMode.remote) {
     return const ConnectionRemoteRuntimeState.unknown();
@@ -17,8 +20,17 @@ Future<ConnectionRemoteRuntimeState> probeConnectionSettingsRemoteRuntime({
     secrets: payload.secrets,
   );
 
+  final serverState = hostCapabilities.supportsContinuity && ownerId != null
+      ? (await ownerInspector.inspectOwner(
+          profile: payload.profile,
+          secrets: payload.secrets,
+          ownerId: ownerId,
+          workspaceDir: payload.profile.workspaceDir,
+        )).toConnectionState()
+      : const ConnectionRemoteServerState.unknown();
+
   return ConnectionRemoteRuntimeState(
     hostCapability: hostCapabilities.toConnectionState(),
-    server: const ConnectionRemoteServerState.unknown(),
+    server: serverState,
   );
 }

@@ -57,6 +57,43 @@ extension CodexRemoteAppServerHostCapabilitiesMapping
   }
 }
 
+extension CodexRemoteAppServerOwnerSnapshotMapping
+    on CodexRemoteAppServerOwnerSnapshot {
+  ConnectionRemoteServerState toConnectionState() {
+    return switch (status) {
+      CodexRemoteAppServerOwnerStatus.missing ||
+      CodexRemoteAppServerOwnerStatus.stopped =>
+        ConnectionRemoteServerState.notRunning(
+          ownerId: ownerId,
+          sessionName: sessionName,
+          detail: detail,
+        ),
+      CodexRemoteAppServerOwnerStatus.unhealthy =>
+        ConnectionRemoteServerState.unhealthy(
+          ownerId: ownerId,
+          sessionName: sessionName,
+          port: endpoint?.port,
+          detail: detail,
+        ),
+      CodexRemoteAppServerOwnerStatus.running =>
+        endpoint == null
+            ? ConnectionRemoteServerState.unhealthy(
+                ownerId: ownerId,
+                sessionName: sessionName,
+                detail:
+                    detail ??
+                    'Remote Pocket Relay server reported running without a websocket endpoint.',
+              )
+            : ConnectionRemoteServerState.running(
+                ownerId: ownerId,
+                sessionName: sessionName,
+                port: endpoint!.port,
+                detail: detail,
+              ),
+    };
+  }
+}
+
 abstract interface class CodexRemoteAppServerHostProbe {
   Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
     required ConnectionProfile profile,
@@ -64,7 +101,7 @@ abstract interface class CodexRemoteAppServerHostProbe {
   });
 }
 
-abstract interface class CodexRemoteAppServerOwnerControl
+abstract interface class CodexRemoteAppServerOwnerInspector
     implements CodexRemoteAppServerHostProbe {
   Future<CodexRemoteAppServerOwnerSnapshot> inspectOwner({
     required ConnectionProfile profile,
@@ -72,7 +109,10 @@ abstract interface class CodexRemoteAppServerOwnerControl
     required String ownerId,
     required String workspaceDir,
   });
+}
 
+abstract interface class CodexRemoteAppServerOwnerControl
+    implements CodexRemoteAppServerOwnerInspector {
   Future<CodexRemoteAppServerOwnerSnapshot> startOwner({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,

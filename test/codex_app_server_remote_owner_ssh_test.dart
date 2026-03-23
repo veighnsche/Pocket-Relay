@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
 
 void main() {
@@ -119,6 +120,140 @@ void main() {
       );
     },
   );
+
+  test(
+    'buildPocketRelayRemoteOwnerSessionName normalizes unsafe characters',
+    () {
+      expect(
+        buildPocketRelayRemoteOwnerSessionName(
+          ownerId: ' remote owner / feature ',
+        ),
+        'pocket-relay:remote-owner-feature',
+      );
+    },
+  );
+
+  test('buildSshRemoteOwnerInspectCommand checks tmux and readyz', () {
+    final command = buildSshRemoteOwnerInspectCommand(
+      sessionName: 'pocket-relay:remote-1',
+      workspaceDir: '/workspace',
+    );
+
+    expect(command, contains('tmux has-session'));
+    expect(command, contains('/readyz'));
+    expect(command, contains('pocket-relay:remote-1'));
+  });
+
+  test('inspectOwner reports missing when no managed session exists', () async {
+    final process = _FakeCodexAppServerProcess(
+      stdoutLines: <String>[
+        '__pocket_relay_owner__ status=missing pid= host= port= detail=session_missing',
+      ],
+    );
+    final inspector = CodexSshRemoteAppServerOwnerInspector(
+      sshBootstrap:
+          ({required profile, required secrets, required verifyHostKey}) async {
+            return _FakeSshBootstrapClient(process: process);
+          },
+    );
+
+    final snapshot = await inspector.inspectOwner(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+      ownerId: 'remote-1',
+      workspaceDir: '/workspace',
+    );
+
+    expect(snapshot.status, CodexRemoteAppServerOwnerStatus.missing);
+    expect(snapshot.sessionName, 'pocket-relay:remote-1');
+    expect(snapshot.detail, contains('No Pocket Relay server is running'));
+    expect(snapshot.isConnectable, isFalse);
+  });
+
+  test(
+    'inspectOwner reports stopped when websocket launch metadata is missing',
+    () async {
+      final process = _FakeCodexAppServerProcess(
+        stdoutLines: <String>[
+          '__pocket_relay_owner__ status=stopped pid=2041 host= port= detail=listen_url_missing',
+        ],
+      );
+      final inspector = CodexSshRemoteAppServerOwnerInspector(
+        sshBootstrap:
+            ({
+              required profile,
+              required secrets,
+              required verifyHostKey,
+            }) async {
+              return _FakeSshBootstrapClient(process: process);
+            },
+      );
+
+      final snapshot = await inspector.inspectOwner(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        ownerId: 'remote-1',
+        workspaceDir: '/workspace',
+      );
+
+      expect(snapshot.status, CodexRemoteAppServerOwnerStatus.stopped);
+      expect(snapshot.pid, 2041);
+      expect(snapshot.detail, contains('not running a websocket app-server'));
+    },
+  );
+
+  test('inspectOwner reports unhealthy when readyz fails', () async {
+    final process = _FakeCodexAppServerProcess(
+      stdoutLines: <String>[
+        '__pocket_relay_owner__ status=unhealthy pid=2041 host=127.0.0.1 port=4100 detail=ready_check_failed',
+      ],
+    );
+    final inspector = CodexSshRemoteAppServerOwnerInspector(
+      sshBootstrap:
+          ({required profile, required secrets, required verifyHostKey}) async {
+            return _FakeSshBootstrapClient(process: process);
+          },
+    );
+
+    final snapshot = await inspector.inspectOwner(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+      ownerId: 'remote-1',
+      workspaceDir: '/workspace',
+    );
+
+    expect(snapshot.status, CodexRemoteAppServerOwnerStatus.unhealthy);
+    expect(snapshot.endpoint, isNotNull);
+    expect(snapshot.endpoint!.port, 4100);
+    expect(snapshot.detail, contains('did not pass its readiness check'));
+  });
+
+  test('inspectOwner reports running when readyz succeeds', () async {
+    final process = _FakeCodexAppServerProcess(
+      stdoutLines: <String>[
+        '__pocket_relay_owner__ status=running pid=2041 host=127.0.0.1 port=4100 detail=ready',
+      ],
+    );
+    final inspector = CodexSshRemoteAppServerOwnerInspector(
+      sshBootstrap:
+          ({required profile, required secrets, required verifyHostKey}) async {
+            return _FakeSshBootstrapClient(process: process);
+          },
+    );
+
+    final snapshot = await inspector.inspectOwner(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+      ownerId: 'remote-1',
+      workspaceDir: '/workspace',
+    );
+
+    expect(snapshot.status, CodexRemoteAppServerOwnerStatus.running);
+    expect(snapshot.endpoint, isNotNull);
+    expect(snapshot.endpoint!.host, '127.0.0.1');
+    expect(snapshot.endpoint!.port, 4100);
+    expect(snapshot.isConnectable, isTrue);
+  });
 }
 
 ConnectionProfile _profile() {
@@ -137,17 +272,12 @@ ConnectionProfile _profile() {
 }
 
 final class _FakeSshBootstrapClient implements CodexSshBootstrapClient {
-  _FakeSshBootstrapClient({this.process, this.authenticateError});
+  _FakeSshBootstrapClient({this.process});
 
   final CodexAppServerProcess? process;
-  final Object? authenticateError;
 
   @override
-  Future<void> authenticate() async {
-    if (authenticateError != null) {
-      throw authenticateError!;
-    }
-  }
+  Future<void> authenticate() async {}
 
   @override
   Future<CodexAppServerProcess> launchProcess(String command) async {
