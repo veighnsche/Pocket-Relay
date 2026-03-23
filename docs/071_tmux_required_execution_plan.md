@@ -11,6 +11,7 @@ Related docs:
 
 - [`069_true_live_turn_continuity_contract.md`](./069_true_live_turn_continuity_contract.md)
 - [`070_true_live_turn_continuity_migration_map.md`](./070_true_live_turn_continuity_migration_map.md)
+- [`072_true_live_turn_continuity_slice_plan.md`](./072_true_live_turn_continuity_slice_plan.md)
 
 ## Locked Decisions
 
@@ -61,6 +62,29 @@ The rule is:
 - do not keep the old behavior after the replacement is verified
 - do not leave server lifetime ownership implicit anywhere in the final path
 
+## Completion Guardrails
+
+The feature must not be marked complete through any of these shortcuts:
+
+- reconnecting to history via `thread/read` and calling that live continuity
+- silently auto-starting a fresh remote server during reconnect and calling it
+  the same live run
+- silently replacing one remote server with another and still claiming
+  continuity
+- leaving remote SSH stdio alive as a hidden primary path while claiming the
+  migration is done
+- delaying `thread/resume` until the next outbound prompt and calling that
+  reattach
+- showing UI controls such as `Start server` or `Stop server` before they are
+  wired to real remote lifecycle behavior
+- inferring "server is healthy" from naming only without real verification
+- preserving only local in-memory state and calling that recovery after a real
+  cold start
+- using app-local transcript history as a substitute for Codex truth
+
+If any of those are still true, the feature is not done even if the UI looks
+plausible.
+
 ## Phase 0: Preserve Existing Lane On Pure Transport Recovery
 
 ### Purpose
@@ -73,6 +97,12 @@ memory.
 
 - keep the current transport mechanism
 - change reconnect policy only
+
+### Must not do
+
+- do not rebuild the lane from `thread/read` on pure same-process reconnect
+- do not widen this phase into websocket or `tmux` work
+- do not treat brief post-turn lock/unlock like a cold-start restore
 
 ### Required behavior
 
@@ -101,6 +131,12 @@ Stop the codebase from being hard-wired to remote spawned-process stdio.
 
 - no product flip yet
 - create the seams the final architecture needs
+
+### Must not do
+
+- do not leave spawned-process ownership hidden behind a renamed interface
+- do not mix remote server lifecycle policy into the generic transport seam
+- do not break the current stdio path before its temporary adapter exists
 
 ### Required changes
 
@@ -132,6 +168,12 @@ Stop the codebase from being hard-wired to remote spawned-process stdio.
 ### Purpose
 
 Make the remote prerequisite and running-server inventory real.
+
+### Must not do
+
+- do not collapse missing `tmux` and stopped server into the same state
+- do not infer capability from saved config alone without real host checks
+- do not treat a named `tmux` session as enough proof of server health
 
 ### Required behavior
 
@@ -169,6 +211,12 @@ Make the remote prerequisite and running-server inventory real.
 Move server lifetime ownership out of hidden reconnect behavior and into
 explicit user actions.
 
+### Must not do
+
+- do not auto-start or auto-stop the remote server as a side effect of reconnect
+- do not ship UI-only controls before the remote actions are real
+- do not treat restart as an implicit reconnect fallback
+
 ### Required behavior
 
 - add explicit `Start server`
@@ -203,6 +251,12 @@ explicit user actions.
 Reach the already-running user-owned server without recreating ownership on
 connect.
 
+### Must not do
+
+- do not silently start a replacement server when attach fails
+- do not keep SSH stdio as a hidden default remote owner path
+- do not let websocket transport own discovery or lifecycle policy
+
 ### Required behavior
 
 - SSH bootstraps secure reachability and discovery only
@@ -232,6 +286,12 @@ connect.
 ### Purpose
 
 Stop history restore from masquerading as continuity.
+
+### Must not do
+
+- do not call `thread/read` first and label that continuity
+- do not delay `thread/resume` until the next user prompt
+- do not synthesize pending approvals or input locally and call that success
 
 ### Required behavior
 
@@ -264,6 +324,13 @@ Stop history restore from masquerading as continuity.
 
 Pay down the temporary migration compatibility and leave only the intended
 remote architecture standing.
+
+### Must not do
+
+- do not leave any hidden remote SSH stdio ownership path reachable
+- do not keep ambiguous reconnect UI states for convenience
+- do not declare the migration complete before the delete list and verification
+  matrix are actually satisfied
 
 ### Delete
 
@@ -383,5 +450,17 @@ This is the execution order to follow now:
    5.
 7. Delete the old remote recovery model in Phase 6.
 
+Must not do:
+
+- do not skip ahead to live reattach before discovery, explicit server controls,
+  and websocket transport exist
+- do not mark an earlier step complete by relying on a later forbidden shortcut
+- do not keep hidden fallback behavior alive just to make the next step look
+  easier
+
 This is the completed plan. Further work should now be implementation, not more
 architecture drift.
+
+For slice-level execution order, use:
+
+- [`072_true_live_turn_continuity_slice_plan.md`](./072_true_live_turn_continuity_slice_plan.md)
