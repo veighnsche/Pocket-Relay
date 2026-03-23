@@ -12,6 +12,7 @@ class ConnectionSettingsPresenter {
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
+    ConnectionRemoteRuntimeState? remoteRuntime,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
     bool didModelCatalogRefreshFail = false,
@@ -76,6 +77,7 @@ class ConnectionSettingsPresenter {
                 state: presentationState,
               ),
       ),
+      remoteRuntime: presentationState.isRemote ? remoteRuntime : null,
     );
   }
 

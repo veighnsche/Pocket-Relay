@@ -239,6 +239,7 @@ class ConnectionSettingsContract {
     this.connectionModeSection,
     this.remoteConnectionSection,
     this.authenticationSection,
+    this.remoteRuntime,
   });
 
   final String title;
@@ -251,4 +252,5 @@ class ConnectionSettingsContract {
   final ConnectionSettingsAuthenticationSectionContract? authenticationSection;
   final ConnectionSettingsRunModeSectionContract runModeSection;
   final ConnectionSettingsSaveActionContract saveAction;
+  final ConnectionRemoteRuntimeState? remoteRuntime;
 }

@@ -20,6 +20,7 @@ Future<void> _initializeWorkspaceController(
             <String, ConnectionWorkspaceTransportRecoveryPhase>{},
         recoveryDiagnosticsByConnectionId:
             <String, ConnectionWorkspaceRecoveryDiagnostics>{},
+        remoteRuntimeByConnectionId: <String, ConnectionRemoteRuntimeState>{},
       ),
     );
     return;
@@ -60,6 +61,8 @@ Future<void> _initializeWorkspaceController(
         connectionId: firstConnectionId,
         recoveryState: recoveryState,
       ),
+      remoteRuntimeByConnectionId:
+          const <String, ConnectionRemoteRuntimeState>{},
     ),
   );
   await firstBinding.sessionController.initialize();
@@ -212,7 +215,8 @@ Future<void> _reconnectWorkspaceConnection(
     return;
   }
   final shouldReconnectTransport =
-      reconnectRequirement == ConnectionWorkspaceReconnectRequirement.transport ||
+      reconnectRequirement ==
+          ConnectionWorkspaceReconnectRequirement.transport ||
       reconnectRequirement ==
           ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings;
   final shouldReplaceBinding =
@@ -230,9 +234,11 @@ Future<void> _reconnectWorkspaceConnection(
                 liveConnectionIds: controller._state.liveConnectionIds,
                 transportRecoveryPhasesByConnectionId:
                     <String, ConnectionWorkspaceTransportRecoveryPhase>{
-                      ...controller._state.transportRecoveryPhasesByConnectionId,
-                      connectionId:
-                          ConnectionWorkspaceTransportRecoveryPhase.reconnecting,
+                      ...controller
+                          ._state
+                          .transportRecoveryPhasesByConnectionId,
+                      connectionId: ConnectionWorkspaceTransportRecoveryPhase
+                          .reconnecting,
                     },
               )
             : controller._state.transportRecoveryPhasesByConnectionId,

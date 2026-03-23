@@ -4,6 +4,7 @@ part 'connection_models_catalog.dart';
 part 'connection_models_codex_models.dart';
 part 'connection_models_model_catalog.dart';
 part 'connection_models_profile.dart';
+part 'connection_models_remote_runtime.dart';
 part 'connection_models_saved_connection.dart';
 
 enum AuthMode { password, privateKey }

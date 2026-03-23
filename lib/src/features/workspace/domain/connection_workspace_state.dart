@@ -143,6 +143,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     lastRecoveryOutcome,
   );
 }
+
 class ConnectionWorkspaceState {
   const ConnectionWorkspaceState({
     required this.isLoading,
@@ -154,6 +155,7 @@ class ConnectionWorkspaceState {
     required this.transportReconnectRequiredConnectionIds,
     required this.transportRecoveryPhasesByConnectionId,
     required this.recoveryDiagnosticsByConnectionId,
+    required this.remoteRuntimeByConnectionId,
   });
 
   const ConnectionWorkspaceState.initial()
@@ -167,7 +169,9 @@ class ConnectionWorkspaceState {
       transportRecoveryPhasesByConnectionId =
           const <String, ConnectionWorkspaceTransportRecoveryPhase>{},
       recoveryDiagnosticsByConnectionId =
-          const <String, ConnectionWorkspaceRecoveryDiagnostics>{};
+          const <String, ConnectionWorkspaceRecoveryDiagnostics>{},
+      remoteRuntimeByConnectionId =
+          const <String, ConnectionRemoteRuntimeState>{};
 
   final bool isLoading;
   final ConnectionCatalogState catalog;
@@ -180,6 +184,7 @@ class ConnectionWorkspaceState {
   transportRecoveryPhasesByConnectionId;
   final Map<String, ConnectionWorkspaceRecoveryDiagnostics>
   recoveryDiagnosticsByConnectionId;
+  final Map<String, ConnectionRemoteRuntimeState> remoteRuntimeByConnectionId;
 
   Set<String> get reconnectRequiredConnectionIds => <String>{
     ...savedSettingsReconnectRequiredConnectionIds,
@@ -222,6 +227,10 @@ class ConnectionWorkspaceState {
     return recoveryDiagnosticsByConnectionId[connectionId];
   }
 
+  ConnectionRemoteRuntimeState? remoteRuntimeFor(String connectionId) {
+    return remoteRuntimeByConnectionId[connectionId];
+  }
+
   ConnectionWorkspaceReconnectRequirement? reconnectRequirementFor(
     String connectionId,
   ) {
@@ -258,6 +267,7 @@ class ConnectionWorkspaceState {
     transportRecoveryPhasesByConnectionId,
     Map<String, ConnectionWorkspaceRecoveryDiagnostics>?
     recoveryDiagnosticsByConnectionId,
+    Map<String, ConnectionRemoteRuntimeState>? remoteRuntimeByConnectionId,
     bool clearSelectedConnectionId = false,
   }) {
     return ConnectionWorkspaceState(
@@ -280,6 +290,8 @@ class ConnectionWorkspaceState {
       recoveryDiagnosticsByConnectionId:
           recoveryDiagnosticsByConnectionId ??
           this.recoveryDiagnosticsByConnectionId,
+      remoteRuntimeByConnectionId:
+          remoteRuntimeByConnectionId ?? this.remoteRuntimeByConnectionId,
     );
   }
 
@@ -306,6 +318,10 @@ class ConnectionWorkspaceState {
         mapEquals(
           other.recoveryDiagnosticsByConnectionId,
           recoveryDiagnosticsByConnectionId,
+        ) &&
+        mapEquals(
+          other.remoteRuntimeByConnectionId,
+          remoteRuntimeByConnectionId,
         );
   }
 
@@ -325,6 +341,11 @@ class ConnectionWorkspaceState {
     ),
     Object.hashAllUnordered(
       recoveryDiagnosticsByConnectionId.entries.map(
+        (entry) => Object.hash(entry.key, entry.value),
+      ),
+    ),
+    Object.hashAllUnordered(
+      remoteRuntimeByConnectionId.entries.map(
         (entry) => Object.hash(entry.key, entry.value),
       ),
     ),
