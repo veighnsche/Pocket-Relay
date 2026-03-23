@@ -17,6 +17,29 @@ The target issue is the one described in
 
 This work intentionally does not add app-local transcript history caching.
 
+Alignment update: 2026-03-23
+
+This handoff still describes the current selected-lane recovery foundation
+correctly.
+
+It does not define the final remote server ownership model. That later decision
+now lives in:
+
+- [`069_true_live_turn_continuity_contract.md`](./069_true_live_turn_continuity_contract.md)
+- [`070_true_live_turn_continuity_migration_map.md`](./070_true_live_turn_continuity_migration_map.md)
+- [`071_tmux_required_execution_plan.md`](./071_tmux_required_execution_plan.md)
+
+Those later docs lock:
+
+- `tmux` as a hard remote prerequisite
+- explicit user-owned remote server start/stop
+- deterministic discovery of an already-running server
+- websocket reconnect to that surviving server
+- reconnect-time `thread/resume` as the live reattach path
+
+This handoff should therefore be read as the recovery baseline that the final
+continuity architecture must preserve, not as the final remote continuity plan.
+
 ## Correction
 
 Part of the original branch behavior was wrong and is no longer acceptable:

@@ -6,6 +6,30 @@ This document defines what Pocket Relay must do so an iPhone background
 transition, suspension, or process termination does not fatally destroy the
 user experience for an active SSH-backed Codex session.
 
+Alignment update: 2026-03-23
+
+This document still defines the recovery foundation for:
+
+- ordinary app switching
+- same-process resume
+- cold-start truthful restore
+- draft and selected-lane preservation
+
+Later docs now lock the stronger remote continuity architecture:
+
+- [`069_true_live_turn_continuity_contract.md`](./069_true_live_turn_continuity_contract.md)
+- [`070_true_live_turn_continuity_migration_map.md`](./070_true_live_turn_continuity_migration_map.md)
+- [`071_tmux_required_execution_plan.md`](./071_tmux_required_execution_plan.md)
+
+Those later docs add one important ownership correction that this earlier plan
+did not yet encode:
+
+- true live-turn continuity uses a user-owned remote server lifecycle
+- `tmux` is required for the supported remote path
+- the user explicitly starts and stops the remote app-server
+- Pocket Relay may reconnect to an already-running server, but it must not
+  implicitly stop it on disconnect/backgrounding
+
 The core constraint is not negotiable:
 
 - iPhone can suspend the app shortly after it backgrounds
@@ -195,12 +219,23 @@ The UI must not:
 Decide what Pocket Relay assumes about the remote app-server process after the
 iPhone app backgrounds.
 
-Questions the implementation must answer explicitly:
+For the final continuity architecture, the ownership answer is now narrower:
 
-- Is the remote app-server expected to die when the SSH channel dies?
-- If it stays alive, can Pocket Relay safely reattach?
-- If it dies, is cold restart acceptable as long as the thread identity and
-  transcript restore survive?
+- the remote app-server is not phone-owned
+- the remote app-server is expected to live inside a user-started `tmux` owner
+- disconnect or backgrounding must not be treated as a stop signal
+- Pocket Relay must discover whether that user-owned server is already running
+  and reconnect to it when possible
+
+Questions the implementation must still answer explicitly:
+
+- how does Pocket Relay discover the expected running server for the selected
+  connection/workspace?
+- how does it verify that the discovered websocket endpoint is still healthy?
+- what exact state is shown when no server is running and the user must start
+  one explicitly?
+- what truthful fallback path is used when the previously running server is
+  gone?
 
 The app must be built around the real backend/transport behavior, not the most
 convenient assumption.

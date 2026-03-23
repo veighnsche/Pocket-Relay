@@ -2,402 +2,252 @@
 
 ## Status
 
-This document turns the findings in
-[`059_background_execution_publishability_findings.md`](./059_background_execution_publishability_findings.md)
-into an execution plan.
+This document is the aligned publishability-phase precursor to the final remote
+continuity plan.
 
-The goal is not just resilience in the abstract. The goal is to make Pocket
-Relay publishable for its real use case:
+It no longer uses the old `Release Bar A` / `Release Bar B` shorthand.
 
-- a user monitors and steers a live Codex session from a phone
-- ordinary app switching must not kill the live lane
-- if the phone app is suspended or killed, the app must recover honestly
-- if the product promise is stronger than that, the transport/backend ownership
-  model must change
+Use these literal names instead:
 
-## Release Bars
+- `Truthful Recovery`
+- `True Live-Turn Continuity`
 
-There are two different release bars. They must not be conflated.
+The definitive remote continuity contract and execution plan now live in:
 
-### Release Bar A: Truthful recovery
+- [`069_true_live_turn_continuity_contract.md`](./069_true_live_turn_continuity_contract.md)
+- [`070_true_live_turn_continuity_migration_map.md`](./070_true_live_turn_continuity_migration_map.md)
+- [`071_tmux_required_execution_plan.md`](./071_tmux_required_execution_plan.md)
 
-This bar means:
+## Product Framing
 
-- short backgrounding does not make Pocket Relay disconnect by itself
-- if the app is later suspended or killed, the user returns to the same lane,
-  same draft, and real upstream conversation state
-- the app reconnects and restores honestly from upstream truth
+### Truthful Recovery
 
-This is the minimum publishable bar for a mobile client unless the marketing and
-product promise explicitly claim stronger continuity.
+This means:
 
-### Release Bar B: True live-turn continuity
+- ordinary app switching does not make Pocket Relay sever the live lane
+- if the app is later suspended or killed, the user returns to the same lane
+  identity and draft
+- Pocket Relay reconnects honestly and restores upstream history truthfully
 
-This bar means:
+### True Live-Turn Continuity
 
-- a live Codex turn can keep running while the phone app is backgrounded
-- the user can return and reattach to the same still-running session/turn
-- continuity is not only historical restore after the fact
+This means:
 
-This bar is stricter and requires backend/transport ownership changes, not just
-Flutter lifecycle work.
+- the live Codex run keeps going while the phone app is away
+- the user returns to the same still-running remote server and thread
+- reconnect is live re-entry, not only post-fact history restore
 
-## Recommendation
+For remote mode, the architecture is now fixed around the stronger target:
 
-Pocket Relay should not ship until Release Bar A is complete.
-
-If the intended product claim remains:
-
-- "Pocket Relay preserves a live Codex turn while the user briefly does
-  something else on the phone"
-
-then Release Bar B should also be treated as required before release.
+- `tmux` is required
+- the remote app-server lifecycle is user-owned
+- the user explicitly starts and stops the remote server
+- Pocket Relay may rediscover and reconnect to an already-running server
+- Pocket Relay must not implicitly stop that server on disconnect or
+  backgrounding
+- websocket is the reconnectable transport to that surviving server
+- reconnect-time `thread/resume` is the live reattach path
 
 ## Non-Negotiable Rules
-
-These rules apply to every phase:
 
 - do not disconnect, dispose, rebuild, or mark live lanes stale on ordinary
   `inactive` / `hidden` / `paused` / `resumed` transitions without confirmed
   transport loss
 - do not add Pocket Relay-owned transcript history as fallback truth
 - do not solve background-kill recovery by degrading the normal live-turn path
+- do not silently start, replace, or stop a remote continuity server during
+  reconnect
 - do not claim seamless continuity if the implementation only restores history
   after reconnect
 
-## Phase 0: Lock The Product Contract
+## Phase 0: Protect The Existing Lane
 
 ### Goal
 
-Remove ambiguity about what "publishable" means for this feature.
-
-### Scope
-
-- decide whether release messaging promises Release Bar A or Release Bar B
-- decide whether the product is allowed to recover after loss or must truly
-  reattach to the same live turn
-- decide whether non-selected live lanes matter for this release or only the
-  selected active lane
+Eliminate avoidable same-process regressions before changing the remote
+ownership model.
 
 ### Deliverables
 
-- one written product statement in docs
-- one acceptance matrix for:
-  - brief app switch
-  - phone lock
-  - multitasking
-  - suspension
-  - process kill
-  - reconnect failure
-- explicit release gate tied to either Bar A or Bar B
+- preserve the selected lane and draft through ordinary app switching
+- preserve the existing in-memory lane on pure transport recovery when the
+  binding still exists
+- prevent brief post-turn lock/unlock from rebuilding the lane from history
 
 ### Exit Criteria
 
-- no unresolved ambiguity remains about whether truthful restore is enough
-- engineering knows whether detached remote execution is mandatory for release
+- ordinary app switching does not sever the lane
+- short post-turn lock/unlock does not discard surviving in-memory detail
 
-### Why This Phase Exists
-
-Without this decision, the team can accidentally "finish" a recovery flow that
-still fails the real product promise.
-
-## Phase 1: Instrument The Failure Modes
+## Phase 1: Finish Truthful Recovery Foundations
 
 ### Goal
 
-Make the app able to tell the difference between:
-
-- ordinary backgrounding
-- stale transport on resume
-- app-server session exit
-- SSH transport loss
-- cold-start recovery after process kill
-
-### Scope
-
-- add lifecycle timestamps
-- add selected-lane recovery diagnostics
-- add transport/session-loss diagnostics
-- add logs or state markers that identify whether the app process survived
-- add test seams so lifecycle and disconnect scenarios can be simulated
+Guarantee honest recovery after confirmed loss, independent of the final remote
+continuity architecture.
 
 ### Deliverables
 
-- structured recovery diagnostics stored with narrow runtime scope
-- controller-visible transport-loss reason
-- tests covering transport loss while backgrounded
+- recovery-state persistence for selected lane identity and draft
+- explicit transport-loss classification
+- reconnect-required only on confirmed loss
+- reconnect plus truthful `thread/read` restore
+- honest restore UI states
+- narrow platform grace work:
+  - iOS finite background grace for persistence/housekeeping only
+  - Android foreground-service work only while a live turn is active
 
 ### Exit Criteria
 
-- every failure path produces a concrete classification instead of a vague
-  disconnected state
-- logs can answer why the lane was lost
+- same lane and draft recover honestly after cold start
+- no normal app-switch path breaks the live lane
+- restore UX is truthful when continuity is unavailable
 
-### Why This Phase Exists
-
-Without observability, the team cannot distinguish:
-
-- iOS suspension behavior
-- remote app-server exit
-- restore-mapper bugs
-- transport bugs introduced by Pocket Relay itself
-
-## Phase 2: Finish Release Bar A Recovery
+## Phase 2: Introduce The Right Seams
 
 ### Goal
 
-Guarantee that Pocket Relay preserves the selected lane identity and restores it
-truthfully after confirmed loss.
-
-### Scope
-
-- keep the current no-self-disconnect lifecycle behavior
-- detect confirmed transport/session loss on foreground or cold start
-- mark the selected lane as reconnect-required only on confirmed loss
-- reconnect transport
-- resume the real upstream thread
-- restore transcript from upstream `thread/read`
-- preserve draft text throughout
-- show explicit recovery states instead of empty/fake live UI
+Stop the remote continuity path from being hard-wired to SSH-launched stdio
+ownership.
 
 ### Deliverables
 
-- loss-aware reconnect policy in workspace/session ownership code
-- honest UI states for:
-  - reconnecting
-  - restoring conversation
-  - remote session unavailable
-  - restore failed
-  - draft preserved
-- widget and controller tests proving:
-  - short app switch does not rebuild or disconnect the live lane
-  - cold start restores lane and draft
-  - transport loss triggers reconnect and upstream history restore
-  - reconnect failure keeps the lane visible and honest
+- transport abstraction above spawned-process stdio
+- separation between:
+  - SSH bootstrap
+  - remote server discovery/control
+  - live transport connection
+- temporary stdio compatibility while migration is underway
 
 ### Exit Criteria
 
-- Release Bar A is satisfied for the selected active lane
-- no ordinary app-switching path severs a live lane
-- no confirmed-loss path returns the user to a blank or misleading lane
+- remote continuity work no longer depends on process-shaped transport as the
+  only model
 
-### Why This Phase Exists
-
-This is the minimum publishable behavior if the app is allowed to restore after
-loss instead of guaranteeing uninterrupted live continuity.
-
-## Phase 3: Add Platform-Specific Resilience
+## Phase 3: Add Explicit Remote Server Ownership
 
 ### Goal
 
-Reduce avoidable loss without pretending the platform can be bypassed.
-
-### Scope
-
-#### iOS
-
-- add finite background-task handling around background transitions
-- use it only for narrow grace work such as state persistence and immediate
-  shutdown bookkeeping
-- do not model it as indefinite SSH survival
-
-#### Android
-
-- add a foreground service while a live turn is actively running
-- show a required visible notification
-- stop the foreground service when the turn ends
+Make remote server lifetime a deliberate user action instead of an implicit
+side effect of connect/disconnect.
 
 ### Deliverables
 
-- iOS lifecycle bridge for finite background grace
-- Android foreground-service implementation tied to active turns
-- tests and device verification for both paths
+- hard prerequisite enforcement for remote `tmux`
+- explicit remote capability probe for:
+  - `tmux`
+  - configured `codex` launcher
+- deterministic discovery of Pocket Relay-managed remote servers
+- explicit user actions:
+  - `Start server`
+  - `Stop server`
+  - `Restart server`
+- explicit runtime states:
+  - prerequisite missing
+  - server not running
+  - server running
+  - server unhealthy
 
 ### Exit Criteria
 
-- the app gains best-effort platform resilience beyond Flutter-only lifecycle
-  handling
-- Android active-turn continuity is materially improved
-- iOS behavior is more orderly on background transition but still honest about
-  platform limits
+- Pocket Relay no longer decides server lifetime implicitly
+- reconnect can attach to an existing server without starting one
 
-### Why This Phase Exists
-
-This phase reduces avoidable churn and makes the app more robust, but it does
-not solve true live-turn continuity on iPhone by itself.
-
-## Phase 4: Move Durable Execution Off The Phone
+## Phase 4: Connect To The Existing Server
 
 ### Goal
 
-Make the running Codex session durable even when the phone-owned client
-transport disappears.
-
-### Scope
-
-- stop treating the phone-owned SSH stdio session as the durable owner of the
-  remote run
-- design a detached or reattachable remote execution model
-- determine whether this happens through:
-  - a detached remote `codex app-server`
-  - a remote supervisor
-  - a gateway/service layer
-  - upstream app-server session support
-- preserve real upstream ownership and avoid local fake state
+Reach a running user-owned remote server without recreating ownership on every
+connect.
 
 ### Deliverables
 
-- chosen remote execution ownership design
-- session identity or reattachment token model if supported
-- updated protocol/transport contract documentation
-- implementation plan for the remote side if work must happen outside this repo
+- remote app-server runs inside `tmux`
+- app-server listens on websocket
+- Pocket Relay reaches it through secure SSH-forwarded connectivity
+- server discovery returns machine-readable server metadata such as:
+  - session identity
+  - websocket endpoint details
+  - health/readiness state
 
 ### Exit Criteria
 
-- a live remote Codex run no longer depends on the phone process staying alive
-- engineering knows exactly how a new mobile client transport can find and
-  reattach to that remote run
+- a user-started remote server survives phone disconnect/backgrounding
+- Pocket Relay can reconnect to the same server later without starting a
+  replacement
 
-### Why This Phase Exists
-
-Release Bar B is not credible until durable execution ownership moves off the
-phone-owned SSH session.
-
-## Phase 5: Implement True Reattachment
+## Phase 5: Implement Live Reattach
 
 ### Goal
 
-Allow Pocket Relay to return to the same still-running live session instead of
-only restoring history after the turn finishes or after transport loss.
-
-### Scope
-
-- connect a new transport to the still-running remote execution owner
-- reattach to the active session or turn
-- resume live event delivery
-- fill any transcript gap from upstream history as needed
-- keep fallback behavior honest if reattachment fails
+Turn reconnect into real live-thread re-entry instead of history-first
+recovery.
 
 ### Deliverables
 
-- app-server/client support for reattachment
-- controller logic that distinguishes:
-  - reattached live session
-  - recovered historical session
-  - remote session gone
-- tests proving:
-  - turn continues while client transport is absent
-  - client returns and reattaches
-  - transcript remains coherent if a partial history gap must be filled
+- `initialize` on the new transport connection
+- reconnect-time `thread/resume(selectedThreadId)`
+- pending approval/input restoration onto the reattached lane
+- `thread/read` only as fallback when the server is gone, the turn already
+  finished, or continuity can no longer be proven
 
 ### Exit Criteria
 
-- Release Bar B is satisfied
-- the user can background the phone app, return, and continue the same live run
-  when the remote execution owner is still alive
+- reconnect returns to the same live thread when it still exists
+- history restore is no longer the primary answer to interrupted continuity
 
-### Why This Phase Exists
-
-This is the phase that converts Pocket Relay from "truthful mobile recovery
-client" into "true live continuity client."
-
-## Phase 6: Release Hardening
+## Phase 6: Delete The Old Remote Model And Harden Release
 
 ### Goal
 
-Prove the implementation is robust enough to ship.
+Remove the wrong default architecture and prove the final path is shippable.
 
-### Scope
+### Delete
 
-- full device matrix verification on current iPhone and Android versions
-- long-turn verification
-- lock-screen and multitasking verification
-- airplane-mode / network-drop verification
-- reconnect failure verification
-- memory-pressure verification on long transcripts
-- copy review for recovery states
-- App Store / Play Store review-risk check for background behavior
+- remote SSH stdio as the primary remote owner model
+- implicit remote owner creation during ordinary connect/reconnect
+- implicit remote owner stop semantics tied to disconnect
+- history-first reconnect as the continuity default
+- prompt-send-triggered resume as the normal reattach path
 
-### Deliverables
+### Verify
 
-- manual test matrix with pass/fail results
-- automated regression coverage for the critical lifecycle and restore paths
-- release notes / product copy aligned with the actual implementation
+- long-turn backgrounding
+- lock/unlock
+- network drop and reconnect
+- server stopped vs server missing vs prerequisite missing
+- cold-start truthful fallback
+- pending approval/input continuity
 
 ### Exit Criteria
 
 - the shipped product claim matches the tested behavior
-- lifecycle regressions are covered by automated tests
-- app-review risk for background behavior is understood and acceptable
+- only one coherent remote continuity path remains
 
-## Suggested Ordering And Dependencies
+## Recommended Ordering
 
-1. Phase 0 first. Do not build against an ambiguous product promise.
-2. Phase 1 next. Observability is needed before judging success.
-3. Phase 2 next. This gets Pocket Relay to Release Bar A.
-4. Phase 3 after Phase 2. Platform resilience should improve the real path, not
-   replace it.
-5. Phase 4 is mandatory before any credible Release Bar B commitment.
-6. Phase 5 depends on Phase 4 and any upstream/backend support it requires.
-7. Phase 6 happens before release regardless of which bar is chosen.
+1. Land Phase 0 and Phase 1 first.
+2. Introduce the transport and ownership seams from Phase 2.
+3. Add explicit server ownership and discovery from Phase 3.
+4. Connect to the existing `tmux`-owned websocket server in Phase 4.
+5. Add reconnect-time live reattach in Phase 5.
+6. Delete the old remote model and harden release in Phase 6.
 
-## What Each Phase Actually Solves
+## Relationship To The Final Plan
 
-### After Phase 2
+This document now exists as the publishability-oriented phase framing.
 
-Pocket Relay can honestly recover the selected active lane after suspension or
-kill.
+For implementation, the repo should follow:
 
-It still cannot claim:
+- [`071_tmux_required_execution_plan.md`](./071_tmux_required_execution_plan.md)
 
-- the same live turn definitely stayed alive in the background
-- the same in-flight live stream was reattached
-
-### After Phase 3
-
-Pocket Relay becomes more resilient on-device, especially on Android.
-
-It still cannot claim true live continuity on iPhone.
-
-### After Phase 5
-
-Pocket Relay can credibly claim live continuity across background interruption,
-assuming the remote execution owner remains alive and reachable.
-
-## Recommended Release Strategy
-
-### Conservative Strategy
-
-Ship after Phase 3 if product messaging is aligned to Release Bar A:
-
-- Pocket Relay preserves your live lane, draft, and upstream conversation state
-- if the app is suspended or killed, it reconnects and restores the real
-  session on return
-
-### Strict Strategy
-
-Do not ship until Phase 5 if product messaging is aligned to Release Bar B:
-
-- Pocket Relay keeps your live Codex run going while you briefly use something
-  else and lets you come back to the same still-running session
-
-## Repo Ownership Guidance
-
-Likely ownership by layer:
-
-- lifecycle/recovery policy:
-  [`lib/src/features/workspace/`](../lib/src/features/workspace/)
-- selected-lane restore and session logic:
-  [`lib/src/features/chat/lane/`](../lib/src/features/chat/lane/)
-- transport and protocol work:
-  [`lib/src/features/chat/transport/app_server/`](../lib/src/features/chat/transport/app_server/)
-- iOS platform glue:
-  [`ios/`](../ios/)
-- Android foreground-service work:
-  [`android/`](../android/)
+That document is the final execution plan for the chosen architecture.
 
 ## Primary References
 
-- [`docs/052_ios_background_ssh_resilience_plan.md`](./052_ios_background_ssh_resilience_plan.md)
-- [`docs/053_ios_background_restore_handoff.md`](./053_ios_background_restore_handoff.md)
-- [`docs/059_background_execution_publishability_findings.md`](./059_background_execution_publishability_findings.md)
+- [`052_ios_background_ssh_resilience_plan.md`](./052_ios_background_ssh_resilience_plan.md)
+- [`053_ios_background_restore_handoff.md`](./053_ios_background_restore_handoff.md)
+- [`059_background_execution_publishability_findings.md`](./059_background_execution_publishability_findings.md)
+- [`069_true_live_turn_continuity_contract.md`](./069_true_live_turn_continuity_contract.md)
+- [`070_true_live_turn_continuity_migration_map.md`](./070_true_live_turn_continuity_migration_map.md)
+- [`071_tmux_required_execution_plan.md`](./071_tmux_required_execution_plan.md)

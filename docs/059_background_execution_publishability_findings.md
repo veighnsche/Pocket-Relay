@@ -5,6 +5,26 @@
 This document records the findings from the current background-execution
 investigation for Pocket Relay as of 2026-03-22.
 
+Alignment update: 2026-03-23
+
+Later docs now lock the stronger remote continuity target and architecture:
+
+- [`069_true_live_turn_continuity_contract.md`](./069_true_live_turn_continuity_contract.md)
+- [`070_true_live_turn_continuity_migration_map.md`](./070_true_live_turn_continuity_migration_map.md)
+- [`071_tmux_required_execution_plan.md`](./071_tmux_required_execution_plan.md)
+
+This findings document remains valid as an audit of the current repo and mobile
+platform limits. The architectural conclusion has since been made more
+concrete:
+
+- truthful recovery is still the minimum honest mobile behavior
+- true live-turn continuity now means a user-owned remote app-server lifecycle
+- the chosen direction is a user-started `tmux`-owned remote app-server with a
+  websocket endpoint
+- Pocket Relay may automatically rediscover and reconnect to an already-running
+  server, but it must not implicitly start or stop that server as part of
+  ordinary reconnect behavior
+
 The question was narrow but high stakes:
 
 - can Pocket Relay be made publishable for the use case where a live Codex turn
@@ -354,16 +374,19 @@ If the strict product requirement is:
 
 then Track A is not enough.
 
-The exact required change is:
+The exact required change is now clearer:
 
 - move durable remote execution ownership off the phone-owned SSH stdio session
+- make the remote server lifecycle explicit and user-owned
+- reconnect only to an already-running healthy server instead of silently
+  inventing lifecycle decisions during reconnect
 
-That means one of the following:
+The chosen direction in later docs is:
 
-- a detached remote `codex app-server` owned by a remote supervisor
-- a remote service/gateway that Pocket Relay attaches to and detaches from
-- an upstream-supported session model that allows a new transport to reattach to
-  the same running live turn
+- a user-started remote `codex app-server` running inside `tmux`
+- websocket as the reconnectable client transport to that surviving server
+- deterministic server discovery and health verification
+- reconnect-time `thread/resume` for live re-entry
 
 Without that change, the mobile app is still the fragile owner of the transport.
 
@@ -405,9 +428,10 @@ Current findings support:
 5. Add diagnostics around background, resume, reconnect, and restore outcomes.
 6. Add iOS finite background-task handling for narrow shutdown/grace work.
 7. Add Android foreground-service support for active turns only.
-8. Decide whether the product requires true live stream reattachment.
-9. If yes, redesign the remote execution ownership model so the phone is not
-   the durable owner of the running Codex session.
+8. Implement explicit remote server discovery, health verification, and
+   user-facing server controls.
+9. Move the remote continuity path onto user-started `tmux` ownership plus
+   websocket reconnect and live `thread/resume`.
 
 ## Primary Repo References
 
