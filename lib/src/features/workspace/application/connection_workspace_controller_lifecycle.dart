@@ -205,9 +205,65 @@ Future<void> _reconnectWorkspaceConnection(
     return;
   }
 
-  final shouldReconnectTransport = controller._state.requiresTransportReconnect(
+  final reconnectRequirement = controller._state.reconnectRequirementFor(
     connectionId,
   );
+  if (reconnectRequirement == null) {
+    return;
+  }
+  final shouldReconnectTransport =
+      reconnectRequirement == ConnectionWorkspaceReconnectRequirement.transport ||
+      reconnectRequirement ==
+          ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings;
+  final shouldReplaceBinding =
+      reconnectRequirement ==
+          ConnectionWorkspaceReconnectRequirement.savedSettings ||
+      reconnectRequirement ==
+          ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings;
+
+  if (!shouldReplaceBinding) {
+    controller._applyState(
+      controller._state.copyWith(
+        transportRecoveryPhasesByConnectionId: shouldReconnectTransport
+            ? _sanitizeWorkspaceTransportRecoveryPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                transportRecoveryPhasesByConnectionId:
+                    <String, ConnectionWorkspaceTransportRecoveryPhase>{
+                      ...controller._state.transportRecoveryPhasesByConnectionId,
+                      connectionId:
+                          ConnectionWorkspaceTransportRecoveryPhase.reconnecting,
+                    },
+              )
+            : controller._state.transportRecoveryPhasesByConnectionId,
+      ),
+    );
+    if (!shouldReconnectTransport) {
+      return;
+    }
+
+    try {
+      await _connectWorkspaceBindingTransport(previousBinding);
+    } catch (_) {
+      if (!controller._isDisposed) {
+        controller._recordFallbackTransportConnectFailure(
+          connectionId,
+          occurredAt: controller._now(),
+        );
+        controller._setTransportRecoveryPhase(
+          connectionId,
+          ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+        );
+        controller._completeRecoveryAttempt(
+          connectionId,
+          completedAt: controller._now(),
+          outcome: ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+        );
+      }
+    }
+    return;
+  }
+
   final preservedLaneState = _preservedWorkspaceLaneState(previousBinding);
   final nextBinding = await _loadWorkspaceLaneBinding(
     controller,
