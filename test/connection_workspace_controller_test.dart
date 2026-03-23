@@ -985,7 +985,7 @@ void main() {
   );
 
   test(
-    'reconnectConnection on a transport-loss lane reconnects the recreated empty lane before clearing transport recovery state',
+    'reconnectConnection on a transport-loss lane reconnects through the existing binding before clearing transport recovery state',
     () async {
       final repository = MemoryCodexConnectionRepository(
         initialConnections: <SavedConnection>[
@@ -1049,9 +1049,9 @@ void main() {
 
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
-      expect(nextBinding, isNot(same(firstBinding)));
-      expect(clientsByConnectionId['conn_primary'], hasLength(2));
-      expect(clientsByConnectionId['conn_primary']!.last.connectCalls, 1);
+      expect(nextBinding, same(firstBinding));
+      expect(clientsByConnectionId['conn_primary'], hasLength(1));
+      expect(clientsByConnectionId['conn_primary']!.first.connectCalls, 2);
       expect(
         controller.state.requiresTransportReconnect('conn_primary'),
         isFalse,
@@ -1387,7 +1387,7 @@ void main() {
 
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
-      expect(nextBinding, isNot(same(firstBinding)));
+      expect(nextBinding, same(firstBinding));
       expect(controller.state.requiresReconnect('conn_primary'), isFalse);
       expect(
         controller.state.transportRecoveryPhaseFor('conn_primary'),
@@ -1403,12 +1403,13 @@ void main() {
       );
       expect(
         resumedDiagnostics.lastRecoveryOutcome,
-        ConnectionWorkspaceRecoveryOutcome.conversationRestored,
+        ConnectionWorkspaceRecoveryOutcome.transportRestored,
       );
-      expect(clientsByConnectionId['conn_primary'], hasLength(2));
-      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
+      expect(clientsByConnectionId['conn_primary'], hasLength(1));
+      expect(clientsByConnectionId['conn_primary']!.first.connectCalls, 1);
+      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 0);
       expect(
-        clientsByConnectionId['conn_primary']!.last.readThreadCalls,
+        clientsByConnectionId['conn_primary']!.first.readThreadCalls,
         <String>['thread_123'],
       );
       expect(nextBinding!.composerDraftHost.draft.text, 'Recover me');
@@ -1477,6 +1478,8 @@ void main() {
         firstBinding,
         clientsByConnectionId['conn_primary']!.first,
       );
+      clientsByConnectionId['conn_primary']!.first.connectError =
+          const CodexAppServerException('connect failed');
 
       await controller.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       clientsByConnectionId['conn_primary']!.first.emit(
@@ -1490,7 +1493,7 @@ void main() {
 
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, isNotNull);
-      expect(nextBinding, isNot(same(firstBinding)));
+      expect(nextBinding, same(firstBinding));
       expect(
         controller.state.requiresTransportReconnect('conn_primary'),
         isTrue,
@@ -1516,11 +1519,11 @@ void main() {
         ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
       );
       expect(nextBinding!.composerDraftHost.draft.text, 'Recover me');
-      expect(clientsByConnectionId['conn_primary'], hasLength(2));
-      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 1);
+      expect(clientsByConnectionId['conn_primary'], hasLength(1));
+      expect(clientsByConnectionId['conn_primary']!.first.disconnectCalls, 0);
       expect(
-        clientsByConnectionId['conn_primary']!.last.readThreadCalls,
-        isEmpty,
+        clientsByConnectionId['conn_primary']!.first.readThreadCalls,
+        <String>['thread_123'],
       );
     },
   );
