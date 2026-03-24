@@ -8,6 +8,8 @@ import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dar
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_connection_scoped_transport.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
@@ -51,6 +53,7 @@ class PocketRelayAppDependencies {
         connectionRepository ??
         (ownedConnectionRepository ?? SecureCodexConnectionRepository());
     final resolvedPlatformPolicy = this.resolvedPlatformPolicy;
+    const remoteOwnerInspector = CodexSshRemoteAppServerOwnerInspector();
     var usedInjectedAppServerClient = false;
 
     final workspaceController = ConnectionWorkspaceController(
@@ -58,6 +61,7 @@ class PocketRelayAppDependencies {
       modelCatalogStore:
           modelCatalogStore ?? SecureConnectionModelCatalogStore(),
       recoveryStore: recoveryStore ?? SecureConnectionWorkspaceRecoveryStore(),
+      remoteAppServerOwnerInspector: remoteOwnerInspector,
       laneBindingFactory:
           ({
             required String connectionId,
@@ -78,7 +82,13 @@ class PocketRelayAppDependencies {
               ),
               appServerClient: usingInjectedClient
                   ? injectedAppServerClient
-                  : CodexAppServerClient(),
+                  : CodexAppServerClient(
+                      transportOpener:
+                          buildConnectionScopedCodexAppServerTransportOpener(
+                            ownerId: connectionId,
+                            remoteOwnerInspector: remoteOwnerInspector,
+                          ),
+                    ),
               initialSavedProfile: SavedProfile(
                 profile: connection.profile,
                 secrets: connection.secrets,

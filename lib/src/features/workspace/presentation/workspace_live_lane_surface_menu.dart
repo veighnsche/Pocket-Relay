@@ -82,6 +82,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     return repository.loadWorkspaceConversations(
       profile: connection.profile,
       secrets: connection.secrets,
+      ownerId: widget.laneBinding.connectionId,
     );
   }
 

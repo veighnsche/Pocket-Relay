@@ -71,6 +71,9 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final transportRecoveryPhase = workspaceState.transportRecoveryPhaseFor(
       widget.laneBinding.connectionId,
     );
+    final remoteRuntime = workspaceState.remoteRuntimeFor(
+      widget.laneBinding.connectionId,
+    );
     final isLaneBusy = widget.laneBinding.sessionController.sessionState.isBusy;
     final isTransportReconnectInProgress =
         transportRecoveryPhase ==
@@ -88,6 +91,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       ),
       supplementalComposerNotice: _transportRecoveryNoticeFor(
         transportRecoveryPhase,
+        remoteRuntime,
       ),
       laneRestartAction: reconnectRequirement != null
           ? ChatLaneRestartActionContract(
@@ -114,6 +118,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
   Widget? _transportRecoveryNoticeFor(
     ConnectionWorkspaceTransportRecoveryPhase? phase,
+    ConnectionRemoteRuntimeState? remoteRuntime,
   ) {
     final sessionController = widget.laneBinding.sessionController;
     if (phase == null ||
@@ -122,6 +127,25 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       return null;
     }
 
+    final unavailableNotice = switch (remoteRuntime?.server.status) {
+      ConnectionRemoteServerStatus.notRunning => (
+        ConnectionWorkspaceCopy.remoteServerStoppedNoticeTitle,
+        remoteRuntime?.server.detail ??
+            ConnectionWorkspaceCopy.remoteServerStoppedNoticeMessage,
+        false,
+      ),
+      ConnectionRemoteServerStatus.unhealthy => (
+        ConnectionWorkspaceCopy.remoteServerUnhealthyNoticeTitle,
+        remoteRuntime?.server.detail ??
+            ConnectionWorkspaceCopy.remoteServerUnhealthyNoticeMessage,
+        false,
+      ),
+      _ => (
+        ConnectionWorkspaceCopy.transportUnavailableNoticeTitle,
+        ConnectionWorkspaceCopy.transportUnavailableNoticeMessage,
+        false,
+      ),
+    };
     final (title, message, isLoading) = switch (phase) {
       ConnectionWorkspaceTransportRecoveryPhase.lost => (
         ConnectionWorkspaceCopy.transportLostNoticeTitle,
@@ -133,11 +157,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         ConnectionWorkspaceCopy.reconnectingNoticeMessage,
         true,
       ),
-      ConnectionWorkspaceTransportRecoveryPhase.unavailable => (
-        ConnectionWorkspaceCopy.transportUnavailableNoticeTitle,
-        ConnectionWorkspaceCopy.transportUnavailableNoticeMessage,
-        false,
-      ),
+      ConnectionWorkspaceTransportRecoveryPhase.unavailable => unavailableNotice,
     };
     return _WorkspaceLaneTransportNotice(
       title: title,

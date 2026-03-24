@@ -46,6 +46,13 @@ abstract final class ConnectionWorkspaceCopy {
       'Remote session unavailable';
   static const String transportUnavailableNoticeMessage =
       'Pocket Relay could not reconnect this lane to Codex. Your draft is preserved below. Try reconnecting again.';
+  static const String remoteServerStoppedNoticeTitle = 'Remote server stopped';
+  static const String remoteServerStoppedNoticeMessage =
+      'The Pocket Relay server for this connection is not running. Start it from connection settings, then reconnect this lane.';
+  static const String remoteServerUnhealthyNoticeTitle =
+      'Remote server unhealthy';
+  static const String remoteServerUnhealthyNoticeMessage =
+      'The Pocket Relay server exists but is not healthy enough to accept connections. Restart it from connection settings, then reconnect this lane.';
   static const String collapseSidebarAction = 'Collapse sidebar';
   static const String expandSidebarAction = 'Expand sidebar';
   static const String workspaceNotSet = 'Workspace not set';

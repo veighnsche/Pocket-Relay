@@ -513,3 +513,29 @@ Future<ConnectionRemoteRuntimeState> _probeWorkspaceRemoteRuntime(
     );
   }
 }
+
+void _applyWorkspaceRemoteAttachRuntime(
+  ConnectionWorkspaceController controller, {
+  required String connectionId,
+  required CodexRemoteAppServerOwnerSnapshot snapshot,
+}) {
+  final currentRuntime = controller._state.remoteRuntimeFor(connectionId);
+  final currentHostCapability = currentRuntime?.hostCapability;
+  final nextHostCapability = switch (currentHostCapability?.status) {
+    null || ConnectionRemoteHostCapabilityStatus.checking =>
+      const ConnectionRemoteHostCapabilityState.unknown(),
+    _ => currentHostCapability!,
+  };
+
+  controller._applyState(
+    controller._state.copyWith(
+      remoteRuntimeByConnectionId: <String, ConnectionRemoteRuntimeState>{
+        ...controller._state.remoteRuntimeByConnectionId,
+        connectionId: ConnectionRemoteRuntimeState(
+          hostCapability: nextHostCapability,
+          server: snapshot.toConnectionState(),
+        ),
+      },
+    ),
+  );
+}

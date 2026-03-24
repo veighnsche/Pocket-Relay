@@ -1,5 +1,7 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
+import 'codex_app_server_models.dart';
+
 class CodexRemoteAppServerHostCapabilities {
   const CodexRemoteAppServerHostCapabilities({
     this.issues = const <ConnectionRemoteHostCapabilityIssue>{},
@@ -42,6 +44,15 @@ class CodexRemoteAppServerOwnerSnapshot {
 
   bool get isConnectable =>
       status == CodexRemoteAppServerOwnerStatus.running && endpoint != null;
+}
+
+class CodexRemoteAppServerAttachException extends CodexAppServerException {
+  const CodexRemoteAppServerAttachException({
+    required this.snapshot,
+    required String message,
+  }) : super(message);
+
+  final CodexRemoteAppServerOwnerSnapshot snapshot;
 }
 
 extension CodexRemoteAppServerHostCapabilitiesMapping

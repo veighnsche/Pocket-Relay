@@ -6,6 +6,7 @@ import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
@@ -188,6 +189,18 @@ void main() {
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final controller = _buildWorkspaceController(clientsById: clientsById);
+      final repository = FakeCodexWorkspaceConversationHistoryRepository(
+        conversations: <CodexWorkspaceConversationSummary>[
+          CodexWorkspaceConversationSummary(
+            threadId: 'thread_saved',
+            preview: 'Saved backend thread',
+            cwd: '/workspace',
+            promptCount: 3,
+            firstPromptAt: DateTime(2026, 3, 20, 9),
+            lastActivityAt: DateTime(2026, 3, 20, 11),
+          ),
+        ],
+      );
       addTearDown(() async {
         controller.dispose();
         await _closeClients(clientsById);
@@ -197,19 +210,7 @@ void main() {
       await tester.pumpWidget(
         _buildShell(
           controller,
-          conversationHistoryRepository:
-              FakeCodexWorkspaceConversationHistoryRepository(
-                conversations: <CodexWorkspaceConversationSummary>[
-                  CodexWorkspaceConversationSummary(
-                    threadId: 'thread_saved',
-                    preview: 'Saved backend thread',
-                    cwd: '/workspace',
-                    promptCount: 3,
-                    firstPromptAt: DateTime(2026, 3, 20, 9),
-                    lastActivityAt: DateTime(2026, 3, 20, 11),
-                  ),
-                ],
-              ),
+          conversationHistoryRepository: repository,
         ),
       );
       await tester.pumpAndSettle();
@@ -220,6 +221,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Saved backend thread'), findsOneWidget);
+      expect(repository.loadCalls, hasLength(1));
+      expect(repository.loadCalls.single.$3, 'conn_primary');
     },
   );
   testWidgets(
@@ -298,7 +301,7 @@ void main() {
     },
   );
 
-  testWidgets('desktop conversation history shows an honest error for now', (
+  testWidgets('desktop conversation history shows a generic backend error', (
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -327,6 +330,66 @@ void main() {
     expect(find.text('Could not load conversations'), findsOneWidget);
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
   });
+
+  testWidgets(
+    'desktop conversation history surfaces remote server health and opens connection settings',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      final settingsOverlayDelegate = FakeConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(
+          controller,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+          conversationHistoryRepository:
+              FakeCodexWorkspaceConversationHistoryRepository(
+                error: const CodexRemoteAppServerAttachException(
+                  snapshot: CodexRemoteAppServerOwnerSnapshot(
+                    ownerId: 'conn_primary',
+                    workspaceDir: '/workspace',
+                    status: CodexRemoteAppServerOwnerStatus.unhealthy,
+                    sessionName: 'pocket-relay:conn_primary',
+                    endpoint: CodexRemoteAppServerEndpoint(
+                      host: '127.0.0.1',
+                      port: 4100,
+                    ),
+                    detail: 'readyz failed',
+                  ),
+                  message: 'readyz failed',
+                ),
+              ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Conversation history'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remote server unhealthy'), findsOneWidget);
+      expect(find.text('readyz failed'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('conversation_history_open_connection_settings'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(settingsOverlayDelegate.launchedSettings, hasLength(1));
+      expect(
+        settingsOverlayDelegate.launchedSettings.single.$1.host,
+        'primary.local',
+      );
+    },
+  );
 
   testWidgets(
     'desktop conversation history can open connection settings for an unpinned host key',
@@ -1076,15 +1139,16 @@ class FakeCodexWorkspaceConversationHistoryRepository
 
   final List<CodexWorkspaceConversationSummary> conversations;
   final Object? error;
-  final List<(ConnectionProfile, ConnectionSecrets)> loadCalls =
-      <(ConnectionProfile, ConnectionSecrets)>[];
+  final List<(ConnectionProfile, ConnectionSecrets, String?)> loadCalls =
+      <(ConnectionProfile, ConnectionSecrets, String?)>[];
 
   @override
   Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
+    String? ownerId,
   }) async {
-    loadCalls.add((profile, secrets));
+    loadCalls.add((profile, secrets, ownerId));
     if (error != null) {
       throw error!;
     }

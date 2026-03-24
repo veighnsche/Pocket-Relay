@@ -73,6 +73,18 @@ void main() {
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final controller = _buildWorkspaceController(clientsById: clientsById);
+    final repository = FakeCodexWorkspaceConversationHistoryRepository(
+      conversations: <CodexWorkspaceConversationSummary>[
+        CodexWorkspaceConversationSummary(
+          threadId: 'thread_saved',
+          preview: 'Saved backend thread',
+          cwd: '/workspace',
+          promptCount: 2,
+          firstPromptAt: DateTime(2026, 3, 20, 9),
+          lastActivityAt: DateTime(2026, 3, 20, 10),
+        ),
+      ],
+    );
     addTearDown(() async {
       controller.dispose();
       await _closeClients(clientsById);
@@ -82,19 +94,7 @@ void main() {
     await tester.pumpWidget(
       _buildShell(
         controller,
-        conversationHistoryRepository:
-            FakeCodexWorkspaceConversationHistoryRepository(
-              conversations: <CodexWorkspaceConversationSummary>[
-                CodexWorkspaceConversationSummary(
-                  threadId: 'thread_saved',
-                  preview: 'Saved backend thread',
-                  cwd: '/workspace',
-                  promptCount: 2,
-                  firstPromptAt: DateTime(2026, 3, 20, 9),
-                  lastActivityAt: DateTime(2026, 3, 20, 10),
-                ),
-              ],
-            ),
+        conversationHistoryRepository: repository,
       ),
     );
     await tester.pumpAndSettle();
@@ -106,6 +106,7 @@ void main() {
 
     expect(find.text('Saved backend thread'), findsOneWidget);
     expect(find.textContaining('2 prompts'), findsOneWidget);
+    expect(repository.loadOwnerIds, <String?>['conn_primary']);
   });
 
   testWidgets(
@@ -229,7 +230,7 @@ void main() {
   );
 
   testWidgets(
-    'overflow menu shows an honest error until Codex-backed history loading exists',
+    'overflow menu shows a generic conversation history backend error',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final controller = _buildWorkspaceController(clientsById: clientsById);
@@ -1055,12 +1056,15 @@ class FakeCodexWorkspaceConversationHistoryRepository
 
   final List<CodexWorkspaceConversationSummary> conversations;
   final Object? error;
+  final List<String?> loadOwnerIds = <String?>[];
 
   @override
   Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
+    String? ownerId,
   }) async {
+    loadOwnerIds.add(ownerId);
     if (error != null) {
       throw error!;
     }

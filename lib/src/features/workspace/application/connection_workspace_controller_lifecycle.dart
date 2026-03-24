@@ -109,6 +109,28 @@ Future<void> _initializeWorkspaceController(
   );
   try {
     await _connectWorkspaceBindingTransport(firstBinding);
+  } on CodexRemoteAppServerAttachException catch (error) {
+    if (!controller._isDisposed) {
+      _applyWorkspaceRemoteAttachRuntime(
+        controller,
+        connectionId: firstConnectionId,
+        snapshot: error.snapshot,
+      );
+      controller._recordFallbackTransportConnectFailure(
+        firstConnectionId,
+        occurredAt: controller._now(),
+      );
+      controller._setTransportRecoveryPhase(
+        firstConnectionId,
+        ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+      );
+      controller._completeRecoveryAttempt(
+        firstConnectionId,
+        completedAt: controller._now(),
+        outcome: ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+      );
+    }
+    return;
   } catch (_) {
     if (!controller._isDisposed) {
       controller._recordFallbackTransportConnectFailure(
@@ -250,6 +272,27 @@ Future<void> _reconnectWorkspaceConnection(
 
     try {
       await _connectWorkspaceBindingTransport(previousBinding);
+    } on CodexRemoteAppServerAttachException catch (error) {
+      if (!controller._isDisposed) {
+        _applyWorkspaceRemoteAttachRuntime(
+          controller,
+          connectionId: connectionId,
+          snapshot: error.snapshot,
+        );
+        controller._recordFallbackTransportConnectFailure(
+          connectionId,
+          occurredAt: controller._now(),
+        );
+        controller._setTransportRecoveryPhase(
+          connectionId,
+          ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+        );
+        controller._completeRecoveryAttempt(
+          connectionId,
+          completedAt: controller._now(),
+          outcome: ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+        );
+      }
     } catch (_) {
       if (!controller._isDisposed) {
         controller._recordFallbackTransportConnectFailure(
@@ -343,6 +386,28 @@ Future<void> _reconnectWorkspaceConnection(
   if (shouldReconnectTransport) {
     try {
       await _connectWorkspaceBindingTransport(nextBinding);
+    } on CodexRemoteAppServerAttachException catch (error) {
+      if (!controller._isDisposed) {
+        _applyWorkspaceRemoteAttachRuntime(
+          controller,
+          connectionId: connectionId,
+          snapshot: error.snapshot,
+        );
+        controller._recordFallbackTransportConnectFailure(
+          connectionId,
+          occurredAt: controller._now(),
+        );
+        controller._setTransportRecoveryPhase(
+          connectionId,
+          ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+        );
+        controller._completeRecoveryAttempt(
+          connectionId,
+          completedAt: controller._now(),
+          outcome: ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
+        );
+      }
+      return;
     } catch (_) {
       if (!controller._isDisposed) {
         controller._recordFallbackTransportConnectFailure(
