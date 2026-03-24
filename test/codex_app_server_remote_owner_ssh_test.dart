@@ -480,6 +480,16 @@ final class _FakeSshBootstrapClient implements CodexSshBootstrapClient {
   }
 
   @override
+  Future<CodexSshForwardChannel> forwardLocal(
+    String remoteHost,
+    int remotePort, {
+    String localHost = 'localhost',
+    int localPort = 0,
+  }) {
+    throw UnimplementedError('forwardLocal is not used in these tests');
+  }
+
+  @override
   void close() {}
 }
 
@@ -496,6 +506,16 @@ final class _ScriptedSshBootstrapClient implements CodexSshBootstrapClient {
   @override
   Future<CodexAppServerProcess> launchProcess(String command) {
     return onLaunch(command);
+  }
+
+  @override
+  Future<CodexSshForwardChannel> forwardLocal(
+    String remoteHost,
+    int remotePort, {
+    String localHost = 'localhost',
+    int localPort = 0,
+  }) {
+    throw UnimplementedError('forwardLocal is not used in these tests');
   }
 
   @override

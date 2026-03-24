@@ -159,6 +159,44 @@ class CodexAppServerSshRemoteProcessStartedEvent extends CodexAppServerEvent {
   final String command;
 }
 
+class CodexAppServerSshPortForwardStartedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshPortForwardStartedEvent({
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.remoteHost,
+    required this.remotePort,
+    required this.localPort,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final String remoteHost;
+  final int remotePort;
+  final int localPort;
+}
+
+class CodexAppServerSshPortForwardFailedEvent extends CodexAppServerEvent {
+  const CodexAppServerSshPortForwardFailedEvent({
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.remoteHost,
+    required this.remotePort,
+    required this.message,
+    this.detail,
+  });
+
+  final String host;
+  final int port;
+  final String username;
+  final String remoteHost;
+  final int remotePort;
+  final String message;
+  final Object? detail;
+}
+
 class CodexAppServerThreadSummary {
   const CodexAppServerThreadSummary({
     required this.id,
@@ -574,7 +612,21 @@ typedef CodexAppServerProcessLauncher =
 abstract interface class CodexSshBootstrapClient {
   Future<void> authenticate();
   Future<CodexAppServerProcess> launchProcess(String command);
+  Future<CodexSshForwardChannel> forwardLocal(
+    String remoteHost,
+    int remotePort, {
+    String localHost = 'localhost',
+    int localPort = 0,
+  });
   void close();
+}
+
+abstract interface class CodexSshForwardChannel {
+  Stream<Uint8List> get stream;
+  StreamSink<List<int>> get sink;
+  Future<void> get done;
+  Future<void> close();
+  void destroy();
 }
 
 typedef CodexSshProcessBootstrap =
