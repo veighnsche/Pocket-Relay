@@ -10,9 +10,7 @@ for the unfinished work after:
 
 - Phase 0 completed
 - Phase 1 completed
-- Phase 2 Slice 2.1 completed
-- Phase 2 Slice 2.2 completed
-- Phase 2 Slice 2.3 completed
+- Phase 2 completed
 
 It is derived from:
 
@@ -39,11 +37,11 @@ The branch already has these foundations:
   - server not running
   - server unhealthy
   - server running and connectable
+- owner discovery state is wired into workspace/runtime surfaces using the real
+  connection owner identity
 
 The branch does not have these yet:
 
-- owner discovery state wired into workspace/runtime surfaces with real owner
-  ids
 - explicit user-owned `Start server`, `Stop server`, and `Restart server`
 - websocket transport and SSH forwarding to an already-running server
 - reconnect-time `thread/resume` live reattach
@@ -53,11 +51,10 @@ The branch does not have these yet:
 
 | Remaining phase | Outcome | Remaining slices |
 | --- | --- | --- |
-| 2 | Discovery truth is visible to the app | 1 |
 | 3 | Remote server lifetime becomes explicit user action | 4 |
 | 4 | Pocket Relay connects to existing `tmux`-owned websocket servers | 4 |
-| 5 | Reconnect becomes live reattach | 4 |
-| 6 | Old remote model is deleted and hardened | 4 |
+| 5 | Reconnect becomes live reattach | 5 |
+| 6 | Old remote model is deleted and hardened | 5 |
 
 ## Global Rules For The Remaining Work
 
@@ -75,47 +72,6 @@ Every remaining phase must continue to obey these constraints:
 
 If a remaining slice requires one of those shortcuts to pass, the slice is
 wrong or the phase order is wrong.
-
-## Remaining Phase 2
-
-### Slice 2.4: Surface Discovery State In Workspace And Settings
-
-Goal:
-
-- make real discovery state visible to the app and settings flow using the
-  actual connection/owner identity
-
-Required work:
-
-- thread a real owner id into the settings/runtime probe path
-- make workspace/runtime state carry the inspected server state for saved
-  remote connections
-- surface the distinction between:
-  - host unsupported
-  - host probe failed
-  - server not running
-  - server unhealthy
-  - server running
-
-Primary files:
-
-- `lib/src/features/workspace/application/...`
-- `lib/src/features/workspace/domain/...`
-- `lib/src/features/connection_settings/application/...`
-- `lib/src/features/connection_settings/presentation/...`
-
-Must not do:
-
-- do not add `Start server` / `Stop server` UI yet
-- do not invent placeholder owner ids in widget code
-- do not blur `probe failed` with `unsupported host`
-- do not keep server state local to the settings sheet only
-
-Exit criteria:
-
-- saved remote connections can surface truthful owner/server state
-- settings and workspace layers agree on the same runtime vocabulary
-- a known owner id can drive real owner inspection
 
 ## Remaining Phase 3
 
@@ -185,6 +141,8 @@ Must not do:
 
 - do not treat reconnect failure as permission to restart
 - do not stop on disconnect/backgrounding
+- do not implement restart as a bespoke lifecycle path instead of explicit
+  stop-plus-start for the same owner identity
 
 Exit criteria:
 
@@ -283,25 +241,25 @@ Exit criteria:
 
 - remote connect path attaches only to an existing healthy server
 
-### Slice 4.4: Re-baseline Transport And Workspace Tests
+### Slice 4.4: Handle Server-Not-Running And Server-Unhealthy States Honestly
 
 Goal:
 
-- prove the websocket attach path works without regressing the lane/runtime
-  behavior already fixed in earlier phases
+- make remote attach failure truthful without auto-start
 
 Required work:
 
-- add focused transport and workspace tests for websocket attach
-- preserve same-process continuity behavior from Phase 0
+- surface stopped and unhealthy owners as explicit runtime states
+- keep those states distinct from generic disconnect or reconnect copy
 
 Must not do:
 
-- do not skip tests because the seam compiles
+- do not auto-start the server from the failure path
+- do not disguise stopped or unhealthy server states as generic disconnects
 
 Exit criteria:
 
-- websocket attach path is verified before live reattach work begins
+- stopped and unhealthy owners are surfaced honestly during remote attach
 
 ## Remaining Phase 5
 
@@ -334,30 +292,48 @@ Exit criteria:
 
 - reconnect has one explicit state machine instead of implicit branching
 
-### Slice 5.2: Implement Reconnect-Time `thread/resume`
+### Slice 5.2: Expose Reconnect-Time `thread/resume` In The Client Layer
 
 Goal:
 
-- reattach to the live thread immediately after reconnect instead of waiting
-  for the next prompt
+- make reconnect-time resume a first-class app-server request path
 
 Required work:
 
-- reconnect flow issues `thread/resume` for the selected live thread
-- restore live thread subscription and active-turn state on reconnect
-- keep `thread/read` as fallback only
+- expose an explicit reconnect-time `thread/resume` request in the client layer
+- keep it separate from prompt-send or lazy session start behavior
 
 Must not do:
 
-- do not leave prompt-send resume as the primary reattach path
-- do not treat history restore as sufficient continuity
+- do not leave reconnect-time `thread/resume` hidden behind prompt-send flow
+- do not treat `thread/start` or lazy session start as equivalent
+
+Exit criteria:
+
+- the client layer can explicitly issue reconnect-time `thread/resume`
+
+### Slice 5.3: Make Recovery Attempt Live Reattach First
+
+Goal:
+
+- move the workspace/chat recovery path away from history-first restore
+
+Required work:
+
+- recovery attempts live reattach before `thread/read`
+- reconnect restores live thread subscription and active-turn state first
+
+Must not do:
+
+- do not recreate the lane before attempting live reattach
+- do not use history restore as the default fallback in this slice
 
 Exit criteria:
 
 - reconnect-time live reattach exists and is the default when continuity is
   still possible
 
-### Slice 5.3: Restore Pending Turn Interaction State
+### Slice 5.4: Restore Pending Turn Interaction State
 
 Goal:
 
@@ -377,7 +353,7 @@ Exit criteria:
 
 - a reconnecting user can return to the same live turn interaction state
 
-### Slice 5.4: Keep Truthful Fallback Restore For Real Failures
+### Slice 5.5: Keep Truthful Fallback Restore For Real Failures
 
 Goal:
 
@@ -425,17 +401,18 @@ Exit criteria:
 
 - supported remote continuity no longer depends on SSH stdio ownership
 
-### Slice 6.2: Delete History-First Reconnect Defaults
+### Slice 6.2: Remove Prompt-Send Resume As The Normal Reattach Path
 
 Goal:
 
-- remove the old reconnect behavior that recreates the lane or restores from
-  history by default
+- finish deleting the lazy resume behavior after live reattach exists
 
 Required work:
 
-- delete reconnect-time history-first branches that have been replaced by live
-  reattach
+- remove prompt-send-triggered resume as the normal way a live thread becomes
+  active again
+- delete any remaining history-first reconnect defaults already replaced by
+  live reattach
 
 Must not do:
 
@@ -444,9 +421,33 @@ Must not do:
 
 Exit criteria:
 
-- reconnect defaults to live reattach, not history restore
+- reconnect no longer waits for the next user prompt to make the thread live
 
-### Slice 6.3: End-To-End Failure Matrix Hardening
+### Slice 6.3: Remove Legacy Ambiguous Recovery States
+
+Goal:
+
+- collapse the old reconnect/rebuild ambiguity into precise server and
+  continuity states
+
+Required work:
+
+- remove generic reconnect UI/runtime states that hide:
+  - host unsupported
+  - server stopped
+  - server unhealthy
+  - live reattached
+  - truthful fallback restore
+
+Must not do:
+
+- do not preserve ambiguous UI states just because they are already wired
+
+Exit criteria:
+
+- UI/runtime no longer blur the new explicit states together
+
+### Slice 6.4: End-To-End Failure Matrix Hardening
 
 Goal:
 
@@ -473,7 +474,7 @@ Exit criteria:
 
 - the hard product constraint is verified across the real failure matrix
 
-### Slice 6.4: Cleanup, Docs, And Release Gating
+### Slice 6.5: Cleanup, Docs, And Release Gating
 
 Goal:
 
@@ -495,11 +496,11 @@ Exit criteria:
 
 ## Immediate Next Slice
 
-The next correct slice is still Phase 2 Slice 2.4.
+The next correct slice is Phase 3 Slice 3.1.
 
-That slice should land before any explicit lifecycle controls or websocket
-transport work because the app still needs one truthful shared runtime path for
-owner discovery state.
+That slice should land before any `Start server` implementation because server
+lifecycle must become explicit in the application layer before remote
+start/stop behavior is wired into SSH control helpers or UI surfaces.
 
 ## Definition Of Remaining Completion
 

@@ -9,10 +9,8 @@ Current implementation progress as of 2026-03-24:
 
 - complete: Phase 0
 - complete: Phase 1
-- complete: Phase 2 Slice 2.1
-- complete: Phase 2 Slice 2.2
-- complete: Phase 2 Slice 2.3
-- next planned slice: Phase 2 Slice 2.4
+- complete: Phase 2
+- next planned slice: Phase 3 Slice 3.1
 
 The remaining-work view that starts from the current branch state lives in:
 
@@ -71,8 +69,8 @@ phase order is wrong.
 | 2 | Host capability and server discovery are real | 4 |
 | 3 | Remote server lifetime becomes explicit user action | 4 |
 | 4 | Pocket Relay connects to existing `tmux`-owned websocket servers | 4 |
-| 5 | Reconnect becomes live reattach instead of history-first restore | 4 |
-| 6 | Old remote model is deleted and release hardening is complete | 4 |
+| 5 | Reconnect becomes live reattach instead of history-first restore | 5 |
+| 6 | Old remote model is deleted and release hardening is complete | 5 |
 
 ## Phase 0: Preserve Existing Lane On Pure Transport Recovery
 
@@ -478,6 +476,8 @@ Must not do:
 
 - do not map ordinary disconnect to `Stop server`
 - do not treat restart as a silent recovery fallback
+- do not implement restart as a bespoke lifecycle path instead of explicit
+  stop-plus-start for the same owner identity
 
 Exit criteria:
 
@@ -635,7 +635,40 @@ Turn reconnect into live thread re-entry instead of history-first recovery.
 - delay live thread attachment until the next user prompt
 - synthesize pending state locally and call that successful reattach
 
-### Slice 5.1: Expose Reconnect-Time `thread/resume` In The Client Layer
+### Slice 5.1: Define Reattach State Machine
+
+Purpose:
+
+- make reconnect-time live reattach explicit instead of burying it in ad hoc
+  controller branches
+
+Primary files:
+
+- `lib/src/features/chat/lane/application/...`
+- `lib/src/features/workspace/application/...`
+- runtime/state models that represent reconnect truth
+
+Dependencies:
+
+- Phase 4 complete
+
+Must not do:
+
+- do not hide the reconnect path inside implicit controller branching
+- do not collapse `owner missing`, `owner unhealthy`, and truthful fallback
+  restore into one generic reconnect bucket
+
+Exit criteria:
+
+- reconnect follows one explicit runtime state machine:
+  - transport lost
+  - reconnecting
+  - owner missing
+  - owner unhealthy
+  - live reattached
+  - truthful fallback restore
+
+### Slice 5.2: Expose Reconnect-Time `thread/resume` In The Client Layer
 
 Purpose:
 
@@ -648,7 +681,7 @@ Primary files:
 
 Dependencies:
 
-- Phase 4 complete
+- Slice 5.1
 
 Must not do:
 
@@ -659,7 +692,7 @@ Exit criteria:
 
 - the client layer can explicitly issue reconnect-time `thread/resume`
 
-### Slice 5.2: Make Recovery Attempt Live Reattach First
+### Slice 5.3: Make Recovery Attempt Live Reattach First
 
 Purpose:
 
@@ -672,7 +705,7 @@ Primary files:
 
 Dependencies:
 
-- Slice 5.1
+- Slice 5.2
 
 Must not do:
 
@@ -683,7 +716,7 @@ Exit criteria:
 
 - reconnect path attempts live reattach before `thread/read`
 
-### Slice 5.3: Restore Pending Approval And User-Input State
+### Slice 5.4: Restore Pending Approval And User-Input State
 
 Purpose:
 
@@ -695,7 +728,7 @@ Primary files:
 
 Dependencies:
 
-- Slice 5.2
+- Slice 5.3
 
 Must not do:
 
@@ -706,7 +739,7 @@ Exit criteria:
 
 - pending approval/input state survives reconnect when upstream still has it
 
-### Slice 5.4: Restrict `thread/read` To True Fallback Only
+### Slice 5.5: Restrict `thread/read` To True Fallback Only
 
 Purpose:
 
@@ -719,7 +752,7 @@ Primary files:
 
 Dependencies:
 
-- Slices 5.2 and 5.3
+- Slices 5.3 and 5.4
 
 Must not do:
 
@@ -824,7 +857,7 @@ Exit criteria:
 
 Purpose:
 
-- prove the final path is trustworthy enough to ship
+- verify the final continuity model against the product contract
 
 Verification matrix:
 
@@ -844,12 +877,30 @@ Dependencies:
 
 Must not do:
 
-- do not declare done from simulator or happy-path verification alone
+- do not use narrow happy-path tests as the final release bar
 - do not skip stopped-server, unhealthy-server, or fallback-truth cases
 
 Exit criteria:
 
-- final release claim matches tested behavior
+- the hard product constraint is verified across the real failure matrix
+
+### Slice 6.5: Cleanup, Docs, And Release Gating
+
+Purpose:
+
+- leave the repo in a clean post-migration state
+
+Dependencies:
+
+- Slice 6.4
+
+Must not do:
+
+- do not leave speculative transitional docs as if they were still current
+
+Exit criteria:
+
+- repo and docs reflect one coherent remote continuity architecture
 
 ## Recommended Landing Order
 
