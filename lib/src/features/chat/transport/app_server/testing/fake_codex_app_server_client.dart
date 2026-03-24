@@ -225,6 +225,21 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   }
 
   @override
+  Future<CodexAppServerSession> resumeThread({
+    required String threadId,
+    String? cwd,
+    String? model,
+    CodexReasoningEffort? reasoningEffort,
+  }) {
+    return startSession(
+      cwd: cwd,
+      model: model,
+      reasoningEffort: reasoningEffort,
+      resumeThreadId: threadId,
+    );
+  }
+
+  @override
   Future<CodexAppServerSession> forkThread({
     required String threadId,
     String? path,

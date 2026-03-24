@@ -34,6 +34,23 @@ class CodexAppServerRequestApi {
     );
   }
 
+  Future<CodexAppServerSession> resumeThread(
+    CodexAppServerConnection connection, {
+    required String threadId,
+    String? cwd,
+    String? model,
+    CodexReasoningEffort? reasoningEffort,
+  }) {
+    return _resumeThread(
+      this,
+      connection,
+      threadId: threadId,
+      cwd: cwd,
+      model: model,
+      reasoningEffort: reasoningEffort,
+    );
+  }
+
   Future<CodexAppServerThreadSummary> readThread(
     CodexAppServerConnection connection, {
     required String threadId,

@@ -998,6 +998,64 @@ void main() {
     },
   );
 
+  test('resumeThread exposes thread/resume as a first-class client request', () async {
+    late _FakeCodexAppServerProcess process;
+    process = _FakeCodexAppServerProcess(
+      onClientMessage: (message) {
+        switch (message['method']) {
+          case 'initialize':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'userAgent': 'codex-app-server-test',
+              },
+            });
+          case 'thread/resume':
+            process.sendStdout(<String, Object?>{
+              'id': message['id'],
+              'result': <String, Object?>{
+                'thread': <String, Object?>{'id': 'thread_old'},
+                'cwd': '/workspace/subdir',
+                'model': 'gpt-5.3-codex',
+                'modelProvider': 'openai',
+                'approvalPolicy': 'on-request',
+                'sandbox': <String, Object?>{'type': 'workspace-write'},
+              },
+            });
+        }
+      },
+    );
+
+    final client = CodexAppServerClient(
+      processLauncher:
+          ({required profile, required secrets, required emitEvent}) async =>
+              process,
+    );
+
+    await client.connect(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+    );
+
+    final session = await client.resumeThread(
+      threadId: 'thread_old',
+      cwd: '/workspace/subdir',
+    );
+
+    expect(session.threadId, 'thread_old');
+    final resumeRequest = process.writtenMessages.firstWhere(
+      (message) => message['method'] == 'thread/resume',
+    );
+    expect(resumeRequest['params'], <String, Object?>{
+      'cwd': '/workspace/subdir',
+      'approvalPolicy': 'on-request',
+      'sandbox': 'workspace-write',
+      'threadId': 'thread_old',
+    });
+
+    await client.disconnect();
+  });
+
   test(
     'startSession surfaces thread/resume mismatches instead of accepting a different thread id',
     () async {
@@ -1808,14 +1866,12 @@ class _FakeCodexAppServerProcess implements CodexAppServerProcess {
 }
 
 class _FakeCodexAppServerTransport implements CodexAppServerTransport {
-  _FakeCodexAppServerTransport({
-    this.onClientLine,
-    this.termination = const CodexAppServerTransportTermination(exitCode: 0),
-  });
+  _FakeCodexAppServerTransport({this.onClientLine});
 
   final void Function(String line)? onClientLine;
   @override
-  final CodexAppServerTransportTermination? termination;
+  final CodexAppServerTransportTermination? termination =
+      const CodexAppServerTransportTermination(exitCode: 0);
   final List<String> writtenLines = <String>[];
 
   final _protocolMessagesController = StreamController<String>.broadcast();
