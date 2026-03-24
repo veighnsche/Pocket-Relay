@@ -174,6 +174,10 @@ class ChatSessionController extends ChangeNotifier {
     ).selectConversationForResume(threadId);
   }
 
+  Future<void> reattachConversation(String threadId) {
+    return _ChatSessionControllerRecovery(this).reattachConversation(threadId);
+  }
+
   Future<void> retryHistoricalConversationRestore() {
     return _ChatSessionControllerRecovery(
       this,

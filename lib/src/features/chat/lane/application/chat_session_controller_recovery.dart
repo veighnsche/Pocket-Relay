@@ -71,6 +71,42 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     await _restoreConversationTranscript(normalizedThreadId);
   }
 
+  Future<void> reattachConversation(String threadId) async {
+    final normalizedThreadId = _normalizedThreadId(threadId);
+    if (normalizedThreadId == null) {
+      throw ArgumentError.value(
+        threadId,
+        'threadId',
+        'Thread id must not be empty.',
+      );
+    }
+
+    _invalidateHistoricalConversationRestore();
+    _clearHistoricalConversationRestoreState();
+    await _ensureChatSessionAppServerConnected(this);
+    final session = await appServerClient.resumeThread(
+      threadId: normalizedThreadId,
+      model: _selectedModelOverride(),
+      reasoningEffort: _profile.reasoningEffort,
+    );
+    _clearConversationRecovery();
+    _suppressTrackedThreadReuse = false;
+    _rememberChatSessionHeaderMetadata(this, session);
+    _applyChatSessionRuntimeEvent(
+      this,
+      CodexRuntimeThreadStartedEvent(
+        createdAt: DateTime.now(),
+        threadId: session.threadId,
+        providerThreadId: session.threadId,
+        rawMethod: 'thread/resume(response)',
+        threadName: session.thread?.name,
+        sourceKind: session.thread?.sourceKind,
+        agentNickname: session.thread?.agentNickname,
+        agentRole: session.thread?.agentRole,
+      ),
+    );
+  }
+
   Future<void> retryHistoricalConversationRestore() async {
     final threadId = _historicalConversationRestoreState?.threadId.trim();
     if (threadId == null || threadId.isEmpty) {

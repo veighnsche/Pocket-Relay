@@ -1089,6 +1089,107 @@ void main() {
   );
 
   test(
+    'reattachConversation resumes the same thread without rereading transcript history',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..threadHistoriesById['thread_saved'] = _savedConversationThread(
+          threadId: 'thread_saved',
+        );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.selectConversationForResume('thread_saved');
+      final restoredUserTexts = controller.transcriptBlocks
+          .whereType<CodexUserMessageBlock>()
+          .map((block) => block.text)
+          .toList(growable: false);
+      final restoredAssistantTexts = controller.transcriptBlocks
+          .whereType<CodexTextBlock>()
+          .map((block) => block.body)
+          .toList(growable: false);
+
+      appServerClient.readThreadCalls.clear();
+      appServerClient.startSessionCalls = 0;
+      appServerClient.startSessionRequests.clear();
+
+      await controller.reattachConversation('thread_saved');
+
+      expect(appServerClient.readThreadCalls, isEmpty);
+      expect(appServerClient.startSessionCalls, 1);
+      expect(
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        'thread_saved',
+      );
+      expect(
+        controller.transcriptBlocks
+            .whereType<CodexUserMessageBlock>()
+            .map((block) => block.text),
+        restoredUserTexts,
+      );
+      expect(
+        controller.transcriptBlocks
+            .whereType<CodexTextBlock>()
+            .map((block) => block.body),
+        restoredAssistantTexts,
+      );
+      expect(controller.sessionState.rootThreadId, 'thread_saved');
+      expect(controller.historicalConversationRestoreState, isNull);
+    },
+  );
+
+  test(
+    'reattachConversation seeds live thread identity without hydrating transcript history when the lane is empty',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await controller.reattachConversation('thread_live');
+
+      expect(appServerClient.connectCalls, 1);
+      expect(appServerClient.readThreadCalls, <String>['thread_live']);
+      expect(appServerClient.startSessionCalls, 1);
+      expect(
+        appServerClient.startSessionRequests.single.resumeThreadId,
+        'thread_live',
+      );
+      expect(controller.sessionState.rootThreadId, 'thread_live');
+      expect(controller.sessionState.currentThreadId, 'thread_live');
+      expect(controller.transcriptBlocks, isEmpty);
+      expect(controller.historicalConversationRestoreState, isNull);
+    },
+  );
+
+  test(
     'sendPrompt resumes the restored conversation after selectConversationForResume',
     () async {
       final appServerClient = FakeCodexAppServerClient()
