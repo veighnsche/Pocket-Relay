@@ -35,6 +35,28 @@ void main() {
     },
   );
 
+  test('stores live reattach state separately from transport recovery state', () {
+    final state = ConnectionWorkspaceState.initial().copyWith(
+      liveReattachPhasesByConnectionId:
+          const <String, ConnectionWorkspaceLiveReattachPhase>{
+            'remote-1': ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+          },
+      transportRecoveryPhasesByConnectionId:
+          const <String, ConnectionWorkspaceTransportRecoveryPhase>{
+            'remote-1': ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+          },
+    );
+
+    expect(
+      state.liveReattachPhaseFor('remote-1'),
+      ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+    );
+    expect(
+      state.transportRecoveryPhaseFor('remote-1'),
+      ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+    );
+  });
+
   test('keeps host capability distinct from server runtime status', () {
     const runtime = ConnectionRemoteRuntimeState(
       hostCapability: ConnectionRemoteHostCapabilityState.unsupported(

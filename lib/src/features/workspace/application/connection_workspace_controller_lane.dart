@@ -153,6 +153,12 @@ void _terminateWorkspaceConnection(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+        catalog: controller._state.catalog,
+        liveConnectionIds: nextLiveConnectionIds,
+        liveReattachPhasesByConnectionId:
+            controller._state.liveReattachPhasesByConnectionId,
+      ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: controller._state.catalog,
         liveConnectionIds: nextLiveConnectionIds,

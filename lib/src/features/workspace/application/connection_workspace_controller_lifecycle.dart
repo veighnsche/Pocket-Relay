@@ -18,6 +18,8 @@ Future<void> _initializeWorkspaceController(
         transportReconnectRequiredConnectionIds: <String>{},
         transportRecoveryPhasesByConnectionId:
             <String, ConnectionWorkspaceTransportRecoveryPhase>{},
+        liveReattachPhasesByConnectionId:
+            <String, ConnectionWorkspaceLiveReattachPhase>{},
         recoveryDiagnosticsByConnectionId:
             <String, ConnectionWorkspaceRecoveryDiagnostics>{},
         remoteRuntimeByConnectionId: <String, ConnectionRemoteRuntimeState>{},
@@ -57,6 +59,8 @@ Future<void> _initializeWorkspaceController(
       transportReconnectRequiredConnectionIds: const <String>{},
       transportRecoveryPhasesByConnectionId:
           const <String, ConnectionWorkspaceTransportRecoveryPhase>{},
+      liveReattachPhasesByConnectionId:
+          const <String, ConnectionWorkspaceLiveReattachPhase>{},
       recoveryDiagnosticsByConnectionId: _initialWorkspaceRecoveryDiagnostics(
         connectionId: firstConnectionId,
         recoveryState: recoveryState,
@@ -99,6 +103,16 @@ Future<void> _initializeWorkspaceController(
                       ConnectionWorkspaceTransportRecoveryPhase.reconnecting,
                 },
           ),
+      liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+        catalog: controller._state.catalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        liveReattachPhasesByConnectionId:
+            <String, ConnectionWorkspaceLiveReattachPhase>{
+              ...controller._state.liveReattachPhasesByConnectionId,
+              firstConnectionId:
+                  ConnectionWorkspaceLiveReattachPhase.reconnecting,
+            },
+      ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: controller._state.catalog,
         liveConnectionIds: controller._state.liveConnectionIds,
@@ -119,6 +133,17 @@ Future<void> _initializeWorkspaceController(
       controller._recordFallbackTransportConnectFailure(
         firstConnectionId,
         occurredAt: controller._now(),
+      );
+      controller._setLiveReattachPhase(
+        firstConnectionId,
+        switch (error.snapshot.status) {
+          CodexRemoteAppServerOwnerStatus.missing ||
+          CodexRemoteAppServerOwnerStatus.stopped =>
+            ConnectionWorkspaceLiveReattachPhase.ownerMissing,
+          CodexRemoteAppServerOwnerStatus.unhealthy ||
+          CodexRemoteAppServerOwnerStatus.running =>
+            ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+        },
       );
       controller._setTransportRecoveryPhase(
         firstConnectionId,
@@ -150,6 +175,10 @@ Future<void> _initializeWorkspaceController(
     return;
   }
 
+  controller._setLiveReattachPhase(
+    firstConnectionId,
+    ConnectionWorkspaceLiveReattachPhase.fallbackRestore,
+  );
   await firstBinding.sessionController.selectConversationForResume(
     recoveryState!.selectedThreadId!,
   );
@@ -264,6 +293,18 @@ Future<void> _reconnectWorkspaceConnection(
                     },
               )
             : controller._state.transportRecoveryPhasesByConnectionId,
+        liveReattachPhasesByConnectionId: shouldReconnectTransport
+            ? _sanitizeWorkspaceLiveReattachPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                liveReattachPhasesByConnectionId:
+                    <String, ConnectionWorkspaceLiveReattachPhase>{
+                      ...controller._state.liveReattachPhasesByConnectionId,
+                      connectionId:
+                          ConnectionWorkspaceLiveReattachPhase.reconnecting,
+                    },
+              )
+            : controller._state.liveReattachPhasesByConnectionId,
       ),
     );
     if (!shouldReconnectTransport) {
@@ -282,6 +323,17 @@ Future<void> _reconnectWorkspaceConnection(
         controller._recordFallbackTransportConnectFailure(
           connectionId,
           occurredAt: controller._now(),
+        );
+        controller._setLiveReattachPhase(
+          connectionId,
+          switch (error.snapshot.status) {
+            CodexRemoteAppServerOwnerStatus.missing ||
+            CodexRemoteAppServerOwnerStatus.stopped =>
+              ConnectionWorkspaceLiveReattachPhase.ownerMissing,
+            CodexRemoteAppServerOwnerStatus.unhealthy ||
+            CodexRemoteAppServerOwnerStatus.running =>
+              ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+          },
         );
         controller._setTransportRecoveryPhase(
           connectionId,
@@ -371,6 +423,28 @@ Future<void> _reconnectWorkspaceConnection(
                       if (entry.key != connectionId) entry.key: entry.value,
                   },
             ),
+      liveReattachPhasesByConnectionId: shouldReconnectTransport
+          ? _sanitizeWorkspaceLiveReattachPhases(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              liveReattachPhasesByConnectionId:
+                  <String, ConnectionWorkspaceLiveReattachPhase>{
+                    ...controller._state.liveReattachPhasesByConnectionId,
+                    connectionId:
+                        ConnectionWorkspaceLiveReattachPhase.reconnecting,
+                  },
+            )
+          : _sanitizeWorkspaceLiveReattachPhases(
+              catalog: controller._state.catalog,
+              liveConnectionIds: controller._state.liveConnectionIds,
+              liveReattachPhasesByConnectionId:
+                  <String, ConnectionWorkspaceLiveReattachPhase>{
+                    for (final entry
+                        in controller._state.liveReattachPhasesByConnectionId
+                            .entries)
+                      if (entry.key != connectionId) entry.key: entry.value,
+                  },
+            ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: controller._state.catalog,
         liveConnectionIds: controller._state.liveConnectionIds,
@@ -396,6 +470,17 @@ Future<void> _reconnectWorkspaceConnection(
         controller._recordFallbackTransportConnectFailure(
           connectionId,
           occurredAt: controller._now(),
+        );
+        controller._setLiveReattachPhase(
+          connectionId,
+          switch (error.snapshot.status) {
+            CodexRemoteAppServerOwnerStatus.missing ||
+            CodexRemoteAppServerOwnerStatus.stopped =>
+              ConnectionWorkspaceLiveReattachPhase.ownerMissing,
+            CodexRemoteAppServerOwnerStatus.unhealthy ||
+            CodexRemoteAppServerOwnerStatus.running =>
+              ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+          },
         );
         controller._setTransportRecoveryPhase(
           connectionId,
@@ -428,6 +513,12 @@ Future<void> _reconnectWorkspaceConnection(
     }
   }
   if (preservedLaneState.threadId != null) {
+    if (shouldReconnectTransport) {
+      controller._setLiveReattachPhase(
+        connectionId,
+        ConnectionWorkspaceLiveReattachPhase.fallbackRestore,
+      );
+    }
     await nextBinding.sessionController.selectConversationForResume(
       preservedLaneState.threadId!,
     );
@@ -519,6 +610,28 @@ Future<void> _resumeWorkspaceConversation(
                         if (entry.key != connectionId) entry.key: entry.value,
                     },
               ),
+        liveReattachPhasesByConnectionId: shouldReconnectTransport
+            ? _sanitizeWorkspaceLiveReattachPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                liveReattachPhasesByConnectionId:
+                    <String, ConnectionWorkspaceLiveReattachPhase>{
+                      ...controller._state.liveReattachPhasesByConnectionId,
+                      connectionId:
+                          ConnectionWorkspaceLiveReattachPhase.reconnecting,
+                    },
+              )
+            : _sanitizeWorkspaceLiveReattachPhases(
+                catalog: controller._state.catalog,
+                liveConnectionIds: controller._state.liveConnectionIds,
+                liveReattachPhasesByConnectionId:
+                    <String, ConnectionWorkspaceLiveReattachPhase>{
+                      for (final entry
+                          in controller._state.liveReattachPhasesByConnectionId
+                              .entries)
+                        if (entry.key != connectionId) entry.key: entry.value,
+                    },
+              ),
         recoveryDiagnosticsByConnectionId:
             _sanitizeWorkspaceRecoveryDiagnostics(
               catalog: controller._state.catalog,
@@ -590,6 +703,12 @@ Future<void> _deleteDormantWorkspaceConnection(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        liveReattachPhasesByConnectionId:
+            controller._state.liveReattachPhasesByConnectionId,
+      ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: nextCatalog,
         liveConnectionIds: controller._state.liveConnectionIds,

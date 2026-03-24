@@ -52,6 +52,12 @@ Future<String> _createWorkspaceConnection(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        liveReattachPhasesByConnectionId:
+            controller._state.liveReattachPhasesByConnectionId,
+      ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: nextCatalog,
         liveConnectionIds: controller._state.liveConnectionIds,
@@ -132,6 +138,12 @@ Future<void> _saveWorkspaceDormantConnection(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        liveReattachPhasesByConnectionId:
+            controller._state.liveReattachPhasesByConnectionId,
+      ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: nextCatalog,
         liveConnectionIds: controller._state.liveConnectionIds,
@@ -221,6 +233,12 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
             transportRecoveryPhasesByConnectionId:
                 controller._state.transportRecoveryPhasesByConnectionId,
           ),
+      liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+        catalog: nextCatalog,
+        liveConnectionIds: controller._state.liveConnectionIds,
+        liveReattachPhasesByConnectionId:
+            controller._state.liveReattachPhasesByConnectionId,
+      ),
       recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
         catalog: nextCatalog,
         liveConnectionIds: controller._state.liveConnectionIds,
@@ -349,6 +367,22 @@ _sanitizeWorkspaceTransportRecoveryPhases({
   final liveConnectionIdSet = liveConnectionIds.toSet();
   return <String, ConnectionWorkspaceTransportRecoveryPhase>{
     for (final entry in transportRecoveryPhasesByConnectionId.entries)
+      if (catalog.connectionForId(entry.key) != null &&
+          liveConnectionIdSet.contains(entry.key))
+        entry.key: entry.value,
+  };
+}
+
+Map<String, ConnectionWorkspaceLiveReattachPhase>
+_sanitizeWorkspaceLiveReattachPhases({
+  required ConnectionCatalogState catalog,
+  required List<String> liveConnectionIds,
+  required Map<String, ConnectionWorkspaceLiveReattachPhase>
+  liveReattachPhasesByConnectionId,
+}) {
+  final liveConnectionIdSet = liveConnectionIds.toSet();
+  return <String, ConnectionWorkspaceLiveReattachPhase>{
+    for (final entry in liveReattachPhasesByConnectionId.entries)
       if (catalog.connectionForId(entry.key) != null &&
           liveConnectionIdSet.contains(entry.key))
         entry.key: entry.value,

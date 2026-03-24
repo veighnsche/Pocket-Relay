@@ -424,6 +424,10 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_secondary'),
         isNull,
       );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_secondary'),
+        ConnectionWorkspaceLiveReattachPhase.fallbackRestore,
+      );
       final diagnostics = controller.state.recoveryDiagnosticsFor(
         'conn_secondary',
       );
@@ -568,6 +572,10 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_secondary'),
         ConnectionWorkspaceTransportRecoveryPhase.unavailable,
       );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_secondary'),
+        ConnectionWorkspaceLiveReattachPhase.reconnecting,
+      );
       final unavailableDiagnostics = controller.state.recoveryDiagnosticsFor(
         'conn_secondary',
       );
@@ -644,6 +652,10 @@ void main() {
       expect(
         controller.state.transportRecoveryPhaseFor('conn_secondary'),
         ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+      );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_secondary'),
+        ConnectionWorkspaceLiveReattachPhase.ownerMissing,
       );
     },
   );
@@ -1063,6 +1075,10 @@ void main() {
       expect(
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         ConnectionWorkspaceTransportRecoveryPhase.lost,
+      );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_primary'),
+        ConnectionWorkspaceLiveReattachPhase.transportLost,
       );
       final diagnostics = controller.state.recoveryDiagnosticsFor(
         'conn_primary',
@@ -1630,6 +1646,10 @@ void main() {
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         isNull,
       );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_primary'),
+        ConnectionWorkspaceLiveReattachPhase.liveReattached,
+      );
       final resumedDiagnostics = controller.state.recoveryDiagnosticsFor(
         'conn_primary',
       );
@@ -1872,6 +1892,10 @@ void main() {
       expect(
         controller.state.transportRecoveryPhaseFor('conn_primary'),
         ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+      );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_primary'),
+        ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
       );
       expect(
         controller.state.recoveryDiagnosticsFor('conn_primary')!
@@ -2455,6 +2479,7 @@ void main() {
       );
       expect(controller.state.selectedConnectionId, 'conn_primary');
       expect(controller.state.viewport, ConnectionWorkspaceViewport.liveLane);
+      expect(controller.state.liveReattachPhaseFor('conn_primary'), isNull);
     },
   );
 

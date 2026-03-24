@@ -320,6 +320,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
               },
             );
             _markTransportReconnectRequired(connectionId);
+            _setLiveReattachPhase(
+              connectionId,
+              ConnectionWorkspaceLiveReattachPhase.transportLost,
+            );
             break;
           case CodexAppServerConnectedEvent():
             final wasRecovering = _state.requiresTransportReconnect(
@@ -327,6 +331,23 @@ class ConnectionWorkspaceController extends ChangeNotifier {
             );
             _clearTransportReconnectRequired(connectionId);
             if (wasRecovering) {
+              final hasConversationIdentity =
+                  binding.sessionController.sessionState.currentThreadId
+                      ?.trim()
+                      .isNotEmpty ==
+                  true ||
+                  binding.sessionController.sessionState.rootThreadId
+                      ?.trim()
+                      .isNotEmpty ==
+                  true;
+              if (hasConversationIdentity) {
+                _setLiveReattachPhase(
+                  connectionId,
+                  ConnectionWorkspaceLiveReattachPhase.liveReattached,
+                );
+              } else {
+                _clearLiveReattachPhase(connectionId);
+              }
               _completeRecoveryAttempt(
                 connectionId,
                 completedAt: _now(),
@@ -418,6 +439,53 @@ class ConnectionWorkspaceController extends ChangeNotifier {
       snapshot: _selectedRecoveryStateSnapshot(
         backgroundedAt: backgroundedAt,
         backgroundedLifecycleState: backgroundedLifecycleState,
+      ),
+    );
+  }
+
+  void _clearLiveReattachPhase(String connectionId) {
+    if (_isDisposed || _state.liveReattachPhaseFor(connectionId) == null) {
+      return;
+    }
+
+    _applyState(
+      _state.copyWith(
+        liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+          catalog: _state.catalog,
+          liveConnectionIds: _state.liveConnectionIds,
+          liveReattachPhasesByConnectionId:
+              <String, ConnectionWorkspaceLiveReattachPhase>{
+                for (final entry in _state.liveReattachPhasesByConnectionId.entries)
+                  if (entry.key != connectionId) entry.key: entry.value,
+              },
+        ),
+      ),
+    );
+  }
+
+  void _setLiveReattachPhase(
+    String connectionId,
+    ConnectionWorkspaceLiveReattachPhase phase,
+  ) {
+    if (_isDisposed || !_state.isConnectionLive(connectionId)) {
+      return;
+    }
+
+    if (_state.liveReattachPhaseFor(connectionId) == phase) {
+      return;
+    }
+
+    _applyState(
+      _state.copyWith(
+        liveReattachPhasesByConnectionId: _sanitizeWorkspaceLiveReattachPhases(
+          catalog: _state.catalog,
+          liveConnectionIds: _state.liveConnectionIds,
+          liveReattachPhasesByConnectionId:
+              <String, ConnectionWorkspaceLiveReattachPhase>{
+                ..._state.liveReattachPhasesByConnectionId,
+                connectionId: phase,
+              },
+        ),
       ),
     );
   }

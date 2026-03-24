@@ -38,6 +38,15 @@ enum ConnectionWorkspaceTransportRecoveryPhase {
   unavailable,
 }
 
+enum ConnectionWorkspaceLiveReattachPhase {
+  transportLost,
+  reconnecting,
+  ownerMissing,
+  ownerUnhealthy,
+  liveReattached,
+  fallbackRestore,
+}
+
 @immutable
 class ConnectionWorkspaceRecoveryDiagnostics {
   const ConnectionWorkspaceRecoveryDiagnostics({
@@ -154,6 +163,7 @@ class ConnectionWorkspaceState {
     required this.savedSettingsReconnectRequiredConnectionIds,
     required this.transportReconnectRequiredConnectionIds,
     required this.transportRecoveryPhasesByConnectionId,
+    required this.liveReattachPhasesByConnectionId,
     required this.recoveryDiagnosticsByConnectionId,
     required this.remoteRuntimeByConnectionId,
   });
@@ -168,6 +178,8 @@ class ConnectionWorkspaceState {
       transportReconnectRequiredConnectionIds = const <String>{},
       transportRecoveryPhasesByConnectionId =
           const <String, ConnectionWorkspaceTransportRecoveryPhase>{},
+      liveReattachPhasesByConnectionId =
+          const <String, ConnectionWorkspaceLiveReattachPhase>{},
       recoveryDiagnosticsByConnectionId =
           const <String, ConnectionWorkspaceRecoveryDiagnostics>{},
       remoteRuntimeByConnectionId =
@@ -182,6 +194,8 @@ class ConnectionWorkspaceState {
   final Set<String> transportReconnectRequiredConnectionIds;
   final Map<String, ConnectionWorkspaceTransportRecoveryPhase>
   transportRecoveryPhasesByConnectionId;
+  final Map<String, ConnectionWorkspaceLiveReattachPhase>
+  liveReattachPhasesByConnectionId;
   final Map<String, ConnectionWorkspaceRecoveryDiagnostics>
   recoveryDiagnosticsByConnectionId;
   final Map<String, ConnectionRemoteRuntimeState> remoteRuntimeByConnectionId;
@@ -219,6 +233,12 @@ class ConnectionWorkspaceState {
     String connectionId,
   ) {
     return transportRecoveryPhasesByConnectionId[connectionId];
+  }
+
+  ConnectionWorkspaceLiveReattachPhase? liveReattachPhaseFor(
+    String connectionId,
+  ) {
+    return liveReattachPhasesByConnectionId[connectionId];
   }
 
   ConnectionWorkspaceRecoveryDiagnostics? recoveryDiagnosticsFor(
@@ -265,6 +285,8 @@ class ConnectionWorkspaceState {
     Set<String>? transportReconnectRequiredConnectionIds,
     Map<String, ConnectionWorkspaceTransportRecoveryPhase>?
     transportRecoveryPhasesByConnectionId,
+    Map<String, ConnectionWorkspaceLiveReattachPhase>?
+    liveReattachPhasesByConnectionId,
     Map<String, ConnectionWorkspaceRecoveryDiagnostics>?
     recoveryDiagnosticsByConnectionId,
     Map<String, ConnectionRemoteRuntimeState>? remoteRuntimeByConnectionId,
@@ -287,6 +309,9 @@ class ConnectionWorkspaceState {
       transportRecoveryPhasesByConnectionId:
           transportRecoveryPhasesByConnectionId ??
           this.transportRecoveryPhasesByConnectionId,
+      liveReattachPhasesByConnectionId:
+          liveReattachPhasesByConnectionId ??
+          this.liveReattachPhasesByConnectionId,
       recoveryDiagnosticsByConnectionId:
           recoveryDiagnosticsByConnectionId ??
           this.recoveryDiagnosticsByConnectionId,
@@ -316,6 +341,10 @@ class ConnectionWorkspaceState {
           transportRecoveryPhasesByConnectionId,
         ) &&
         mapEquals(
+          other.liveReattachPhasesByConnectionId,
+          liveReattachPhasesByConnectionId,
+        ) &&
+        mapEquals(
           other.recoveryDiagnosticsByConnectionId,
           recoveryDiagnosticsByConnectionId,
         ) &&
@@ -336,6 +365,11 @@ class ConnectionWorkspaceState {
     Object.hashAllUnordered(transportReconnectRequiredConnectionIds),
     Object.hashAllUnordered(
       transportRecoveryPhasesByConnectionId.entries.map(
+        (entry) => Object.hash(entry.key, entry.value),
+      ),
+    ),
+    Object.hashAllUnordered(
+      liveReattachPhasesByConnectionId.entries.map(
         (entry) => Object.hash(entry.key, entry.value),
       ),
     ),
