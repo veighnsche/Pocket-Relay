@@ -162,6 +162,7 @@ Future<void> _initializeWorkspaceController(
         firstConnectionId,
         occurredAt: controller._now(),
       );
+      controller._clearLiveReattachPhase(firstConnectionId);
       controller._setTransportRecoveryPhase(
         firstConnectionId,
         ConnectionWorkspaceTransportRecoveryPhase.unavailable,
@@ -346,6 +347,7 @@ Future<void> _reconnectWorkspaceConnection(
           connectionId,
           occurredAt: controller._now(),
         );
+        controller._clearLiveReattachPhase(connectionId);
         controller._setTransportRecoveryPhase(
           connectionId,
           ConnectionWorkspaceTransportRecoveryPhase.unavailable,
@@ -509,6 +511,7 @@ Future<void> _reconnectWorkspaceConnection(
           connectionId,
           occurredAt: controller._now(),
         );
+        controller._clearLiveReattachPhase(connectionId);
         controller._setTransportRecoveryPhase(
           connectionId,
           ConnectionWorkspaceTransportRecoveryPhase.unavailable,

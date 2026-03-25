@@ -48,6 +48,10 @@ abstract final class ConnectionWorkspaceCopy {
       'Remote session unavailable';
   static const String transportUnavailableNoticeMessage =
       'Pocket Relay could not reconnect this lane to Codex. Your draft is preserved below. Try reconnecting again.';
+  static const String remoteContinuityUnavailableNoticeTitle =
+      'Remote continuity unavailable';
+  static const String remoteContinuityUnavailableNoticeMessage =
+      'This host does not currently satisfy Pocket Relay continuity requirements. Verify SSH access, tmux, and codex, then reconnect this lane.';
   static const String remoteServerStoppedNoticeTitle = 'Remote server stopped';
   static const String remoteServerStoppedNoticeMessage =
       'The Pocket Relay server for this connection is not running. Start it from connection settings, then reconnect this lane.';
@@ -55,6 +59,10 @@ abstract final class ConnectionWorkspaceCopy {
       'Remote server unhealthy';
   static const String remoteServerUnhealthyNoticeMessage =
       'The Pocket Relay server exists but is not healthy enough to accept connections. Restart it from connection settings, then reconnect this lane.';
+  static const String restoringConversationNoticeTitle =
+      'Restoring conversation';
+  static const String restoringConversationNoticeMessage =
+      'Pocket Relay is restoring this transcript from Codex after live reattach could not continue directly. Your draft is preserved below.';
   static const String remoteServerRunningSummary = 'Server running';
   static const String remoteServerStoppedSummary = 'Server stopped';
   static const String remoteServerUnhealthySummary = 'Server unhealthy';
