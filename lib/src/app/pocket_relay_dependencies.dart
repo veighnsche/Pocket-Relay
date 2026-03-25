@@ -9,6 +9,7 @@ import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_connection_scoped_transport.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
@@ -22,6 +23,8 @@ class PocketRelayAppDependencies {
     this.conversationHistoryRepository,
     this.recoveryStore,
     this.appServerClient,
+    this.remoteAppServerHostProbe,
+    this.remoteAppServerOwnerInspector,
     this.backgroundGraceController,
     this.foregroundServiceController,
     this.displayWakeLockController,
@@ -36,6 +39,8 @@ class PocketRelayAppDependencies {
   conversationHistoryRepository;
   final ConnectionWorkspaceRecoveryStore? recoveryStore;
   final CodexAppServerClient? appServerClient;
+  final CodexRemoteAppServerHostProbe? remoteAppServerHostProbe;
+  final CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector;
   final BackgroundGraceController? backgroundGraceController;
   final ForegroundServiceController? foregroundServiceController;
   final DisplayWakeLockController? displayWakeLockController;
@@ -53,7 +58,11 @@ class PocketRelayAppDependencies {
         connectionRepository ??
         (ownedConnectionRepository ?? SecureCodexConnectionRepository());
     final resolvedPlatformPolicy = this.resolvedPlatformPolicy;
-    const remoteOwnerInspector = CodexSshRemoteAppServerOwnerInspector();
+    final resolvedRemoteOwnerInspector =
+        remoteAppServerOwnerInspector ??
+        const CodexSshRemoteAppServerOwnerInspector();
+    final resolvedRemoteHostProbe =
+        remoteAppServerHostProbe ?? resolvedRemoteOwnerInspector;
     var usedInjectedAppServerClient = false;
 
     final workspaceController = ConnectionWorkspaceController(
@@ -61,7 +70,8 @@ class PocketRelayAppDependencies {
       modelCatalogStore:
           modelCatalogStore ?? SecureConnectionModelCatalogStore(),
       recoveryStore: recoveryStore ?? SecureConnectionWorkspaceRecoveryStore(),
-      remoteAppServerOwnerInspector: remoteOwnerInspector,
+      remoteAppServerHostProbe: resolvedRemoteHostProbe,
+      remoteAppServerOwnerInspector: resolvedRemoteOwnerInspector,
       laneBindingFactory:
           ({
             required String connectionId,
@@ -86,7 +96,7 @@ class PocketRelayAppDependencies {
                       transportOpener:
                           buildConnectionScopedCodexAppServerTransportOpener(
                             ownerId: connectionId,
-                            remoteOwnerInspector: remoteOwnerInspector,
+                            remoteOwnerInspector: resolvedRemoteOwnerInspector,
                           ),
                     ),
               initialSavedProfile: SavedProfile(

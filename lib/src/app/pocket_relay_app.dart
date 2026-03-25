@@ -7,6 +7,7 @@ import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
@@ -22,6 +23,8 @@ class PocketRelayApp extends StatelessWidget {
     this.conversationHistoryRepository,
     this.recoveryStore,
     this.appServerClient,
+    this.remoteAppServerHostProbe,
+    this.remoteAppServerOwnerInspector,
     this.backgroundGraceController,
     this.foregroundServiceController,
     this.displayWakeLockController,
@@ -36,6 +39,8 @@ class PocketRelayApp extends StatelessWidget {
   conversationHistoryRepository;
   final ConnectionWorkspaceRecoveryStore? recoveryStore;
   final CodexAppServerClient? appServerClient;
+  final CodexRemoteAppServerHostProbe? remoteAppServerHostProbe;
+  final CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector;
   final BackgroundGraceController? backgroundGraceController;
   final ForegroundServiceController? foregroundServiceController;
   final DisplayWakeLockController? displayWakeLockController;
@@ -57,6 +62,8 @@ class PocketRelayApp extends StatelessWidget {
           conversationHistoryRepository: conversationHistoryRepository,
           recoveryStore: recoveryStore,
           appServerClient: appServerClient,
+          remoteAppServerHostProbe: remoteAppServerHostProbe,
+          remoteAppServerOwnerInspector: remoteAppServerOwnerInspector,
           backgroundGraceController: backgroundGraceController,
           foregroundServiceController: foregroundServiceController,
           displayWakeLockController: displayWakeLockController,
