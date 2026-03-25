@@ -12,6 +12,8 @@ for the unfinished work after:
 - Phase 1 completed
 - Phase 2 completed
 - Phase 3 completed
+- Phase 4 completed
+- Phase 5 completed
 
 It is derived from:
 
@@ -46,20 +48,24 @@ The branch already has these foundations:
 - connection settings can surface truthful remote server state and real saved
   connection lifecycle controls without mixing that lifecycle into staged draft
   edits
+- remote lanes connect through discovered `tmux`-owned websocket servers instead
+  of remote SSH stdio ownership
+- reconnect uses live `thread/resume` before truthful `thread/read` fallback
+- pending approval and input requests are replayed across live reattach
+- workspace recovery already distinguishes owner missing, owner unhealthy, live
+  reattach, and truthful fallback internally
 
 The branch does not have these yet:
 
-- websocket transport and SSH forwarding to an already-running server
-- reconnect-time `thread/resume` live reattach
 - deletion of the old SSH stdio remote model
+- removal of the dormant-only `Saved connections` inventory model
+- final cleanup of legacy ambiguous recovery presentation
 
 ## Remaining Work Overview
 
 | Remaining phase | Outcome | Remaining slices |
 | --- | --- | --- |
-| 4 | Pocket Relay connects to existing `tmux`-owned websocket servers | 4 |
-| 5 | Reconnect becomes live reattach | 5 |
-| 6 | Old remote model is deleted and hardened | 5 |
+| 6 | Old remote model is deleted, saved inventory ownership is corrected, and release is hardened | 5 |
 
 ## Global Rules For The Remaining Work
 
@@ -74,6 +80,8 @@ Every remaining phase must continue to obey these constraints:
 - do not keep SSH stdio as a hidden remote default while claiming websocket
   phases are complete
 - do not store local transcript history as truth
+- do not let `Saved connections` hide active/open connections while claiming
+  connection-owned server state is surfaced honestly
 
 If a remaining slice requires one of those shortcuts to pass, the slice is
 wrong or the phase order is wrong.
@@ -336,6 +344,7 @@ Goal:
 
 - collapse the old reconnect/rebuild ambiguity into precise server and
   continuity states
+- make `Saved connections` the canonical inventory of all saved connections
 
 Required work:
 
@@ -345,14 +354,21 @@ Required work:
   - server unhealthy
   - live reattached
   - truthful fallback restore
+- stop filtering active/open connections out of the saved-connections surface
+- show connection-owned open/selected state and remote server state from that
+  saved inventory surface
+- keep `Open lanes`, if retained, as quick-switch UI only
 
 Must not do:
 
 - do not preserve ambiguous UI states just because they are already wired
+- do not keep connection-owned server truth visible only when the lane is closed
 
 Exit criteria:
 
 - UI/runtime no longer blur the new explicit states together
+- `Saved connections` remains the canonical inventory including active/open
+  connections
 
 ### Slice 6.4: End-To-End Failure Matrix Hardening
 
@@ -403,13 +419,11 @@ Exit criteria:
 
 ## Immediate Next Slice
 
-The next correct slice is Phase 3 Slice 3.1.
+The next correct slice is Phase 6 Slice 6.1.
 
-The next correct slice is Phase 4 Slice 4.1.
-
-That slice should land before SSH forwarding or remote connect-flow rewiring so
-the websocket transport exists as a real transport peer under the Phase 1 seam
-before any attach path starts depending on it.
+That slice should land before the saved-connections inventory cleanup in Slice
+6.3 so the hidden remote SSH stdio fallback is deleted before UI cleanup claims
+the final remote architecture is in place.
 
 ## Definition Of Remaining Completion
 
@@ -420,4 +434,6 @@ The remaining work is complete only when all of the following are true:
 - reconnect uses live reattach by default
 - truthful fallback restore exists only for real external failure
 - remote SSH stdio is no longer the supported continuity path
+- `Saved connections` is the canonical inventory of all saved connections,
+  including active/open ones
 - the failure matrix proves the hard continuity contract

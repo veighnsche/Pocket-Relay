@@ -30,6 +30,8 @@ These decisions are now fixed for the supported remote path:
 - live reattach uses reconnect-time `thread/resume`
 - `thread/read` is truthful fallback only after real continuity loss
 - brief post-turn lock/unlock must not rebuild an existing in-memory lane
+- `Saved connections` is the canonical inventory of all saved connections, even
+  when a connection already has an open lane
 - Pocket Relay does not own historical transcript truth
 
 ## What "Done" Means
@@ -51,6 +53,8 @@ The remote upgrade is done only when all of these are true:
    fallback.
 9. Brief post-turn lock/unlock does not discard an existing surviving lane.
 10. The old implicit remote owner lifecycle is deleted.
+11. `Saved connections` continues to list every saved connection, including
+    active/open ones, and surfaces connection-owned server state there.
 
 ## Implementation Strategy
 
@@ -61,6 +65,7 @@ The rule is:
 - do not delete old behavior before its replacement exists
 - do not keep the old behavior after the replacement is verified
 - do not leave server lifetime ownership implicit anywhere in the final path
+- do not let connection-owned server truth live only on lane-only surfaces
 
 ## Completion Guardrails
 
@@ -227,6 +232,8 @@ explicit user actions.
 - stop tears that owner down intentionally
 - restart is explicit replacement, not implicit reconnect behavior
 - ordinary disconnect/backgrounding never counts as a stop signal
+- the action model must be reusable from the saved-connections inventory even
+  when the lane is already open
 
 ### Files
 
@@ -342,6 +349,8 @@ remote architecture standing.
   reattach
 - implicit remote server creation during ordinary connect/reconnect
 - implicit remote server stop semantics tied to disconnect/backgrounding
+- the dormant-only `Saved connections` inventory model that removes active
+  connections from that surface
 
 ### Keep
 
@@ -354,6 +363,8 @@ remote architecture standing.
 - one coherent remote continuity architecture remains
 - no shadow fallback remote mode remains
 - no hidden server lifecycle policy remains
+- `Saved connections` is the canonical connection inventory, and `Open lanes` if
+  retained is quick-switch only
 
 ## Required Test Matrix
 
@@ -373,6 +384,9 @@ The final implementation is not done without this matrix.
 
 ### Server inventory and control
 
+- `Saved connections` lists every saved connection, including active/open ones
+- connection-owned server state remains visible there even when the lane is
+  already open
 - explicit `Start server` starts the expected `tmux`-owned server
 - explicit `Stop server` stops the expected server
 - explicit `Restart server` replaces it intentionally

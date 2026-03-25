@@ -553,6 +553,11 @@ Target role:
   - remote server is unhealthy
   - continuity lost because owner disappeared
   - truthful fallback restore in progress
+- treat `Saved connections` as the canonical inventory of every saved
+  connection, including connections that already have an open lane
+- show connection-owned remote server status and lifecycle controls on that
+  saved inventory surface
+- if `Open lanes` remains on desktop, keep it as quick-switch UI only
 
 What should disappear:
 
@@ -566,6 +571,56 @@ What should be added:
 - explicit `Stop server`
 - explicit `Restart server`
 - clear distinction between "host unsupported" and "server currently stopped"
+
+#### `lib/src/features/workspace/presentation/workspace_dormant_roster_content.dart`
+
+Action: `Replace`
+
+Current role:
+
+- acts as a dormant-only saved-connections page
+- filters live connections out of the saved inventory
+
+Target role:
+
+- become the canonical saved-connections inventory for all saved connections
+- keep active/open connections visible there instead of removing them
+- surface connection-owned remote server state and actions there
+
+What should disappear:
+
+- the assumption that `Saved connections` means "only connections without a
+  live lane"
+- row disappearance as soon as a lane opens
+
+#### `lib/src/features/workspace/presentation/workspace_desktop_shell_sidebar_expanded.dart`
+
+Action: `Replace`, selectively
+
+Current role:
+
+- splits `Open lanes` and `Saved`, with `Saved` summarizing only dormant
+  connections
+
+Target role:
+
+- keep `Saved` as the canonical saved inventory
+- let `Open lanes` remain quick-switch chrome only, if retained
+- keep active/open connections visible in `Saved`
+
+#### `lib/src/features/workspace/presentation/workspace_mobile_shell.dart`
+
+Action: `Keep and extend`
+
+Current role:
+
+- hosts the saved-connections page as a separate page after live lanes
+
+Target role:
+
+- keep the separate page structure
+- change the page contents so `Saved connections` lists all saved connections,
+  not only dormant ones
 
 ### Tests
 
@@ -714,3 +769,7 @@ The migration is structurally complete only when all of the following are true:
 8. routine app switching still does not sever a live lane
 9. brief post-turn lock/unlock does not discard an existing in-memory lane just
    because the active turn already finished
+10. `Saved connections` remains the canonical inventory of all saved
+    connections, including active/open ones
+11. connection-owned server state does not disappear from the saved inventory
+    just because a lane is already open

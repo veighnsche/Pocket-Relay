@@ -63,6 +63,18 @@ Pocket Relay:
 Pocket Relay does not decide that ordinary disconnect means the server should
 die.
 
+### Saved connections owns connection inventory
+
+The UI ownership split follows the same rule:
+
+- `Saved connections` lists every saved connection, including ones that already
+  have an open lane
+- connection-owned server state and explicit server controls belong to that
+  saved inventory surface
+- the live lane still owns lane-specific continuity notices
+- if desktop keeps `Open lanes`, it is quick-switch UI only, not the sole place
+  an active saved connection exists
+
 ## Why `tmux` Still Matters
 
 Even with explicit controls, the server still needs a durable owner after the
@@ -133,6 +145,15 @@ This is why discovery alone is not enough:
 
 - discovery finds the `tmux`-owned server
 - websocket is still the actual protocol path into it
+
+## Timeline 2A: User Opens Saved Connections While The Lane Is Already Open
+
+| Time | Situation | Expected Result |
+| --- | --- | --- |
+| T1 | A saved remote connection already has an open lane | The same connection still appears in `Saved connections` |
+| T2 | Its managed server is already running | `Saved connections` shows that running state honestly |
+| T3 | The user wants server control, not lane transcript details | `Saved connections` is the correct surface for connection-owned `Start server`, `Stop server`, or `Restart server` actions |
+| T4 | The user wants to jump back into the lane quickly | Desktop `Open lanes` may still offer quick switching, but it is not the only inventory |
 
 ## Timeline 3: Ordinary App Switch, No Confirmed Transport Loss
 

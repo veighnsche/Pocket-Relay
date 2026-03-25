@@ -831,10 +831,13 @@ Purpose:
 
 - collapse the old reconnect/rebuild ambiguity into the new precise server and
   continuity states
+- remove the dormant-only `Saved connections` inventory model now that
+  connection-owned server state exists
 
 Primary files:
 
 - workspace presentation/application layers
+- saved-connections surfaces and desktop sidebar inventory surfaces
 
 Dependencies:
 
@@ -844,6 +847,8 @@ Must not do:
 
 - do not leave generic reconnect banners hiding explicit server states
 - do not preserve ambiguous UI states just because they are already wired
+- do not keep active/open connections invisible on `Saved connections`
+- do not move connection-owned server truth entirely into lane-only surfaces
 
 Exit criteria:
 
@@ -853,6 +858,8 @@ Exit criteria:
   - server unhealthy
   - live reattach
   - truthful fallback restore
+- `Saved connections` lists all saved connections, including active/open ones
+- `Open lanes`, if retained, is quick-switch UI only
 
 ### Slice 6.4: Release Hardening And Matrix Verification
 
@@ -912,8 +919,8 @@ The intended landing order is:
 3. Phase 2 completely
 4. Phase 3 slices 3.1 to 3.4
 5. Phase 4 slices 4.1 to 4.4
-6. Phase 5 slices 5.1 to 5.4
-7. Phase 6 slices 6.1 to 6.4
+6. Phase 5 slices 5.1 to 5.5
+7. Phase 6 slices 6.1 to 6.5
 
 Do not skip ahead to live reattach before:
 

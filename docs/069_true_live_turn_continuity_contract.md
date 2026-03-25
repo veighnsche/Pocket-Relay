@@ -80,6 +80,25 @@ It is also:
 - whether reconnect attaches to the same deliberate server or silently creates a
   new one
 
+## Connection Inventory Ownership
+
+The continuity path also needs one UI ownership rule:
+
+- `Saved connections` is the canonical inventory of every saved connection
+- a saved connection must not disappear from that surface just because it
+  already has an open lane
+- connection-owned state belongs on that saved inventory surface:
+  - whether the connection is currently open
+  - whether it is the selected lane
+  - whether its remote server is stopped, running, or unhealthy
+  - explicit `Start server`, `Stop server`, and `Restart server` actions
+- live lanes still own lane-scoped continuity notices and transcript-specific
+  recovery state
+
+If desktop keeps an `Open lanes` surface, that surface is quick-switch chrome
+only. It must not become the only place an active saved connection still exists
+in the UI.
+
 ## What Counts As Success
 
 The contract is satisfied only if all of the following are true.
