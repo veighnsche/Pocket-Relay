@@ -123,6 +123,10 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
           List<Map<String, Object?>> contentItems,
         })
       >[];
+  final Map<String, String> pendingServerRequestMethodsById =
+      <String, String>{};
+  final Map<String, List<CodexAppServerEvent>>
+  resumeThreadReplayEventsByThreadId = <String, List<CodexAppServerEvent>>{};
   final List<CodexAppServerEvent> connectEventsBeforeThrow =
       <CodexAppServerEvent>[];
   Object? connectError;
@@ -211,7 +215,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       resumeThreadId: resumeThreadId,
     ));
     _threadId = resumeThreadId ?? 'thread_123';
-    return CodexAppServerSession(
+    final session = CodexAppServerSession(
       threadId: _threadId!,
       cwd: startSessionCwd ?? cwd ?? '/workspace',
       model: startSessionModel ?? model ?? 'gpt-5.3-codex',
@@ -222,6 +226,15 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
         sourceKind: 'app-server',
       ),
     );
+    if (resumeThreadId != null && resumeThreadId.trim().isNotEmpty) {
+      final replayEvents = resumeThreadReplayEventsByThreadId[resumeThreadId];
+      if (replayEvents != null) {
+        for (final event in replayEvents) {
+          emit(event);
+        }
+      }
+    }
+    return session;
   }
 
   @override
@@ -461,6 +474,16 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required String requestId,
     required bool approved,
   }) async {
+    _removePendingServerRequest(
+      requestId,
+      allowedMethods: const <String>{
+        'item/commandExecution/requestApproval',
+        'item/fileChange/requestApproval',
+        'item/permissions/requestApproval',
+        'applyPatchApproval',
+        'execCommandApproval',
+      },
+    );
     approvalDecisions.add((requestId: requestId, approved: approved));
   }
 
@@ -469,6 +492,13 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required String requestId,
     required Map<String, List<String>> answers,
   }) async {
+    _removePendingServerRequest(
+      requestId,
+      allowedMethods: const <String>{
+        'item/tool/requestUserInput',
+        'tool/requestUserInput',
+      },
+    );
     userInputResponses.add((requestId: requestId, answers: answers));
   }
 
@@ -479,6 +509,10 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     Object? content,
     Object? metadata,
   }) async {
+    _removePendingServerRequest(
+      requestId,
+      allowedMethods: const <String>{'mcpServer/elicitation/request'},
+    );
     elicitationResponses.add((
       requestId: requestId,
       action: action,
@@ -493,6 +527,10 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     required bool success,
     List<Map<String, Object?>> contentItems = const <Map<String, Object?>>[],
   }) async {
+    _removePendingServerRequest(
+      requestId,
+      allowedMethods: const <String>{'item/tool/call'},
+    );
     dynamicToolResponses.add((
       requestId: requestId,
       success: success,
@@ -507,6 +545,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     int code = -32000,
     Object? data,
   }) async {
+    _removePendingServerRequest(requestId);
     rejectedRequests.add((requestId: requestId, message: message));
   }
 
@@ -525,10 +564,19 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     _isConnected = false;
     _threadId = null;
     _activeTurnId = null;
+    pendingServerRequestMethodsById.clear();
     emit(const CodexAppServerDisconnectedEvent(exitCode: 0));
   }
 
   void emit(CodexAppServerEvent event) {
+    switch (event) {
+      case CodexAppServerRequestEvent(:final requestId, :final method):
+        pendingServerRequestMethodsById[requestId] = method;
+      case CodexAppServerDisconnectedEvent():
+        pendingServerRequestMethodsById.clear();
+      default:
+        break;
+    }
     if (_eventsController.isClosed) {
       return;
     }
@@ -537,5 +585,23 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
 
   Future<void> close() async {
     await _eventsController.close();
+  }
+
+  void _removePendingServerRequest(
+    String requestId, {
+    Set<String>? allowedMethods,
+  }) {
+    final method = pendingServerRequestMethodsById[requestId];
+    if (method == null) {
+      throw CodexAppServerException(
+        'Unknown pending server request: $requestId',
+      );
+    }
+    if (allowedMethods != null && !allowedMethods.contains(method)) {
+      throw CodexAppServerException(
+        'Request $requestId is $method, not a compatible pending server request.',
+      );
+    }
+    pendingServerRequestMethodsById.remove(requestId);
   }
 }

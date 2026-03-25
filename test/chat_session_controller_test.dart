@@ -1135,15 +1135,15 @@ void main() {
         'thread_saved',
       );
       expect(
-        controller.transcriptBlocks
-            .whereType<CodexUserMessageBlock>()
-            .map((block) => block.text),
+        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+          (block) => block.text,
+        ),
         restoredUserTexts,
       );
       expect(
-        controller.transcriptBlocks
-            .whereType<CodexTextBlock>()
-            .map((block) => block.body),
+        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+          (block) => block.body,
+        ),
         restoredAssistantTexts,
       );
       expect(controller.sessionState.rootThreadId, 'thread_saved');
@@ -1186,6 +1186,131 @@ void main() {
       expect(controller.sessionState.currentThreadId, 'thread_live');
       expect(controller.transcriptBlocks, isEmpty);
       expect(controller.historicalConversationRestoreState, isNull);
+    },
+  );
+
+  test(
+    'reattachConversation replays pending user input requests so they remain actionable after reconnect',
+    () async {
+      const replayedRequest = CodexAppServerRequestEvent(
+        requestId: 'input_1',
+        method: 'item/tool/requestUserInput',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_1',
+          'itemId': 'item_1',
+          'questions': <Object?>[
+            <String, Object?>{
+              'id': 'q1',
+              'header': 'Name',
+              'question': 'What is your name?',
+            },
+          ],
+        },
+      );
+      final appServerClient = FakeCodexAppServerClient()
+        ..resumeThreadReplayEventsByThreadId['thread_123'] =
+            <CodexAppServerEvent>[replayedRequest];
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(replayedRequest);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        controller.sessionState.pendingUserInputRequests.containsKey('input_1'),
+        isTrue,
+      );
+
+      await appServerClient.disconnect();
+      await controller.reattachConversation('thread_123');
+      await controller.submitUserInput('input_1', const <String, List<String>>{
+        'q1': <String>['Vince'],
+      });
+
+      expect(
+        appServerClient.userInputResponses,
+        <({String requestId, Map<String, List<String>> answers})>[
+          (
+            requestId: 'input_1',
+            answers: const <String, List<String>>{
+              'q1': <String>['Vince'],
+            },
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
+    'reattachConversation replays pending approval requests so they remain actionable after reconnect',
+    () async {
+      const replayedRequest = CodexAppServerRequestEvent(
+        requestId: 'approval_1',
+        method: 'item/permissions/requestApproval',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_1',
+          'itemId': 'item_approval_1',
+          'message': 'Need permission to continue.',
+        },
+      );
+      final appServerClient = FakeCodexAppServerClient()
+        ..resumeThreadReplayEventsByThreadId['thread_123'] =
+            <CodexAppServerEvent>[replayedRequest];
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: _configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: _configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(replayedRequest);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        controller.sessionState.pendingApprovalRequests.containsKey(
+          'approval_1',
+        ),
+        isTrue,
+      );
+
+      await appServerClient.disconnect();
+      await controller.reattachConversation('thread_123');
+      await controller.approveRequest('approval_1');
+
+      expect(
+        appServerClient.approvalDecisions,
+        <({String requestId, bool approved})>[
+          (requestId: 'approval_1', approved: true),
+        ],
+      );
     },
   );
 
@@ -2512,10 +2637,7 @@ void main() {
         hasLength(1),
       );
       expect(controller.transcriptBlocks.whereType<CodexErrorBlock>(), isEmpty);
-      await expectLater(
-        snackBarMessage,
-        throwsA(isA<TimeoutException>()),
-      );
+      await expectLater(snackBarMessage, throwsA(isA<TimeoutException>()));
     },
   );
 
