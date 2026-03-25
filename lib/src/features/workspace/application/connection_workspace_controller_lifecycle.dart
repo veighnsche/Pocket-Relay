@@ -175,20 +175,13 @@ Future<void> _initializeWorkspaceController(
     return;
   }
 
-  controller._setLiveReattachPhase(
+  await _recoverWorkspaceConversationAfterTransportReconnect(
+    controller,
     firstConnectionId,
-    ConnectionWorkspaceLiveReattachPhase.fallbackRestore,
+    firstBinding,
+    threadId: recoveryState!.selectedThreadId!,
+    hadVisibleConversationState: false,
   );
-  await firstBinding.sessionController.selectConversationForResume(
-    recoveryState!.selectedThreadId!,
-  );
-  if (!controller._isDisposed) {
-    controller._completeConversationRecoveryAttempt(
-      firstConnectionId,
-      firstBinding,
-      completedAt: controller._now(),
-    );
-  }
 }
 
 Future<void> _instantiateWorkspaceConnection(
@@ -374,6 +367,8 @@ Future<void> _reconnectWorkspaceConnection(
       connectionId,
       previousBinding,
       threadId: preservedLaneState.threadId!,
+      hadVisibleConversationState:
+          _workspaceLaneHasVisibleLiveConversationState(previousBinding),
     );
     return;
   }
@@ -529,15 +524,19 @@ Future<void> _reconnectWorkspaceConnection(
   }
   if (preservedLaneState.threadId != null) {
     if (shouldReconnectTransport) {
-      controller._setLiveReattachPhase(
+      await _recoverWorkspaceConversationAfterTransportReconnect(
+        controller,
         connectionId,
-        ConnectionWorkspaceLiveReattachPhase.fallbackRestore,
+        nextBinding,
+        threadId: preservedLaneState.threadId!,
+        hadVisibleConversationState: false,
       );
+      return;
     }
     await nextBinding.sessionController.selectConversationForResume(
       preservedLaneState.threadId!,
     );
-    if (!controller._isDisposed && shouldReconnectTransport) {
+    if (!controller._isDisposed) {
       controller._completeConversationRecoveryAttempt(
         connectionId,
         nextBinding,
@@ -888,10 +887,31 @@ Future<void> _recoverWorkspaceConversationAfterTransportReconnect(
   String connectionId,
   ConnectionLaneBinding binding, {
   required String threadId,
+  required bool hadVisibleConversationState,
 }) async {
   try {
     await binding.sessionController.reattachConversation(threadId);
     if (controller._isDisposed) {
+      return;
+    }
+
+    if (_shouldFallbackToHistoryRestoreAfterLiveReattach(
+      binding,
+      hadVisibleConversationState: hadVisibleConversationState,
+    )) {
+      controller._clearTransportReconnectRequired(connectionId);
+      controller._setLiveReattachPhase(
+        connectionId,
+        ConnectionWorkspaceLiveReattachPhase.fallbackRestore,
+      );
+      await binding.sessionController.selectConversationForResume(threadId);
+      if (!controller._isDisposed) {
+        controller._completeConversationRecoveryAttempt(
+          connectionId,
+          binding,
+          completedAt: controller._now(),
+        );
+      }
       return;
     }
 
@@ -923,6 +943,27 @@ Future<void> _recoverWorkspaceConversationAfterTransportReconnect(
       );
     }
   }
+}
+
+bool _shouldFallbackToHistoryRestoreAfterLiveReattach(
+  ConnectionLaneBinding binding, {
+  required bool hadVisibleConversationState,
+}) {
+  if (hadVisibleConversationState) {
+    return false;
+  }
+
+  return !_workspaceLaneHasVisibleLiveConversationState(binding);
+}
+
+bool _workspaceLaneHasVisibleLiveConversationState(
+  ConnectionLaneBinding binding,
+) {
+  final sessionState = binding.sessionController.sessionState;
+  return sessionState.activeTurn != null ||
+      sessionState.pendingApprovalRequests.isNotEmpty ||
+      sessionState.pendingUserInputRequests.isNotEmpty ||
+      binding.sessionController.transcriptBlocks.isNotEmpty;
 }
 
 Map<String, ConnectionWorkspaceRecoveryDiagnostics>
