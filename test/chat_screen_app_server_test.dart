@@ -523,39 +523,6 @@ void main() {
   );
 
   testWidgets(
-    'renders SSH remote launch failure as a dedicated settings-oriented surface',
-    (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
-      addTearDown(appServerClient.close);
-
-      await tester.pumpWidget(
-        _buildCatalogApp(appServerClient: appServerClient),
-      );
-
-      await _pumpAppReady(tester);
-
-      appServerClient.emit(
-        const CodexAppServerSshRemoteLaunchFailedEvent(
-          host: 'example.com',
-          port: 22,
-          username: 'vince',
-          command: 'bash -lc codex app-server --listen stdio://',
-          message: 'exec request denied',
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('SSH remote launch failed'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('ssh_remote_command_value')),
-        findsOneWidget,
-      );
-      expect(find.text('exec request denied'), findsOneWidget);
-      expect(find.byKey(const ValueKey('save_host_fingerprint')), findsNothing);
-    },
-  );
-
-  testWidgets(
     'reuses the current SSH failure surface when the same connect failure repeats',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();

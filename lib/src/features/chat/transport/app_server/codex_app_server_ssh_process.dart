@@ -7,49 +7,6 @@ import 'package:pocket_relay/src/core/utils/shell_utils.dart';
 
 import 'codex_app_server_models.dart';
 
-Future<CodexAppServerProcess> openSshCodexAppServerProcess({
-  required ConnectionProfile profile,
-  required ConnectionSecrets secrets,
-  required void Function(CodexAppServerEvent event) emitEvent,
-  CodexSshProcessBootstrap sshBootstrap = connectSshBootstrapClient,
-}) async {
-  final command = buildSshCodexAppServerCommand(profile: profile);
-  final host = profile.host.trim();
-  final username = profile.username.trim();
-  final client = await connectAuthenticatedSshBootstrapClient(
-    profile: profile,
-    secrets: secrets,
-    emitEvent: emitEvent,
-    sshBootstrap: sshBootstrap,
-  );
-
-  try {
-    final process = await client.launchProcess(command);
-    emitEvent(
-      CodexAppServerSshRemoteProcessStartedEvent(
-        host: host,
-        port: profile.port,
-        username: username,
-        command: command,
-      ),
-    );
-    return process;
-  } catch (error) {
-    client.close();
-    emitEvent(
-      CodexAppServerSshRemoteLaunchFailedEvent(
-        host: host,
-        port: profile.port,
-        username: username,
-        command: command,
-        message: _sshErrorMessage(error),
-        detail: error,
-      ),
-    );
-    rethrow;
-  }
-}
-
 Future<CodexSshBootstrapClient> connectAuthenticatedSshBootstrapClient({
   required ConnectionProfile profile,
   required ConnectionSecrets secrets,
@@ -203,15 +160,6 @@ List<SSHKeyPair>? _buildIdentities(
 
   final passphrase = secrets.privateKeyPassphrase.trim();
   return SSHKeyPair.fromPem(privateKey, passphrase.isEmpty ? null : passphrase);
-}
-
-@visibleForTesting
-String buildSshCodexAppServerCommand({required ConnectionProfile profile}) {
-  final launcher = profile.codexPath.trim();
-  final command =
-      'cd ${shellEscape(profile.workspaceDir.trim())} && '
-      '$launcher app-server --listen stdio://';
-  return 'bash -lc ${shellEscape(command)}';
 }
 
 Future<CodexSshBootstrapClient> connectSshBootstrapClient({

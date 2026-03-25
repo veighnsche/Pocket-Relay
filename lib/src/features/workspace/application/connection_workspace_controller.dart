@@ -377,14 +377,6 @@ class ConnectionWorkspaceController extends ChangeNotifier {
                   .sshAuthenticationFailed,
             );
             break;
-          case CodexAppServerSshRemoteLaunchFailedEvent():
-            _recordTransportLoss(
-              connectionId,
-              occurredAt: _now(),
-              reason:
-                  ConnectionWorkspaceTransportLossReason.sshRemoteLaunchFailed,
-            );
-            break;
           default:
             break;
         }

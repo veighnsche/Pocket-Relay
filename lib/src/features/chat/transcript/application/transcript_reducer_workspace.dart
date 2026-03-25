@@ -14,8 +14,7 @@ CodexSessionState _reduceWorkspaceRuntimeEventImpl(
       return _upsertThreadStartedImpl(state, event);
     case CodexRuntimeThreadStateChangedEvent():
       return _reduceThreadStateChangedImpl(reducer, state, event);
-    case CodexRuntimeSshAuthenticatedEvent() ||
-        CodexRuntimeSshRemoteProcessStartedEvent():
+    case CodexRuntimeSshAuthenticatedEvent():
       return state;
     default:
       break;

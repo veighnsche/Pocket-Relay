@@ -3,7 +3,6 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_auth_failed_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_connect_failed_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_host_key_mismatch_surface.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_remote_launch_failed_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_unpinned_host_key_surface.dart';
 
 class SshSurfaceHost extends StatelessWidget {
@@ -40,11 +39,6 @@ class SshSurfaceHost extends StatelessWidget {
       final CodexSshAuthenticationFailedBlock authFailedBlock =>
         SshAuthFailedSurface(
           block: authFailedBlock,
-          onOpenConnectionSettings: onOpenConnectionSettings,
-        ),
-      final CodexSshRemoteLaunchFailedBlock remoteLaunchFailedBlock =>
-        SshRemoteLaunchFailedSurface(
-          block: remoteLaunchFailedBlock,
           onOpenConnectionSettings: onOpenConnectionSettings,
         ),
     };

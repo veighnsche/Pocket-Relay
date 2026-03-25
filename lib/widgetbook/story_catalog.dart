@@ -25,7 +25,6 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_auth_failed_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_connect_failed_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_host_key_mismatch_surface.dart';
-import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_remote_launch_failed_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_unpinned_host_key_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/status_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/turn_boundary_marker.dart';
@@ -594,15 +593,6 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                   builder: (_) => _storyCanvas(
                     child: SshAuthFailedSurface(
                       block: WidgetbookFixtures.sshAuthenticationFailedBlock(),
-                      onOpenConnectionSettings: () {},
-                    ),
-                  ),
-                ),
-                WidgetbookUseCase(
-                  name: 'Remote Launch Failed',
-                  builder: (_) => _storyCanvas(
-                    child: SshRemoteLaunchFailedSurface(
-                      block: WidgetbookFixtures.sshRemoteLaunchFailedBlock(),
                       onOpenConnectionSettings: () {},
                     ),
                   ),

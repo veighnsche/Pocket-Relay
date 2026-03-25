@@ -89,11 +89,3 @@ String _sshAuthenticationFailedBlockIdImpl({
 }) {
   return 'ssh-auth-failed-$username@$host-$port';
 }
-
-String _sshRemoteLaunchFailedBlockIdImpl({
-  required String host,
-  required int port,
-  required String username,
-}) {
-  return 'ssh-remote-launch-failed-$username@$host-$port';
-}

@@ -98,8 +98,7 @@ extension on ChatSessionController {
       CodexRuntimeSshConnectFailedEvent() ||
       CodexRuntimeUnpinnedHostKeyEvent() ||
       CodexRuntimeSshHostKeyMismatchEvent() ||
-      CodexRuntimeSshAuthenticationFailedEvent() ||
-      CodexRuntimeSshRemoteLaunchFailedEvent() => true,
+      CodexRuntimeSshAuthenticationFailedEvent() => true,
       _ => false,
     };
   }

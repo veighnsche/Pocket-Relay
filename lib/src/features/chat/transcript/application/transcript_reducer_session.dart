@@ -85,10 +85,6 @@ CodexSessionState _reduceSessionTranscriptRuntimeEventImpl(
       );
     case CodexRuntimeSshAuthenticatedEvent():
       return normalizedState;
-    case CodexRuntimeSshRemoteLaunchFailedEvent():
-      return reducer._policy.applySshRemoteLaunchFailed(normalizedState, event);
-    case CodexRuntimeSshRemoteProcessStartedEvent():
-      return normalizedState;
     case CodexRuntimeStatusEvent():
       return reducer._policy.applyStatus(normalizedState, event);
     case CodexRuntimeErrorEvent():
@@ -153,9 +149,7 @@ CodexSessionState _normalizeTurnStateImpl(
     CodexRuntimeSshConnectFailedEvent() ||
     CodexRuntimeSshHostKeyMismatchEvent() ||
     CodexRuntimeSshAuthenticationFailedEvent() ||
-    CodexRuntimeSshAuthenticatedEvent() ||
-    CodexRuntimeSshRemoteLaunchFailedEvent() ||
-    CodexRuntimeSshRemoteProcessStartedEvent() => state,
+    CodexRuntimeSshAuthenticatedEvent() => state,
     _ => reducer._policy.rolloverTurnIfNeeded(
       state,
       turnId: event.turnId,

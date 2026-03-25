@@ -303,29 +303,6 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applySshRemoteLaunchFailed(
-    CodexSessionState state,
-    CodexRuntimeSshRemoteLaunchFailedEvent event,
-  ) {
-    return _upsertTopLevelTranscriptBlockImpl(
-      this,
-      state,
-      CodexSshRemoteLaunchFailedBlock(
-        id: _sshRemoteLaunchFailedBlockIdImpl(
-          host: event.host,
-          port: event.port,
-          username: event.username,
-        ),
-        createdAt: event.createdAt,
-        host: event.host,
-        port: event.port,
-        username: event.username,
-        command: event.command,
-        message: event.message,
-      ),
-    );
-  }
-
   CodexSessionState markUnpinnedHostKeySaved(
     CodexSessionState state, {
     required String blockId,

@@ -21,7 +21,6 @@ enum ConnectionWorkspaceTransportLossReason {
   sshConnectFailed,
   sshHostKeyMismatch,
   sshAuthenticationFailed,
-  sshRemoteLaunchFailed,
 }
 
 enum ConnectionWorkspaceRecoveryOutcome {

@@ -131,42 +131,6 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/authenticated',
         ),
       ];
-    case CodexAppServerSshRemoteLaunchFailedEvent(
-      :final host,
-      :final port,
-      :final username,
-      :final command,
-      :final message,
-      :final detail,
-    ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSshRemoteLaunchFailedEvent(
-          createdAt: now,
-          host: host,
-          port: port,
-          username: username,
-          command: command,
-          message: message,
-          detail: detail,
-          rawMethod: 'transport/ssh/remoteLaunchFailed',
-        ),
-      ];
-    case CodexAppServerSshRemoteProcessStartedEvent(
-      :final host,
-      :final port,
-      :final username,
-      :final command,
-    ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSshRemoteProcessStartedEvent(
-          createdAt: now,
-          host: host,
-          port: port,
-          username: username,
-          command: command,
-          rawMethod: 'transport/ssh/remoteProcessStarted',
-        ),
-      ];
     case CodexAppServerSshPortForwardStartedEvent(
       :final host,
       :final port,

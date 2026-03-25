@@ -84,19 +84,3 @@ final class CodexSshAuthenticationFailedBlock extends CodexSshTranscriptBlock {
   final AuthMode authMode;
   final String message;
 }
-
-final class CodexSshRemoteLaunchFailedBlock extends CodexSshTranscriptBlock {
-  const CodexSshRemoteLaunchFailedBlock({
-    required super.id,
-    required super.createdAt,
-    required super.host,
-    required super.port,
-    required this.username,
-    required this.command,
-    required this.message,
-  }) : super(kind: CodexUiBlockKind.error);
-
-  final String username;
-  final String command;
-  final String message;
-}

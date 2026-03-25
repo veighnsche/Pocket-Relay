@@ -127,38 +127,6 @@ class CodexAppServerSshAuthenticatedEvent extends CodexAppServerEvent {
   final AuthMode authMode;
 }
 
-class CodexAppServerSshRemoteLaunchFailedEvent extends CodexAppServerEvent {
-  const CodexAppServerSshRemoteLaunchFailedEvent({
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.command,
-    required this.message,
-    this.detail,
-  });
-
-  final String host;
-  final int port;
-  final String username;
-  final String command;
-  final String message;
-  final Object? detail;
-}
-
-class CodexAppServerSshRemoteProcessStartedEvent extends CodexAppServerEvent {
-  const CodexAppServerSshRemoteProcessStartedEvent({
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.command,
-  });
-
-  final String host;
-  final int port;
-  final String username;
-  final String command;
-}
-
 class CodexAppServerSshPortForwardStartedEvent extends CodexAppServerEvent {
   const CodexAppServerSshPortForwardStartedEvent({
     required this.host,

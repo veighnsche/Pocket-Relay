@@ -619,19 +619,6 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexSshRemoteLaunchFailedBlock sshRemoteLaunchFailedBlock() {
-    return CodexSshRemoteLaunchFailedBlock(
-      id: 'ssh_remote_launch_failed',
-      createdAt: timestamp,
-      host: 'relay-dev.internal',
-      port: 22,
-      username: 'vince',
-      command: 'cd /workspace/Pocket-Relay && pocket-relay app-server --stdio',
-      message:
-          'The workspace directory could not be found on the remote host. Review the saved workspace path.',
-    );
-  }
-
   static ChatTranscriptSurfaceContract denseTranscriptSurface() {
     return ChatTranscriptSurfaceContract(
       isConfigured: true,
@@ -657,7 +644,7 @@ class WidgetbookFixtures {
                 'I found the regression in the preview wrappers and removed the extra story-owned framing from the lane surfaces.',
           ),
         ),
-        ChatSshItemContract(block: sshRemoteLaunchFailedBlock()),
+        ChatSshItemContract(block: sshAuthenticationFailedBlock()),
         ChatContextCompactedItemContract(block: contextCompactedBlock()),
         ChatStatusItemContract(block: statusBlock()),
         ChatUsageItemContract(block: usageBlock()),

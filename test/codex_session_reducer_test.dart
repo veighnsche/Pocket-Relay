@@ -1631,19 +1631,8 @@ void main() {
         message: 'Permission denied',
       ),
     );
-    state = reducer.reduceRuntimeEvent(
-      state,
-      CodexRuntimeSshRemoteLaunchFailedEvent(
-        createdAt: now.add(const Duration(milliseconds: 3)),
-        host: '192.168.178.164',
-        port: 22,
-        username: 'vince',
-        command: 'bash -lc codex app-server --listen stdio://',
-        message: 'exec request denied',
-      ),
-    );
 
-    expect(state.blocks, hasLength(4));
+    expect(state.blocks, hasLength(3));
     expect(state.blocks[0], isA<CodexSshConnectFailedBlock>());
     expect(
       (state.blocks[0] as CodexSshConnectFailedBlock).message,
@@ -1658,11 +1647,6 @@ void main() {
     expect(
       (state.blocks[2] as CodexSshAuthenticationFailedBlock).authMode,
       AuthMode.privateKey,
-    );
-    expect(state.blocks[3], isA<CodexSshRemoteLaunchFailedBlock>());
-    expect(
-      (state.blocks[3] as CodexSshRemoteLaunchFailedBlock).command,
-      'bash -lc codex app-server --listen stdio://',
     );
   });
 
@@ -1700,7 +1684,7 @@ void main() {
     );
   });
 
-  test('keeps SSH success milestones non-visible by default', () {
+  test('keeps SSH authentication milestones non-visible by default', () {
     final reducer = TranscriptReducer();
     var state = const CodexSessionState(
       connectionStatus: CodexRuntimeSessionState.ready,
@@ -1715,16 +1699,6 @@ void main() {
         port: 22,
         username: 'vince',
         authMode: AuthMode.password,
-      ),
-    );
-    state = reducer.reduceRuntimeEvent(
-      state,
-      CodexRuntimeSshRemoteProcessStartedEvent(
-        createdAt: now.add(const Duration(milliseconds: 1)),
-        host: '192.168.178.164',
-        port: 22,
-        username: 'vince',
-        command: 'bash -lc codex app-server --listen stdio://',
       ),
     );
 

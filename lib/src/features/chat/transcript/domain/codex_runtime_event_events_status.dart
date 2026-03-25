@@ -128,52 +128,6 @@ final class CodexRuntimeSshAuthenticatedEvent extends CodexRuntimeEvent {
   final AuthMode authMode;
 }
 
-final class CodexRuntimeSshRemoteLaunchFailedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSshRemoteLaunchFailedEvent({
-    required super.createdAt,
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.command,
-    required this.message,
-    super.threadId,
-    super.turnId,
-    super.itemId,
-    super.requestId,
-    super.rawMethod,
-    super.rawPayload,
-    this.detail,
-  });
-
-  final String host;
-  final int port;
-  final String username;
-  final String command;
-  final String message;
-  final Object? detail;
-}
-
-final class CodexRuntimeSshRemoteProcessStartedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSshRemoteProcessStartedEvent({
-    required super.createdAt,
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.command,
-    super.threadId,
-    super.turnId,
-    super.itemId,
-    super.requestId,
-    super.rawMethod,
-    super.rawPayload,
-  });
-
-  final String host;
-  final int port;
-  final String username;
-  final String command;
-}
-
 final class CodexRuntimeStatusEvent extends CodexRuntimeEvent {
   const CodexRuntimeStatusEvent({
     required super.createdAt,

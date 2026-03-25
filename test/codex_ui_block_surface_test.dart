@@ -689,39 +689,6 @@ void main() {
     );
   });
 
-  testWidgets(
-    'renders the remote launch SSH surface with the command details',
-    (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(
-          child: _entrySurface(
-            block: CodexSshRemoteLaunchFailedBlock(
-              id: 'ssh_launch_1',
-              createdAt: DateTime(2026, 3, 14, 12),
-              host: 'example.com',
-              port: 22,
-              username: 'vince',
-              command: 'bash -lc codex app-server --listen stdio://',
-              message: 'exec request denied',
-            ),
-            onConfigure: () {},
-          ),
-        ),
-      );
-
-      expect(find.text('SSH remote launch failed'), findsOneWidget);
-      expect(find.text('Command'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('ssh_remote_command_value')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('open_connection_settings')),
-        findsOneWidget,
-      );
-    },
-  );
-
   testWidgets('renders user-input fields and submits answers', (tester) async {
     String? submittedRequestId;
     Map<String, List<String>>? submittedAnswers;
