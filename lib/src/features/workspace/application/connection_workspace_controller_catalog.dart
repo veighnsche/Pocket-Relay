@@ -74,7 +74,33 @@ Future<String> _createWorkspaceConnection(
   return connection.id;
 }
 
-Future<void> _saveWorkspaceDormantConnection(
+Future<void> _saveWorkspaceSavedConnection(
+  ConnectionWorkspaceController controller, {
+  required String connectionId,
+  required ConnectionProfile profile,
+  required ConnectionSecrets secrets,
+}) async {
+  final normalizedConnectionId = _normalizeWorkspaceConnectionId(connectionId);
+  await controller.initialize();
+  _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
+  if (controller._state.isConnectionLive(normalizedConnectionId)) {
+    return _saveWorkspaceLiveConnectionEdits(
+      controller,
+      connectionId: normalizedConnectionId,
+      profile: profile,
+      secrets: secrets,
+    );
+  }
+
+  return _saveWorkspaceInactiveSavedConnection(
+    controller,
+    connectionId: normalizedConnectionId,
+    profile: profile,
+    secrets: secrets,
+  );
+}
+
+Future<void> _saveWorkspaceInactiveSavedConnection(
   ConnectionWorkspaceController controller, {
   required String connectionId,
   required ConnectionProfile profile,
@@ -85,7 +111,7 @@ Future<void> _saveWorkspaceDormantConnection(
   _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
   if (controller._state.isConnectionLive(normalizedConnectionId)) {
     throw StateError(
-      'Cannot save dormant connection settings for a live lane: '
+      'Cannot apply inactive saved-connection settings to a live lane: '
       '$normalizedConnectionId',
     );
   }
@@ -169,7 +195,7 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
   _requireKnownWorkspaceConnectionId(controller, normalizedConnectionId);
   if (!controller._state.isConnectionLive(normalizedConnectionId)) {
     throw StateError(
-      'Cannot stage live connection edits for a dormant connection: '
+      'Cannot stage live connection edits for a non-live saved connection: '
       '$normalizedConnectionId',
     );
   }

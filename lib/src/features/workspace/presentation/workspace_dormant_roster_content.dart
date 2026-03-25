@@ -195,7 +195,7 @@ class _ConnectionWorkspaceSavedConnectionsContentState
         return;
       }
 
-      await widget.workspaceController.saveDormantConnection(
+      await widget.workspaceController.saveSavedConnection(
         connectionId: connectionId,
         profile: payload.profile,
         secrets: payload.secrets,

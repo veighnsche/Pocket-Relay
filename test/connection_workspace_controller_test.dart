@@ -87,7 +87,7 @@ void main() {
   );
 
   test(
-    'saveDormantConnection clears cached remote runtime when the connection becomes local',
+    'saveSavedConnection clears cached remote runtime when the connection becomes local',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final controller = _buildWorkspaceController(
@@ -116,7 +116,7 @@ void main() {
       await controller.refreshRemoteRuntime(connectionId: 'conn_secondary');
       expect(controller.state.remoteRuntimeFor('conn_secondary'), isNotNull);
 
-      await controller.saveDormantConnection(
+      await controller.saveSavedConnection(
         connectionId: 'conn_secondary',
         profile: _profile(
           'Secondary Box',
@@ -1030,7 +1030,7 @@ void main() {
   });
 
   test(
-    'saveDormantConnection updates the saved definition immediately',
+    'saveSavedConnection updates a non-live saved definition immediately',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final controller = _buildWorkspaceController(clientsById: clientsById);
@@ -1041,7 +1041,7 @@ void main() {
 
       await controller.initialize();
 
-      await controller.saveDormantConnection(
+      await controller.saveSavedConnection(
         connectionId: 'conn_secondary',
         profile: _profile('Secondary Renamed', 'secondary.changed'),
         secrets: const ConnectionSecrets(password: 'new-secret'),
@@ -1055,6 +1055,39 @@ void main() {
       expect(controller.bindingForConnectionId('conn_secondary'), isNull);
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
       expect(clientsById['conn_secondary']?.disconnectCalls, 0);
+    },
+  );
+
+  test(
+    'saveSavedConnection routes live rows through staged reconnect edits',
+    () async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final firstBinding = controller.bindingForConnectionId('conn_primary');
+
+      await controller.saveSavedConnection(
+        connectionId: 'conn_primary',
+        profile: _profile('Primary Renamed', 'primary.changed'),
+        secrets: const ConnectionSecrets(password: 'updated-secret'),
+      );
+
+      expect(controller.state.requiresReconnect('conn_primary'), isTrue);
+      expect(
+        controller.state.requiresSavedSettingsReconnect('conn_primary'),
+        isTrue,
+      );
+      expect(controller.bindingForConnectionId('conn_primary'), firstBinding);
+      expect(
+        controller.state.catalog.connectionForId('conn_primary')?.profile.host,
+        'primary.changed',
+      );
+      expect(clientsById['conn_primary']?.disconnectCalls, 0);
     },
   );
 

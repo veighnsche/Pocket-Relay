@@ -214,6 +214,55 @@ void main() {
   );
 
   testWidgets(
+    'saved connections edit action stages reconnect changes for an open row',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      final settingsOverlayDelegate =
+          _DeferredConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final originalBinding = controller.bindingForConnectionId('conn_primary');
+
+      await tester.pumpWidget(
+        _buildDormantRosterApp(
+          controller,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('edit_conn_primary')));
+      await tester.pump();
+
+      expect(settingsOverlayDelegate.launchCount, 1);
+
+      settingsOverlayDelegate.complete(
+        ConnectionSettingsSubmitPayload(
+          profile: _profile('Primary Renamed', 'primary.changed'),
+          secrets: const ConnectionSecrets(password: 'updated-secret'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        controller.state.requiresSavedSettingsReconnect('conn_primary'),
+        isTrue,
+      );
+      expect(
+        controller.state.catalog.connectionForId('conn_primary')?.profile.host,
+        'primary.changed',
+      );
+      expect(controller.bindingForConnectionId('conn_primary'), originalBinding);
+      expect(clientsById['conn_primary']?.disconnectCalls, 0);
+    },
+  );
+
+  testWidgets(
     'dormant roster edit action launches settings with the cached model catalog',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');

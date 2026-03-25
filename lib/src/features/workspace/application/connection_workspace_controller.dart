@@ -125,12 +125,12 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     return _createWorkspaceConnection(this, profile: profile, secrets: secrets);
   }
 
-  Future<void> saveDormantConnection({
+  Future<void> saveSavedConnection({
     required String connectionId,
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) {
-    return _saveWorkspaceDormantConnection(
+    return _saveWorkspaceSavedConnection(
       this,
       connectionId: connectionId,
       profile: profile,
