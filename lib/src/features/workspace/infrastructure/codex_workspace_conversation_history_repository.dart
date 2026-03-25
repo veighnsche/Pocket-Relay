@@ -65,14 +65,22 @@ class CodexAppServerConversationHistoryRepository
 
     final client =
         clientFactory?.call() ??
-        (profile.isRemote && ownerId != null
-            ? CodexAppServerClient(
-                transportOpener:
-                    buildConnectionScopedCodexAppServerTransportOpener(
-                      ownerId: ownerId,
-                    ),
-              )
-            : CodexAppServerClient());
+        switch (profile.connectionMode) {
+          ConnectionMode.local => CodexAppServerClient(),
+          ConnectionMode.remote => () {
+            final normalizedOwnerId = ownerId?.trim();
+            if (normalizedOwnerId == null || normalizedOwnerId.isEmpty) {
+              throw const CodexAppServerException(
+                'Remote conversation history requires a managed owner id.',
+              );
+            }
+            return CodexAppServerClient(
+              transportOpener: buildConnectionScopedCodexAppServerTransportOpener(
+                ownerId: normalizedOwnerId,
+              ),
+            );
+          }(),
+        };
     StreamSubscription<CodexAppServerEvent>? eventsSubscription;
     CodexAppServerUnpinnedHostKeyEvent? unpinnedHostKeyEvent;
     try {
