@@ -1882,6 +1882,222 @@ void main() {
   );
 
   test(
+    'resumed auto-reconnect replays pending user input so the lane can still submit it through the workspace path',
+    () async {
+      const replayedRequest = CodexAppServerRequestEvent(
+        requestId: 'input_replay_1',
+        method: 'item/tool/requestUserInput',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_running',
+          'itemId': 'item_input_1',
+          'questions': <Object?>[
+            <String, Object?>{
+              'id': 'q1',
+              'header': 'Name',
+              'question': 'What is your name?',
+            },
+          ],
+        },
+      );
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+        ],
+      );
+      final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
+        'conn_primary': <FakeCodexAppServerClient>[],
+      };
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        laneBindingFactory: ({required connectionId, required connection}) {
+          final appServerClient = FakeCodexAppServerClient()
+            ..threadHistoriesById['thread_123'] = _savedConversationThread(
+              threadId: 'thread_123',
+            );
+          clientsByConnectionId[connectionId]!.add(appServerClient);
+          return ConnectionLaneBinding(
+            connectionId: connectionId,
+            profileStore: ConnectionScopedProfileStore(
+              connectionId: connectionId,
+              connectionRepository: repository,
+            ),
+            appServerClient: appServerClient,
+            initialSavedProfile: SavedProfile(
+              profile: connection.profile,
+              secrets: connection.secrets,
+            ),
+            ownsAppServerClient: false,
+          );
+        },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClientLists(clientsByConnectionId);
+      });
+
+      await controller.initialize();
+      final binding = controller.bindingForConnectionId('conn_primary')!;
+      await _startBusyTurn(
+        binding,
+        clientsByConnectionId['conn_primary']!.first,
+      );
+      clientsByConnectionId['conn_primary']!.first.emit(replayedRequest);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        binding.sessionController.sessionState.pendingUserInputRequests
+            .containsKey('input_replay_1'),
+        isTrue,
+      );
+
+      clientsByConnectionId['conn_primary']!
+              .first
+              .resumeThreadReplayEventsByThreadId['thread_123'] =
+          <CodexAppServerEvent>[replayedRequest];
+
+      await controller.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await clientsByConnectionId['conn_primary']!.first.disconnect();
+      await Future<void>.delayed(Duration.zero);
+      await controller.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+
+      final reboundBinding = controller.bindingForConnectionId('conn_primary')!;
+      expect(reboundBinding, same(binding));
+      expect(
+        reboundBinding.sessionController.sessionState.pendingUserInputRequests
+            .containsKey('input_replay_1'),
+        isTrue,
+      );
+
+      await reboundBinding.sessionController.submitUserInput(
+        'input_replay_1',
+        const <String, List<String>>{
+          'q1': <String>['Vince'],
+        },
+      );
+
+      expect(
+        clientsByConnectionId['conn_primary']!.first.userInputResponses,
+        <({String requestId, Map<String, List<String>> answers})>[
+          (
+            requestId: 'input_replay_1',
+            answers: const <String, List<String>>{
+              'q1': <String>['Vince'],
+            },
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
+    'resumed auto-reconnect replays pending approvals so the lane can still approve through the workspace path',
+    () async {
+      const replayedRequest = CodexAppServerRequestEvent(
+        requestId: 'approval_replay_1',
+        method: 'item/permissions/requestApproval',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_running',
+          'itemId': 'item_approval_1',
+          'message': 'Need permission to continue.',
+        },
+      );
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: _profile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+        ],
+      );
+      final clientsByConnectionId = <String, List<FakeCodexAppServerClient>>{
+        'conn_primary': <FakeCodexAppServerClient>[],
+      };
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        laneBindingFactory: ({required connectionId, required connection}) {
+          final appServerClient = FakeCodexAppServerClient()
+            ..threadHistoriesById['thread_123'] = _savedConversationThread(
+              threadId: 'thread_123',
+            );
+          clientsByConnectionId[connectionId]!.add(appServerClient);
+          return ConnectionLaneBinding(
+            connectionId: connectionId,
+            profileStore: ConnectionScopedProfileStore(
+              connectionId: connectionId,
+              connectionRepository: repository,
+            ),
+            appServerClient: appServerClient,
+            initialSavedProfile: SavedProfile(
+              profile: connection.profile,
+              secrets: connection.secrets,
+            ),
+            ownsAppServerClient: false,
+          );
+        },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClientLists(clientsByConnectionId);
+      });
+
+      await controller.initialize();
+      final binding = controller.bindingForConnectionId('conn_primary')!;
+      await _startBusyTurn(
+        binding,
+        clientsByConnectionId['conn_primary']!.first,
+      );
+      clientsByConnectionId['conn_primary']!.first.emit(replayedRequest);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        binding.sessionController.sessionState.pendingApprovalRequests
+            .containsKey('approval_replay_1'),
+        isTrue,
+      );
+
+      clientsByConnectionId['conn_primary']!
+              .first
+              .resumeThreadReplayEventsByThreadId['thread_123'] =
+          <CodexAppServerEvent>[replayedRequest];
+
+      await controller.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await clientsByConnectionId['conn_primary']!.first.disconnect();
+      await Future<void>.delayed(Duration.zero);
+      await controller.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+
+      final reboundBinding = controller.bindingForConnectionId('conn_primary')!;
+      expect(reboundBinding, same(binding));
+      expect(
+        reboundBinding.sessionController.sessionState.pendingApprovalRequests
+            .containsKey('approval_replay_1'),
+        isTrue,
+      );
+
+      await reboundBinding.sessionController.approveRequest(
+        'approval_replay_1',
+      );
+
+      expect(
+        clientsByConnectionId['conn_primary']!.first.approvalDecisions,
+        <({String requestId, bool approved})>[
+          (requestId: 'approval_replay_1', approved: true),
+        ],
+      );
+    },
+  );
+
+  test(
     'resumed auto-reconnect keeps the lane visible and marks remote session unavailable when transport reconnect fails',
     () async {
       final repository = MemoryCodexConnectionRepository(
