@@ -8,13 +8,13 @@ import 'codex_app_server_models.dart';
 import 'codex_app_server_ssh_process.dart';
 import 'codex_app_server_websocket_transport.dart';
 
-Future<CodexAppServerTransport> openSshForwardedCodexAppServerWebSocketTransport({
+Future<CodexAppServerTransport>
+openSshForwardedCodexAppServerWebSocketTransport({
   required ConnectionProfile profile,
   required ConnectionSecrets secrets,
   required String remoteHost,
   required int remotePort,
   required void Function(CodexAppServerEvent event) emitEvent,
-  @visibleForTesting
   CodexSshProcessBootstrap sshBootstrap = connectSshBootstrapClient,
   Duration connectTimeout = const Duration(seconds: 10),
 }) async {
@@ -108,11 +108,8 @@ class CodexSshLocalPortForward {
   StreamSubscription<Socket>? _serverSubscription;
   bool _isClosed = false;
 
-  Uri get websocketUri => Uri(
-    scheme: 'ws',
-    host: _server.address.address,
-    port: _server.port,
-  );
+  Uri get websocketUri =>
+      Uri(scheme: 'ws', host: _server.address.address, port: _server.port);
 
   Future<void> close() async {
     if (_isClosed) {
@@ -179,13 +176,13 @@ final class _CodexSshForwardBridge {
        _onClosed = onClosed {
     _localSubscription = _localSocket.listen(
       _remoteChannel.sink.add,
-      onError: (_, __) => _closeImmediately(),
+      onError: (_, _) => _closeImmediately(),
       onDone: close,
       cancelOnError: true,
     );
     _remoteSubscription = _remoteChannel.stream.listen(
       _localSocket.add,
-      onError: (_, __) => _closeImmediately(),
+      onError: (_, _) => _closeImmediately(),
       onDone: close,
       cancelOnError: true,
     );

@@ -264,7 +264,6 @@ printf '__pocket_relay_capabilities__ tmux=%s codex=%s\\n' "\$tmux_status" "\$co
   return 'bash -lc ${shellEscape(command)}';
 }
 
-@visibleForTesting
 String buildPocketRelayRemoteOwnerSessionName({required String ownerId}) {
   final normalized = ownerId.trim();
   if (normalized.isEmpty) {

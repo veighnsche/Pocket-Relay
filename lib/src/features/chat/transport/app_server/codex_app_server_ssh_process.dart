@@ -11,7 +11,6 @@ Future<CodexAppServerProcess> openSshCodexAppServerProcess({
   required ConnectionProfile profile,
   required ConnectionSecrets secrets,
   required void Function(CodexAppServerEvent event) emitEvent,
-  @visibleForTesting
   CodexSshProcessBootstrap sshBootstrap = connectSshBootstrapClient,
 }) async {
   final command = buildSshCodexAppServerCommand(profile: profile);
@@ -55,7 +54,6 @@ Future<CodexSshBootstrapClient> connectAuthenticatedSshBootstrapClient({
   required ConnectionProfile profile,
   required ConnectionSecrets secrets,
   required void Function(CodexAppServerEvent event) emitEvent,
-  @visibleForTesting
   CodexSshProcessBootstrap sshBootstrap = connectSshBootstrapClient,
 }) async {
   final host = profile.host.trim();
