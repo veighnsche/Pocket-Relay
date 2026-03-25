@@ -70,10 +70,10 @@ class _ConnectionWorkspaceDesktopShellState
               ),
               Expanded(
                 child: switch ((
-                  state.isShowingDormantRoster,
+                  state.isShowingSavedConnections,
                   selectedLaneBinding,
                 )) {
-                  (true, _) => ConnectionWorkspaceDormantRosterContent(
+                  (true, _) => ConnectionWorkspaceSavedConnectionsContent(
                     workspaceController: widget.workspaceController,
                     description: ConnectionWorkspaceCopy
                         .desktopSavedConnectionsDescription,

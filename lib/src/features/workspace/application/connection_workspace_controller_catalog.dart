@@ -305,7 +305,7 @@ Future<void> _saveWorkspaceLastKnownConnectionModelCatalog(
   );
 }
 
-Future<void> _deleteWorkspaceDormantConnection(
+Future<void> _deleteWorkspaceSavedConnection(
   ConnectionWorkspaceController controller,
   String connectionId,
 ) async {
@@ -319,7 +319,7 @@ Future<void> _deleteWorkspaceDormantConnection(
     );
   }
 
-  await _deleteDormantWorkspaceConnection(controller, normalizedConnectionId);
+  await _deleteWorkspaceSavedConnectionImpl(controller, normalizedConnectionId);
 }
 
 String _normalizeWorkspaceConnectionId(String connectionId) {

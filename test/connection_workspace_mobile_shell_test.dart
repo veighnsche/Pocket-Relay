@@ -40,10 +40,10 @@ void main() {
 
     expect(find.text('Saved connections'), findsWidgets);
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsOneWidget,
     );
-    expect(controller.state.isShowingDormantRoster, isTrue);
+    expect(controller.state.isShowingSavedConnections, isTrue);
     expect(controller.state.selectedConnectionId, 'conn_primary');
   });
 
@@ -64,8 +64,11 @@ void main() {
     await tester.tap(find.text('Saved connections'));
     await tester.pumpAndSettle();
 
-    expect(controller.state.isShowingDormantRoster, isTrue);
-    expect(find.byKey(const ValueKey('dormant_roster_page')), findsOneWidget);
+    expect(controller.state.isShowingSavedConnections, isTrue);
+    expect(
+      find.byKey(const ValueKey('saved_connections_page')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('overflow menu opens the workspace conversation history sheet', (
@@ -92,10 +95,7 @@ void main() {
 
     await controller.initialize();
     await tester.pumpWidget(
-      _buildShell(
-        controller,
-        conversationHistoryRepository: repository,
-      ),
+      _buildShell(controller, conversationHistoryRepository: repository),
     );
     await tester.pumpAndSettle();
 
@@ -407,7 +407,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('instantiate_conn_secondary')));
+    await tester.tap(
+      find.byKey(const ValueKey('open_connection_conn_secondary')),
+    );
     await tester.pumpAndSettle();
 
     expect(controller.state.liveConnectionIds, <String>[
@@ -449,13 +451,13 @@ void main() {
       'conn_secondary',
     ]);
     expect(controller.state.selectedConnectionId, isNull);
-    expect(controller.state.isShowingDormantRoster, isTrue);
+    expect(controller.state.isShowingSavedConnections, isTrue);
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_primary')),
+      find.byKey(const ValueKey('saved_connection_conn_primary')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsOneWidget,
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 1);
@@ -498,14 +500,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const ValueKey('dormant_connection_conn_created')),
+        find.byKey(const ValueKey('saved_connection_conn_created')),
         findsOneWidget,
       );
       expect(controller.state.catalog.orderedConnectionIds, <String>[
         'conn_created',
       ]);
       expect(controller.state.liveConnectionIds, isEmpty);
-      expect(controller.state.isShowingDormantRoster, isTrue);
+      expect(controller.state.isShowingSavedConnections, isTrue);
     },
   );
 
@@ -686,7 +688,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey('instantiate_conn_secondary')),
+        find.byKey(const ValueKey('open_connection_conn_secondary')),
       );
       await tester.pumpAndSettle();
 
@@ -757,7 +759,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_created')),
+      find.byKey(const ValueKey('saved_connection_conn_created')),
       findsOneWidget,
     );
     expect(controller.state.catalog.orderedConnectionIds, <String>[
@@ -884,7 +886,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsNothing,
     );
     expect(controller.state.catalog.orderedConnectionIds, <String>[

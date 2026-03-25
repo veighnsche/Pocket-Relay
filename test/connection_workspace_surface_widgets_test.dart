@@ -236,7 +236,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: const <String>['text'],
+            inputModalities: <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -315,7 +315,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: const <String>['text'],
+            inputModalities: <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -397,7 +397,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: const <String>['text'],
+            inputModalities: <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -498,18 +498,19 @@ void main() {
 
       await controller.initialize();
       await controller.instantiateConnection('conn_secondary');
-      controller.showDormantRoster();
+      controller.showSavedConnections();
 
       await tester.pumpWidget(_buildDormantRosterApp(controller));
       await tester.pumpAndSettle();
 
-      expect(find.text('Return to open lane'), findsOneWidget);
-
-      await tester.tap(find.text('Return to open lane'));
-      await tester.pumpAndSettle();
-
-      expect(controller.state.isShowingLiveLane, isTrue);
-      expect(controller.state.selectedConnectionId, 'conn_secondary');
+      expect(
+        find.byKey(const ValueKey('saved_connection_conn_primary')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('saved_connection_conn_secondary')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -561,7 +562,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.medium,
-            inputModalities: const <String>['text'],
+            inputModalities: <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -643,7 +644,7 @@ void main() {
             ),
           ],
           defaultReasoningEffort: CodexReasoningEffort.xhigh,
-          inputModalities: const <String>['text'],
+          inputModalities: <String>['text'],
           supportsPersonality: false,
           isDefault: true,
         ),
@@ -718,7 +719,7 @@ void main() {
       final client = clientsById['conn_primary']!;
       client.listedModelPages.addAll(<CodexAppServerModelListPage>[
         const CodexAppServerModelListPage(
-          models: const <CodexAppServerModel>[
+          models: <CodexAppServerModel>[
             CodexAppServerModel(
               id: 'preset_page_1',
               model: 'gpt-page-1',
@@ -726,9 +727,9 @@ void main() {
               description: 'First paginated model.',
               hidden: false,
               supportedReasoningEfforts:
-                  const <CodexAppServerReasoningEffortOption>[],
+                  <CodexAppServerReasoningEffortOption>[],
               defaultReasoningEffort: CodexReasoningEffort.medium,
-              inputModalities: const <String>['text'],
+              inputModalities: <String>['text'],
               supportsPersonality: false,
               isDefault: true,
             ),
@@ -736,7 +737,7 @@ void main() {
           nextCursor: 'repeat-cursor',
         ),
         const CodexAppServerModelListPage(
-          models: const <CodexAppServerModel>[
+          models: <CodexAppServerModel>[
             CodexAppServerModel(
               id: 'preset_page_2',
               model: 'gpt-page-2',
@@ -744,9 +745,9 @@ void main() {
               description: 'Second paginated model.',
               hidden: false,
               supportedReasoningEfforts:
-                  const <CodexAppServerReasoningEffortOption>[],
+                  <CodexAppServerReasoningEffortOption>[],
               defaultReasoningEffort: CodexReasoningEffort.medium,
-              inputModalities: const <String>['text'],
+              inputModalities: <String>['text'],
               supportsPersonality: false,
               isDefault: false,
             ),
@@ -1105,7 +1106,7 @@ void main() {
                   ),
                 ],
             defaultReasoningEffort: CodexReasoningEffort.high,
-            inputModalities: const <String>['text'],
+            inputModalities: <String>['text'],
             supportsPersonality: false,
             isDefault: true,
           ),
@@ -1476,7 +1477,7 @@ Widget _buildDormantRosterApp(
   return MaterialApp(
     theme: buildPocketTheme(Brightness.light),
     home: Scaffold(
-      body: ConnectionWorkspaceDormantRosterContent(
+      body: ConnectionWorkspaceSavedConnectionsContent(
         workspaceController: controller,
         description: 'Saved connections test surface.',
         settingsOverlayDelegate: resolvedSettingsOverlayDelegate,

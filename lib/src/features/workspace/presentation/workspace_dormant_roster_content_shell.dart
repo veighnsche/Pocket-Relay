@@ -1,10 +1,10 @@
 part of 'workspace_dormant_roster_content.dart';
 
-extension on _ConnectionWorkspaceDormantRosterContentState {
+extension on _ConnectionWorkspaceSavedConnectionsContentState {
   Widget _buildMaterialContent(
     BuildContext context, {
     required ConnectionWorkspaceState workspaceState,
-    required List<SavedConnectionSummary> dormantConnections,
+    required List<SavedConnectionSummary> savedConnections,
   }) {
     return ListView(
       controller: _scrollController,
@@ -38,30 +38,47 @@ extension on _ConnectionWorkspaceDormantRosterContentState {
           ),
         ),
         const SizedBox(height: 18),
-        if (dormantConnections.isEmpty)
-          _DormantConnectionsEmptyState(
-            isEmptyWorkspace: workspaceState.isEmptyWorkspace,
-            canReturnToLane: workspaceState.selectedConnectionId != null,
-            onReturnToLane: _handleReturnToLiveLane,
-          )
+        if (savedConnections.isEmpty)
+          const _SavedConnectionsEmptyState()
         else
-          ...dormantConnections.indexed.map((entry) {
+          ...savedConnections.indexed.map((entry) {
             final index = entry.$1;
             final connection = entry.$2;
+            final isLive = workspaceState.isConnectionLive(connection.id);
+            final isSelected =
+                isLive && workspaceState.selectedConnectionId == connection.id;
+            final reconnectRequirement = workspaceState.reconnectRequirementFor(
+              connection.id,
+            );
             return Padding(
               padding: EdgeInsets.only(
-                bottom: index == dormantConnections.length - 1 ? 0 : 12,
+                bottom: index == savedConnections.length - 1 ? 0 : 12,
               ),
-              child: _DormantConnectionItem(
+              child: _SavedConnectionItem(
                 connectionId: connection.id,
                 title: connection.profile.label,
                 subtitle: _connectionSubtitle(connection.profile),
+                statusBadges: _statusBadgesFor(
+                  context,
+                  connectionId: connection.id,
+                  isLive: isLive,
+                  isSelected: isSelected,
+                  reconnectRequirement: reconnectRequirement,
+                ),
+                remoteStatusSummary:
+                    ConnectionWorkspaceCopy.savedConnectionRemoteStatusSummary(
+                      connection.profile,
+                      workspaceState.remoteRuntimeFor(connection.id),
+                    ),
+                isLive: isLive,
                 isOpening: _instantiatingConnectionIds.contains(connection.id),
                 isEditing: _editingConnectionIds.contains(connection.id),
                 isDeleting: _deletingConnectionIds.contains(connection.id),
-                onOpen: () => _instantiateConnection(connection.id),
+                onOpen: () => _openConnection(connection.id),
                 onEdit: () => _editConnection(connection),
-                onDelete: () => _deleteConnection(connection.id),
+                onDelete: isLive
+                    ? null
+                    : () => _deleteConnection(connection.id),
               ),
             );
           }),

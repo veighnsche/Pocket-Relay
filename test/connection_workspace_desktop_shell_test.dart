@@ -43,7 +43,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('desktop_dormant_roster')),
+      find.byKey(const ValueKey('desktop_saved_connections')),
       findsOneWidget,
     );
     expect(find.textContaining('Secondary Box'), findsOneWidget);
@@ -148,12 +148,12 @@ void main() {
       expect(collapsedWidth, lessThanOrEqualTo(80));
       expect(find.text('Connections'), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('desktop_dormant_roster')));
+      await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
       await tester.pumpAndSettle();
 
-      expect(controller.state.isShowingDormantRoster, isTrue);
+      expect(controller.state.isShowingSavedConnections, isTrue);
       expect(
-        find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+        find.byKey(const ValueKey('saved_connection_conn_secondary')),
         findsOneWidget,
       );
     },
@@ -173,12 +173,12 @@ void main() {
     await tester.pumpWidget(_buildShell(controller));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('desktop_dormant_roster')));
+    await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
     await tester.pumpAndSettle();
 
-    expect(controller.state.isShowingDormantRoster, isTrue);
+    expect(controller.state.isShowingSavedConnections, isTrue);
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsOneWidget,
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
@@ -208,10 +208,7 @@ void main() {
 
       await controller.initialize();
       await tester.pumpWidget(
-        _buildShell(
-          controller,
-          conversationHistoryRepository: repository,
-        ),
+        _buildShell(controller, conversationHistoryRepository: repository),
       );
       await tester.pumpAndSettle();
 
@@ -461,17 +458,15 @@ void main() {
       await controller.initialize();
       await controller.saveLiveConnectionEdits(
         connectionId: 'conn_primary',
-        profile: _profile('Primary Box', 'saved.primary.local').copyWith(
-          hostFingerprint: 'SHA256:saved',
-        ),
+        profile: _profile(
+          'Primary Box',
+          'saved.primary.local',
+        ).copyWith(hostFingerprint: 'SHA256:saved'),
         secrets: const ConnectionSecrets(password: 'saved-secret'),
       );
 
       await tester.pumpWidget(
-        _buildShell(
-          controller,
-          conversationHistoryRepository: repository,
-        ),
+        _buildShell(controller, conversationHistoryRepository: repository),
       );
       await tester.pumpAndSettle();
 
@@ -484,10 +479,7 @@ void main() {
 
       expect(repository.loadCalls, hasLength(1));
       expect(repository.loadCalls.single.$1.host, 'saved.primary.local');
-      expect(
-        repository.loadCalls.single.$1.hostFingerprint,
-        'SHA256:saved',
-      );
+      expect(repository.loadCalls.single.$1.hostFingerprint, 'SHA256:saved');
       expect(repository.loadCalls.single.$2.password, 'saved-secret');
     },
   );
@@ -693,7 +685,7 @@ void main() {
     await tester.pumpWidget(_buildShell(controller));
     await tester.pumpAndSettle();
 
-    controller.showDormantRoster();
+    controller.showSavedConnections();
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('desktop_live_conn_secondary')));
@@ -785,13 +777,13 @@ void main() {
 
     expect(controller.state.liveConnectionIds, isEmpty);
     expect(controller.state.selectedConnectionId, isNull);
-    expect(controller.state.isShowingDormantRoster, isTrue);
+    expect(controller.state.isShowingSavedConnections, isTrue);
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_primary')),
+      find.byKey(const ValueKey('saved_connection_conn_primary')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsOneWidget,
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 1);
@@ -894,13 +886,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('desktop_dormant_roster')));
+    await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('add_connection')));
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_created')),
+      find.byKey(const ValueKey('saved_connection_conn_created')),
       findsOneWidget,
     );
     expect(controller.state.catalog.orderedConnectionIds, <String>[
@@ -924,13 +916,13 @@ void main() {
     await tester.pumpWidget(_buildShell(controller));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('desktop_dormant_roster')));
+    await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('delete_conn_secondary')));
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('dormant_connection_conn_secondary')),
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsNothing,
     );
     expect(controller.state.catalog.orderedConnectionIds, <String>[

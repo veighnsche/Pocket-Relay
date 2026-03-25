@@ -22,7 +22,8 @@ class ConnectionWorkspaceMobileShell extends StatefulWidget {
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository? conversationHistoryRepository;
+  final CodexWorkspaceConversationHistoryRepository?
+  conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -83,8 +84,8 @@ class _ConnectionWorkspaceMobileShellState
                 key: ValueKey<String>('lane_page_$connectionId'),
                 child: _buildLanePage(connectionId),
               ),
-            _ConnectionWorkspaceDormantRosterPage(
-              key: const ValueKey('dormant_roster_page'),
+            _ConnectionWorkspaceSavedConnectionsPage(
+              key: const ValueKey('saved_connections_page'),
               workspaceController: widget.workspaceController,
               platformPolicy: widget.platformPolicy,
               settingsOverlayDelegate: widget.settingsOverlayDelegate,
@@ -119,7 +120,7 @@ class _ConnectionWorkspaceMobileShellState
     _currentPageIndex = index;
     _scheduledTargetPage = index;
     if (index >= liveConnectionIds.length) {
-      widget.workspaceController.showDormantRoster();
+      widget.workspaceController.showSavedConnections();
       return;
     }
 
@@ -127,7 +128,7 @@ class _ConnectionWorkspaceMobileShellState
   }
 
   int _targetPageIndex(ConnectionWorkspaceState state) {
-    if (state.isShowingDormantRoster || state.selectedConnectionId == null) {
+    if (state.isShowingSavedConnections || state.selectedConnectionId == null) {
       return state.liveConnectionIds.length;
     }
 
@@ -190,8 +191,8 @@ class _ConnectionWorkspaceLanePageHostState
   }
 }
 
-class _ConnectionWorkspaceDormantRosterPage extends StatefulWidget {
-  const _ConnectionWorkspaceDormantRosterPage({
+class _ConnectionWorkspaceSavedConnectionsPage extends StatefulWidget {
+  const _ConnectionWorkspaceSavedConnectionsPage({
     super.key,
     required this.workspaceController,
     required this.platformPolicy,
@@ -203,15 +204,15 @@ class _ConnectionWorkspaceDormantRosterPage extends StatefulWidget {
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
-  State<_ConnectionWorkspaceDormantRosterPage> createState() =>
-      _ConnectionWorkspaceDormantRosterPageState();
+  State<_ConnectionWorkspaceSavedConnectionsPage> createState() =>
+      _ConnectionWorkspaceSavedConnectionsPageState();
 }
 
-class _ConnectionWorkspaceDormantRosterPageState
-    extends State<_ConnectionWorkspaceDormantRosterPage> {
+class _ConnectionWorkspaceSavedConnectionsPageState
+    extends State<_ConnectionWorkspaceSavedConnectionsPage> {
   @override
   Widget build(BuildContext context) {
-    final content = ConnectionWorkspaceDormantRosterContent(
+    final content = ConnectionWorkspaceSavedConnectionsContent(
       workspaceController: widget.workspaceController,
       description: ConnectionWorkspaceCopy.mobileSavedConnectionsDescription,
       platformBehavior: widget.platformPolicy.behavior,

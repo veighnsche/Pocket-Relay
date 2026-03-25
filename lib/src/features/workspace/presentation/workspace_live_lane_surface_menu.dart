@@ -23,7 +23,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
-        onSelected: widget.workspaceController.showDormantRoster,
+        onSelected: widget.workspaceController.showSavedConnections,
       ),
       if (reconnectRequirement case final requirement?)
         ChatChromeMenuAction(

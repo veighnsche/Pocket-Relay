@@ -232,8 +232,8 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
   }
 }
 
-class _MaterialDormantRosterSidebarRow extends StatelessWidget {
-  const _MaterialDormantRosterSidebarRow({
+class _MaterialSavedConnectionsSidebarRow extends StatelessWidget {
+  const _MaterialSavedConnectionsSidebarRow({
     required this.isSelected,
     required this.onTap,
     this.isCollapsed = false,
@@ -247,7 +247,7 @@ class _MaterialDormantRosterSidebarRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isCollapsed) {
       return _MaterialCollapsedSidebarButton(
-        buttonKey: const ValueKey('desktop_dormant_roster'),
+        buttonKey: const ValueKey('desktop_saved_connections'),
         label: 'S',
         icon: Icons.layers_outlined,
         isSelected: isSelected,
@@ -267,7 +267,7 @@ class _MaterialDormantRosterSidebarRow extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        key: const ValueKey('desktop_dormant_roster'),
+        key: const ValueKey('desktop_saved_connections'),
         borderRadius: PocketRadii.circular(22),
         onTap: onTap,
         child: Ink(

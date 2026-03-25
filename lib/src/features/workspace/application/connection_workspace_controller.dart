@@ -221,8 +221,8 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     );
   }
 
-  Future<void> deleteDormantConnection(String connectionId) {
-    return _deleteWorkspaceDormantConnection(this, connectionId);
+  Future<void> deleteSavedConnection(String connectionId) {
+    return _deleteWorkspaceSavedConnection(this, connectionId);
   }
 
   Future<void> instantiateConnection(String connectionId) {
@@ -233,8 +233,8 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     _selectWorkspaceConnection(this, connectionId);
   }
 
-  void showDormantRoster() {
-    _showWorkspaceDormantRoster(this);
+  void showSavedConnections() {
+    _showWorkspaceSavedConnections(this);
   }
 
   void terminateConnection(String connectionId) {

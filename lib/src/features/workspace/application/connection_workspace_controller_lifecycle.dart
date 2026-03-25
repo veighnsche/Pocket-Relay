@@ -13,7 +13,7 @@ Future<void> _initializeWorkspaceController(
         catalog: ConnectionCatalogState.empty(),
         liveConnectionIds: <String>[],
         selectedConnectionId: null,
-        viewport: ConnectionWorkspaceViewport.dormantRoster,
+        viewport: ConnectionWorkspaceViewport.savedConnections,
         savedSettingsReconnectRequiredConnectionIds: <String>{},
         transportReconnectRequiredConnectionIds: <String>{},
         transportRecoveryPhasesByConnectionId:
@@ -682,7 +682,7 @@ Future<void> _resumeWorkspaceConversation(
   await binding.sessionController.selectConversationForResume(threadId);
 }
 
-Future<void> _deleteDormantWorkspaceConnection(
+Future<void> _deleteWorkspaceSavedConnectionImpl(
   ConnectionWorkspaceController controller,
   String connectionId,
 ) async {

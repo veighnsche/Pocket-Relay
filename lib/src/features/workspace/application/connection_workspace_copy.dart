@@ -9,21 +9,23 @@ abstract final class ConnectionWorkspaceCopy {
   static const String savedConnectionsMenuLabel = savedConnectionsTitle;
   static const String conversationHistoryMenuLabel = 'Conversation history';
   static const String mobileSavedConnectionsDescription =
-      'Swipe back to an open lane or open another saved connection.';
+      'Jump back to an open lane or open another saved connection.';
   static const String desktopSidebarDescription =
-      'Keep multiple lanes open while the rest of your saved connections stay ready to launch.';
+      'Keep multiple lanes open while every saved connection stays visible in one inventory.';
   static const String desktopSavedConnectionsDescription =
-      'Open another saved connection or return to an open lane from the sidebar.';
+      'Open another saved connection or jump back to a lane that is already open.';
   static const String addConnectionAction = 'Add connection';
   static const String addConnectionProgress = 'Adding…';
   static const String openLaneAction = 'Open lane';
+  static const String goToLaneAction = 'Go to lane';
   static const String openingLaneAction = 'Opening…';
   static const String editAction = 'Edit';
   static const String saveProgress = 'Saving…';
   static const String deleteAction = 'Delete';
   static const String deleteProgress = 'Deleting…';
-  static const String returnToOpenLaneAction = 'Return to open lane';
   static const String closeLaneAction = 'Close lane';
+  static const String openConnectionBadge = 'Open';
+  static const String currentConnectionBadge = 'Current';
   static const String savedSettingsReconnectBadge = 'Changes pending';
   static const String savedSettingsReconnectAction = 'Apply changes';
   static const String savedSettingsReconnectProgress = 'Applying changes…';
@@ -53,6 +55,13 @@ abstract final class ConnectionWorkspaceCopy {
       'Remote server unhealthy';
   static const String remoteServerUnhealthyNoticeMessage =
       'The Pocket Relay server exists but is not healthy enough to accept connections. Restart it from connection settings, then reconnect this lane.';
+  static const String remoteServerRunningSummary = 'Server running';
+  static const String remoteServerStoppedSummary = 'Server stopped';
+  static const String remoteServerUnhealthySummary = 'Server unhealthy';
+  static const String remoteHostUnsupportedSummary = 'Host unsupported';
+  static const String remoteHostProbeFailedSummary = 'Host check failed';
+  static const String remoteHostCheckingSummary = 'Checking host';
+  static const String remoteServerCheckingSummary = 'Checking server';
   static const String collapseSidebarAction = 'Collapse sidebar';
   static const String expandSidebarAction = 'Expand sidebar';
   static const String workspaceNotSet = 'Workspace not set';
@@ -62,23 +71,6 @@ abstract final class ConnectionWorkspaceCopy {
   static const String emptyWorkspaceTitle = 'No saved connections yet.';
   static const String emptyWorkspaceMessage =
       'Add your first connection to open a new lane.';
-  static const String allSavedConnectionsOpenTitle =
-      'All saved connections are already open.';
-  static const String allSavedConnectionsOpenMessage =
-      'Return to an open lane to keep working, or add another saved connection.';
-
-  static String emptySavedConnectionsTitle({required bool isEmptyWorkspace}) {
-    return isEmptyWorkspace
-        ? emptyWorkspaceTitle
-        : allSavedConnectionsOpenTitle;
-  }
-
-  static String emptySavedConnectionsMessage({required bool isEmptyWorkspace}) {
-    return isEmptyWorkspace
-        ? emptyWorkspaceMessage
-        : allSavedConnectionsOpenMessage;
-  }
-
   static String connectionSubtitle(ConnectionProfile profile) {
     final host = profile.host.trim();
     final workspaceDir = profile.workspaceDir.trim();
@@ -166,6 +158,35 @@ abstract final class ConnectionWorkspaceCopy {
       ConnectionWorkspaceReconnectRequirement.transport ||
       ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
         transportReconnectMenuProgress,
+    };
+  }
+
+  static String? savedConnectionRemoteStatusSummary(
+    ConnectionProfile profile,
+    ConnectionRemoteRuntimeState? remoteRuntime,
+  ) {
+    if (profile.connectionMode == ConnectionMode.local ||
+        remoteRuntime == null) {
+      return null;
+    }
+
+    return switch (remoteRuntime.hostCapability.status) {
+      ConnectionRemoteHostCapabilityStatus.checking =>
+        remoteHostCheckingSummary,
+      ConnectionRemoteHostCapabilityStatus.probeFailed =>
+        remoteHostProbeFailedSummary,
+      ConnectionRemoteHostCapabilityStatus.unsupported =>
+        remoteHostUnsupportedSummary,
+      ConnectionRemoteHostCapabilityStatus.unknown => null,
+      ConnectionRemoteHostCapabilityStatus.supported => switch (remoteRuntime
+          .server
+          .status) {
+        ConnectionRemoteServerStatus.checking => remoteServerCheckingSummary,
+        ConnectionRemoteServerStatus.notRunning => remoteServerStoppedSummary,
+        ConnectionRemoteServerStatus.unhealthy => remoteServerUnhealthySummary,
+        ConnectionRemoteServerStatus.running => remoteServerRunningSummary,
+        ConnectionRemoteServerStatus.unknown => null,
+      },
     };
   }
 }

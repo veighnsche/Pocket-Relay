@@ -70,16 +70,16 @@ extension on _MaterialDesktopSidebar {
       const SizedBox(height: 22),
       _MaterialSidebarSectionTitle(
         title: ConnectionWorkspaceCopy.savedSectionTitle,
-        trailingCount: state.dormantConnectionIds.length,
+        trailingCount: state.savedConnectionIds.length,
       ),
       const SizedBox(height: 10),
-      _MaterialDormantRosterSidebarRow(
-        isSelected: state.isShowingDormantRoster,
-        onTap: workspaceController.showDormantRoster,
+      _MaterialSavedConnectionsSidebarRow(
+        isSelected: state.isShowingSavedConnections,
+        onTap: workspaceController.showSavedConnections,
       ),
-      if (state.dormantConnectionIds.isNotEmpty) ...[
+      if (state.savedConnectionIds.isNotEmpty) ...[
         const SizedBox(height: 10),
-        ...state.dormantConnectionIds.indexed.map((entry) {
+        ...state.savedConnectionIds.indexed.map((entry) {
           final index = entry.$1;
           final connectionId = entry.$2;
           final summary = state.catalog.connectionForId(connectionId);
@@ -87,10 +87,19 @@ extension on _MaterialDesktopSidebar {
             return const SizedBox.shrink();
           }
 
+          final isOpen = state.isConnectionLive(connectionId);
+          final inventoryLabel =
+              ConnectionWorkspaceCopy.compactSavedConnectionLabel(
+                summary.profile,
+              ) +
+              (isOpen
+                  ? ' · ${ConnectionWorkspaceCopy.openConnectionBadge}'
+                  : '');
+
           return Padding(
             padding: EdgeInsets.only(left: 12, top: index == 0 ? 0 : 8),
             child: Text(
-              '${summary.profile.label} · ${ConnectionWorkspaceCopy.compactSavedConnectionLabel(summary.profile)}',
+              '${summary.profile.label} · $inventoryLabel',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

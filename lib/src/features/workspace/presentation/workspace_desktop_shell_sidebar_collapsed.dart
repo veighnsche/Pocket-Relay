@@ -38,10 +38,10 @@ extension on _MaterialDesktopSidebar {
         );
       }),
       const SizedBox(height: 14),
-      _MaterialDormantRosterSidebarRow(
-        isSelected: state.isShowingDormantRoster,
+      _MaterialSavedConnectionsSidebarRow(
+        isSelected: state.isShowingSavedConnections,
         isCollapsed: true,
-        onTap: workspaceController.showDormantRoster,
+        onTap: workspaceController.showSavedConnections,
       ),
     ];
   }

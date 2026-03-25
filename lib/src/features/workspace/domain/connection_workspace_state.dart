@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
-enum ConnectionWorkspaceViewport { liveLane, dormantRoster }
+enum ConnectionWorkspaceViewport { liveLane, savedConnections }
 
 enum ConnectionWorkspaceBackgroundLifecycleState { inactive, hidden, paused }
 
@@ -206,6 +206,8 @@ class ConnectionWorkspaceState {
     ...transportReconnectRequiredConnectionIds,
   };
 
+  List<String> get savedConnectionIds => catalog.orderedConnectionIds;
+
   List<String> get dormantConnectionIds {
     return <String>[
       for (final connectionId in catalog.orderedConnectionIds)
@@ -273,8 +275,8 @@ class ConnectionWorkspaceState {
   bool get isShowingLiveLane =>
       viewport == ConnectionWorkspaceViewport.liveLane;
 
-  bool get isShowingDormantRoster =>
-      viewport == ConnectionWorkspaceViewport.dormantRoster;
+  bool get isShowingSavedConnections =>
+      viewport == ConnectionWorkspaceViewport.savedConnections;
 
   ConnectionWorkspaceState copyWith({
     bool? isLoading,

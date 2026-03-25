@@ -77,14 +77,14 @@ void _selectWorkspaceConnection(
   );
 }
 
-void _showWorkspaceDormantRoster(ConnectionWorkspaceController controller) {
-  if (controller._state.isShowingDormantRoster) {
+void _showWorkspaceSavedConnections(ConnectionWorkspaceController controller) {
+  if (controller._state.isShowingSavedConnections) {
     return;
   }
 
   controller._applyState(
     controller._state.copyWith(
-      viewport: ConnectionWorkspaceViewport.dormantRoster,
+      viewport: ConnectionWorkspaceViewport.savedConnections,
     ),
   );
 }
@@ -204,7 +204,7 @@ ConnectionWorkspaceViewport _nextWorkspaceViewportAfterTermination(
 }) {
   if (controller._state.selectedConnectionId == removedConnectionId &&
       nextSelectedConnectionId == null) {
-    return ConnectionWorkspaceViewport.dormantRoster;
+    return ConnectionWorkspaceViewport.savedConnections;
   }
 
   return controller._state.viewport;

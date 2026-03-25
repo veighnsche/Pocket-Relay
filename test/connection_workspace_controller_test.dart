@@ -42,7 +42,7 @@ void main() {
       expect(controller.state.selectedConnectionId, isNull);
       expect(
         controller.state.viewport,
-        ConnectionWorkspaceViewport.dormantRoster,
+        ConnectionWorkspaceViewport.savedConnections,
       );
       expect(controller.selectedLaneBinding, isNull);
     },
@@ -914,7 +914,7 @@ void main() {
       expect(controller.state.selectedConnectionId, isNull);
       expect(
         controller.state.viewport,
-        ConnectionWorkspaceViewport.dormantRoster,
+        ConnectionWorkspaceViewport.savedConnections,
       );
       expect(controller.selectedLaneBinding, isNull);
       expect(clientsById['conn_primary']?.disconnectCalls, 1);
@@ -922,7 +922,7 @@ void main() {
     },
   );
 
-  test('showDormantRoster preserves the selected live lane', () async {
+  test('showSavedConnections preserves the selected live lane', () async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final controller = _buildWorkspaceController(clientsById: clientsById);
     addTearDown(() async {
@@ -932,11 +932,11 @@ void main() {
 
     await controller.initialize();
 
-    controller.showDormantRoster();
+    controller.showSavedConnections();
 
     expect(
       controller.state.viewport,
-      ConnectionWorkspaceViewport.dormantRoster,
+      ConnectionWorkspaceViewport.savedConnections,
     );
     expect(controller.state.selectedConnectionId, 'conn_primary');
     expect(controller.selectedLaneBinding?.connectionId, 'conn_primary');
@@ -953,7 +953,7 @@ void main() {
       });
 
       await controller.initialize();
-      controller.showDormantRoster();
+      controller.showSavedConnections();
 
       await controller.instantiateConnection('conn_secondary');
 
@@ -973,7 +973,7 @@ void main() {
       });
 
       await controller.initialize();
-      controller.showDormantRoster();
+      controller.showSavedConnections();
 
       controller.selectConnection('conn_primary');
 
@@ -2774,7 +2774,7 @@ void main() {
     expect(controller.state.requiresReconnect('conn_primary'), isTrue);
   });
 
-  test('deleteDormantConnection removes the saved definition', () async {
+  test('deleteSavedConnection removes the saved definition', () async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
     final modelCatalogStore = MemoryConnectionModelCatalogStore(
       initialCatalogs: <ConnectionModelCatalog>[
@@ -2814,7 +2814,7 @@ void main() {
     });
 
     await controller.initialize();
-    await controller.deleteDormantConnection('conn_secondary');
+    await controller.deleteSavedConnection('conn_secondary');
 
     expect(controller.state.catalog.orderedConnectionIds, <String>[
       'conn_primary',
@@ -3168,7 +3168,7 @@ void main() {
       await controller.initialize();
 
       controller.terminateConnection('conn_primary');
-      await controller.deleteDormantConnection('conn_primary');
+      await controller.deleteSavedConnection('conn_primary');
 
       expect(controller.state.catalog, const ConnectionCatalogState.empty());
       expect(controller.state.liveConnectionIds, isEmpty);
@@ -3176,7 +3176,7 @@ void main() {
       expect(controller.state.selectedConnectionId, isNull);
       expect(
         controller.state.viewport,
-        ConnectionWorkspaceViewport.dormantRoster,
+        ConnectionWorkspaceViewport.savedConnections,
       );
       expect(controller.selectedLaneBinding, isNull);
       expect(clientsById['conn_primary']?.disconnectCalls, 1);

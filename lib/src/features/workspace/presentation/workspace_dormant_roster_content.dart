@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/chat_screen_shell.dart';
@@ -15,10 +16,10 @@ import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_
 part 'workspace_dormant_roster_content_items.dart';
 part 'workspace_dormant_roster_content_shell.dart';
 
-const double _dormantRosterPanelRadius = 12;
+const double _savedConnectionsPanelRadius = 12;
 
-class ConnectionWorkspaceDormantRosterContent extends StatefulWidget {
-  const ConnectionWorkspaceDormantRosterContent({
+class ConnectionWorkspaceSavedConnectionsContent extends StatefulWidget {
+  const ConnectionWorkspaceSavedConnectionsContent({
     super.key,
     required this.workspaceController,
     required this.description,
@@ -43,12 +44,12 @@ class ConnectionWorkspaceDormantRosterContent extends StatefulWidget {
   final bool useSafeArea;
 
   @override
-  State<ConnectionWorkspaceDormantRosterContent> createState() =>
-      _ConnectionWorkspaceDormantRosterContentState();
+  State<ConnectionWorkspaceSavedConnectionsContent> createState() =>
+      _ConnectionWorkspaceSavedConnectionsContentState();
 }
 
-class _ConnectionWorkspaceDormantRosterContentState
-    extends State<ConnectionWorkspaceDormantRosterContent> {
+class _ConnectionWorkspaceSavedConnectionsContentState
+    extends State<ConnectionWorkspaceSavedConnectionsContent> {
   final ScrollController _scrollController = ScrollController();
   final Set<String> _instantiatingConnectionIds = <String>{};
   final Set<String> _editingConnectionIds = <String>{};
@@ -64,17 +65,12 @@ class _ConnectionWorkspaceDormantRosterContentState
   @override
   Widget build(BuildContext context) {
     final workspaceState = widget.workspaceController.state;
-    final dormantConnections = workspaceState.catalog.orderedConnections
-        .where(
-          (connection) =>
-              workspaceState.dormantConnectionIds.contains(connection.id),
-        )
-        .toList(growable: false);
+    final savedConnections = workspaceState.catalog.orderedConnections;
 
     final content = _buildMaterialContent(
       context,
       workspaceState: workspaceState,
-      dormantConnections: dormantConnections,
+      savedConnections: savedConnections,
     );
 
     final wrappedContent = widget.useSafeArea
@@ -110,6 +106,14 @@ class _ConnectionWorkspaceDormantRosterContentState
         });
       }
     }
+  }
+
+  Future<void> _openConnection(String connectionId) async {
+    if (widget.workspaceController.state.isConnectionLive(connectionId)) {
+      widget.workspaceController.selectConnection(connectionId);
+      return;
+    }
+    await _instantiateConnection(connectionId);
   }
 
   Future<void> _createConnection() async {
@@ -215,7 +219,7 @@ class _ConnectionWorkspaceDormantRosterContentState
     });
 
     try {
-      await widget.workspaceController.deleteDormantConnection(connectionId);
+      await widget.workspaceController.deleteSavedConnection(connectionId);
     } finally {
       if (mounted) {
         setState(() {
@@ -225,14 +229,36 @@ class _ConnectionWorkspaceDormantRosterContentState
     }
   }
 
-  void _handleReturnToLiveLane() {
-    final selectedConnectionId =
-        widget.workspaceController.state.selectedConnectionId;
-    if (selectedConnectionId == null) {
-      return;
-    }
+  List<Widget> _statusBadgesFor(
+    BuildContext context, {
+    required String connectionId,
+    required bool isLive,
+    required bool isSelected,
+    required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
+  }) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    final warning = theme.colorScheme.tertiary;
 
-    widget.workspaceController.selectConnection(selectedConnectionId);
+    return <Widget>[
+      if (isLive)
+        PocketTintBadge(
+          label: ConnectionWorkspaceCopy.openConnectionBadge,
+          color: accent,
+        ),
+      if (isSelected)
+        PocketTintBadge(
+          label: ConnectionWorkspaceCopy.currentConnectionBadge,
+          color: accent,
+        ),
+      if (reconnectRequirement != null)
+        PocketTintBadge(
+          label: ConnectionWorkspaceCopy.reconnectBadgeFor(
+            reconnectRequirement,
+          ),
+          color: warning,
+        ),
+    ];
   }
 
   Future<ConnectionSettingsSubmitPayload?> _openConnectionSettings({

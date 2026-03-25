@@ -8,7 +8,7 @@ List<ChatChromeMenuAction> buildWorkspaceLiveLaneMenuActions({
   required bool isLaneBusy,
   required bool isApplyingSavedSettings,
   required VoidCallback onShowConversationHistory,
-  required VoidCallback onShowDormantRoster,
+  required VoidCallback onShowSavedConnections,
   required VoidCallback onReconnect,
   required VoidCallback onCloseLane,
 }) {
@@ -20,7 +20,7 @@ List<ChatChromeMenuAction> buildWorkspaceLiveLaneMenuActions({
     ),
     ChatChromeMenuAction(
       label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
-      onSelected: onShowDormantRoster,
+      onSelected: onShowSavedConnections,
     ),
     if (requiresReconnect)
       ChatChromeMenuAction(
