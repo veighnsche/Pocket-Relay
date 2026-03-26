@@ -17,7 +17,7 @@ void main() {
             ownerId: 'remote-1',
             workspaceDir: '/workspace',
             status: CodexRemoteAppServerOwnerStatus.running,
-            sessionName: 'pocket-relay:remote-1',
+            sessionName: 'pocket-relay-remote-1',
             endpoint: CodexRemoteAppServerEndpoint(
               host: '127.0.0.1',
               port: 4100,
@@ -29,7 +29,7 @@ void main() {
       expect(runtime.hostCapability.isSupported, isTrue);
       expect(runtime.server.status, ConnectionRemoteServerStatus.running);
       expect(runtime.server.ownerId, 'remote-1');
-      expect(runtime.server.sessionName, 'pocket-relay:remote-1');
+      expect(runtime.server.sessionName, 'pocket-relay-remote-1');
       expect(runtime.server.port, 4100);
     },
   );
@@ -114,7 +114,7 @@ void main() {
             ownerId: 'remote-1',
             workspaceDir: '/workspace',
             status: CodexRemoteAppServerOwnerStatus.missing,
-            sessionName: 'pocket-relay:remote-1',
+            sessionName: 'pocket-relay-remote-1',
             detail: 'No Pocket Relay server is running for this connection.',
           ),
         ),

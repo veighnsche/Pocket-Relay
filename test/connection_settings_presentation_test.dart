@@ -356,7 +356,7 @@ void main() {
           hostCapability: ConnectionRemoteHostCapabilityState.supported(),
           server: ConnectionRemoteServerState.notRunning(
             ownerId: 'conn_primary',
-            sessionName: 'pocket-relay:conn_primary',
+            sessionName: 'pocket-relay-conn_primary',
           ),
         );
 
@@ -401,7 +401,7 @@ void main() {
           hostCapability: ConnectionRemoteHostCapabilityState.supported(),
           server: ConnectionRemoteServerState.running(
             ownerId: 'conn_primary',
-            sessionName: 'pocket-relay:conn_primary',
+            sessionName: 'pocket-relay-conn_primary',
             port: 4100,
           ),
         );

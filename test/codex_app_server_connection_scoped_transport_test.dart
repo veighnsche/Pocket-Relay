@@ -8,169 +8,189 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 
 void main() {
-  test('connection-scoped transport uses the local launcher for local mode', () async {
-    var localCalls = 0;
-    var inspectCalls = 0;
+  test(
+    'connection-scoped transport uses the local launcher for local mode',
+    () async {
+      var localCalls = 0;
+      var inspectCalls = 0;
 
-    final opener = buildConnectionScopedCodexAppServerTransportOpener(
-      ownerId: 'conn_primary',
-      remoteOwnerInspector: _FakeRemoteOwnerInspector(
-        onInspect: ({
-          required profile,
-          required secrets,
-          required ownerId,
-          required workspaceDir,
-        }) async {
-          inspectCalls += 1;
-          throw StateError('remote inspector should not run');
-        },
-      ),
-      localLauncher:
-          ({required profile, required secrets, required emitEvent}) async {
-            localCalls += 1;
-            return _FakeProcess();
-          },
-    );
-
-    final transport = await opener(
-      profile: _profile().copyWith(connectionMode: ConnectionMode.local),
-      secrets: const ConnectionSecrets(),
-      emitEvent: (_) {},
-    );
-
-    expect(transport, isA<CodexAppServerTransport>());
-    expect(localCalls, 1);
-    expect(inspectCalls, 0);
-  });
-
-  test('connection-scoped transport uses the inspected websocket owner for remote mode', () async {
-    var remoteTransportCalls = 0;
-    final remoteTransport = _FakeTransport();
-
-    final opener = buildConnectionScopedCodexAppServerTransportOpener(
-      ownerId: 'conn_primary',
-      remoteOwnerInspector: _FakeRemoteOwnerInspector(
-        onInspect: ({
-          required profile,
-          required secrets,
-          required ownerId,
-          required workspaceDir,
-        }) async {
-          return const CodexRemoteAppServerOwnerSnapshot(
-            ownerId: 'conn_primary',
-            workspaceDir: '/workspace',
-            status: CodexRemoteAppServerOwnerStatus.running,
-            sessionName: 'pocket-relay:conn_primary',
-            endpoint: CodexRemoteAppServerEndpoint(
-              host: '127.0.0.1',
-              port: 4100,
-            ),
-          );
-        },
-      ),
-      remoteTransportOpener:
-          ({
-            required profile,
-            required secrets,
-            required remoteHost,
-            required remotePort,
-            required emitEvent,
-          }) async {
-            remoteTransportCalls += 1;
-            expect(remoteHost, '127.0.0.1');
-            expect(remotePort, 4100);
-            return remoteTransport;
-          },
-    );
-
-    final transport = await opener(
-      profile: _profile(),
-      secrets: const ConnectionSecrets(password: 'secret'),
-      emitEvent: (_) {},
-    );
-
-    expect(transport, same(remoteTransport));
-    expect(remoteTransportCalls, 1);
-  });
-
-  test('connection-scoped transport throws when the remote owner is not running', () async {
-    final opener = buildConnectionScopedCodexAppServerTransportOpener(
-      ownerId: 'conn_primary',
-      remoteOwnerInspector: _FakeRemoteOwnerInspector(
-        onInspect: ({
-          required profile,
-          required secrets,
-          required ownerId,
-          required workspaceDir,
-        }) async {
-          return const CodexRemoteAppServerOwnerSnapshot(
-            ownerId: 'conn_primary',
-            workspaceDir: '/workspace',
-            status: CodexRemoteAppServerOwnerStatus.missing,
-            sessionName: 'pocket-relay:conn_primary',
-          );
-        },
-      ),
-    );
-
-    await expectLater(
-      opener(
-        profile: _profile(),
-        secrets: const ConnectionSecrets(),
-        emitEvent: (_) {},
-      ),
-      throwsA(
-        isA<CodexRemoteAppServerAttachException>().having(
-          (error) => error.snapshot.status,
-          'snapshot.status',
-          CodexRemoteAppServerOwnerStatus.missing,
+      final opener = buildConnectionScopedCodexAppServerTransportOpener(
+        ownerId: 'conn_primary',
+        remoteOwnerInspector: _FakeRemoteOwnerInspector(
+          onInspect:
+              ({
+                required profile,
+                required secrets,
+                required ownerId,
+                required workspaceDir,
+              }) async {
+                inspectCalls += 1;
+                throw StateError('remote inspector should not run');
+              },
         ),
-      ),
-    );
-  });
+        localLauncher:
+            ({required profile, required secrets, required emitEvent}) async {
+              localCalls += 1;
+              return _FakeProcess();
+            },
+      );
 
-  test('connection-scoped transport throws when the remote owner is unhealthy', () async {
-    final opener = buildConnectionScopedCodexAppServerTransportOpener(
-      ownerId: 'conn_primary',
-      remoteOwnerInspector: _FakeRemoteOwnerInspector(
-        onInspect: ({
-          required profile,
-          required secrets,
-          required ownerId,
-          required workspaceDir,
-        }) async {
-          return const CodexRemoteAppServerOwnerSnapshot(
-            ownerId: 'conn_primary',
-            workspaceDir: '/workspace',
-            status: CodexRemoteAppServerOwnerStatus.unhealthy,
-            sessionName: 'pocket-relay:conn_primary',
-            endpoint: CodexRemoteAppServerEndpoint(
-              host: '127.0.0.1',
-              port: 4100,
-            ),
-            detail: 'readyz failed',
-          );
-        },
-      ),
-    );
-
-    await expectLater(
-      opener(
-        profile: _profile(),
+      final transport = await opener(
+        profile: _profile().copyWith(connectionMode: ConnectionMode.local),
         secrets: const ConnectionSecrets(),
         emitEvent: (_) {},
-      ),
-      throwsA(
-        isA<CodexRemoteAppServerAttachException>()
-            .having(
-              (error) => error.snapshot.status,
-              'snapshot.status',
-              CodexRemoteAppServerOwnerStatus.unhealthy,
-            )
-            .having((error) => error.message, 'message', contains('readyz failed')),
-      ),
-    );
-  });
+      );
+
+      expect(transport, isA<CodexAppServerTransport>());
+      expect(localCalls, 1);
+      expect(inspectCalls, 0);
+    },
+  );
+
+  test(
+    'connection-scoped transport uses the inspected websocket owner for remote mode',
+    () async {
+      var remoteTransportCalls = 0;
+      final remoteTransport = _FakeTransport();
+
+      final opener = buildConnectionScopedCodexAppServerTransportOpener(
+        ownerId: 'conn_primary',
+        remoteOwnerInspector: _FakeRemoteOwnerInspector(
+          onInspect:
+              ({
+                required profile,
+                required secrets,
+                required ownerId,
+                required workspaceDir,
+              }) async {
+                return const CodexRemoteAppServerOwnerSnapshot(
+                  ownerId: 'conn_primary',
+                  workspaceDir: '/workspace',
+                  status: CodexRemoteAppServerOwnerStatus.running,
+                  sessionName: 'pocket-relay-conn_primary',
+                  endpoint: CodexRemoteAppServerEndpoint(
+                    host: '127.0.0.1',
+                    port: 4100,
+                  ),
+                );
+              },
+        ),
+        remoteTransportOpener:
+            ({
+              required profile,
+              required secrets,
+              required remoteHost,
+              required remotePort,
+              required emitEvent,
+            }) async {
+              remoteTransportCalls += 1;
+              expect(remoteHost, '127.0.0.1');
+              expect(remotePort, 4100);
+              return remoteTransport;
+            },
+      );
+
+      final transport = await opener(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        emitEvent: (_) {},
+      );
+
+      expect(transport, same(remoteTransport));
+      expect(remoteTransportCalls, 1);
+    },
+  );
+
+  test(
+    'connection-scoped transport throws when the remote owner is not running',
+    () async {
+      final opener = buildConnectionScopedCodexAppServerTransportOpener(
+        ownerId: 'conn_primary',
+        remoteOwnerInspector: _FakeRemoteOwnerInspector(
+          onInspect:
+              ({
+                required profile,
+                required secrets,
+                required ownerId,
+                required workspaceDir,
+              }) async {
+                return const CodexRemoteAppServerOwnerSnapshot(
+                  ownerId: 'conn_primary',
+                  workspaceDir: '/workspace',
+                  status: CodexRemoteAppServerOwnerStatus.missing,
+                  sessionName: 'pocket-relay-conn_primary',
+                );
+              },
+        ),
+      );
+
+      await expectLater(
+        opener(
+          profile: _profile(),
+          secrets: const ConnectionSecrets(),
+          emitEvent: (_) {},
+        ),
+        throwsA(
+          isA<CodexRemoteAppServerAttachException>().having(
+            (error) => error.snapshot.status,
+            'snapshot.status',
+            CodexRemoteAppServerOwnerStatus.missing,
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'connection-scoped transport throws when the remote owner is unhealthy',
+    () async {
+      final opener = buildConnectionScopedCodexAppServerTransportOpener(
+        ownerId: 'conn_primary',
+        remoteOwnerInspector: _FakeRemoteOwnerInspector(
+          onInspect:
+              ({
+                required profile,
+                required secrets,
+                required ownerId,
+                required workspaceDir,
+              }) async {
+                return const CodexRemoteAppServerOwnerSnapshot(
+                  ownerId: 'conn_primary',
+                  workspaceDir: '/workspace',
+                  status: CodexRemoteAppServerOwnerStatus.unhealthy,
+                  sessionName: 'pocket-relay-conn_primary',
+                  endpoint: CodexRemoteAppServerEndpoint(
+                    host: '127.0.0.1',
+                    port: 4100,
+                  ),
+                  detail: 'readyz failed',
+                );
+              },
+        ),
+      );
+
+      await expectLater(
+        opener(
+          profile: _profile(),
+          secrets: const ConnectionSecrets(),
+          emitEvent: (_) {},
+        ),
+        throwsA(
+          isA<CodexRemoteAppServerAttachException>()
+              .having(
+                (error) => error.snapshot.status,
+                'snapshot.status',
+                CodexRemoteAppServerOwnerStatus.unhealthy,
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('readyz failed'),
+              ),
+        ),
+      );
+    },
+  );
 }
 
 ConnectionProfile _profile() {

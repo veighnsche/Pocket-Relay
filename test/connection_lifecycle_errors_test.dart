@@ -16,7 +16,7 @@ void main() {
           hostCapability: ConnectionRemoteHostCapabilityState.supported(),
           server: ConnectionRemoteServerState.notRunning(
             ownerId: 'conn_primary',
-            sessionName: 'pocket-relay:conn_primary',
+            sessionName: 'pocket-relay-conn_primary',
             detail: 'No Pocket Relay server is running for this connection.',
           ),
         ),
@@ -44,7 +44,7 @@ void main() {
           hostCapability: ConnectionRemoteHostCapabilityState.supported(),
           server: ConnectionRemoteServerState.notRunning(
             ownerId: 'conn_primary',
-            sessionName: 'pocket-relay:conn_primary',
+            sessionName: 'pocket-relay-conn_primary',
             detail: 'No Pocket Relay server is running for this connection.',
           ),
         ),

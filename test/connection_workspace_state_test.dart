@@ -12,7 +12,7 @@ void main() {
               'remote-1': ConnectionRemoteRuntimeState(
                 hostCapability: ConnectionRemoteHostCapabilityState.supported(),
                 server: ConnectionRemoteServerState.unhealthy(
-                  sessionName: 'pocket-relay:remote-1',
+                  sessionName: 'pocket-relay-remote-1',
                   port: 4100,
                   detail: 'healthz probe failed',
                 ),
@@ -25,7 +25,7 @@ void main() {
         const ConnectionRemoteRuntimeState(
           hostCapability: ConnectionRemoteHostCapabilityState.supported(),
           server: ConnectionRemoteServerState.unhealthy(
-            sessionName: 'pocket-relay:remote-1',
+            sessionName: 'pocket-relay-remote-1',
             port: 4100,
             detail: 'healthz probe failed',
           ),
@@ -35,27 +35,30 @@ void main() {
     },
   );
 
-  test('stores live reattach state separately from transport recovery state', () {
-    final state = ConnectionWorkspaceState.initial().copyWith(
-      liveReattachPhasesByConnectionId:
-          const <String, ConnectionWorkspaceLiveReattachPhase>{
-            'remote-1': ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
-          },
-      transportRecoveryPhasesByConnectionId:
-          const <String, ConnectionWorkspaceTransportRecoveryPhase>{
-            'remote-1': ConnectionWorkspaceTransportRecoveryPhase.unavailable,
-          },
-    );
+  test(
+    'stores live reattach state separately from transport recovery state',
+    () {
+      final state = ConnectionWorkspaceState.initial().copyWith(
+        liveReattachPhasesByConnectionId:
+            const <String, ConnectionWorkspaceLiveReattachPhase>{
+              'remote-1': ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+            },
+        transportRecoveryPhasesByConnectionId:
+            const <String, ConnectionWorkspaceTransportRecoveryPhase>{
+              'remote-1': ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+            },
+      );
 
-    expect(
-      state.liveReattachPhaseFor('remote-1'),
-      ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
-    );
-    expect(
-      state.transportRecoveryPhaseFor('remote-1'),
-      ConnectionWorkspaceTransportRecoveryPhase.unavailable,
-    );
-  });
+      expect(
+        state.liveReattachPhaseFor('remote-1'),
+        ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy,
+      );
+      expect(
+        state.transportRecoveryPhaseFor('remote-1'),
+        ConnectionWorkspaceTransportRecoveryPhase.unavailable,
+      );
+    },
+  );
 
   test('keeps host capability distinct from server runtime status', () {
     const runtime = ConnectionRemoteRuntimeState(

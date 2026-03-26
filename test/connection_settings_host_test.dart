@@ -580,7 +580,7 @@ void main() {
             ),
             server: ConnectionRemoteServerState.running(
               ownerId: 'conn_primary',
-              sessionName: 'pocket-relay:conn_primary',
+              sessionName: 'pocket-relay-conn_primary',
               port: 4100,
             ),
           ),
@@ -616,7 +616,7 @@ void main() {
             ),
             server: ConnectionRemoteServerState.notRunning(
               ownerId: 'conn_primary',
-              sessionName: 'pocket-relay:conn_primary',
+              sessionName: 'pocket-relay-conn_primary',
             ),
           ),
           onStartRemoteServer: () async {
@@ -627,7 +627,7 @@ void main() {
               ),
               server: ConnectionRemoteServerState.running(
                 ownerId: 'conn_primary',
-                sessionName: 'pocket-relay:conn_primary',
+                sessionName: 'pocket-relay-conn_primary',
                 port: 4100,
               ),
             );
@@ -676,7 +676,7 @@ void main() {
             ),
             server: ConnectionRemoteServerState.running(
               ownerId: 'conn_primary',
-              sessionName: 'pocket-relay:conn_primary',
+              sessionName: 'pocket-relay-conn_primary',
               port: 4100,
             ),
           ),
@@ -691,7 +691,7 @@ void main() {
               ),
               server: ConnectionRemoteServerState.notRunning(
                 ownerId: 'conn_primary',
-                sessionName: 'pocket-relay:conn_primary',
+                sessionName: 'pocket-relay-conn_primary',
                 detail:
                     'No Pocket Relay server is running for this connection.',
               ),
@@ -722,7 +722,7 @@ void main() {
           ),
           server: ConnectionRemoteServerState.running(
             ownerId: 'conn_primary',
-            sessionName: 'pocket-relay:conn_primary',
+            sessionName: 'pocket-relay-conn_primary',
             port: 4100,
           ),
         ),
@@ -754,7 +754,7 @@ void main() {
             ),
             server: ConnectionRemoteServerState.notRunning(
               ownerId: 'conn_primary',
-              sessionName: 'pocket-relay:conn_primary',
+              sessionName: 'pocket-relay-conn_primary',
             ),
           ),
           onStartRemoteServer: () async {
@@ -768,7 +768,7 @@ void main() {
               ),
               server: ConnectionRemoteServerState.notRunning(
                 ownerId: 'conn_primary',
-                sessionName: 'pocket-relay:conn_primary',
+                sessionName: 'pocket-relay-conn_primary',
                 detail:
                     'No Pocket Relay server is running for this connection.',
               ),
@@ -818,7 +818,7 @@ void main() {
             ),
             server: ConnectionRemoteServerState.running(
               ownerId: 'conn_primary',
-              sessionName: 'pocket-relay:conn_primary',
+              sessionName: 'pocket-relay-conn_primary',
               port: 4100,
             ),
           ),

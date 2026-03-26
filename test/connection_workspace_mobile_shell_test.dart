@@ -975,7 +975,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
         ownerId: 'conn_primary',
         workspaceDir: '/workspace',
         status: CodexRemoteAppServerOwnerStatus.stopped,
-        sessionName: 'pocket-relay:conn_primary',
+        sessionName: 'pocket-relay-conn_primary',
       ),
     ),
     remoteAppServerOwnerControl: const _StaticRemoteOwnerControl(
@@ -983,7 +983,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
         ownerId: 'conn_primary',
         workspaceDir: '/workspace',
         status: CodexRemoteAppServerOwnerStatus.stopped,
-        sessionName: 'pocket-relay:conn_primary',
+        sessionName: 'pocket-relay-conn_primary',
       ),
     ),
     laneBindingFactory: ({required connectionId, required connection}) {

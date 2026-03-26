@@ -290,7 +290,7 @@ String buildPocketRelayRemoteOwnerSessionName({required String ownerId}) {
       .replaceAll(RegExp(r'-{2,}'), '-')
       .replaceAll(RegExp(r'^-+|-+$'), '');
   final suffix = sanitized.isEmpty ? 'owner' : sanitized;
-  return 'pocket-relay:$suffix';
+  return 'pocket-relay-$suffix';
 }
 
 @visibleForTesting
@@ -422,7 +422,7 @@ if exec 3<>"/dev/tcp/\$health_host/\$port" 2>/dev/null; then
   response=\$(cat <&3 || true)
   exec 3<&-
   exec 3>&-
-  if [[ "\$response" =~ ^HTTP/[0-9.]+ 200 ]]; then
+  if [[ "\$response" == HTTP/*" 200"* ]]; then
     http_status=200
   fi
 fi

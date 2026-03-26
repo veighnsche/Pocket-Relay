@@ -62,7 +62,7 @@ void main() {
             ownerId: 'conn_primary',
             workspaceDir: '/workspace',
             status: CodexRemoteAppServerOwnerStatus.running,
-            sessionName: 'pocket-relay:conn_primary',
+            sessionName: 'pocket-relay-conn_primary',
             endpoint: CodexRemoteAppServerEndpoint(
               host: '127.0.0.1',
               port: 4100,
@@ -100,7 +100,7 @@ void main() {
             ownerId: 'conn_secondary',
             workspaceDir: '/workspace',
             status: CodexRemoteAppServerOwnerStatus.running,
-            sessionName: 'pocket-relay:conn_secondary',
+            sessionName: 'pocket-relay-conn_secondary',
             endpoint: CodexRemoteAppServerEndpoint(
               host: '127.0.0.1',
               port: 4101,
@@ -171,7 +171,7 @@ void main() {
           ownerId: 'conn_primary',
           workspaceDir: '/workspace',
           status: CodexRemoteAppServerOwnerStatus.running,
-          sessionName: 'pocket-relay:conn_primary',
+          sessionName: 'pocket-relay-conn_primary',
           endpoint: CodexRemoteAppServerEndpoint(host: '127.0.0.1', port: 4100),
         ),
       );
@@ -205,7 +205,7 @@ void main() {
           ownerId: 'conn_primary',
           workspaceDir: '/workspace',
           status: CodexRemoteAppServerOwnerStatus.running,
-          sessionName: 'pocket-relay:conn_primary',
+          sessionName: 'pocket-relay-conn_primary',
           endpoint: CodexRemoteAppServerEndpoint(host: '127.0.0.1', port: 4100),
         ),
       );
@@ -701,7 +701,7 @@ void main() {
               ownerId: 'conn_secondary',
               workspaceDir: '/workspace',
               status: CodexRemoteAppServerOwnerStatus.stopped,
-              sessionName: 'pocket-relay:conn_secondary',
+              sessionName: 'pocket-relay-conn_secondary',
               detail: 'Remote Pocket Relay server is not running.',
             ),
             message: 'Remote Pocket Relay server is not running.',
@@ -2273,7 +2273,7 @@ void main() {
                       ownerId: 'conn_primary',
                       workspaceDir: '/workspace',
                       status: CodexRemoteAppServerOwnerStatus.stopped,
-                      sessionName: 'pocket-relay:conn_primary',
+                      sessionName: 'pocket-relay-conn_primary',
                       detail: 'Remote Pocket Relay server is not running.',
                     ),
                     message: 'Remote Pocket Relay server is not running.',
@@ -2312,7 +2312,7 @@ void main() {
               ownerId: 'conn_primary',
               workspaceDir: '/workspace',
               status: CodexRemoteAppServerOwnerStatus.stopped,
-              sessionName: 'pocket-relay:conn_primary',
+              sessionName: 'pocket-relay-conn_primary',
               detail: 'Remote Pocket Relay server is not running.',
             ),
             message: 'Remote Pocket Relay server is not running.',
@@ -2393,7 +2393,7 @@ void main() {
                       ownerId: 'conn_primary',
                       workspaceDir: '/workspace',
                       status: CodexRemoteAppServerOwnerStatus.unhealthy,
-                      sessionName: 'pocket-relay:conn_primary',
+                      sessionName: 'pocket-relay-conn_primary',
                       endpoint: CodexRemoteAppServerEndpoint(
                         host: '127.0.0.1',
                         port: 4100,
@@ -2437,7 +2437,7 @@ void main() {
           ownerId: 'conn_primary',
           workspaceDir: '/workspace',
           status: CodexRemoteAppServerOwnerStatus.unhealthy,
-          sessionName: 'pocket-relay:conn_primary',
+          sessionName: 'pocket-relay-conn_primary',
           endpoint: CodexRemoteAppServerEndpoint(host: '127.0.0.1', port: 4100),
           detail: 'readyz failed',
         ),
@@ -3576,7 +3576,7 @@ final class _MutableRemoteOwnerControl
       ownerId: ownerId,
       workspaceDir: workspaceDir,
       status: CodexRemoteAppServerOwnerStatus.running,
-      sessionName: 'pocket-relay:$ownerId',
+      sessionName: 'pocket-relay-$ownerId',
       endpoint: const CodexRemoteAppServerEndpoint(
         host: '127.0.0.1',
         port: 4100,
@@ -3598,7 +3598,7 @@ final class _MutableRemoteOwnerControl
       ownerId: ownerId,
       workspaceDir: workspaceDir,
       status: CodexRemoteAppServerOwnerStatus.missing,
-      sessionName: 'pocket-relay:$ownerId',
+      sessionName: 'pocket-relay-$ownerId',
       detail: 'No Pocket Relay server is running for this connection.',
     );
     return _snapshot;

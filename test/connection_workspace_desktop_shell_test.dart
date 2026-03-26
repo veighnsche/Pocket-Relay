@@ -358,7 +358,7 @@ void main() {
                     ownerId: 'conn_primary',
                     workspaceDir: '/workspace',
                     status: CodexRemoteAppServerOwnerStatus.unhealthy,
-                    sessionName: 'pocket-relay:conn_primary',
+                    sessionName: 'pocket-relay-conn_primary',
                     endpoint: CodexRemoteAppServerEndpoint(
                       host: '127.0.0.1',
                       port: 4100,
@@ -1049,7 +1049,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
         ownerId: 'conn_primary',
         workspaceDir: '/workspace',
         status: CodexRemoteAppServerOwnerStatus.stopped,
-        sessionName: 'pocket-relay:conn_primary',
+        sessionName: 'pocket-relay-conn_primary',
       ),
     ),
     remoteAppServerOwnerControl: const _StaticRemoteOwnerControl(
@@ -1057,7 +1057,7 @@ ConnectionWorkspaceController _buildWorkspaceController({
         ownerId: 'conn_primary',
         workspaceDir: '/workspace',
         status: CodexRemoteAppServerOwnerStatus.stopped,
-        sessionName: 'pocket-relay:conn_primary',
+        sessionName: 'pocket-relay-conn_primary',
       ),
     ),
     laneBindingFactory: ({required connectionId, required connection}) {

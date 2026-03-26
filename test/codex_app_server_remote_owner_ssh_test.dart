@@ -164,7 +164,7 @@ void main() {
         buildPocketRelayRemoteOwnerSessionName(
           ownerId: ' remote owner / feature ',
         ),
-        'pocket-relay:remote-owner-feature',
+        'pocket-relay-remote-owner-feature',
       );
     },
   );
@@ -185,18 +185,18 @@ void main() {
 
   test('buildSshRemoteOwnerInspectCommand checks tmux and readyz', () {
     final command = buildSshRemoteOwnerInspectCommand(
-      sessionName: 'pocket-relay:remote-1',
+      sessionName: 'pocket-relay-remote-1',
       workspaceDir: '/workspace',
     );
 
     expect(command, contains('tmux has-session'));
     expect(command, contains('/readyz'));
-    expect(command, contains('pocket-relay:remote-1'));
+    expect(command, contains('pocket-relay-remote-1'));
   });
 
   test('buildSshRemoteOwnerStartCommand starts a tmux websocket owner', () {
     final command = buildSshRemoteOwnerStartCommand(
-      sessionName: 'pocket-relay:remote-1',
+      sessionName: 'pocket-relay-remote-1',
       workspaceDir: '/workspace',
       codexPath: 'codex',
       port: 45123,
@@ -204,16 +204,16 @@ void main() {
 
     expect(command, contains('tmux new-session'));
     expect(command, contains('ws://127.0.0.1:45123'));
-    expect(command, contains('pocket-relay:remote-1'));
+    expect(command, contains('pocket-relay-remote-1'));
   });
 
   test('buildSshRemoteOwnerStopCommand kills the expected tmux session', () {
     final command = buildSshRemoteOwnerStopCommand(
-      sessionName: 'pocket-relay:remote-1',
+      sessionName: 'pocket-relay-remote-1',
     );
 
     expect(command, contains('tmux kill-session'));
-    expect(command, contains('pocket-relay:remote-1'));
+    expect(command, contains('pocket-relay-remote-1'));
   });
 
   test('inspectOwner reports missing when no managed session exists', () async {
@@ -237,7 +237,7 @@ void main() {
     );
 
     expect(snapshot.status, CodexRemoteAppServerOwnerStatus.missing);
-    expect(snapshot.sessionName, 'pocket-relay:remote-1');
+    expect(snapshot.sessionName, 'pocket-relay-remote-1');
     expect(snapshot.detail, contains('No Pocket Relay server is running'));
     expect(snapshot.isConnectable, isFalse);
   });
