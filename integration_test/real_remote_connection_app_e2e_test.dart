@@ -6,13 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/workspace_desktop_shell.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
 
 final _RealRemoteAppE2eConfig _realRemoteAppE2eConfig =
     _resolveRealRemoteAppE2eConfig();
@@ -62,27 +61,36 @@ void main() {
           ),
           modelCatalogStore: MemoryConnectionModelCatalogStore(),
           recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
-          platformPolicy: PocketPlatformPolicy.resolve(
-            platform: TargetPlatform.macOS,
-            isWeb: false,
-          ),
         ),
       );
 
       await _pumpUntilFound(
         tester,
-        find.byType(ConnectionWorkspaceDesktopShell),
-        description: 'desktop workspace shell',
+        find.byType(ConnectionWorkspaceMobileShell),
+        description: 'mobile workspace shell',
       );
 
-      final shell = tester.widget<ConnectionWorkspaceDesktopShell>(
-        find.byType(ConnectionWorkspaceDesktopShell),
+      final shell = tester.widget<ConnectionWorkspaceMobileShell>(
+        find.byType(ConnectionWorkspaceMobileShell),
       );
       final workspaceController = shell.workspaceController;
 
-      await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
+      await _pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('workspace_page_view')),
+        description: 'workspace page view',
+      );
+      await tester.drag(
+        find.byKey(const ValueKey('workspace_page_view')),
+        const Offset(-500, 0),
+      );
       await tester.pumpAndSettle();
 
+      await _pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('saved_connections_page')),
+        description: 'saved connections page',
+      );
       await _pumpUntilFound(
         tester,
         find.byKey(ValueKey<String>('saved_connection_$connectionId')),
@@ -121,41 +129,6 @@ void main() {
         );
       }
 
-      final startServerButton = find.byKey(
-        ValueKey<String>('saved_connection_remote_server_start_$connectionId'),
-      );
-      await _pumpUntilCondition(
-        tester,
-        description: 'start server action',
-        condition: () => startServerButton.evaluate().isNotEmpty,
-        timeout: const Duration(seconds: 30),
-        failureDetail: () => _describeWorkspaceState(
-          workspaceController,
-          connectionId: connectionId,
-        ),
-      );
-
-      await tester.ensureVisible(startServerButton);
-      await tester.tap(startServerButton);
-      await tester.pump();
-
-      await _pumpUntilCondition(
-        tester,
-        description: 'managed remote server running',
-        condition: () =>
-            workspaceController.state
-                .remoteRuntimeFor(connectionId)
-                ?.server
-                .isConnectable ==
-            true,
-        timeout: const Duration(minutes: 1),
-        failureDetail: () => _describeWorkspaceState(
-          workspaceController,
-          connectionId: connectionId,
-          tester: tester,
-        ),
-      );
-
       final openLaneButton = find.byKey(
         ValueKey<String>('open_connection_$connectionId'),
       );
@@ -175,6 +148,12 @@ void main() {
           workspaceController,
           connectionId: connectionId,
         ),
+      );
+
+      await _driveLiveLaneOnline(
+        tester,
+        workspaceController: workspaceController,
+        connectionId: connectionId,
       );
 
       final laneBinding = workspaceController.bindingForConnectionId(
@@ -233,6 +212,146 @@ void main() {
     },
     skip: _realRemoteAppE2eConfig.skipReason != null,
     timeout: const Timeout(Duration(minutes: 5)),
+  );
+}
+
+Future<void> _driveLiveLaneOnline(
+  WidgetTester tester, {
+  required ConnectionWorkspaceController workspaceController,
+  required String connectionId,
+}) async {
+  final checkHostButton = find.byKey(
+    const ValueKey<String>('lane_connection_action_check_host'),
+  );
+  final startServerButton = find.byKey(
+    const ValueKey<String>('lane_connection_action_start_server'),
+  );
+  final restartServerButton = find.byKey(
+    const ValueKey<String>('lane_connection_action_restart_server'),
+  );
+  final connectButton = find.byKey(
+    const ValueKey<String>('lane_connection_action_connect'),
+  );
+
+  bool hasLanePrimaryAction() {
+    return checkHostButton.evaluate().isNotEmpty ||
+        startServerButton.evaluate().isNotEmpty ||
+        restartServerButton.evaluate().isNotEmpty ||
+        connectButton.evaluate().isNotEmpty;
+  }
+
+  await _pumpUntilCondition(
+    tester,
+    description: 'live-lane remote action',
+    condition: hasLanePrimaryAction,
+    timeout: const Duration(seconds: 30),
+    failureDetail: () => _describeWorkspaceState(
+      workspaceController,
+      connectionId: connectionId,
+      tester: tester,
+    ),
+  );
+
+  if (checkHostButton.evaluate().isNotEmpty) {
+    await tester.ensureVisible(checkHostButton);
+    await tester.tap(checkHostButton);
+    await tester.pump();
+    await _pumpUntilCondition(
+      tester,
+      description: 'settled live-lane host probe',
+      condition: () {
+        final runtime = workspaceController.state.remoteRuntimeFor(
+          connectionId,
+        );
+        if (runtime == null) {
+          return false;
+        }
+        return runtime.hostCapability.status !=
+                ConnectionRemoteHostCapabilityStatus.unknown &&
+            runtime.hostCapability.status !=
+                ConnectionRemoteHostCapabilityStatus.checking;
+      },
+      timeout: const Duration(seconds: 30),
+      failureDetail: () => _describeWorkspaceState(
+        workspaceController,
+        connectionId: connectionId,
+        tester: tester,
+      ),
+    );
+    await _pumpUntilCondition(
+      tester,
+      description: 'post-probe live-lane remote action',
+      condition: hasLanePrimaryAction,
+      timeout: const Duration(seconds: 30),
+      failureDetail: () => _describeWorkspaceState(
+        workspaceController,
+        connectionId: connectionId,
+        tester: tester,
+      ),
+    );
+  }
+
+  final serverActionButton = restartServerButton.evaluate().isNotEmpty
+      ? restartServerButton
+      : startServerButton;
+  if (serverActionButton.evaluate().isNotEmpty) {
+    await tester.ensureVisible(serverActionButton);
+    await tester.tap(serverActionButton);
+    await tester.pump();
+    await _pumpUntilCondition(
+      tester,
+      description: 'connect action after remote server start',
+      condition: () =>
+          connectButton.evaluate().isNotEmpty &&
+          workspaceController.state
+                  .remoteRuntimeFor(connectionId)
+                  ?.server
+                  .isConnectable ==
+              true,
+      timeout: const Duration(minutes: 1),
+      failureDetail: () => _describeWorkspaceState(
+        workspaceController,
+        connectionId: connectionId,
+        tester: tester,
+      ),
+    );
+  }
+
+  await _pumpUntilCondition(
+    tester,
+    description: 'connect action',
+    condition: () => connectButton.evaluate().isNotEmpty,
+    timeout: const Duration(seconds: 30),
+    failureDetail: () => _describeWorkspaceState(
+      workspaceController,
+      connectionId: connectionId,
+      tester: tester,
+    ),
+  );
+
+  final laneBinding = workspaceController.bindingForConnectionId(connectionId);
+  if (laneBinding?.appServerClient.isConnected == true) {
+    return;
+  }
+
+  await tester.ensureVisible(connectButton);
+  await tester.tap(connectButton);
+  await tester.pump();
+  await _pumpUntilCondition(
+    tester,
+    description: 'connected live lane',
+    condition: () =>
+        workspaceController
+            .bindingForConnectionId(connectionId)
+            ?.appServerClient
+            .isConnected ==
+        true,
+    timeout: const Duration(minutes: 1),
+    failureDetail: () => _describeWorkspaceState(
+      workspaceController,
+      connectionId: connectionId,
+      tester: tester,
+    ),
   );
 }
 
@@ -349,11 +468,34 @@ _RealRemoteAppE2eConfig _resolveRealRemoteAppE2eConfig() {
     _runtimeSetting('POCKET_RELAY_REAL_REMOTE_SSH_ALIAS'),
     'blep',
   );
+  final hostOverride = _runtimeSetting('POCKET_RELAY_REAL_REMOTE_HOST');
+  final usernameOverride = _runtimeSetting('POCKET_RELAY_REAL_REMOTE_USERNAME');
+  final portOverride = _runtimeSetting('POCKET_RELAY_REAL_REMOTE_PORT');
+  final privateKeyFileOverride = _runtimeSetting(
+    'POCKET_RELAY_REAL_REMOTE_PRIVATE_KEY_FILE',
+  );
+  final privateKeyPemOverride = _runtimeSetting(
+    'POCKET_RELAY_REAL_REMOTE_PRIVATE_KEY_PEM',
+  );
+  final privateKeyPemB64Override = _runtimeSetting(
+    'POCKET_RELAY_REAL_REMOTE_PRIVATE_KEY_PEM_B64',
+  );
+  final hostFingerprintOverride = _runtimeSetting(
+    'POCKET_RELAY_REAL_REMOTE_HOST_FINGERPRINT',
+  );
+  final workspaceDirOverride = _runtimeSetting(
+    'POCKET_RELAY_REAL_REMOTE_WORKSPACE_DIR',
+  );
+  final codexPathOverride = _runtimeSetting(
+    'POCKET_RELAY_REAL_REMOTE_CODEX_PATH',
+  );
   final hasDirectConnectionSettings =
-      _runtimeSetting('POCKET_RELAY_REAL_REMOTE_HOST').isNotEmpty &&
-      _runtimeSetting('POCKET_RELAY_REAL_REMOTE_USERNAME').isNotEmpty &&
-      _runtimeSetting('POCKET_RELAY_REAL_REMOTE_PORT').isNotEmpty &&
-      _runtimeSetting('POCKET_RELAY_REAL_REMOTE_PRIVATE_KEY_FILE').isNotEmpty;
+      hostOverride.isNotEmpty &&
+      usernameOverride.isNotEmpty &&
+      portOverride.isNotEmpty &&
+      (privateKeyFileOverride.isNotEmpty ||
+          privateKeyPemOverride.isNotEmpty ||
+          privateKeyPemB64Override.isNotEmpty);
   final resolvedAlias = hasDirectConnectionSettings
       ? null
       : _resolveSshAlias(alias);
@@ -363,25 +505,21 @@ _RealRemoteAppE2eConfig _resolveRealRemoteAppE2eConfig() {
     );
   }
 
-  final hostname = _firstNonEmpty(
-    _runtimeSetting('POCKET_RELAY_REAL_REMOTE_HOST'),
-    resolvedAlias?['hostname'],
-  );
-  final username = _firstNonEmpty(
-    _runtimeSetting('POCKET_RELAY_REAL_REMOTE_USERNAME'),
-    resolvedAlias?['user'],
-  );
+  final hostname = hostOverride.isNotEmpty
+      ? hostOverride
+      : (resolvedAlias?['hostname']?.trim() ?? '');
+  final username = usernameOverride.isNotEmpty
+      ? usernameOverride
+      : (resolvedAlias?['user']?.trim() ?? '');
   final port = int.tryParse(
-    _firstNonEmpty(
-      _runtimeSetting('POCKET_RELAY_REAL_REMOTE_PORT'),
-      resolvedAlias?['port'],
-    ),
+    portOverride.isNotEmpty
+        ? portOverride
+        : (resolvedAlias?['port']?.trim() ?? ''),
   );
   final identityFile = _expandHomePath(
-    _firstNonEmpty(
-      _runtimeSetting('POCKET_RELAY_REAL_REMOTE_PRIVATE_KEY_FILE'),
-      resolvedAlias?['identityfile'],
-    ),
+    privateKeyFileOverride.isNotEmpty
+        ? privateKeyFileOverride
+        : (resolvedAlias?['identityfile']?.trim() ?? ''),
   );
   final privateKeyPem = _resolvePrivateKeyPem(identityFile);
 
@@ -398,10 +536,9 @@ _RealRemoteAppE2eConfig _resolveRealRemoteAppE2eConfig() {
     );
   }
 
-  final hostFingerprint = _firstNonEmpty(
-    _runtimeSetting('POCKET_RELAY_REAL_REMOTE_HOST_FINGERPRINT'),
-    _readEd25519Fingerprint(hostname: hostname, port: port),
-  );
+  final hostFingerprint = hostFingerprintOverride.isNotEmpty
+      ? hostFingerprintOverride
+      : _readEd25519Fingerprint(hostname: hostname, port: port);
   if (hostFingerprint.isEmpty) {
     return const _RealRemoteAppE2eConfig(
       skipReason:
@@ -409,10 +546,9 @@ _RealRemoteAppE2eConfig _resolveRealRemoteAppE2eConfig() {
     );
   }
 
-  final workspaceDir = _firstNonEmpty(
-    _runtimeSetting('POCKET_RELAY_REAL_REMOTE_WORKSPACE_DIR'),
-    _probeRemoteWorkspaceDir(alias, username),
-  );
+  final workspaceDir = workspaceDirOverride.isNotEmpty
+      ? workspaceDirOverride
+      : _probeRemoteWorkspaceDir(alias, username);
   if (workspaceDir.isEmpty) {
     return const _RealRemoteAppE2eConfig(
       skipReason:
@@ -420,10 +556,9 @@ _RealRemoteAppE2eConfig _resolveRealRemoteAppE2eConfig() {
     );
   }
 
-  final codexPath = _firstNonEmpty(
-    _runtimeSetting('POCKET_RELAY_REAL_REMOTE_CODEX_PATH'),
-    _probeRemoteCodexPath(alias),
-  );
+  final codexPath = codexPathOverride.isNotEmpty
+      ? codexPathOverride
+      : _probeRemoteCodexPath(alias);
   if (codexPath.isEmpty) {
     return const _RealRemoteAppE2eConfig(
       skipReason:
