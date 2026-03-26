@@ -19,6 +19,13 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   final ConnectionSettingsHostViewModel viewModel;
   final ConnectionSettingsHostActions actions;
   final bool isDesktopPresentation;
+  static const _desktopSurfacePadding = 24.0;
+  static const _desktopSurfaceVerticalMargin = _desktopSurfacePadding * 2;
+  static const _desktopSurfaceMaxWidth = 880.0;
+  static const _desktopSurfaceHeaderBottomPadding = 20.0;
+  static const _desktopSurfaceContentTopPadding = 20.0;
+  static const _desktopSurfaceElevation = 18.0;
+  static const _desktopSurfaceRadius = 32.0;
 
   @override
   Widget build(BuildContext context) {
@@ -43,37 +50,52 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     ConnectionSettingsContract contract,
   ) {
     final palette = context.pocketPalette;
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final screenHeight = MediaQuery.sizeOf(context).height;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          _desktopSurfacePadding,
+          _desktopSurfacePadding,
+          _desktopSurfacePadding,
+          _desktopSurfacePadding + viewInsets.bottom,
+        ),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: 880,
-            maxHeight: MediaQuery.sizeOf(context).height - 48,
+            maxWidth: _desktopSurfaceMaxWidth,
+            maxHeight:
+                screenHeight -
+                _desktopSurfaceVerticalMargin -
+                viewInsets.bottom,
           ),
           child: Material(
             key: const ValueKey<String>('desktop_connection_settings_surface'),
             color: palette.sheetBackground,
-            elevation: 18,
+            elevation: _desktopSurfaceElevation,
             shadowColor: palette.shadowColor.withValues(alpha: 0.32),
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(_desktopSurfaceRadius),
             clipBehavior: Clip.antiAlias,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                  padding: const EdgeInsets.fromLTRB(
+                    _desktopSurfacePadding,
+                    _desktopSurfacePadding,
+                    _desktopSurfacePadding,
+                    _desktopSurfaceHeaderBottomPadding,
+                  ),
                   child: _buildDesktopHeader(context, contract),
                 ),
                 const Divider(height: 1),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
-                      left: 24,
-                      right: 24,
-                      top: 20,
-                      bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+                      left: _desktopSurfacePadding,
+                      right: _desktopSurfacePadding,
+                      top: _desktopSurfaceContentTopPadding,
+                      bottom: _desktopSurfacePadding,
                     ),
                     child: _buildScrollableContent(
                       context,

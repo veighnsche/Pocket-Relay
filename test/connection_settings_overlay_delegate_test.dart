@@ -65,4 +65,63 @@ void main() {
       expect(result, isNull);
     },
   );
+
+  testWidgets('desktop settings overlay shifts above bottom view insets', (
+    tester,
+  ) async {
+    final delegate = const ModalConnectionSettingsOverlayDelegate();
+    const screenSize = Size(1440, 1000);
+    const keyboardInset = 220.0;
+    tester.view.physicalSize = screenSize;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: screenSize,
+          viewInsets: EdgeInsets.only(bottom: keyboardInset),
+        ),
+        child: MaterialApp(
+          theme: buildPocketTheme(Brightness.light),
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: Center(
+                  child: FilledButton(
+                    onPressed: () {
+                      delegate.openConnectionSettings(
+                        context: context,
+                        initialProfile: ConnectionProfile.defaults(),
+                        initialSecrets: const ConnectionSecrets(),
+                        platformBehavior: const PocketPlatformBehavior(
+                          experience: PocketPlatformExperience.desktop,
+                          supportsLocalConnectionMode: true,
+                          supportsWakeLock: false,
+                          supportsFiniteBackgroundGrace: false,
+                          supportsActiveTurnForegroundService: false,
+                          usesDesktopKeyboardSubmit: true,
+                          supportsCollapsibleDesktopSidebar: false,
+                        ),
+                      );
+                    },
+                    child: const Text('Open settings'),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open settings'));
+    await tester.pumpAndSettle();
+
+    final surfaceFinder = find.byKey(
+      const ValueKey<String>('desktop_connection_settings_surface'),
+    );
+    final surfaceBottom = tester.getBottomRight(surfaceFinder).dy;
+    expect(surfaceBottom, lessThanOrEqualTo(screenSize.height - keyboardInset));
+  });
 }
