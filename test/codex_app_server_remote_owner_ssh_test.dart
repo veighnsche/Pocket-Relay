@@ -15,6 +15,12 @@ void main() {
       profile: _profile().copyWith(codexPath: 'codex'),
     );
 
+    expect(
+      command,
+      contains(
+        r'PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"',
+      ),
+    );
     expect(command, contains('command -v tmux'));
     expect(command, contains('run_requested_codex app-server --help'));
     expect(command, contains(r'$HOME/.local/bin/$requested_codex'));
@@ -241,6 +247,12 @@ exit 1
       workspaceDir: '/workspace',
     );
 
+    expect(
+      command,
+      contains(
+        r'PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"',
+      ),
+    );
     expect(command, contains('tmux has-session'));
     expect(command, contains('/readyz'));
     expect(command, contains('/tmp/pocket-relay-remote-1.log'));
@@ -255,6 +267,12 @@ exit 1
       port: 45123,
     );
 
+    expect(
+      command,
+      contains(
+        r'PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"',
+      ),
+    );
     expect(command, contains('tmux new-session'));
     expect(command, contains('ws://127.0.0.1:45123'));
     expect(command, contains('/tmp/pocket-relay-remote-1.log'));
@@ -289,6 +307,12 @@ exit 1
       sessionName: 'pocket-relay-remote-1',
     );
 
+    expect(
+      command,
+      contains(
+        r'PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"',
+      ),
+    );
     expect(command, contains('tmux kill-session'));
     expect(command, contains('/tmp/pocket-relay-remote-1.log'));
     expect(command, contains('pocket-relay-remote-1'));

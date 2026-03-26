@@ -169,6 +169,73 @@ void main() {
   );
 
   testWidgets(
+    'live empty local lane keeps the recovery strip when placeholder controls are unavailable',
+    (tester) async {
+      final profile = _profile(
+        'Primary Box',
+        'primary.local',
+      ).copyWith(connectionMode: ConnectionMode.local, host: '', username: '');
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: profile,
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+        ],
+      );
+      final client = FakeCodexAppServerClient();
+      final controller = ConnectionWorkspaceController(
+        connectionRepository: repository,
+        laneBindingFactory: ({required connectionId, required connection}) {
+          return ConnectionLaneBinding(
+            connectionId: connectionId,
+            profileStore: ConnectionScopedProfileStore(
+              connectionId: connectionId,
+              connectionRepository: repository,
+            ),
+            appServerClient: client,
+            initialSavedProfile: SavedProfile(
+              profile: connection.profile,
+              secrets: connection.secrets,
+            ),
+            ownsAppServerClient: false,
+          );
+        },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.dispose();
+      });
+
+      await controller.initialize();
+      await client.connect(
+        profile: profile,
+        secrets: const ConnectionSecrets(password: 'secret-1'),
+      );
+      await client.disconnect();
+
+      await tester.pumpWidget(
+        _buildWorkspaceDrivenLiveLaneApp(
+          controller,
+          settingsOverlayDelegate: _DeferredConnectionSettingsOverlayDelegate(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_status_strip')),
+        findsOneWidget,
+      );
+      expect(find.text('Live transport lost'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('lane_empty_state_workspace_path')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'dormant roster add action launches settings only once while pending',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');

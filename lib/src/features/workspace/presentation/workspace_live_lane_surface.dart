@@ -182,6 +182,16 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       phase: transportRecoveryPhase,
       remoteRuntime: remoteRuntime,
     );
+    final emptyStateContent = _buildLaneEmptyStateContent(
+      profile: profile,
+      reconnectRequirement: reconnectRequirement,
+      transportRecoveryPhase: transportRecoveryPhase,
+      liveReattachPhase: liveReattachPhase,
+      remoteRuntime: remoteRuntime,
+      isLaneBusy: isLaneBusy,
+      isRestartInProgress: isRestartInProgress,
+      recoveryNotice: recoveryNotice,
+    );
     final chatRoot = ChatRootAdapter(
       laneBinding: widget.laneBinding,
       platformPolicy: widget.platformPolicy,
@@ -190,7 +200,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         profile: profile,
         isLaneBusy: isLaneBusy,
       ),
-      supplementalStatusRegion: showsEmptyState
+      supplementalStatusRegion: showsEmptyState && emptyStateContent != null
           ? null
           : _buildLaneConnectionStrip(
               context,
@@ -203,16 +213,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
               isRestartInProgress: isRestartInProgress,
               recoveryNotice: recoveryNotice,
             ),
-      supplementalEmptyStateContent: _buildLaneEmptyStateContent(
-        profile: profile,
-        reconnectRequirement: reconnectRequirement,
-        transportRecoveryPhase: transportRecoveryPhase,
-        liveReattachPhase: liveReattachPhase,
-        remoteRuntime: remoteRuntime,
-        isLaneBusy: isLaneBusy,
-        isRestartInProgress: isRestartInProgress,
-        recoveryNotice: recoveryNotice,
-      ),
+      supplementalEmptyStateContent: emptyStateContent,
     );
     return chatRoot;
   }

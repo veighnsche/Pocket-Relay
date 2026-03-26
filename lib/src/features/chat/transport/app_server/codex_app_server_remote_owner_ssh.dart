@@ -349,6 +349,7 @@ int _fnv1a32(String value) {
 String _buildRequestedCodexShellFunctions({required String requestedCodex}) {
   final normalizedRequestedCodex = requestedCodex.trim();
   return '''
+${_buildRemoteBinaryPathPrelude()}
 requested_codex=${shellEscape(normalizedRequestedCodex)}
 
 requested_codex_requires_eval() {
@@ -395,6 +396,13 @@ run_requested_codex() {
 ''';
 }
 
+String _buildRemoteBinaryPathPrelude() {
+  return '''
+PATH="\$HOME/.local/bin:\$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:\$PATH"
+export PATH
+''';
+}
+
 @visibleForTesting
 String buildSshRemoteOwnerInspectCommand({
   required String sessionName,
@@ -408,6 +416,7 @@ String buildSshRemoteOwnerInspectCommand({
 session_name=${shellEscape(sessionName)}
 expected_workspace=${shellEscape(workspaceDir.trim())}
 log_file=${shellEscape(logFile)}
+${_buildRemoteBinaryPathPrelude()}
 
 encode_log_tail() {
   if [ ! -f "\$log_file" ]; then
@@ -565,6 +574,7 @@ exit "\$status"
 set -euo pipefail
 session_name=${shellEscape(sessionName)}
 workspace_dir=${shellEscape(workspaceDir.trim())}
+${_buildRemoteBinaryPathPrelude()}
 
 if ! command -v tmux >/dev/null 2>&1; then
   echo 'tmux is not available on the remote host.' >&2
@@ -591,6 +601,7 @@ String buildSshRemoteOwnerStopCommand({required String sessionName}) {
       '''
 session_name=${shellEscape(sessionName)}
 log_file=${shellEscape(logFile)}
+${_buildRemoteBinaryPathPrelude()}
 if ! command -v tmux >/dev/null 2>&1; then
   rm -f "\$log_file"
   exit 0
