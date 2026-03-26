@@ -414,15 +414,15 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       if (!mounted) {
         return;
       }
+      final nextRuntime = await _remoteRuntimeAfterServerActionFailure(
+        error: error,
+        fallbackRuntime: currentRuntime,
+      );
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _remoteRuntime = currentRuntime.copyWith(
-          server: ConnectionRemoteServerState.unhealthy(
-            ownerId: currentRuntime.server.ownerId,
-            sessionName: currentRuntime.server.sessionName,
-            port: currentRuntime.server.port,
-            detail: '$error',
-          ),
-        );
+        _remoteRuntime = nextRuntime;
       });
     } finally {
       if (mounted) {
@@ -431,6 +431,33 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
         });
       }
     }
+  }
+
+  Future<ConnectionRemoteRuntimeState> _remoteRuntimeAfterServerActionFailure({
+    required Object error,
+    required ConnectionRemoteRuntimeState fallbackRuntime,
+  }) async {
+    final refreshRemoteRuntime = widget.onRefreshRemoteRuntime;
+    final payload = _buildContract().saveAction.submitPayload;
+    if (refreshRemoteRuntime != null && payload != null) {
+      try {
+        return await refreshRemoteRuntime(payload);
+      } catch (refreshError) {
+        return ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.probeFailed(
+            detail: '$refreshError',
+          ),
+          server: fallbackRuntime.server,
+        );
+      }
+    }
+
+    return ConnectionRemoteRuntimeState(
+      hostCapability: ConnectionRemoteHostCapabilityState.probeFailed(
+        detail: '$error',
+      ),
+      server: fallbackRuntime.server,
+    );
   }
 
   void _save() {

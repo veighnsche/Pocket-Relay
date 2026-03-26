@@ -8,7 +8,11 @@ enum ConnectionRemoteHostCapabilityStatus {
   unsupported,
 }
 
-enum ConnectionRemoteHostCapabilityIssue { tmuxMissing, codexMissing }
+enum ConnectionRemoteHostCapabilityIssue {
+  tmuxMissing,
+  workspaceUnavailable,
+  codexMissing,
+}
 
 @immutable
 class ConnectionRemoteHostCapabilityState {

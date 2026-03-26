@@ -88,9 +88,17 @@ class CodexSshRemoteAppServerOwnerControl
     implements CodexRemoteAppServerOwnerControl {
   const CodexSshRemoteAppServerOwnerControl({
     this.sshBootstrap = connectSshBootstrapClient,
+    this.readyPollAttempts = 40,
+    this.readyPollDelay = const Duration(milliseconds: 250),
+    this.stopPollAttempts = 10,
+    this.stopPollDelay = const Duration(milliseconds: 100),
   });
 
   final CodexSshProcessBootstrap sshBootstrap;
+  final int readyPollAttempts;
+  final Duration readyPollDelay;
+  final int stopPollAttempts;
+  final Duration stopPollDelay;
 
   @override
   Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
@@ -172,6 +180,8 @@ class CodexSshRemoteAppServerOwnerControl
         ownerId: ownerId,
         workspaceDir: workspaceDir,
         sshBootstrap: sshBootstrap,
+        attempts: readyPollAttempts,
+        delay: readyPollDelay,
       );
       if (lastSnapshot.status == CodexRemoteAppServerOwnerStatus.running) {
         return lastSnapshot;
@@ -220,6 +230,8 @@ class CodexSshRemoteAppServerOwnerControl
       ownerId: ownerId,
       workspaceDir: workspaceDir,
       sshBootstrap: sshBootstrap,
+      attempts: stopPollAttempts,
+      delay: stopPollDelay,
     );
   }
 
@@ -255,11 +267,15 @@ tmux_status=1
 if command -v tmux >/dev/null 2>&1; then
   tmux_status=0
 fi
+workspace_status=1
+if cd ${shellEscape(profile.workspaceDir.trim())} >/dev/null 2>&1; then
+  workspace_status=0
+fi
 codex_status=1
-if cd ${shellEscape(profile.workspaceDir.trim())} >/dev/null 2>&1 && ${profile.codexPath.trim()} app-server --help >/dev/null 2>&1; then
+if [ "\$workspace_status" = "0" ] && ${profile.codexPath.trim()} app-server --help >/dev/null 2>&1; then
   codex_status=0
 fi
-printf '__pocket_relay_capabilities__ tmux=%s codex=%s\\n' "\$tmux_status" "\$codex_status"
+printf '__pocket_relay_capabilities__ tmux=%s workspace=%s codex=%s\\n' "\$tmux_status" "\$workspace_status" "\$codex_status"
 ''';
   return 'bash -lc ${shellEscape(command)}';
 }
@@ -358,9 +374,20 @@ if [ -z "\$pane_pid" ] || [ "\$pane_pid" = "0" ]; then
   exit 0
 fi
 
-if [ -n "\$expected_workspace" ] && [ "\$pane_path" != "\$expected_workspace" ]; then
-  print_result unhealthy "\$pane_pid" "" "" workspace_mismatch
-  exit 0
+if [ -n "\$expected_workspace" ]; then
+  if ! cd "\$expected_workspace" >/dev/null 2>&1; then
+    print_result unhealthy "\$pane_pid" "" "" expected_workspace_unavailable
+    exit 0
+  fi
+  expected_workspace_real=\$(pwd -P)
+  pane_path_real=\$pane_path
+  if [ -n "\$pane_path" ] && cd "\$pane_path" >/dev/null 2>&1; then
+    pane_path_real=\$(pwd -P)
+  fi
+  if [ "\$pane_path_real" != "\$expected_workspace_real" ]; then
+    print_result unhealthy "\$pane_pid" "" "" workspace_mismatch
+    exit 0
+  fi
 fi
 
 process_args=\$(ps -p "\$pane_pid" -o args= 2>/dev/null | head -n 1)
@@ -603,7 +630,7 @@ CodexRemoteAppServerHostCapabilities _parseHostCapabilities({
   required int? exitCode,
 }) {
   final match = RegExp(
-    r'__pocket_relay_capabilities__\s+tmux=(\d+)\s+codex=(\d+)',
+    r'__pocket_relay_capabilities__\s+tmux=(\d+)\s+workspace=(\d+)\s+codex=(\d+)',
   ).firstMatch(stdout);
   if (match == null) {
     final detail = [
@@ -623,6 +650,9 @@ CodexRemoteAppServerHostCapabilities _parseHostCapabilities({
     issues.add(ConnectionRemoteHostCapabilityIssue.tmuxMissing);
   }
   if (match.group(2) != '0') {
+    issues.add(ConnectionRemoteHostCapabilityIssue.workspaceUnavailable);
+  }
+  if (match.group(3) != '0') {
     issues.add(ConnectionRemoteHostCapabilityIssue.codexMissing);
   }
 
@@ -646,6 +676,8 @@ String? _ownerDetailForCode(String? code) {
       'The Pocket Relay tmux owner exists but the app-server process is not running.',
     'workspace_mismatch' =>
       'The Pocket Relay tmux owner exists but points at a different workspace.',
+    'expected_workspace_unavailable' =>
+      'The configured workspace directory is not accessible on the remote host.',
     'listen_url_missing' =>
       'The Pocket Relay tmux owner is not running a websocket app-server.',
     'ready_check_failed' =>
@@ -668,9 +700,11 @@ Future<CodexRemoteAppServerOwnerSnapshot> _waitForOwnerReady({
   required String ownerId,
   required String workspaceDir,
   required CodexSshProcessBootstrap sshBootstrap,
+  required int attempts,
+  required Duration delay,
 }) async {
   CodexRemoteAppServerOwnerSnapshot? lastSnapshot;
-  for (var attempt = 0; attempt < 20; attempt += 1) {
+  for (var attempt = 0; attempt < attempts; attempt += 1) {
     lastSnapshot =
         await CodexSshRemoteAppServerOwnerInspector(
           sshBootstrap: sshBootstrap,
@@ -683,7 +717,7 @@ Future<CodexRemoteAppServerOwnerSnapshot> _waitForOwnerReady({
     if (lastSnapshot.status == CodexRemoteAppServerOwnerStatus.running) {
       return lastSnapshot;
     }
-    await Future<void>.delayed(const Duration(milliseconds: 150));
+    await Future<void>.delayed(delay);
   }
   if (lastSnapshot != null) {
     return lastSnapshot;
@@ -704,9 +738,11 @@ Future<CodexRemoteAppServerOwnerSnapshot> _waitForOwnerStopped({
   required String ownerId,
   required String workspaceDir,
   required CodexSshProcessBootstrap sshBootstrap,
+  required int attempts,
+  required Duration delay,
 }) async {
   CodexRemoteAppServerOwnerSnapshot? lastSnapshot;
-  for (var attempt = 0; attempt < 10; attempt += 1) {
+  for (var attempt = 0; attempt < attempts; attempt += 1) {
     lastSnapshot =
         await CodexSshRemoteAppServerOwnerInspector(
           sshBootstrap: sshBootstrap,
@@ -720,7 +756,7 @@ Future<CodexRemoteAppServerOwnerSnapshot> _waitForOwnerStopped({
         lastSnapshot.status == CodexRemoteAppServerOwnerStatus.stopped) {
       return lastSnapshot;
     }
-    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await Future<void>.delayed(delay);
   }
   if (lastSnapshot != null) {
     return lastSnapshot;
