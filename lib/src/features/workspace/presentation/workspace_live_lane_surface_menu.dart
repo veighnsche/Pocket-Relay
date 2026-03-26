@@ -50,19 +50,43 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     final repository =
         widget.conversationHistoryRepository ??
         const CodexAppServerConversationHistoryRepository();
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.82,
-          child: ConnectionWorkspaceConversationHistorySheet(
+    if (widget.platformPolicy.behavior.isDesktopExperience) {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return _ConversationHistorySheetHost(
             title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-            future: _loadConversationHistory(repository),
+            presentation:
+                ConnectionWorkspaceConversationHistoryPresentation.desktop,
+            loadConversationHistory: () => _loadConversationHistory(repository),
             onOpenConnectionSettings: () {
               unawaited(
                 _openConversationHistoryConnectionSettings(
-                  Navigator.of(context),
+                  Navigator.of(dialogContext),
+                ),
+              );
+            },
+            onResumeConversation: (conversation) {
+              unawaited(_resumeConversation(conversation));
+            },
+          );
+        },
+      );
+    }
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return FractionallySizedBox(
+          heightFactor: 0.82,
+          child: _ConversationHistorySheetHost(
+            title: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
+            loadConversationHistory: () => _loadConversationHistory(repository),
+            onOpenConnectionSettings: () {
+              unawaited(
+                _openConversationHistoryConnectionSettings(
+                  Navigator.of(sheetContext),
                 ),
               );
             },
@@ -127,6 +151,51 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     await widget.workspaceController.resumeConversation(
       connectionId: widget.laneBinding.connectionId,
       threadId: conversation.normalizedThreadId,
+    );
+  }
+}
+
+class _ConversationHistorySheetHost extends StatefulWidget {
+  const _ConversationHistorySheetHost({
+    required this.title,
+    required this.loadConversationHistory,
+    required this.onResumeConversation,
+    required this.onOpenConnectionSettings,
+    this.presentation =
+        ConnectionWorkspaceConversationHistoryPresentation.mobile,
+  });
+
+  final String title;
+  final ConnectionWorkspaceConversationHistoryPresentation presentation;
+  final Future<List<CodexWorkspaceConversationSummary>> Function()
+  loadConversationHistory;
+  final ValueChanged<CodexWorkspaceConversationSummary> onResumeConversation;
+  final VoidCallback? onOpenConnectionSettings;
+
+  @override
+  State<_ConversationHistorySheetHost> createState() =>
+      _ConversationHistorySheetHostState();
+}
+
+class _ConversationHistorySheetHostState
+    extends State<_ConversationHistorySheetHost> {
+  late final Future<List<CodexWorkspaceConversationSummary>>
+  _conversationHistoryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _conversationHistoryFuture = widget.loadConversationHistory();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ConnectionWorkspaceConversationHistorySheet(
+      title: widget.title,
+      presentation: widget.presentation,
+      future: _conversationHistoryFuture,
+      onOpenConnectionSettings: widget.onOpenConnectionSettings,
+      onResumeConversation: widget.onResumeConversation,
     );
   }
 }

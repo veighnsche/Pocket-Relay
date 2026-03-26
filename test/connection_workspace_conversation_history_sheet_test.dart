@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_conversation_history_sheet.dart';
@@ -27,6 +28,30 @@ void main() {
         find.text('No workspace conversations are available yet.'),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'desktop presentation uses bounded dialog chrome instead of sheet chrome',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildSheet(
+          presentation:
+              ConnectionWorkspaceConversationHistoryPresentation.desktop,
+          future: Future<List<CodexWorkspaceConversationSummary>>.value(
+            const <CodexWorkspaceConversationSummary>[],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('desktop_conversation_history_surface'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(ModalSheetDragHandle), findsNothing);
     },
   );
 
@@ -123,11 +148,14 @@ Widget _buildSheet({
   required Future<List<CodexWorkspaceConversationSummary>> future,
   ValueChanged<CodexWorkspaceConversationSummary>? onResumeConversation,
   VoidCallback? onOpenConnectionSettings,
+  ConnectionWorkspaceConversationHistoryPresentation presentation =
+      ConnectionWorkspaceConversationHistoryPresentation.mobile,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(Brightness.light),
     home: Scaffold(
       body: ConnectionWorkspaceConversationHistorySheet(
+        presentation: presentation,
         title: 'Conversation history',
         future: future,
         onResumeConversation: onResumeConversation ?? (_) {},
