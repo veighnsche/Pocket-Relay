@@ -3,21 +3,24 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../tool/capture_live_thread_read_fixture.dart';
+import '../../tool/capture_live_thread_read_fixture.dart';
 
 void main() {
-  test('buildCodexLaunchInvocation preserves shell launch commands on POSIX', () {
-    final invocation = buildCodexLaunchInvocation(
-      r'PATH="$HOME/bin:$PATH" codex',
-      platform: TargetPlatform.macOS,
-    );
+  test(
+    'buildCodexLaunchInvocation preserves shell launch commands on POSIX',
+    () {
+      final invocation = buildCodexLaunchInvocation(
+        r'PATH="$HOME/bin:$PATH" codex',
+        platform: TargetPlatform.macOS,
+      );
 
-    expect(invocation.executable, 'bash');
-    expect(invocation.arguments, <String>[
-      '-lc',
-      r'PATH="$HOME/bin:$PATH" codex app-server --listen stdio://',
-    ]);
-  });
+      expect(invocation.executable, 'bash');
+      expect(invocation.arguments, <String>[
+        '-lc',
+        r'PATH="$HOME/bin:$PATH" codex app-server --listen stdio://',
+      ]);
+    },
+  );
 
   test(
     'buildCodexLaunchInvocation preserves chained shell wrappers on POSIX',
@@ -35,24 +38,24 @@ void main() {
     },
   );
 
-  test('buildCodexLaunchInvocation preserves shell launch commands on Windows', () {
-    final invocation = buildCodexLaunchInvocation(
-      'codex.cmd',
-      platform: TargetPlatform.windows,
-    );
+  test(
+    'buildCodexLaunchInvocation preserves shell launch commands on Windows',
+    () {
+      final invocation = buildCodexLaunchInvocation(
+        'codex.cmd',
+        platform: TargetPlatform.windows,
+      );
 
-    expect(invocation.executable, 'cmd.exe');
-    expect(invocation.arguments, <String>[
-      '/C',
-      'codex.cmd app-server --listen stdio://',
-    ]);
-  });
+      expect(invocation.executable, 'cmd.exe');
+      expect(invocation.arguments, <String>[
+        '/C',
+        'codex.cmd app-server --listen stdio://',
+      ]);
+    },
+  );
 
   test('buildCodexLaunchInvocation rejects a blank command', () {
-    expect(
-      () => buildCodexLaunchInvocation('   '),
-      throwsFormatException,
-    );
+    expect(() => buildCodexLaunchInvocation('   '), throwsFormatException);
   });
 
   test(
@@ -71,16 +74,13 @@ void main() {
           ],
         ),
         workingDirectory: '/workspace',
-        processStarter: (
-          nextExecutable,
-          nextArguments, {
-          workingDirectory,
-        }) async {
-          executable = nextExecutable;
-          arguments = List<String>.from(nextArguments);
-          capturedWorkingDirectory = workingDirectory;
-          return _FakeProcess();
-        },
+        processStarter:
+            (nextExecutable, nextArguments, {workingDirectory}) async {
+              executable = nextExecutable;
+              arguments = List<String>.from(nextArguments);
+              capturedWorkingDirectory = workingDirectory;
+              return _FakeProcess();
+            },
       );
 
       expect(executable, 'bash');
