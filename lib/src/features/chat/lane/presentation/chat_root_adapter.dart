@@ -88,6 +88,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
           composerDraft: laneBinding.composerDraftHost.draft,
         );
         return FlutterChatScreenRenderer(
+          platformBehavior: widget.platformPolicy.behavior,
           screen: screen,
           appChrome: _buildAppChrome(screen),
           transcriptRegion: _ChatTranscriptRegionHost(

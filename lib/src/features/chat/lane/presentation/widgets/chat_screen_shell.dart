@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/turn_elapsed_footer.dart';
@@ -28,6 +29,7 @@ class ChatScreenGradientBackground extends StatelessWidget {
 class ChatScreenBody extends StatelessWidget {
   const ChatScreenBody({
     super.key,
+    required this.platformBehavior,
     required this.screen,
     required this.transcriptRegion,
     required this.composerRegion,
@@ -37,6 +39,9 @@ class ChatScreenBody extends StatelessWidget {
     this.onRestartLane,
   });
 
+  static const double _desktopContentMaxWidth = 1120;
+
+  final PocketPlatformBehavior platformBehavior;
   final ChatScreenContract screen;
   final Widget transcriptRegion;
   final Widget composerRegion;
@@ -53,19 +58,47 @@ class ChatScreenBody extends StatelessWidget {
 
     return Column(
       children: [
-        Expanded(child: transcriptRegion),
-        if (screen.turnIndicator != null || laneRestartAction != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-            child: TurnElapsedFooter(
-              turnTimer: screen.turnIndicator?.timer,
-              onStop: onStopActiveTurn,
-              laneRestartAction: laneRestartAction,
-              onRestart: onRestartLane,
-            ),
+        Expanded(
+          child: _wrapDesktopLaneSection(
+            transcriptRegion,
+            key: const ValueKey<String>('desktop_chat_transcript_region'),
           ),
-        composerRegion,
+        ),
+        if (screen.turnIndicator != null || laneRestartAction != null)
+          _wrapDesktopLaneSection(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+              child: TurnElapsedFooter(
+                turnTimer: screen.turnIndicator?.timer,
+                onStop: onStopActiveTurn,
+                laneRestartAction: laneRestartAction,
+                onRestart: onRestartLane,
+              ),
+            ),
+            key: const ValueKey<String>('desktop_chat_footer_region'),
+          ),
+        _wrapDesktopLaneSection(
+          composerRegion,
+          key: const ValueKey<String>('desktop_chat_composer_region'),
+        ),
       ],
+    );
+  }
+
+  Widget _wrapDesktopLaneSection(Widget child, {required Key key}) {
+    if (!platformBehavior.isDesktopExperience) {
+      return child;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _desktopContentMaxWidth),
+          child: SizedBox(key: key, width: double.infinity, child: child),
+        ),
+      ),
     );
   }
 }

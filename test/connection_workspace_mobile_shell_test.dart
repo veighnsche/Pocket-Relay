@@ -104,6 +104,7 @@ void main() {
     await tester.tap(find.text('Conversation history'));
     await tester.pumpAndSettle();
 
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('Saved backend thread'), findsOneWidget);
     expect(find.textContaining('2 prompts'), findsOneWidget);
   });
