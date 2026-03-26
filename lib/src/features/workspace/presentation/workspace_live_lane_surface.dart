@@ -678,14 +678,16 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
     return _WorkspaceLaneEmptyStateContent(
       workspacePath: workspacePath.isEmpty ? null : workspacePath,
-      status: status,
       statusMessage: status == null
           ? null
-          : _laneEmptyStateStatusMessageFor(
-              reconnectRequirement: reconnectRequirement,
-              transportRecoveryPhase: transportRecoveryPhase,
-              liveReattachPhase: liveReattachPhase,
-              remoteRuntime: remoteRuntime,
+          : _laneEmptyStateStatusTextFor(
+              status: status,
+              message: _laneEmptyStateStatusMessageFor(
+                reconnectRequirement: reconnectRequirement,
+                transportRecoveryPhase: transportRecoveryPhase,
+                liveReattachPhase: liveReattachPhase,
+                remoteRuntime: remoteRuntime,
+              ),
             ),
       primaryAction: primaryAction,
       secondaryAction: secondaryAction,
@@ -749,6 +751,22 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
             return ConnectionWorkspaceCopy.laneDisconnectedDetail;
         }
     }
+  }
+
+  String _laneEmptyStateStatusTextFor({
+    required _WorkspaceLaneStatusContract status,
+    required String? message,
+  }) {
+    final trimmedMessage = message?.trim();
+    if (trimmedMessage == null || trimmedMessage.isEmpty) {
+      final trimmedDetail = status.detail.trim();
+      if (trimmedDetail.isEmpty) {
+        return status.label;
+      }
+      return '${status.label}. $trimmedDetail';
+    }
+
+    return '${status.label}. $trimmedMessage';
   }
 
   _WorkspaceLaneStatusContract _laneStatusContractFor({
@@ -1060,7 +1078,6 @@ class _WorkspaceLaneStatusActionContract {
 class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
   const _WorkspaceLaneEmptyStateContent({
     this.workspacePath,
-    this.status,
     this.statusMessage,
     this.primaryAction,
     this.secondaryAction,
@@ -1068,7 +1085,6 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
   });
 
   final String? workspacePath;
-  final _WorkspaceLaneStatusContract? status;
   final String? statusMessage;
   final _WorkspaceLaneStatusActionContract? primaryAction;
   final _WorkspaceLaneStatusActionContract? secondaryAction;
@@ -1077,12 +1093,10 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = this.status;
     final primaryAction = this.primaryAction;
     final secondaryAction = this.secondaryAction;
     final workspacePath = this.workspacePath?.trim();
     final hasWorkspacePath = workspacePath != null && workspacePath.isNotEmpty;
-    final colors = status == null ? null : _colorsFor(theme, status.tone);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 560),
@@ -1090,13 +1104,6 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (hasWorkspacePath) ...[
-            Text(
-              'Workspace',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
             Text(
               workspacePath!,
               key: const ValueKey<String>('lane_empty_state_workspace_path'),
@@ -1107,42 +1114,9 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
               ),
             ),
           ],
-          if (status != null) ...[
-            if (hasWorkspacePath) const SizedBox(height: 14),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (status.tone == _WorkspaceLaneStatusTone.loading)
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors!.$2,
-                    ),
-                  )
-                else
-                  Icon(status.icon, size: 16, color: colors!.$2),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    status.label,
-                    key: const ValueKey<String>(
-                      'lane_empty_state_connection_status_label',
-                    ),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: colors.$2,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
           if (statusMessage case final message?
               when message.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
+            if (hasWorkspacePath) const SizedBox(height: 14),
             Text(
               message,
               textAlign: TextAlign.center,
@@ -1181,27 +1155,6 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
       ),
     );
   }
-
-  (Color, Color) _colorsFor(ThemeData theme, _WorkspaceLaneStatusTone tone) {
-    return switch (tone) {
-      _WorkspaceLaneStatusTone.good => (
-        theme.colorScheme.primaryContainer,
-        theme.colorScheme.onPrimaryContainer,
-      ),
-      _WorkspaceLaneStatusTone.warning => (
-        theme.colorScheme.tertiaryContainer,
-        theme.colorScheme.onTertiaryContainer,
-      ),
-      _WorkspaceLaneStatusTone.danger => (
-        theme.colorScheme.errorContainer,
-        theme.colorScheme.onErrorContainer,
-      ),
-      _WorkspaceLaneStatusTone.loading || _WorkspaceLaneStatusTone.neutral => (
-        theme.colorScheme.secondaryContainer,
-        theme.colorScheme.onSecondaryContainer,
-      ),
-    };
-  }
 }
 
 class _WorkspaceLaneConnectionStrip extends StatelessWidget {
@@ -1220,7 +1173,6 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = _colorsFor(theme, status.tone);
     final primaryAction = this.primaryAction;
     final secondaryAction = this.secondaryAction;
     final detail = switch (status.label) {
@@ -1228,6 +1180,10 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
         '${status.detail.isEmpty ? '' : '${status.detail} · '}${ConnectionWorkspaceCopy.laneDisconnectedDetail}',
       _ => status.detail,
     };
+    final detailText = detail.trim().isEmpty
+        ? status.label
+        : '${status.label}. $detail';
+    final hasActions = primaryAction != null || secondaryAction != null;
 
     return DecoratedBox(
       key: const ValueKey<String>('lane_connection_status_strip'),
@@ -1244,72 +1200,37 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.$1,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (status.tone == _WorkspaceLaneStatusTone.loading)
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colors.$2,
-                            ),
-                          )
-                        else
-                          Icon(status.icon, size: 16, color: colors.$2),
-                        const SizedBox(width: 8),
-                        Text(
-                          status.label,
-                          key: const ValueKey<String>(
-                            'lane_connection_status_label',
-                          ),
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: colors.$2,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+            if (hasActions)
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  if (primaryAction != null)
+                    FilledButton.tonal(
+                      key: primaryAction.key,
+                      onPressed: primaryAction.onPressed == null
+                          ? null
+                          : () {
+                              unawaited(primaryAction.onPressed!());
+                            },
+                      child: Text(primaryAction.label),
                     ),
-                  ),
-                ),
-                if (primaryAction != null)
-                  FilledButton.tonal(
-                    key: primaryAction.key,
-                    onPressed: primaryAction.onPressed == null
-                        ? null
-                        : () {
-                            unawaited(primaryAction.onPressed!());
-                          },
-                    child: Text(primaryAction.label),
-                  ),
-                if (secondaryAction != null)
-                  OutlinedButton(
-                    key: secondaryAction.key,
-                    onPressed: secondaryAction.onPressed == null
-                        ? null
-                        : () {
-                            unawaited(secondaryAction.onPressed!());
-                          },
-                    child: Text(secondaryAction.label),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
+                  if (secondaryAction != null)
+                    OutlinedButton(
+                      key: secondaryAction.key,
+                      onPressed: secondaryAction.onPressed == null
+                          ? null
+                          : () {
+                              unawaited(secondaryAction.onPressed!());
+                            },
+                      child: Text(secondaryAction.label),
+                    ),
+                ],
+              ),
+            if (hasActions) const SizedBox(height: 8),
             Text(
-              detail,
+              detailText,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.35,
@@ -1320,27 +1241,6 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  (Color, Color) _colorsFor(ThemeData theme, _WorkspaceLaneStatusTone tone) {
-    return switch (tone) {
-      _WorkspaceLaneStatusTone.good => (
-        theme.colorScheme.primaryContainer,
-        theme.colorScheme.onPrimaryContainer,
-      ),
-      _WorkspaceLaneStatusTone.warning => (
-        theme.colorScheme.tertiaryContainer,
-        theme.colorScheme.onTertiaryContainer,
-      ),
-      _WorkspaceLaneStatusTone.danger => (
-        theme.colorScheme.errorContainer,
-        theme.colorScheme.onErrorContainer,
-      ),
-      _WorkspaceLaneStatusTone.loading || _WorkspaceLaneStatusTone.neutral => (
-        theme.colorScheme.secondaryContainer,
-        theme.colorScheme.onSecondaryContainer,
-      ),
-    };
   }
 }
 

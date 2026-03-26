@@ -117,7 +117,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Server stopped'), findsOneWidget);
+      expect(find.textContaining('Server stopped.'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('lane_connection_action_connect')),
       );
@@ -160,7 +160,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('/workspace'), findsOneWidget);
-      expect(find.text('Host status unknown'), findsOneWidget);
+      expect(find.text('Workspace'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey<String>('lane_empty_state_connection_status_label'),
+        ),
+        findsNothing,
+      );
+      expect(find.textContaining('Host status unknown.'), findsOneWidget);
       expect(
         find.textContaining(
           'Connect checks the host, starts the managed remote app-server if needed, and attaches this lane.',
@@ -393,7 +400,11 @@ void main() {
         find.byKey(const ValueKey<String>('lane_connection_status_strip')),
         findsNothing,
       );
-      expect(find.text('Disconnected'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_status_label')),
+        findsNothing,
+      );
+      expect(find.textContaining('Disconnected.'), findsOneWidget);
       expect(find.text('Connect'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_connect')),
@@ -558,7 +569,7 @@ void main() {
         find.textContaining('Underlying error: connect failed'),
         findsOneWidget,
       );
-      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.textContaining('Disconnected.'), findsOneWidget);
     },
   );
 
