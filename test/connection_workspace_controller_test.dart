@@ -1265,6 +1265,54 @@ void main() {
   );
 
   test(
+    'failed intentional disconnect does not suppress a later unexpected transport loss',
+    () async {
+      final clientsById = <String, FakeCodexAppServerClient>{
+        'conn_primary': _StickyDisconnectFakeCodexAppServerClient(),
+        'conn_secondary': FakeCodexAppServerClient(),
+      };
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await clientsById['conn_primary']!.connect(
+        profile: ConnectionProfile.defaults(),
+        secrets: const ConnectionSecrets(),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      await controller.disconnectConnection('conn_primary');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(clientsById['conn_primary']!.isConnected, isTrue);
+      expect(controller.state.requiresReconnect('conn_primary'), isFalse);
+
+      clientsById['conn_primary']!.emit(
+        const CodexAppServerDisconnectedEvent(exitCode: 1),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        controller.state.requiresTransportReconnect('conn_primary'),
+        isTrue,
+      );
+      expect(
+        controller.state.liveReattachPhaseFor('conn_primary'),
+        ConnectionWorkspaceLiveReattachPhase.transportLost,
+      );
+      expect(
+        controller.state
+            .recoveryDiagnosticsFor('conn_primary')
+            ?.lastTransportLossReason,
+        ConnectionWorkspaceTransportLossReason.appServerExitError,
+      );
+    },
+  );
+
+  test(
     'unexpected graceful app-server exit records a distinct transport loss reason',
     () async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -3766,6 +3814,14 @@ Future<void> _startBusyTurn(
   );
   await Future<void>.delayed(Duration.zero);
   expect(binding.sessionController.sessionState.isBusy, isTrue);
+}
+
+class _StickyDisconnectFakeCodexAppServerClient
+    extends FakeCodexAppServerClient {
+  @override
+  Future<void> disconnect() async {
+    disconnectCalls += 1;
+  }
 }
 
 class _FakeFlutterSecureStorage extends FlutterSecureStorage {

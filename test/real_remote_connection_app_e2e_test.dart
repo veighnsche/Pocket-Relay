@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
@@ -17,10 +16,10 @@ final _RealRemoteAppE2eConfig _realRemoteAppE2eConfig =
     _resolveRealRemoteAppE2eConfig();
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'optional real-host app E2E starts the managed server and opens a live remote lane through the production UI',
+    'optional real-host production UI flow starts the managed server and opens a live remote lane',
     (tester) async {
       final config = _realRemoteAppE2eConfig;
       final connection = config.connection!;

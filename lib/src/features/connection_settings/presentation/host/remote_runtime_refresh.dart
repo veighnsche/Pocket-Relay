@@ -1,5 +1,14 @@
 part of '../connection_settings_host.dart';
 
+const _pausedAuthenticationRuntime = ConnectionRemoteRuntimeState(
+  hostCapability: ConnectionRemoteHostCapabilityState(
+    status: ConnectionRemoteHostCapabilityStatus.unknown,
+    detail:
+        'Pocket Relay pauses remote checks while you edit authentication settings.',
+  ),
+  server: ConnectionRemoteServerState.unknown(),
+);
+
 void _scheduleConnectionSettingsRemoteRuntimeRefresh(
   _ConnectionSettingsHostState state, {
   bool immediate = false,
@@ -7,6 +16,7 @@ void _scheduleConnectionSettingsRemoteRuntimeRefresh(
   state._remoteRuntimeRefreshDebounce?.cancel();
   final onRefreshRemoteRuntime = state.widget.onRefreshRemoteRuntime;
   if (onRefreshRemoteRuntime == null) {
+    _invalidateConnectionSettingsRemoteRuntimeRefresh(state);
     if (state._remoteRuntime != state.widget.initialRemoteRuntime) {
       state._setStateInternal(() {
         state._remoteRuntime = state.widget.initialRemoteRuntime;
@@ -16,6 +26,7 @@ void _scheduleConnectionSettingsRemoteRuntimeRefresh(
   }
 
   if (state._formState.draft.connectionMode != ConnectionMode.remote) {
+    _invalidateConnectionSettingsRemoteRuntimeRefresh(state);
     if (state._remoteRuntime != null) {
       state._setStateInternal(() {
         state._remoteRuntime = null;
@@ -24,8 +35,19 @@ void _scheduleConnectionSettingsRemoteRuntimeRefresh(
     return;
   }
 
+  if (_hasUnsavedAuthenticationChanges(state)) {
+    _invalidateConnectionSettingsRemoteRuntimeRefresh(state);
+    if (state._remoteRuntime != _pausedAuthenticationRuntime) {
+      state._setStateInternal(() {
+        state._remoteRuntime = _pausedAuthenticationRuntime;
+      });
+    }
+    return;
+  }
+
   final probePayload = state._buildContract().saveAction.submitPayload;
   if (probePayload == null) {
+    _invalidateConnectionSettingsRemoteRuntimeRefresh(state);
     const nextRuntime = ConnectionRemoteRuntimeState.unknown();
     if (state._remoteRuntime != nextRuntime) {
       state._setStateInternal(() {
@@ -82,4 +104,20 @@ void _scheduleConnectionSettingsRemoteRuntimeRefresh(
       unawaited(runProbe());
     },
   );
+}
+
+void _invalidateConnectionSettingsRemoteRuntimeRefresh(
+  _ConnectionSettingsHostState state,
+) {
+  state._remoteRuntimeRefreshToken += 1;
+}
+
+bool _hasUnsavedAuthenticationChanges(_ConnectionSettingsHostState state) {
+  final draft = state._formState.draft;
+  final initialProfile = state.widget.initialProfile;
+  final initialSecrets = state.widget.initialSecrets;
+  return draft.authMode != initialProfile.authMode ||
+      draft.password != initialSecrets.password ||
+      draft.privateKeyPem != initialSecrets.privateKeyPem ||
+      draft.privateKeyPassphrase != initialSecrets.privateKeyPassphrase;
 }

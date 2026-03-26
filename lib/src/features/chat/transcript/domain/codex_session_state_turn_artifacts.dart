@@ -21,6 +21,11 @@ Iterable<String> codexTurnArtifactIds(
         yield entry.id;
       }
     }
+    if (artifact case CodexTurnChangedFilesArtifact(:final entries)) {
+      for (final entry in entries) {
+        yield entry.id;
+      }
+    }
   }
 }
 

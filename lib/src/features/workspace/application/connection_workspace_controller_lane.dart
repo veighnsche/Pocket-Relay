@@ -39,10 +39,10 @@ Future<void> _disconnectWorkspaceConnection(
     );
     rethrow;
   } finally {
+    controller._intentionalTransportDisconnectConnectionIds.remove(
+      normalizedConnectionId,
+    );
     if (!binding.appServerClient.isConnected) {
-      controller._intentionalTransportDisconnectConnectionIds.remove(
-        normalizedConnectionId,
-      );
       controller._clearTransportReconnectRequired(normalizedConnectionId);
       controller._clearLiveReattachPhase(normalizedConnectionId);
     }

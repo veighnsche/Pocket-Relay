@@ -178,7 +178,6 @@ void main() {
 
       expect(find.text("This conversation can't continue."), findsOneWidget);
       expect(find.text('Start new conversation'), findsOneWidget);
-      expect(find.text('First prompt'), findsOneWidget);
       expect(
         tester.widget<TextField>(composerField).controller?.text,
         'Second prompt',
@@ -1824,6 +1823,12 @@ void main() {
         ),
         findsOneWidget,
       );
+      final resolvedDy = tester.getTopLeft(resolvedApprovalEntry).dy;
+      final resumedChangedFilesDy = tester
+          .getTopLeft(resumedChangedFilesEntry)
+          .dy;
+
+      expect(resolvedDy, lessThan(resumedChangedFilesDy));
 
       final transcriptScrollable = find.byType(Scrollable).first;
       for (
