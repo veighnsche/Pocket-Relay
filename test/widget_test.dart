@@ -9,6 +9,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
@@ -326,6 +327,8 @@ PocketRelayApp _buildCatalogApp({
   DisplayWakeLockController? displayWakeLockController,
   BackgroundGraceController? backgroundGraceController,
   CodexAppServerClient? appServerClient,
+  CodexRemoteAppServerHostProbe? remoteAppServerHostProbe,
+  CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector,
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
 }) {
   return PocketRelayApp(
@@ -340,10 +343,61 @@ PocketRelayApp _buildCatalogApp({
     displayWakeLockController: displayWakeLockController,
     backgroundGraceController: backgroundGraceController,
     appServerClient: appServerClient,
+    remoteAppServerHostProbe:
+        remoteAppServerHostProbe ??
+        const _FakeRemoteHostProbe(CodexRemoteAppServerHostCapabilities()),
+    remoteAppServerOwnerInspector:
+        remoteAppServerOwnerInspector ??
+        _FakeRemoteOwnerInspector(
+          const CodexRemoteAppServerOwnerSnapshot(
+            ownerId: 'conn_primary',
+            workspaceDir: '/workspace',
+            status: CodexRemoteAppServerOwnerStatus.missing,
+          ),
+        ),
     settingsOverlayDelegate:
         settingsOverlayDelegate ??
         const ModalConnectionSettingsOverlayDelegate(),
   );
+}
+
+final class _FakeRemoteHostProbe implements CodexRemoteAppServerHostProbe {
+  const _FakeRemoteHostProbe(this.capabilities);
+
+  final CodexRemoteAppServerHostCapabilities capabilities;
+
+  @override
+  Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    return capabilities;
+  }
+}
+
+final class _FakeRemoteOwnerInspector
+    implements CodexRemoteAppServerOwnerInspector {
+  const _FakeRemoteOwnerInspector(this.snapshot);
+
+  final CodexRemoteAppServerOwnerSnapshot snapshot;
+
+  @override
+  Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    return const CodexRemoteAppServerHostCapabilities();
+  }
+
+  @override
+  Future<CodexRemoteAppServerOwnerSnapshot> inspectOwner({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required String ownerId,
+    required String workspaceDir,
+  }) async {
+    return snapshot;
+  }
 }
 
 class _DeferredConnectionRepository implements CodexConnectionRepository {

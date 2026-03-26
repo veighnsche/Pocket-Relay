@@ -34,7 +34,9 @@ void main() {
     'probeHostCapabilities returns supported when tmux and codex are available',
     () async {
       final process = _FakeCodexAppServerProcess(
-        stdoutLines: <String>['__pocket_relay_capabilities__ tmux=0 codex=0'],
+        stdoutLines: <String>[
+          '__pocket_relay_capabilities__ tmux=0 workspace=0 codex=0',
+        ],
       );
       final probe = CodexSshRemoteAppServerHostProbe(
         sshBootstrap:
@@ -61,7 +63,9 @@ void main() {
     'probeHostCapabilities reports explicit missing tmux and codex issues',
     () async {
       final process = _FakeCodexAppServerProcess(
-        stdoutLines: <String>['__pocket_relay_capabilities__ tmux=1 codex=1'],
+        stdoutLines: <String>[
+          '__pocket_relay_capabilities__ tmux=1 workspace=0 codex=1',
+        ],
       );
       final probe = CodexSshRemoteAppServerHostProbe(
         sshBootstrap:
@@ -81,6 +85,38 @@ void main() {
 
       expect(capabilities.issues, <ConnectionRemoteHostCapabilityIssue>{
         ConnectionRemoteHostCapabilityIssue.tmuxMissing,
+        ConnectionRemoteHostCapabilityIssue.codexMissing,
+      });
+    },
+  );
+
+  test(
+    'probeHostCapabilities reports an unavailable workspace separately from codex availability',
+    () async {
+      final process = _FakeCodexAppServerProcess(
+        stdoutLines: <String>[
+          '__pocket_relay_capabilities__ tmux=0 workspace=1 codex=1',
+        ],
+      );
+      final probe = CodexSshRemoteAppServerHostProbe(
+        sshBootstrap:
+            ({
+              required profile,
+              required secrets,
+              required verifyHostKey,
+            }) async {
+              return _FakeSshBootstrapClient(process: process);
+            },
+      );
+
+      final capabilities = await probe.probeHostCapabilities(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      );
+
+      expect(capabilities.supportsContinuity, isFalse);
+      expect(capabilities.issues, <ConnectionRemoteHostCapabilityIssue>{
+        ConnectionRemoteHostCapabilityIssue.workspaceUnavailable,
         ConnectionRemoteHostCapabilityIssue.codexMissing,
       });
     },
@@ -264,6 +300,40 @@ void main() {
     expect(snapshot.detail, contains('did not pass its readiness check'));
   });
 
+  test(
+    'inspectOwner reports unhealthy when the configured workspace is inaccessible',
+    () async {
+      final process = _FakeCodexAppServerProcess(
+        stdoutLines: <String>[
+          '__pocket_relay_owner__ status=unhealthy pid=2041 host= port= detail=expected_workspace_unavailable',
+        ],
+      );
+      final inspector = CodexSshRemoteAppServerOwnerInspector(
+        sshBootstrap:
+            ({
+              required profile,
+              required secrets,
+              required verifyHostKey,
+            }) async {
+              return _FakeSshBootstrapClient(process: process);
+            },
+      );
+
+      final snapshot = await inspector.inspectOwner(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        ownerId: 'remote-1',
+        workspaceDir: '/workspace',
+      );
+
+      expect(snapshot.status, CodexRemoteAppServerOwnerStatus.unhealthy);
+      expect(
+        snapshot.detail,
+        contains('configured workspace directory is not accessible'),
+      );
+    },
+  );
+
   test('inspectOwner reports running when readyz succeeds', () async {
     final process = _FakeCodexAppServerProcess(
       stdoutLines: <String>[
@@ -329,6 +399,45 @@ void main() {
       launchedCommands.any((command) => command.contains('tmux new-session')),
       isTrue,
     );
+  });
+
+  test('startOwner waits through delayed readyz before reporting running', () async {
+    final inspectOutputs = <_FakeCodexAppServerProcess>[
+      _ownerProcess(
+        '__pocket_relay_owner__ status=missing pid= host= port= detail=session_missing',
+      ),
+      for (var index = 0; index < 24; index += 1)
+        _ownerProcess(
+          '__pocket_relay_owner__ status=unhealthy pid=2041 host=127.0.0.1 port=45123 detail=ready_check_failed',
+        ),
+      _ownerProcess(
+        '__pocket_relay_owner__ status=running pid=2041 host=127.0.0.1 port=45123 detail=ready',
+      ),
+    ];
+    final control = CodexSshRemoteAppServerOwnerControl(
+      readyPollDelay: Duration.zero,
+      sshBootstrap:
+          ({required profile, required secrets, required verifyHostKey}) async {
+            return _ScriptedSshBootstrapClient(
+              onLaunch: (command) async {
+                if (command.contains('__pocket_relay_owner__')) {
+                  return inspectOutputs.removeAt(0);
+                }
+                return _FakeCodexAppServerProcess();
+              },
+            );
+          },
+    );
+
+    final snapshot = await control.startOwner(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+      ownerId: 'remote-1',
+      workspaceDir: '/workspace',
+    );
+
+    expect(snapshot.status, CodexRemoteAppServerOwnerStatus.running);
+    expect(snapshot.endpoint?.port, 45123);
   });
 
   test(
@@ -403,6 +512,56 @@ void main() {
       isTrue,
     );
   });
+
+  test(
+    'stopOwner waits through delayed owner shutdown before reporting missing',
+    () async {
+      final inspectOutputs = <_FakeCodexAppServerProcess>[
+        for (var index = 0; index < 4; index += 1)
+          _ownerProcess(
+            '__pocket_relay_owner__ status=running pid=2041 host=127.0.0.1 port=45123 detail=ready',
+          ),
+        _ownerProcess(
+          '__pocket_relay_owner__ status=missing pid= host= port= detail=session_missing',
+        ),
+      ];
+      final launchedCommands = <String>[];
+      final control = CodexSshRemoteAppServerOwnerControl(
+        stopPollDelay: Duration.zero,
+        sshBootstrap:
+            ({
+              required profile,
+              required secrets,
+              required verifyHostKey,
+            }) async {
+              return _ScriptedSshBootstrapClient(
+                onLaunch: (command) async {
+                  launchedCommands.add(command);
+                  if (command.contains('__pocket_relay_owner__')) {
+                    return inspectOutputs.removeAt(0);
+                  }
+                  return _FakeCodexAppServerProcess();
+                },
+              );
+            },
+      );
+
+      final snapshot = await control.stopOwner(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        ownerId: 'remote-1',
+        workspaceDir: '/workspace',
+      );
+
+      expect(snapshot.status, CodexRemoteAppServerOwnerStatus.missing);
+      expect(
+        launchedCommands
+            .where((command) => command.contains('__pocket_relay_owner__'))
+            .length,
+        5,
+      );
+    },
+  );
 
   test('restartOwner is explicit stop plus start', () async {
     final inspectOutputs = <_FakeCodexAppServerProcess>[

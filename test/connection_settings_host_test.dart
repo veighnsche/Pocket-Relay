@@ -738,6 +738,125 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'shared host re-probes runtime truth after a remote server action fails',
+    (tester) async {
+      final remoteRuntimeStates = <ConnectionRemoteRuntimeState?>[];
+      var refreshCalls = 0;
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          initialRemoteRuntime: const ConnectionRemoteRuntimeState(
+            hostCapability: ConnectionRemoteHostCapabilityState.supported(
+              detail: 'ready',
+            ),
+            server: ConnectionRemoteServerState.notRunning(
+              ownerId: 'conn_primary',
+              sessionName: 'pocket-relay:conn_primary',
+            ),
+          ),
+          onStartRemoteServer: () async {
+            throw StateError('ssh control failed');
+          },
+          onRefreshRemoteRuntime: (payload) async {
+            refreshCalls += 1;
+            return const ConnectionRemoteRuntimeState(
+              hostCapability: ConnectionRemoteHostCapabilityState.probeFailed(
+                detail: 'ssh control failed',
+              ),
+              server: ConnectionRemoteServerState.notRunning(
+                ownerId: 'conn_primary',
+                sessionName: 'pocket-relay:conn_primary',
+                detail:
+                    'No Pocket Relay server is running for this connection.',
+              ),
+            );
+          },
+          builder: (context, viewModel, actions) {
+            remoteRuntimeStates.add(viewModel.contract.remoteRuntime);
+            return TextButton(
+              onPressed: () {
+                actions.onRemoteServerAction(
+                  ConnectionSettingsRemoteServerActionId.start,
+                );
+              },
+              child: const Text('start'),
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.text('start'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(refreshCalls, greaterThan(1));
+      expect(
+        remoteRuntimeStates.last!.hostCapability.status,
+        ConnectionRemoteHostCapabilityStatus.probeFailed,
+      );
+      expect(
+        remoteRuntimeStates.last!.server.status,
+        ConnectionRemoteServerStatus.notRunning,
+      );
+    },
+  );
+
+  testWidgets(
+    'shared host marks host check failed when a remote server action fails without a refresh callback',
+    (tester) async {
+      final remoteRuntimeStates = <ConnectionRemoteRuntimeState?>[];
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          initialRemoteRuntime: const ConnectionRemoteRuntimeState(
+            hostCapability: ConnectionRemoteHostCapabilityState.supported(
+              detail: 'ready',
+            ),
+            server: ConnectionRemoteServerState.running(
+              ownerId: 'conn_primary',
+              sessionName: 'pocket-relay:conn_primary',
+              port: 4100,
+            ),
+          ),
+          onRestartRemoteServer: () async {
+            throw StateError('ssh control failed');
+          },
+          builder: (context, viewModel, actions) {
+            remoteRuntimeStates.add(viewModel.contract.remoteRuntime);
+            return TextButton(
+              onPressed: () {
+                actions.onRemoteServerAction(
+                  ConnectionSettingsRemoteServerActionId.restart,
+                );
+              },
+              child: const Text('restart'),
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.text('restart'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        remoteRuntimeStates.last!.hostCapability.status,
+        ConnectionRemoteHostCapabilityStatus.probeFailed,
+      );
+      expect(
+        remoteRuntimeStates.last!.hostCapability.detail,
+        contains('ssh control failed'),
+      );
+      expect(
+        remoteRuntimeStates.last!.server.status,
+        ConnectionRemoteServerStatus.running,
+      );
+    },
+  );
 }
 
 Widget _buildMaterialSettingsApp({

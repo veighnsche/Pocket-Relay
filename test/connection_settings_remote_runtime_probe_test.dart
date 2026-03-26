@@ -70,6 +70,39 @@ void main() {
   );
 
   test(
+    'probeConnectionSettingsRemoteRuntime preserves explicit workspace capability issues',
+    () async {
+      final runtime = await probeConnectionSettingsRemoteRuntime(
+        payload: _payload(),
+        ownerId: 'remote-1',
+        hostProbe: _FakeHostProbe(
+          const CodexRemoteAppServerHostCapabilities(
+            issues: <ConnectionRemoteHostCapabilityIssue>{
+              ConnectionRemoteHostCapabilityIssue.workspaceUnavailable,
+            },
+            detail:
+                'The configured workspace directory is not accessible on the remote host.',
+          ),
+        ),
+        ownerInspector: _ThrowingOwnerInspector(),
+      );
+
+      expect(runtime.hostCapability.isUnsupported, isTrue);
+      expect(
+        runtime.hostCapability.issues,
+        <ConnectionRemoteHostCapabilityIssue>{
+          ConnectionRemoteHostCapabilityIssue.workspaceUnavailable,
+        },
+      );
+      expect(
+        runtime.hostCapability.detail,
+        contains('workspace directory is not accessible'),
+      );
+      expect(runtime.server.status, ConnectionRemoteServerStatus.unknown);
+    },
+  );
+
+  test(
     'probeConnectionSettingsRemoteRuntime maps missing owner to notRunning',
     () async {
       final runtime = await probeConnectionSettingsRemoteRuntime(

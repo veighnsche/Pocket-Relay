@@ -299,6 +299,51 @@ void main() {
     });
 
     test(
+      'surfaces workspace availability failures as host unsupported in the remote server section',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+        const remoteRuntime = ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.unsupported(
+            issues: <ConnectionRemoteHostCapabilityIssue>{
+              ConnectionRemoteHostCapabilityIssue.workspaceUnavailable,
+            },
+            detail:
+                'The configured workspace directory is not accessible on the remote host.',
+          ),
+          server: ConnectionRemoteServerState.unknown(),
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+          remoteRuntime: remoteRuntime,
+          supportsRemoteServerStart: true,
+          supportsRemoteServerStop: true,
+          supportsRemoteServerRestart: true,
+        );
+
+        expect(contract.remoteServerSection, isNotNull);
+        expect(contract.remoteServerSection!.statusLabel, 'Host unsupported');
+        expect(
+          contract.remoteServerSection!.detail,
+          'The configured workspace directory is not accessible on the remote host.',
+        );
+        expect(
+          contract.remoteServerSection!.actions.every(
+            (action) => action.isEnabled == false,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
       'enables explicit remote server controls only for saved, unchanged remote connections',
       () {
         final initialProfile = _configuredProfile();

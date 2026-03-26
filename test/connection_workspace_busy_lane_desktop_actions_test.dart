@@ -19,7 +19,7 @@ void main() {
         onShowConversationHistory: () {
           historyCalls += 1;
         },
-        onShowDormantRoster: () {
+        onShowSavedConnections: () {
           savedConnectionCalls += 1;
         },
         onReconnect: () {
