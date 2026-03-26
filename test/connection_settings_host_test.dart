@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -612,6 +614,123 @@ void main() {
   );
 
   testWidgets(
+    'shared host pauses remote runtime probes while authentication settings are dirty',
+    (tester) async {
+      final probePayloads = <ConnectionSettingsSubmitPayload>[];
+      final remoteRuntimeStates = <ConnectionRemoteRuntimeState?>[];
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          onRefreshRemoteRuntime: (payload) async {
+            probePayloads.add(payload);
+            return const ConnectionRemoteRuntimeState(
+              hostCapability: ConnectionRemoteHostCapabilityState.supported(
+                detail: 'ready',
+              ),
+              server: ConnectionRemoteServerState.unknown(),
+            );
+          },
+          builder: (context, viewModel, actions) {
+            remoteRuntimeStates.add(viewModel.contract.remoteRuntime);
+            return ConnectionSheet(
+              platformBehavior: _mobileBehavior,
+              viewModel: viewModel,
+              actions: actions,
+            );
+          },
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(probePayloads, hasLength(1));
+      expect(
+        remoteRuntimeStates.last,
+        const ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.supported(
+            detail: 'ready',
+          ),
+          server: ConnectionRemoteServerState.unknown(),
+        ),
+      );
+
+      await tester.enterText(
+        _materialTextField('SSH password'),
+        'updated-secret',
+      );
+      await tester.pump();
+
+      expect(probePayloads, hasLength(1));
+      expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+      expect(find.text('Host status unknown'), findsOneWidget);
+      expect(
+        find.text(
+          'Pocket Relay pauses remote checks while you edit authentication settings.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(_materialTextField('Host'), 'otherbox.local');
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(probePayloads, hasLength(1));
+      expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+    },
+  );
+
+  testWidgets(
+    'shared host ignores stale probe results after authentication changes pause refresh',
+    (tester) async {
+      final remoteRuntimeStates = <ConnectionRemoteRuntimeState?>[];
+      final pendingProbe = Completer<ConnectionRemoteRuntimeState>();
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          onRefreshRemoteRuntime: (_) => pendingProbe.future,
+          builder: (context, viewModel, actions) {
+            remoteRuntimeStates.add(viewModel.contract.remoteRuntime);
+            return ConnectionSheet(
+              platformBehavior: _mobileBehavior,
+              viewModel: viewModel,
+              actions: actions,
+            );
+          },
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.enterText(
+        _materialTextField('SSH password'),
+        'updated-secret',
+      );
+      await tester.pump();
+
+      expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+
+      pendingProbe.complete(
+        const ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.supported(
+            detail: 'ready',
+          ),
+          server: ConnectionRemoteServerState.unknown(),
+        ),
+      );
+      await tester.pump();
+
+      expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+      expect(
+        find.text(
+          'Pocket Relay pauses remote checks while you edit authentication settings.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'shared host exposes an initial remote runtime when no refresh callback is provided',
     (tester) async {
       final remoteRuntimeStates = <ConnectionRemoteRuntimeState?>[];
@@ -863,6 +982,15 @@ const _mobileBehavior = PocketPlatformBehavior(
   supportsActiveTurnForegroundService: false,
   usesDesktopKeyboardSubmit: false,
   supportsCollapsibleDesktopSidebar: false,
+);
+
+const _pausedRemoteRuntimeForTest = ConnectionRemoteRuntimeState(
+  hostCapability: ConnectionRemoteHostCapabilityState(
+    status: ConnectionRemoteHostCapabilityStatus.unknown,
+    detail:
+        'Pocket Relay pauses remote checks while you edit authentication settings.',
+  ),
+  server: ConnectionRemoteServerState.unknown(),
 );
 
 const _desktopBehavior = PocketPlatformBehavior(

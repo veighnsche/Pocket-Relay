@@ -124,7 +124,8 @@ ConnectionSettingsSectionStatusContract? _buildRemoteTargetStatus(
   final (label, detail) = switch (remoteRuntime.hostCapability.status) {
     ConnectionRemoteHostCapabilityStatus.unknown => (
       'Host status unknown',
-      'Pocket Relay has not checked this remote target yet.',
+      remoteRuntime.hostCapability.detail ??
+          'Pocket Relay has not checked this remote target yet.',
     ),
     ConnectionRemoteHostCapabilityStatus.checking => (
       'Checking host',

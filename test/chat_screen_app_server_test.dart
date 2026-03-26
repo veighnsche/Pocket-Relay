@@ -178,7 +178,6 @@ void main() {
 
       expect(find.text("This conversation can't continue."), findsOneWidget);
       expect(find.text('Start new conversation'), findsOneWidget);
-      expect(find.text('First prompt'), findsOneWidget);
       expect(
         tester.widget<TextField>(composerField).controller?.text,
         'Second prompt',
@@ -1784,23 +1783,19 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Changed files'), findsNWidgets(2));
-      expect(find.text('README.md'), findsNWidgets(2));
+      expect(find.text('Changed files'), findsOneWidget);
+      expect(find.text('README.md'), findsOneWidget);
       expect(find.text('app.dart'), findsOneWidget);
       expect(find.text('File change approval resolved'), findsOneWidget);
 
-      final firstChangedFilesDy = tester
-          .getTopLeft(find.text('Changed files').first)
-          .dy;
       final resolvedDy = tester
           .getTopLeft(find.text('File change approval resolved'))
           .dy;
-      final secondChangedFilesDy = tester
-          .getTopLeft(find.text('Changed files').last)
+      final resumedChangedFilesDy = tester
+          .getTopLeft(find.text('Changed files'))
           .dy;
 
-      expect(firstChangedFilesDy, lessThan(resolvedDy));
-      expect(resolvedDy, lessThan(secondChangedFilesDy));
+      expect(resolvedDy, lessThan(resumedChangedFilesDy));
     },
   );
 

@@ -14,26 +14,32 @@ final String? _systemTmuxPath = _resolveSystemTmuxPathSync();
 enum _RemoteOwnerTmuxMode { none, shim, system }
 
 void main() {
-  test('loopback probe reports missing tmux when PATH omits tmux', () async {
-    final harness = await _RemoteOwnerLoopbackHarness.create(
-      tmuxMode: _RemoteOwnerTmuxMode.none,
-    );
-    addTearDown(harness.dispose);
+  test(
+    'loopback probe reports missing tmux when no system tmux is available',
+    () async {
+      final harness = await _RemoteOwnerLoopbackHarness.create(
+        tmuxMode: _RemoteOwnerTmuxMode.none,
+      );
+      addTearDown(harness.dispose);
 
-    final probe = CodexSshRemoteAppServerHostProbe(
-      sshBootstrap: harness.sshBootstrap,
-    );
+      final probe = CodexSshRemoteAppServerHostProbe(
+        sshBootstrap: harness.sshBootstrap,
+      );
 
-    final capabilities = await probe.probeHostCapabilities(
-      profile: harness.profile,
-      secrets: harness.secrets,
-    );
+      final capabilities = await probe.probeHostCapabilities(
+        profile: harness.profile,
+        secrets: harness.secrets,
+      );
 
-    expect(capabilities.supportsContinuity, isFalse);
-    expect(capabilities.issues, <ConnectionRemoteHostCapabilityIssue>{
-      ConnectionRemoteHostCapabilityIssue.tmuxMissing,
-    });
-  });
+      expect(capabilities.supportsContinuity, isFalse);
+      expect(capabilities.issues, <ConnectionRemoteHostCapabilityIssue>{
+        ConnectionRemoteHostCapabilityIssue.tmuxMissing,
+      });
+    },
+    skip: _systemTmuxPath != null
+        ? 'System tmux is installed, so the probe intentionally finds it via explicit system paths.'
+        : false,
+  );
 
   test('loopback probe reports continuity support with tmux shim', () async {
     final harness = await _RemoteOwnerLoopbackHarness.create(
@@ -832,10 +838,20 @@ case "\${command_name}" in
   new-session)
     session_name=
     workspace_dir=
+    print_pane_id=false
+    pane_format=
     while [ \$# -gt 0 ]; do
       case "\$1" in
         -d)
           shift
+          ;;
+        -P)
+          print_pane_id=true
+          shift
+          ;;
+        -F)
+          pane_format="\$2"
+          shift 2
           ;;
         -s)
           session_name="\$2"
@@ -853,7 +869,6 @@ case "\${command_name}" in
     launch_command="\${1-}"
     [ -n "\${session_name}" ] || exit 64
     [ -n "\${workspace_dir}" ] || exit 64
-    [ -n "\${launch_command}" ] || exit 64
 
     target_dir="\$(session_dir "\${session_name}")"
     if [ -d "\${target_dir}" ]; then
@@ -862,11 +877,53 @@ case "\${command_name}" in
     mkdir -p "\${target_dir}"
 
     printf '%s' "\${workspace_dir}" > "\${target_dir}/cwd"
+    if [ -n "\${launch_command}" ]; then
+      printf '%s' "\${launch_command}" > "\${target_dir}/command"
+      (
+        cd "\${workspace_dir}" || exit 1
+        exec /bin/bash -lc "\${launch_command}"
+      ) >"\${target_dir}/stdout.log" 2>"\${target_dir}/stderr.log" < /dev/null &
+      pane_pid=\$!
+      printf '%s' "\${pane_pid}" > "\${target_dir}/pid"
+    fi
+    if [ "\${print_pane_id}" = true ]; then
+      if [ "\${pane_format}" = '#{pane_id}' ] || [ -z "\${pane_format}" ]; then
+        printf '%s\n' "\${session_name}"
+      else
+        exit 64
+      fi
+    fi
+    ;;
+  respawn-pane)
+    target=
+    while [ \$# -gt 0 ]; do
+      case "\$1" in
+        -k)
+          shift
+          ;;
+        -t)
+          target="\$2"
+          shift 2
+          ;;
+        *)
+          break
+          ;;
+      esac
+    done
+    launch_command="\${1-}"
+    [ -n "\${target}" ] || exit 64
+    [ -n "\${launch_command}" ] || exit 64
+    target_dir="\$(session_dir "\${target}")"
+    [ -d "\${target_dir}" ] || exit 1
+    workspace_dir=\$(cat "\${target_dir}/cwd")
     printf '%s' "\${launch_command}" > "\${target_dir}/command"
-
+    if [ -f "\${target_dir}/pid" ]; then
+      pane_pid=\$(cat "\${target_dir}/pid")
+      kill "\${pane_pid}" 2>/dev/null || true
+    fi
     (
       cd "\${workspace_dir}" || exit 1
-      exec /bin/bash -lc "exec \${launch_command}"
+      exec /bin/bash -lc "\${launch_command}"
     ) >"\${target_dir}/stdout.log" 2>"\${target_dir}/stderr.log" < /dev/null &
     pane_pid=\$!
     printf '%s' "\${pane_pid}" > "\${target_dir}/pid"

@@ -302,6 +302,53 @@ String buildPocketRelayRemoteOwnerLogFilePath({required String sessionName}) {
   return '/tmp/$normalized.log';
 }
 
+String _buildPocketRelayRemoteOwnerLogShellFunctions() {
+  return '''
+resolve_pocket_relay_log_dir() {
+  if [ -n "\${XDG_RUNTIME_DIR-}" ] && [ -d "\${XDG_RUNTIME_DIR-}" ] && [ -w "\${XDG_RUNTIME_DIR-}" ]; then
+    printf '%s' "\$XDG_RUNTIME_DIR/pocket-relay"
+    return 0
+  fi
+
+  if [ -n "\${HOME-}" ] && [ -d "\${HOME-}" ]; then
+    cache_root="\$HOME/.cache"
+    if { [ -d "\$cache_root" ] && [ -w "\$cache_root" ]; } || { [ ! -e "\$cache_root" ] && [ -w "\$HOME" ]; }; then
+      printf '%s' "\$cache_root/pocket-relay"
+      return 0
+    fi
+  fi
+
+  uid_suffix=\$(id -u 2>/dev/null | tr -cd '0-9')
+  if [ -z "\$uid_suffix" ]; then
+    uid_suffix=unknown
+  fi
+  printf '%s' "/tmp/pocket-relay-\$uid_suffix"
+}
+
+resolve_pocket_relay_log_file() {
+  session_name="\$1"
+  printf '%s/%s.log' "\$(resolve_pocket_relay_log_dir)" "\$session_name"
+}
+
+ensure_pocket_relay_log_dir() {
+  log_dir=\$(resolve_pocket_relay_log_dir)
+  previous_umask=\$(umask)
+  if [ -z "\$previous_umask" ]; then
+    previous_umask=022
+  fi
+  umask 077
+  if mkdir -p "\$log_dir"; then
+    status=0
+  else
+    status=\$?
+  fi
+  chmod 700 "\$log_dir" 2>/dev/null || true
+  umask "\$previous_umask"
+  return "\$status"
+}
+''';
+}
+
 @visibleForTesting
 List<int> buildPocketRelayRemoteOwnerPortCandidates({
   required String ownerId,
@@ -401,14 +448,12 @@ String buildSshRemoteOwnerInspectCommand({
   required String sessionName,
   required String workspaceDir,
 }) {
-  final logFile = buildPocketRelayRemoteOwnerLogFilePath(
-    sessionName: sessionName,
-  );
   final command =
       '''
 session_name=${shellEscape(sessionName)}
 expected_workspace=${shellEscape(workspaceDir.trim())}
-log_file=${shellEscape(logFile)}
+${_buildPocketRelayRemoteOwnerLogShellFunctions()}
+log_file=\$(resolve_pocket_relay_log_file "\$session_name")
 
 encode_log_tail() {
   if [ ! -f "\$log_file" ]; then
@@ -547,13 +592,12 @@ String buildSshRemoteOwnerStartCommand({
   required String codexPath,
   required int port,
 }) {
-  final logFile = buildPocketRelayRemoteOwnerLogFilePath(
-    sessionName: sessionName,
-  );
   final tmuxCommand =
       '''
 ${_buildRequestedCodexShellFunctions(requestedCodex: codexPath)}
-log_file=${shellEscape(logFile)}
+${_buildPocketRelayRemoteOwnerLogShellFunctions()}
+ensure_pocket_relay_log_dir
+log_file=\$(resolve_pocket_relay_log_file ${shellEscape(sessionName)})
 rm -f "\$log_file"
 run_requested_codex app-server --listen ws://127.0.0.1:$port >>"\$log_file" 2>&1
 status=\$?
@@ -585,13 +629,11 @@ tmux respawn-pane -k -t "\$pane_id" ${shellEscape(paneCommand)}
 
 @visibleForTesting
 String buildSshRemoteOwnerStopCommand({required String sessionName}) {
-  final logFile = buildPocketRelayRemoteOwnerLogFilePath(
-    sessionName: sessionName,
-  );
   final command =
       '''
 session_name=${shellEscape(sessionName)}
-log_file=${shellEscape(logFile)}
+${_buildPocketRelayRemoteOwnerLogShellFunctions()}
+log_file=\$(resolve_pocket_relay_log_file "\$session_name")
 if ! command -v tmux >/dev/null 2>&1; then
   rm -f "\$log_file"
   exit 0

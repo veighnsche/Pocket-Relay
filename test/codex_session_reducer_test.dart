@@ -2933,6 +2933,7 @@ void main() {
           .whereType<CodexChangedFilesBlock>()
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(2));
+      expect(changedFilesBlocks.map((block) => block.id).toSet(), hasLength(2));
       expect(changedFilesBlocks.first.files.single.path, 'README.md');
       expect(changedFilesBlocks.first.isRunning, isFalse);
       expect(changedFilesBlocks.last.files, hasLength(2));
@@ -3037,6 +3038,7 @@ void main() {
           .whereType<CodexChangedFilesBlock>()
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(2));
+      expect(changedFilesBlocks.map((block) => block.id).toSet(), hasLength(2));
       expect(changedFilesBlocks.first.files.single.path, 'README.md');
       expect(changedFilesBlocks.first.isRunning, isFalse);
       expect(changedFilesBlocks.last.files, hasLength(2));
