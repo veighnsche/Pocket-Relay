@@ -142,6 +142,10 @@ widgetbook-ios:
 
 alias wb-ios := widgetbook-ios
 
+# Report oversized test entry files without failing the migration.
+test-size-audit:
+    dart run tool/check_test_file_sizes.dart
+
 # Generate launcher icons from icon.png.
 [no-exit-message]
 [script]

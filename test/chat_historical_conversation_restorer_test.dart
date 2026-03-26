@@ -92,7 +92,7 @@ void main() {
     () {
       final thread = decoder.decodeHistoryResponse(
         _loadFixture(
-          'test/fixtures/app_server/thread_read/live_capture_001.json',
+          'test/features/chat/transport/app_server/fixtures/thread_read/live_capture_001.json',
         ),
         fallbackThreadId: 'thread_live',
       );

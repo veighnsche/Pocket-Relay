@@ -10,7 +10,7 @@ void main() {
   test('decodes nested thread/read history fixture', () {
     final thread = decoder.decodeHistoryResponse(
       _loadFixture(
-        'test/fixtures/app_server/thread_read/reference_nested_history.json',
+        'test/features/chat/transport/app_server/fixtures/thread_read/reference_nested_history.json',
       ),
       fallbackThreadId: 'thread_nested',
     );
@@ -33,7 +33,7 @@ void main() {
   test('decodes flat thread/read history fixture', () {
     final thread = decoder.decodeHistoryResponse(
       _loadFixture(
-        'test/fixtures/app_server/thread_read/reference_flat_history.json',
+        'test/features/chat/transport/app_server/fixtures/thread_read/reference_flat_history.json',
       ),
       fallbackThreadId: 'thread_flat',
     );
@@ -53,7 +53,7 @@ void main() {
   test('decodes captured live thread/read history fixture', () {
     final thread = decoder.decodeHistoryResponse(
       _loadFixture(
-        'test/fixtures/app_server/thread_read/live_capture_001.json',
+        'test/features/chat/transport/app_server/fixtures/thread_read/live_capture_001.json',
       ),
       fallbackThreadId: 'thread_live',
     );

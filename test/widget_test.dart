@@ -21,7 +21,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
-import 'support/fake_connection_settings_overlay_delegate.dart';
+import 'support/fakes/connection_settings_overlay_delegate.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

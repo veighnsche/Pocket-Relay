@@ -17,7 +17,7 @@ import 'package:pocket_relay/src/features/workspace/application/connection_works
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
 
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
-import 'support/fake_connection_settings_overlay_delegate.dart';
+import 'support/fakes/connection_settings_overlay_delegate.dart';
 
 void main() {
   testWidgets('swiping past the live lane reveals the dormant roster', (

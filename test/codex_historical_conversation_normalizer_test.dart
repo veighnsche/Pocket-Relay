@@ -10,49 +10,46 @@ void main() {
   const decoder = CodexAppServerThreadReadDecoder();
   const normalizer = CodexHistoricalConversationNormalizer();
 
-  test(
-    'normalizes thread/read history into canonical conversation snapshot',
-    () {
-      final thread = decoder.decodeHistoryResponse(
-        _loadFixture(
-          'test/fixtures/app_server/thread_read/reference_nested_history.json',
-        ),
-        fallbackThreadId: 'thread_nested',
-      );
+  test('normalizes thread/read history into canonical conversation snapshot', () {
+    final thread = decoder.decodeHistoryResponse(
+      _loadFixture(
+        'test/features/chat/transport/app_server/fixtures/thread_read/reference_nested_history.json',
+      ),
+      fallbackThreadId: 'thread_nested',
+    );
 
-      final conversation = normalizer.normalize(thread);
+    final conversation = normalizer.normalize(thread);
 
-      expect(conversation.threadId, 'thread_nested');
-      expect(conversation.threadName, 'Saved thread');
-      expect(conversation.sourceKind, 'app-server');
-      expect(conversation.agentNickname, 'builder');
-      expect(conversation.agentRole, 'worker');
-      expect(conversation.turns, hasLength(1));
+    expect(conversation.threadId, 'thread_nested');
+    expect(conversation.threadName, 'Saved thread');
+    expect(conversation.sourceKind, 'app-server');
+    expect(conversation.agentNickname, 'builder');
+    expect(conversation.agentRole, 'worker');
+    expect(conversation.turns, hasLength(1));
 
-      final turn = conversation.turns.single;
-      expect(turn.id, 'turn_saved');
-      expect(turn.threadId, 'thread_nested');
-      expect(turn.state, CodexRuntimeTurnState.completed);
-      expect(turn.entries, hasLength(2));
+    final turn = conversation.turns.single;
+    expect(turn.id, 'turn_saved');
+    expect(turn.threadId, 'thread_nested');
+    expect(turn.state, CodexRuntimeTurnState.completed);
+    expect(turn.entries, hasLength(2));
 
-      final userEntry = turn.entries.first;
-      expect(userEntry.itemType, CodexCanonicalItemType.userMessage);
-      expect(userEntry.title, 'You');
-      expect(userEntry.detail, 'Restore this');
+    final userEntry = turn.entries.first;
+    expect(userEntry.itemType, CodexCanonicalItemType.userMessage);
+    expect(userEntry.title, 'You');
+    expect(userEntry.detail, 'Restore this');
 
-      final assistantEntry = turn.entries.last;
-      expect(assistantEntry.itemType, CodexCanonicalItemType.assistantMessage);
-      expect(assistantEntry.title, 'Codex');
-      expect(assistantEntry.detail, 'Restored answer');
-    },
-  );
+    final assistantEntry = turn.entries.last;
+    expect(assistantEntry.itemType, CodexCanonicalItemType.assistantMessage);
+    expect(assistantEntry.title, 'Codex');
+    expect(assistantEntry.detail, 'Restored answer');
+  });
 
   test(
     'normalizes captured live thread/read history into canonical conversation snapshot',
     () {
       final thread = decoder.decodeHistoryResponse(
         _loadFixture(
-          'test/fixtures/app_server/thread_read/live_capture_001.json',
+          'test/features/chat/transport/app_server/fixtures/thread_read/live_capture_001.json',
         ),
         fallbackThreadId: 'thread_live',
       );
