@@ -20,13 +20,14 @@ class SshUnpinnedHostKeySurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final canSave = !block.isSaved && onSaveFingerprint != null;
     final accent = amberAccent(Theme.of(context).brightness);
+    final hostIdentityLabel = '${block.host}:${block.port}';
 
     return SshSurfaceFrame(
       key: const ValueKey('ssh_unpinned_host_key_surface'),
       title: 'Host key not pinned',
       description: block.isSaved
-          ? 'This fingerprint has been pinned to the saved connection profile.'
-          : 'This SSH host key was accepted because the current profile has no pinned fingerprint yet. Save it if you trust this host.',
+          ? 'This fingerprint is pinned for $hostIdentityLabel and will be reused by every saved connection that points there.'
+          : 'This SSH host key was accepted because Pocket Relay does not have a pinned fingerprint for $hostIdentityLabel yet. Save it once if you trust this host, and sibling connections to the same host and port will reuse it.',
       host: block.host,
       port: block.port,
       contextLabel: block.keyType,

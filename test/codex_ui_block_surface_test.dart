@@ -572,6 +572,12 @@ void main() {
 
       expect(find.text('Host key not pinned'), findsOneWidget);
       expect(
+        find.textContaining(
+          'Pocket Relay does not have a pinned fingerprint for example.com:22 yet.',
+        ),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const ValueKey('save_host_fingerprint')),
         findsOneWidget,
       );
@@ -643,6 +649,12 @@ void main() {
       );
 
       expect(find.text('SSH host key mismatch'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'The pinned fingerprint for example.com:22 does not match the key presented by this server.',
+        ),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('expected_host_fingerprint_value')),
         findsOneWidget,

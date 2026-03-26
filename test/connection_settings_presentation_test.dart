@@ -188,6 +188,32 @@ void main() {
     );
 
     test(
+      'describes the host fingerprint as shared across saved connections on the same host identity',
+      () {
+        final initialProfile = _configuredProfile();
+        const initialSecrets = ConnectionSecrets(password: 'secret');
+        final formState = ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        );
+
+        final contract = presenter.present(
+          initialProfile: initialProfile,
+          initialSecrets: initialSecrets,
+          formState: formState,
+        );
+
+        expect(
+          _field(
+            contract.remoteConnectionSection!,
+            ConnectionSettingsFieldId.hostFingerprint,
+          ).helperText,
+          'Shared host identity: devbox.local:22. This pinned fingerprint is reused by every saved connection that points there.',
+        );
+      },
+    );
+
+    test(
       'includes model and reasoning effort in the normalized save payload',
       () {
         final initialProfile = _configuredProfile();
@@ -375,45 +401,42 @@ void main() {
       },
     );
 
-    test(
-      'keeps runtime truth visible while the sheet has unsaved changes',
-      () {
-        final initialProfile = _configuredProfile();
-        const initialSecrets = ConnectionSecrets(password: 'secret');
-        final formState =
-            ConnectionSettingsFormState.initial(
+    test('keeps runtime truth visible while the sheet has unsaved changes', () {
+      final initialProfile = _configuredProfile();
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState =
+          ConnectionSettingsFormState.initial(
+            profile: initialProfile,
+            secrets: initialSecrets,
+          ).copyWith(
+            draft: ConnectionSettingsDraft.fromConnection(
               profile: initialProfile,
               secrets: initialSecrets,
-            ).copyWith(
-              draft: ConnectionSettingsDraft.fromConnection(
-                profile: initialProfile,
-                secrets: initialSecrets,
-              ).copyWithField(ConnectionSettingsFieldId.host, 'new-host.local'),
-            );
-        const remoteRuntime = ConnectionRemoteRuntimeState(
-          hostCapability: ConnectionRemoteHostCapabilityState.supported(),
-          server: ConnectionRemoteServerState.running(
-            ownerId: 'conn_primary',
-            sessionName: 'pocket-relay-conn_primary',
-            port: 4100,
-          ),
-        );
+            ).copyWithField(ConnectionSettingsFieldId.host, 'new-host.local'),
+          );
+      const remoteRuntime = ConnectionRemoteRuntimeState(
+        hostCapability: ConnectionRemoteHostCapabilityState.supported(),
+        server: ConnectionRemoteServerState.running(
+          ownerId: 'conn_primary',
+          sessionName: 'pocket-relay-conn_primary',
+          port: 4100,
+        ),
+      );
 
-        final contract = presenter.present(
-          initialProfile: initialProfile,
-          initialSecrets: initialSecrets,
-          formState: formState,
-          remoteRuntime: remoteRuntime,
-        );
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        remoteRuntime: remoteRuntime,
+      );
 
-        expect(contract.remoteConnectionSection, isNotNull);
-        expect(contract.remoteConnectionSection!.status, isNotNull);
-        expect(
-          contract.remoteConnectionSection!.status!.label,
-          'Managed server running',
-        );
-      },
-    );
+      expect(contract.remoteConnectionSection, isNotNull);
+      expect(contract.remoteConnectionSection!.status, isNotNull);
+      expect(
+        contract.remoteConnectionSection!.status!.label,
+        'Managed server running',
+      );
+    });
 
     test(
       'filters reasoning effort options to the selected reference model',

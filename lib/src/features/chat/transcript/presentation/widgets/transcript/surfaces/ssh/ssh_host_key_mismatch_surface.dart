@@ -15,11 +15,13 @@ class SshHostKeyMismatchSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hostIdentityLabel = '${block.host}:${block.port}';
+
     return SshSurfaceFrame(
       key: const ValueKey('ssh_host_key_mismatch_surface'),
       title: 'SSH host key mismatch',
       description:
-          'The pinned host fingerprint does not match the key presented by this server. Review the saved fingerprint before trusting this host.',
+          'The pinned fingerprint for $hostIdentityLabel does not match the key presented by this server. Review the shared host identity before trusting this host.',
       host: block.host,
       port: block.port,
       contextLabel: block.keyType,

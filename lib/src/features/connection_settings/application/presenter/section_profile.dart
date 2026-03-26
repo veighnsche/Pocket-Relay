@@ -80,10 +80,38 @@ ConnectionSettingsSectionContract? _buildRemoteConnectionSection(
         label: 'Host fingerprint',
         value: draft.hostFingerprint,
         hintText: 'aa:bb:cc:dd:...',
+        helperText: _hostFingerprintHelperText(draft),
         errorText: state.hostFingerprintError,
       ),
     ],
   );
+}
+
+String _hostFingerprintHelperText(ConnectionSettingsDraft draft) {
+  final hostIdentityLabel = _remoteHostIdentityLabel(draft);
+  if (hostIdentityLabel == null) {
+    return 'Required for remote targets. Pocket Relay shares one pinned fingerprint across every saved connection that points to the same host and port.';
+  }
+
+  if (draft.hostFingerprint.trim().isEmpty) {
+    return 'Required for $hostIdentityLabel. Pocket Relay shares one pinned fingerprint across every saved connection that points there.';
+  }
+
+  return 'Shared host identity: $hostIdentityLabel. This pinned fingerprint is reused by every saved connection that points there.';
+}
+
+String? _remoteHostIdentityLabel(ConnectionSettingsDraft draft) {
+  final host = draft.host.trim();
+  if (host.isEmpty) {
+    return null;
+  }
+
+  final port = draft.port.trim();
+  if (port.isEmpty) {
+    return host;
+  }
+
+  return '$host:$port';
 }
 
 ConnectionSettingsSectionStatusContract? _buildRemoteTargetStatus(
@@ -113,8 +141,8 @@ ConnectionSettingsSectionStatusContract? _buildRemoteTargetStatus(
           'This remote target does not satisfy the continuity prerequisites.',
     ),
     ConnectionRemoteHostCapabilityStatus.supported => switch (remoteRuntime
-            .server
-            .status) {
+        .server
+        .status) {
       ConnectionRemoteServerStatus.unknown => (
         'Host ready',
         'Pocket Relay verified the remote target.',
@@ -136,8 +164,7 @@ ConnectionSettingsSectionStatusContract? _buildRemoteTargetStatus(
       ),
       ConnectionRemoteServerStatus.running => (
         'Managed server running',
-        remoteRuntime.server.detail ??
-            'The managed remote session is running.',
+        remoteRuntime.server.detail ?? 'The managed remote session is running.',
       ),
     },
   };

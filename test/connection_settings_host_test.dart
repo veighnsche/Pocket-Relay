@@ -86,6 +86,13 @@ void main() {
     (tester) async {
       await tester.pumpWidget(_buildMaterialSettingsApp(onSubmit: (_) {}));
 
+      expect(
+        find.text(
+          'Shared host identity: devbox.local:22. This pinned fingerprint is reused by every saved connection that points there.',
+        ),
+        findsOneWidget,
+      );
+
       await tester.enterText(_materialTextField('Host fingerprint'), '');
       await tester.tap(
         find.byKey(const ValueKey<String>('connection_settings_save_top')),
@@ -662,28 +669,30 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Managed server running'), findsOneWidget);
-      expect(find.text('The managed remote session is running.'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'material settings renderer shows host check failures inline',
-    (tester) async {
-      await tester.pumpWidget(
-        _buildMaterialSettingsApp(
-          onSubmit: (_) {},
-          onRefreshRemoteRuntime: (payload) async {
-            throw StateError('ssh control failed');
-          },
-        ),
+      expect(
+        find.text('The managed remote session is running.'),
+        findsOneWidget,
       );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.text('Host check failed'), findsOneWidget);
-      expect(find.textContaining('ssh control failed'), findsOneWidget);
     },
   );
+
+  testWidgets('material settings renderer shows host check failures inline', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildMaterialSettingsApp(
+        onSubmit: (_) {},
+        onRefreshRemoteRuntime: (payload) async {
+          throw StateError('ssh control failed');
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Host check failed'), findsOneWidget);
+    expect(find.textContaining('ssh control failed'), findsOneWidget);
+  });
 }
 
 Widget _buildMaterialSettingsApp({
