@@ -184,6 +184,41 @@ void main() {
   );
 
   testWidgets(
+    'live lane explains that opening a remote lane does not connect automatically',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final laneBinding = controller.selectedLaneBinding!;
+
+      await tester.pumpWidget(
+        _buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: _DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Host status unknown'), findsOneWidget);
+      expect(
+        find.textContaining('Open lane does not connect automatically.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_action_history')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'dormant roster add action launches settings only once while pending',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -401,9 +436,7 @@ void main() {
       expect(find.text('Disconnected'), findsOneWidget);
       expect(find.text('Connect'), findsOneWidget);
       expect(
-        find.byKey(
-          const ValueKey<String>('lane_connection_action_connect'),
-        ),
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
         findsOneWidget,
       );
     },
@@ -489,9 +522,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.byKey(
-          const ValueKey<String>('lane_connection_action_connect'),
-        ),
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
       );
       await tester.pumpAndSettle();
 
@@ -501,10 +532,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('Could not connect lane'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Could not connect lane'), findsOneWidget);
       expect(
         find.textContaining('Underlying error: connect failed'),
         findsOneWidget,

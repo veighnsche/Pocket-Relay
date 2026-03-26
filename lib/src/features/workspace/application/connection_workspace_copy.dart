@@ -77,6 +77,16 @@ abstract final class ConnectionWorkspaceCopy {
   static const String laneReconnectNeededStatus = 'Reconnect needed';
   static const String laneChangesPendingStatus = 'Changes pending';
   static const String laneReconnectingStatus = 'Reconnecting';
+  static const String laneBootstrapDetail =
+      'Open lane does not connect automatically. Check this host to continue from here.';
+  static const String laneConfigurationIncompleteDetail =
+      'Finish the connection definition before this lane can continue.';
+  static const String laneHostCheckingDetail =
+      'Pocket Relay is checking whether this host can support continuity for this lane.';
+  static const String laneServerCheckingDetail =
+      'Pocket Relay is checking the managed remote session for this lane.';
+  static const String laneDisconnectedDetail =
+      'Connect this lane to Codex to continue.';
   static const String connectAction = 'Connect';
   static const String connectProgress = 'Connecting…';
   static const String checkHostAction = 'Check host';

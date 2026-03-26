@@ -4,21 +4,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   List<ChatChromeMenuAction> _supplementalMenuActionsFor({
     required bool isLaneBusy,
   }) {
-    final hasWorkspaceHistoryScope = widget
-        .laneBinding
-        .sessionController
-        .profile
-        .workspaceDir
-        .trim()
-        .isNotEmpty;
     return <ChatChromeMenuAction>[
-      ChatChromeMenuAction(
-        label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-        onSelected: () {
-          unawaited(_showConversationHistory());
-        },
-        isEnabled: hasWorkspaceHistoryScope && !isLaneBusy,
-      ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
         onSelected: widget.workspaceController.showSavedConnections,

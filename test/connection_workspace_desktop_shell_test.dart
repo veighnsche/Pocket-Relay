@@ -217,7 +217,7 @@ void main() {
   );
 
   testWidgets(
-    'desktop overflow menu opens the workspace conversation history sheet',
+    'desktop lane strip opens the workspace conversation history sheet',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
       final controller = _buildWorkspaceController(clientsById: clientsById);
@@ -244,9 +244,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Saved backend thread'), findsOneWidget);
@@ -288,6 +288,10 @@ void main() {
       await tester.pumpWidget(_buildShell(controller));
       await tester.pumpAndSettle();
 
+      final historyButton = tester.widget<OutlinedButton>(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
+
       await tester.tap(find.byTooltip('More actions'));
       await tester.pumpAndSettle();
 
@@ -300,12 +304,6 @@ void main() {
       final clearTranscriptItem = tester.widget<PopupMenuItem<int>>(
         find.ancestor(
           of: find.text('Clear transcript'),
-          matching: find.byType(PopupMenuItem<int>),
-        ),
-      );
-      final historyItem = tester.widget<PopupMenuItem<int>>(
-        find.ancestor(
-          of: find.text('Conversation history'),
           matching: find.byType(PopupMenuItem<int>),
         ),
       );
@@ -324,9 +322,16 @@ void main() {
 
       expect(newThreadItem.enabled, isFalse);
       expect(clearTranscriptItem.enabled, isFalse);
-      expect(historyItem.enabled, isFalse);
+      expect(historyButton.onPressed, isNull);
       expect(closeLaneItem.enabled, isTrue);
       expect(savedConnectionsItem.enabled, isTrue);
+      expect(
+        find.ancestor(
+          of: find.text('Conversation history'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+        findsNothing,
+      );
     },
   );
 
@@ -352,9 +357,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('More actions'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Conversation history'));
+    await tester.tap(
+      find.byKey(const ValueKey('lane_connection_action_history')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Could not load conversations'), findsOneWidget);
     expect(
@@ -403,9 +408,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Remote server unhealthy'), findsOneWidget);
@@ -462,9 +467,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Host key not pinned'), findsOneWidget);
@@ -522,9 +527,9 @@ void main() {
 
       expect(controller.state.requiresReconnect('conn_primary'), isTrue);
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
 
       expect(repository.loadCalls, hasLength(1));
@@ -567,9 +572,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('workspace_conversation_thread_saved')),
@@ -628,9 +633,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('workspace_conversation_thread_empty')),
@@ -675,9 +680,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('More actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conversation history'));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_history')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('workspace_conversation_thread_saved')),
