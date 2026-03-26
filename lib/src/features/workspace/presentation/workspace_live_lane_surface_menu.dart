@@ -14,7 +14,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
         onSelected: widget.workspaceController.showSavedConnections,
       ),
-      if (isConnected && hasWorkspaceHistoryScope)
+      if (hasWorkspaceHistoryScope)
         ChatChromeMenuAction(
           label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
           onSelected: () {

@@ -117,7 +117,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Server stopped.'), findsOneWidget);
+      expect(find.textContaining('Server stopped.'), findsNothing);
       await tester.tap(
         find.byKey(const ValueKey<String>('lane_connection_action_connect')),
       );
@@ -161,19 +161,6 @@ void main() {
       );
       expect(find.text('/workspace'), findsOneWidget);
       expect(find.text('Workspace'), findsNothing);
-      expect(
-        find.byKey(
-          const ValueKey<String>('lane_empty_state_connection_status_label'),
-        ),
-        findsNothing,
-      );
-      expect(find.textContaining('Host status unknown.'), findsOneWidget);
-      expect(
-        find.textContaining(
-          'Connect checks the host, starts the managed remote app-server if needed, and attaches this lane.',
-        ),
-        findsOneWidget,
-      );
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_connect')),
         findsOneWidget,
@@ -404,7 +391,7 @@ void main() {
         find.byKey(const ValueKey<String>('lane_connection_status_label')),
         findsNothing,
       );
-      expect(find.textContaining('Disconnected.'), findsOneWidget);
+      expect(find.textContaining('Disconnected.'), findsNothing);
       expect(find.text('Connect'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_connect')),
@@ -569,7 +556,7 @@ void main() {
         find.textContaining('Underlying error: connect failed'),
         findsOneWidget,
       );
-      expect(find.textContaining('Disconnected.'), findsOneWidget);
+      expect(find.textContaining('Disconnected.'), findsNothing);
     },
   );
 
@@ -1639,7 +1626,8 @@ void main() {
         ConnectionWorkspaceTransportRecoveryPhase.reconnecting,
       );
       expect(find.text('Reconnecting to remote session'), findsOneWidget);
-      expect(find.text('Reconnecting…'), findsOneWidget);
+      expect(find.text('Reconnecting…'), findsNothing);
+      expect(find.text('Reconnect'), findsOneWidget);
 
       reconnectGate.complete();
       await tester.pumpAndSettle();

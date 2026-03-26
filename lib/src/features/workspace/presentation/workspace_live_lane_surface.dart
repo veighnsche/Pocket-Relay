@@ -598,13 +598,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       return null;
     }
 
-    final status = _laneStatusContractFor(
-      profile: profile,
-      reconnectRequirement: reconnectRequirement,
-      transportRecoveryPhase: transportRecoveryPhase,
-      liveReattachPhase: liveReattachPhase,
-      remoteRuntime: remoteRuntime,
-    );
     final primaryAction = _lanePrimaryActionFor(
       profile: profile,
       reconnectRequirement: reconnectRequirement,
@@ -612,14 +605,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
     );
-    final secondaryAction = _laneConversationHistoryActionFor(
-      profile: profile,
-      isLaneBusy: isLaneBusy,
-    );
+    if (primaryAction == null && recoveryNotice == null) {
+      return null;
+    }
     return _WorkspaceLaneConnectionStrip(
-      status: status,
       primaryAction: primaryAction,
-      secondaryAction: secondaryAction,
       notice: recoveryNotice,
     );
   }
@@ -639,22 +629,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     }
 
     final workspacePath = profile.workspaceDir.trim();
-    final showConnectionControls =
-        !widget.laneBinding.appServerClient.isConnected ||
-        reconnectRequirement != null ||
-        transportRecoveryPhase != null ||
-        liveReattachPhase != null ||
-        recoveryNotice != null ||
-        _isConnectingLaneTransport;
-    final status = showConnectionControls
-        ? _laneStatusContractFor(
-            profile: profile,
-            reconnectRequirement: reconnectRequirement,
-            transportRecoveryPhase: transportRecoveryPhase,
-            liveReattachPhase: liveReattachPhase,
-            remoteRuntime: remoteRuntime,
-          )
-        : null;
     final primaryAction = _lanePrimaryActionFor(
       profile: profile,
       reconnectRequirement: reconnectRequirement,
@@ -662,316 +636,17 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
     );
-    final secondaryAction = showConnectionControls
-        ? _laneConversationHistoryActionFor(
-            profile: profile,
-            isLaneBusy: isLaneBusy,
-          )
-        : null;
     if (workspacePath.isEmpty &&
-        status == null &&
         primaryAction == null &&
-        secondaryAction == null &&
         recoveryNotice == null) {
       return null;
     }
 
     return _WorkspaceLaneEmptyStateContent(
       workspacePath: workspacePath.isEmpty ? null : workspacePath,
-      statusMessage: status == null
-          ? null
-          : _laneEmptyStateStatusTextFor(
-              status: status,
-              message: _laneEmptyStateStatusMessageFor(
-                reconnectRequirement: reconnectRequirement,
-                transportRecoveryPhase: transportRecoveryPhase,
-                liveReattachPhase: liveReattachPhase,
-                remoteRuntime: remoteRuntime,
-              ),
-            ),
       primaryAction: primaryAction,
-      secondaryAction: secondaryAction,
       notice: recoveryNotice,
     );
-  }
-
-  String _laneEmptyStateStatusMessageFor({
-    required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
-    required ConnectionWorkspaceTransportRecoveryPhase? transportRecoveryPhase,
-    required ConnectionWorkspaceLiveReattachPhase? liveReattachPhase,
-    required ConnectionRemoteRuntimeState? remoteRuntime,
-  }) {
-    if (_isConnectingLaneTransport) {
-      return 'Pocket Relay is attaching this lane to Codex.';
-    }
-
-    if (liveReattachPhase ==
-            ConnectionWorkspaceLiveReattachPhase.reconnecting ||
-        transportRecoveryPhase ==
-            ConnectionWorkspaceTransportRecoveryPhase.reconnecting) {
-      return ConnectionWorkspaceCopy.reconnectingNoticeMessage;
-    }
-
-    if (reconnectRequirement != null) {
-      return switch (reconnectRequirement) {
-        ConnectionWorkspaceReconnectRequirement.savedSettings =>
-          'Apply the saved connection edits before this lane can continue.',
-        ConnectionWorkspaceReconnectRequirement.transport =>
-          'Reconnect this lane to Codex to continue.',
-        ConnectionWorkspaceReconnectRequirement.transportWithSavedSettings =>
-          'Apply the saved connection edits and reconnect this lane to continue.',
-      };
-    }
-
-    switch (remoteRuntime?.hostCapability.status ??
-        ConnectionRemoteHostCapabilityStatus.unknown) {
-      case ConnectionRemoteHostCapabilityStatus.unknown:
-        return 'Connect checks the host, starts the managed remote app-server if needed, and attaches this lane.';
-      case ConnectionRemoteHostCapabilityStatus.checking:
-        return ConnectionWorkspaceCopy.laneHostCheckingDetail;
-      case ConnectionRemoteHostCapabilityStatus.probeFailed:
-        return remoteRuntime?.hostCapability.detail ??
-            'Pocket Relay could not verify this host. Review the connection settings, then try again.';
-      case ConnectionRemoteHostCapabilityStatus.unsupported:
-        return remoteRuntime?.hostCapability.detail ??
-            'This host does not currently satisfy Pocket Relay continuity requirements.';
-      case ConnectionRemoteHostCapabilityStatus.supported:
-        switch (remoteRuntime?.server.status ??
-            ConnectionRemoteServerStatus.unknown) {
-          case ConnectionRemoteServerStatus.unknown:
-          case ConnectionRemoteServerStatus.checking:
-            return ConnectionWorkspaceCopy.laneServerCheckingDetail;
-          case ConnectionRemoteServerStatus.notRunning:
-            return remoteRuntime?.server.detail ??
-                'Connect will start the managed remote app-server for this lane.';
-          case ConnectionRemoteServerStatus.unhealthy:
-            return remoteRuntime?.server.detail ??
-                'Connect will restart the managed remote app-server before attaching this lane.';
-          case ConnectionRemoteServerStatus.running:
-            return ConnectionWorkspaceCopy.laneDisconnectedDetail;
-        }
-    }
-  }
-
-  String _laneEmptyStateStatusTextFor({
-    required _WorkspaceLaneStatusContract status,
-    required String? message,
-  }) {
-    final trimmedMessage = message?.trim();
-    if (trimmedMessage == null || trimmedMessage.isEmpty) {
-      final trimmedDetail = status.detail.trim();
-      if (trimmedDetail.isEmpty) {
-        return status.label;
-      }
-      return '${status.label}. $trimmedDetail';
-    }
-
-    return '${status.label}. $trimmedMessage';
-  }
-
-  _WorkspaceLaneStatusContract _laneStatusContractFor({
-    required ConnectionProfile profile,
-    required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
-    required ConnectionWorkspaceTransportRecoveryPhase? transportRecoveryPhase,
-    required ConnectionWorkspaceLiveReattachPhase? liveReattachPhase,
-    required ConnectionRemoteRuntimeState? remoteRuntime,
-  }) {
-    final baseDetail = ConnectionWorkspaceCopy.connectionSubtitle(profile);
-    final appServerConnected = widget.laneBinding.appServerClient.isConnected;
-
-    if (!profile.isReady) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneConfigurationIncompleteStatus,
-        detail: _laneStatusDetail(
-          baseDetail,
-          ConnectionWorkspaceCopy.laneConfigurationIncompleteDetail,
-        ),
-        icon: Icons.settings_outlined,
-        tone: _WorkspaceLaneStatusTone.warning,
-      );
-    }
-
-    if (_isConnectingLaneTransport) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneConnectingStatus,
-        detail: '$baseDetail · Connect this lane to Codex to continue.',
-        icon: Icons.sync_rounded,
-        tone: _WorkspaceLaneStatusTone.loading,
-      );
-    }
-
-    if (liveReattachPhase ==
-            ConnectionWorkspaceLiveReattachPhase.reconnecting ||
-        transportRecoveryPhase ==
-            ConnectionWorkspaceTransportRecoveryPhase.reconnecting) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneReconnectingStatus,
-        detail:
-            '$baseDetail · ${ConnectionWorkspaceCopy.reconnectingNoticeMessage}',
-        icon: Icons.sync_rounded,
-        tone: _WorkspaceLaneStatusTone.loading,
-      );
-    }
-
-    if (reconnectRequirement ==
-        ConnectionWorkspaceReconnectRequirement.savedSettings) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneChangesPendingStatus,
-        detail:
-            '$baseDetail · Apply the saved connection edits before this lane can continue.',
-        icon: Icons.edit_note_rounded,
-        tone: _WorkspaceLaneStatusTone.warning,
-      );
-    }
-
-    if (liveReattachPhase ==
-            ConnectionWorkspaceLiveReattachPhase.ownerMissing ||
-        (remoteRuntime?.hostCapability.isSupported == true &&
-            remoteRuntime?.server.status ==
-                ConnectionRemoteServerStatus.notRunning)) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneServerStoppedStatus,
-        detail: _laneStatusDetail(baseDetail, remoteRuntime?.server.detail),
-        icon: Icons.stop_circle_outlined,
-        tone: _WorkspaceLaneStatusTone.warning,
-      );
-    }
-
-    if (liveReattachPhase ==
-            ConnectionWorkspaceLiveReattachPhase.ownerUnhealthy ||
-        (remoteRuntime?.hostCapability.isSupported == true &&
-            remoteRuntime?.server.status ==
-                ConnectionRemoteServerStatus.unhealthy)) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneServerUnhealthyStatus,
-        detail: _laneStatusDetail(baseDetail, remoteRuntime?.server.detail),
-        icon: Icons.warning_amber_rounded,
-        tone: _WorkspaceLaneStatusTone.warning,
-      );
-    }
-
-    if (reconnectRequirement != null ||
-        liveReattachPhase ==
-            ConnectionWorkspaceLiveReattachPhase.transportLost ||
-        transportRecoveryPhase ==
-            ConnectionWorkspaceTransportRecoveryPhase.lost ||
-        transportRecoveryPhase ==
-            ConnectionWorkspaceTransportRecoveryPhase.unavailable) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneReconnectNeededStatus,
-        detail:
-            '$baseDetail · ${ConnectionWorkspaceCopy.reconnectingNoticeMessage}',
-        icon: Icons.link_off_rounded,
-        tone: _WorkspaceLaneStatusTone.warning,
-      );
-    }
-
-    if (profile.isLocal) {
-      return _WorkspaceLaneStatusContract(
-        label: appServerConnected
-            ? ConnectionWorkspaceCopy.laneConnectedStatus
-            : ConnectionWorkspaceCopy.laneLocalReadyStatus,
-        detail: baseDetail,
-        icon: appServerConnected
-            ? Icons.check_circle_outline_rounded
-            : Icons.laptop_mac_rounded,
-        tone: _WorkspaceLaneStatusTone.good,
-      );
-    }
-
-    if (appServerConnected) {
-      return _WorkspaceLaneStatusContract(
-        label: ConnectionWorkspaceCopy.laneConnectedStatus,
-        detail: _laneStatusDetail(baseDetail, remoteRuntime?.server.detail),
-        icon: Icons.check_circle_outline_rounded,
-        tone: _WorkspaceLaneStatusTone.good,
-      );
-    }
-
-    return switch (remoteRuntime?.hostCapability.status ??
-        ConnectionRemoteHostCapabilityStatus.unknown) {
-      ConnectionRemoteHostCapabilityStatus.unknown =>
-        _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneHostUnknownStatus,
-          detail: _laneStatusDetail(
-            baseDetail,
-            ConnectionWorkspaceCopy.laneBootstrapDetail,
-          ),
-          icon: Icons.help_outline_rounded,
-          tone: _WorkspaceLaneStatusTone.neutral,
-        ),
-      ConnectionRemoteHostCapabilityStatus.checking =>
-        _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneHostCheckingStatus,
-          detail: _laneStatusDetail(
-            baseDetail,
-            ConnectionWorkspaceCopy.laneHostCheckingDetail,
-          ),
-          icon: Icons.sync_rounded,
-          tone: _WorkspaceLaneStatusTone.loading,
-        ),
-      ConnectionRemoteHostCapabilityStatus.probeFailed =>
-        _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneHostCheckFailedStatus,
-          detail: _laneStatusDetail(
-            baseDetail,
-            remoteRuntime?.hostCapability.detail,
-          ),
-          icon: Icons.portable_wifi_off_rounded,
-          tone: _WorkspaceLaneStatusTone.danger,
-        ),
-      ConnectionRemoteHostCapabilityStatus.unsupported =>
-        _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneContinuityUnavailableStatus,
-          detail: _laneStatusDetail(
-            baseDetail,
-            remoteRuntime?.hostCapability.detail,
-          ),
-          icon: Icons.error_outline_rounded,
-          tone: _WorkspaceLaneStatusTone.warning,
-        ),
-      ConnectionRemoteHostCapabilityStatus.supported => switch (remoteRuntime
-              ?.server
-              .status ??
-          ConnectionRemoteServerStatus.unknown) {
-        ConnectionRemoteServerStatus.unknown ||
-        ConnectionRemoteServerStatus.checking => _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneServerCheckingStatus,
-          detail: _laneStatusDetail(
-            baseDetail,
-            ConnectionWorkspaceCopy.laneServerCheckingDetail,
-          ),
-          icon: Icons.sync_rounded,
-          tone: _WorkspaceLaneStatusTone.loading,
-        ),
-        ConnectionRemoteServerStatus.notRunning => _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneServerStoppedStatus,
-          detail: _laneStatusDetail(baseDetail, remoteRuntime?.server.detail),
-          icon: Icons.stop_circle_outlined,
-          tone: _WorkspaceLaneStatusTone.warning,
-        ),
-        ConnectionRemoteServerStatus.unhealthy => _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneServerUnhealthyStatus,
-          detail: _laneStatusDetail(baseDetail, remoteRuntime?.server.detail),
-          icon: Icons.warning_amber_rounded,
-          tone: _WorkspaceLaneStatusTone.warning,
-        ),
-        ConnectionRemoteServerStatus.running => _WorkspaceLaneStatusContract(
-          label: ConnectionWorkspaceCopy.laneDisconnectedStatus,
-          detail: baseDetail,
-          icon: Icons.link_off_rounded,
-          tone: _WorkspaceLaneStatusTone.neutral,
-        ),
-      },
-    };
-  }
-
-  String _laneStatusDetail(String baseDetail, String? runtimeDetail) {
-    final normalizedRuntimeDetail = runtimeDetail?.trim();
-    if (normalizedRuntimeDetail == null || normalizedRuntimeDetail.isEmpty) {
-      return baseDetail;
-    }
-    return '$baseDetail · $normalizedRuntimeDetail';
   }
 
   _WorkspaceLaneStatusActionContract? _lanePrimaryActionFor({
@@ -999,20 +674,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     if (reconnectRequirement case final requirement?) {
       return _WorkspaceLaneStatusActionContract(
         key: const ValueKey<String>('lane_connection_action_reconnect'),
-        label: isRestartInProgress
-            ? ConnectionWorkspaceCopy.reconnectProgressFor(requirement)
-            : ConnectionWorkspaceCopy.reconnectActionFor(requirement),
+        label: ConnectionWorkspaceCopy.reconnectActionFor(requirement),
         onPressed: isBusy ? null : _restartLane,
       );
     }
-
-    final progressLabel = switch (_activeLaneRemoteServerAction) {
-      ConnectionSettingsRemoteServerActionId.start =>
-        ConnectionWorkspaceCopy.startServerProgress,
-      ConnectionSettingsRemoteServerActionId.restart =>
-        ConnectionWorkspaceCopy.restartServerProgress,
-      ConnectionSettingsRemoteServerActionId.stop || null => null,
-    };
     final isCheckingRuntime =
         _isRefreshingLaneRemoteRuntime ||
         remoteRuntime?.hostCapability.status ==
@@ -1021,46 +686,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
     return _WorkspaceLaneStatusActionContract(
       key: const ValueKey<String>('lane_connection_action_connect'),
-      label:
-          progressLabel ??
-          (isCheckingRuntime
-              ? ConnectionWorkspaceCopy.checkHostProgress
-              : _isConnectingLaneTransport
-              ? ConnectionWorkspaceCopy.connectProgress
-              : ConnectionWorkspaceCopy.connectAction),
+      label: ConnectionWorkspaceCopy.connectAction,
       onPressed: isBusy || isCheckingRuntime ? null : _connectLane,
     );
   }
-
-  _WorkspaceLaneStatusActionContract _laneConversationHistoryActionFor({
-    required ConnectionProfile profile,
-    required bool isLaneBusy,
-  }) {
-    final hasWorkspaceHistoryScope = profile.workspaceDir.trim().isNotEmpty;
-    return _WorkspaceLaneStatusActionContract(
-      key: const ValueKey<String>('lane_connection_action_history'),
-      label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
-      onPressed: hasWorkspaceHistoryScope && !isLaneBusy
-          ? _showConversationHistory
-          : null,
-    );
-  }
-}
-
-enum _WorkspaceLaneStatusTone { neutral, good, warning, danger, loading }
-
-class _WorkspaceLaneStatusContract {
-  const _WorkspaceLaneStatusContract({
-    required this.label,
-    required this.detail,
-    required this.icon,
-    required this.tone,
-  });
-
-  final String label;
-  final String detail;
-  final IconData icon;
-  final _WorkspaceLaneStatusTone tone;
 }
 
 class _WorkspaceLaneStatusActionContract {
@@ -1078,23 +707,18 @@ class _WorkspaceLaneStatusActionContract {
 class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
   const _WorkspaceLaneEmptyStateContent({
     this.workspacePath,
-    this.statusMessage,
     this.primaryAction,
-    this.secondaryAction,
     this.notice,
   });
 
   final String? workspacePath;
-  final String? statusMessage;
   final _WorkspaceLaneStatusActionContract? primaryAction;
-  final _WorkspaceLaneStatusActionContract? secondaryAction;
   final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryAction = this.primaryAction;
-    final secondaryAction = this.secondaryAction;
     final workspacePath = this.workspacePath?.trim();
     final hasWorkspacePath = workspacePath != null && workspacePath.isNotEmpty;
 
@@ -1114,20 +738,8 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
               ),
             ),
           ],
-          if (statusMessage case final message?
-              when message.trim().isNotEmpty) ...[
-            if (hasWorkspacePath) const SizedBox(height: 14),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.45,
-              ),
-            ),
-          ],
           if (primaryAction != null) ...[
-            const SizedBox(height: 14),
+            if (hasWorkspacePath) const SizedBox(height: 14),
             FilledButton.tonal(
               key: primaryAction.key,
               onPressed: primaryAction.onPressed == null
@@ -1138,18 +750,6 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
               child: Text(primaryAction.label),
             ),
           ],
-          if (secondaryAction != null) ...[
-            const SizedBox(height: 10),
-            OutlinedButton(
-              key: secondaryAction.key,
-              onPressed: secondaryAction.onPressed == null
-                  ? null
-                  : () {
-                      unawaited(secondaryAction.onPressed!());
-                    },
-              child: Text(secondaryAction.label),
-            ),
-          ],
           if (notice != null) ...[const SizedBox(height: 14), notice!],
         ],
       ),
@@ -1158,32 +758,15 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
 }
 
 class _WorkspaceLaneConnectionStrip extends StatelessWidget {
-  const _WorkspaceLaneConnectionStrip({
-    required this.status,
-    this.primaryAction,
-    this.secondaryAction,
-    this.notice,
-  });
+  const _WorkspaceLaneConnectionStrip({this.primaryAction, this.notice});
 
-  final _WorkspaceLaneStatusContract status;
   final _WorkspaceLaneStatusActionContract? primaryAction;
-  final _WorkspaceLaneStatusActionContract? secondaryAction;
   final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final primaryAction = this.primaryAction;
-    final secondaryAction = this.secondaryAction;
-    final detail = switch (status.label) {
-      ConnectionWorkspaceCopy.laneDisconnectedStatus =>
-        '${status.detail.isEmpty ? '' : '${status.detail} · '}${ConnectionWorkspaceCopy.laneDisconnectedDetail}',
-      _ => status.detail,
-    };
-    final detailText = detail.trim().isEmpty
-        ? status.label
-        : '${status.label}. $detail';
-    final hasActions = primaryAction != null || secondaryAction != null;
+    final theme = Theme.of(context);
 
     return DecoratedBox(
       key: const ValueKey<String>('lane_connection_status_strip'),
@@ -1200,42 +783,23 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hasActions)
+            if (primaryAction != null)
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  if (primaryAction != null)
-                    FilledButton.tonal(
-                      key: primaryAction.key,
-                      onPressed: primaryAction.onPressed == null
-                          ? null
-                          : () {
-                              unawaited(primaryAction.onPressed!());
-                            },
-                      child: Text(primaryAction.label),
-                    ),
-                  if (secondaryAction != null)
-                    OutlinedButton(
-                      key: secondaryAction.key,
-                      onPressed: secondaryAction.onPressed == null
-                          ? null
-                          : () {
-                              unawaited(secondaryAction.onPressed!());
-                            },
-                      child: Text(secondaryAction.label),
-                    ),
+                  FilledButton.tonal(
+                    key: primaryAction.key,
+                    onPressed: primaryAction.onPressed == null
+                        ? null
+                        : () {
+                            unawaited(primaryAction.onPressed!());
+                          },
+                    child: Text(primaryAction.label),
+                  ),
                 ],
               ),
-            if (hasActions) const SizedBox(height: 8),
-            Text(
-              detailText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.35,
-              ),
-            ),
             if (notice != null) ...[const SizedBox(height: 12), notice!],
           ],
         ),

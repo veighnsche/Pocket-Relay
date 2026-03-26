@@ -981,7 +981,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.state.requiresReconnect('conn_primary'), isTrue);
-      expect(find.text('Changes pending'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('lane_connection_status_strip')),
+          matching: find.text('Changes pending'),
+        ),
+        findsNothing,
+      );
       expect(find.text('Apply changes'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('lane_connection_action_reconnect')),
@@ -1156,11 +1162,9 @@ Widget _buildShell(
 }
 
 Future<void> _openLaneConversationHistory(WidgetTester tester) async {
-  final historyButton = find.byKey(
-    const ValueKey('lane_connection_action_history'),
-  );
-  await tester.ensureVisible(historyButton);
-  await tester.tap(historyButton);
+  await tester.tap(find.byTooltip('More actions'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Conversation history'));
   await tester.pumpAndSettle();
 }
 
