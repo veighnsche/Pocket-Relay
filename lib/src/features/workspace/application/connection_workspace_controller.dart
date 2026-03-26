@@ -17,8 +17,12 @@ import '../domain/connection_workspace_state.dart';
 
 part 'connection_workspace_controller_catalog.dart';
 part 'connection_workspace_controller_lane.dart';
-part 'connection_workspace_controller_lifecycle.dart';
 part 'connection_workspace_controller_remote_owner.dart';
+part 'controller/app_lifecycle.dart';
+part 'controller/bootstrap.dart';
+part 'controller/conversation_selection.dart';
+part 'controller/delete_connection.dart';
+part 'controller/reconnect.dart';
 
 typedef ConnectionLaneBindingFactory =
     ConnectionLaneBinding Function({
