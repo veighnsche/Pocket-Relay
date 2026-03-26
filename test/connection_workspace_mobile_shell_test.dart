@@ -338,7 +338,7 @@ void main() {
       expect(newThreadItem.enabled, isFalse);
       expect(clearTranscriptItem.enabled, isFalse);
       expect(historyItem.enabled, isFalse);
-      expect(closeLaneItem.enabled, isFalse);
+      expect(closeLaneItem.enabled, isTrue);
       expect(savedConnectionsItem.enabled, isTrue);
     },
   );
@@ -557,7 +557,10 @@ void main() {
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
       expect(find.text('Changes pending'), findsWidgets);
       expect(find.text('Apply changes'), findsOneWidget);
-      expect(find.byKey(const ValueKey('restart_lane')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('lane_connection_action_reconnect')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -591,7 +594,10 @@ void main() {
       expect(find.text('Reconnect'), findsOneWidget);
       expect(find.text('Changes pending'), findsNothing);
       expect(find.text('Apply changes'), findsNothing);
-      expect(find.byKey(const ValueKey('restart_lane')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('lane_connection_action_reconnect')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -669,7 +675,9 @@ void main() {
 
       await tester.tap(find.byTooltip('Connection settings'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('restart_lane')));
+      await tester.tap(
+        find.byKey(const ValueKey('lane_connection_action_reconnect')),
+      );
       await tester.pumpAndSettle();
 
       expect(controller.state.requiresReconnect('conn_primary'), isFalse);

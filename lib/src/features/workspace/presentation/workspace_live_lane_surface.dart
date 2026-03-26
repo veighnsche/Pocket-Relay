@@ -162,14 +162,17 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         ConnectionWorkspaceTransportRecoveryPhase.reconnecting;
     final isRestartInProgress =
         _isRestartingLane || isTransportReconnectInProgress;
+    final recoveryNotice = _transportRecoveryNoticeFor(
+      liveReattachPhase: liveReattachPhase,
+      phase: transportRecoveryPhase,
+      remoteRuntime: remoteRuntime,
+    );
     final chatRoot = ChatRootAdapter(
       laneBinding: widget.laneBinding,
       platformPolicy: widget.platformPolicy,
       onConnectionSettingsRequested: _handleConnectionSettingsRequested,
       supplementalMenuActions: _supplementalMenuActionsFor(
-        reconnectRequirement: reconnectRequirement,
         isLaneBusy: isLaneBusy,
-        isRestartInProgress: isRestartInProgress,
       ),
       supplementalStatusRegion: _buildLaneConnectionStrip(
         context,
@@ -179,31 +182,9 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         liveReattachPhase: liveReattachPhase,
         remoteRuntime: remoteRuntime,
         isLaneBusy: isLaneBusy,
+        isRestartInProgress: isRestartInProgress,
+        recoveryNotice: recoveryNotice,
       ),
-      supplementalComposerNotice: _transportRecoveryNoticeFor(
-        liveReattachPhase: liveReattachPhase,
-        phase: transportRecoveryPhase,
-        remoteRuntime: remoteRuntime,
-      ),
-      laneRestartAction: reconnectRequirement != null
-          ? ChatLaneRestartActionContract(
-              badgeLabel: ConnectionWorkspaceCopy.reconnectBadgeFor(
-                reconnectRequirement,
-              ),
-              label: isRestartInProgress
-                  ? ConnectionWorkspaceCopy.reconnectProgressFor(
-                      reconnectRequirement,
-                    )
-                  : ConnectionWorkspaceCopy.reconnectActionFor(
-                      reconnectRequirement,
-                    ),
-              isInProgress: isRestartInProgress,
-            )
-          : null,
-      onRestartLane:
-          reconnectRequirement != null && !isLaneBusy && !isRestartInProgress
-          ? _restartLane
-          : null,
     );
     return chatRoot;
   }
@@ -425,6 +406,8 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     required ConnectionWorkspaceLiveReattachPhase? liveReattachPhase,
     required ConnectionRemoteRuntimeState? remoteRuntime,
     required bool isLaneBusy,
+    required bool isRestartInProgress,
+    required Widget? recoveryNotice,
   }) {
     final status = _laneStatusContractFor(
       profile: profile,
@@ -438,10 +421,12 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       reconnectRequirement: reconnectRequirement,
       remoteRuntime: remoteRuntime,
       isLaneBusy: isLaneBusy,
+      isRestartInProgress: isRestartInProgress,
     );
     return _WorkspaceLaneConnectionStrip(
       status: status,
       primaryAction: primaryAction,
+      notice: recoveryNotice,
     );
   }
 
@@ -643,8 +628,9 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
     required ConnectionRemoteRuntimeState? remoteRuntime,
     required bool isLaneBusy,
+    required bool isRestartInProgress,
   }) {
-    if (!profile.isRemote || !profile.isReady || reconnectRequirement != null) {
+    if (!profile.isRemote || !profile.isReady) {
       return null;
     }
 
@@ -652,7 +638,18 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         isLaneBusy ||
         _isRefreshingLaneRemoteRuntime ||
         _isConnectingLaneTransport ||
-        _activeLaneRemoteServerAction != null;
+        _activeLaneRemoteServerAction != null ||
+        isRestartInProgress;
+    if (reconnectRequirement case final requirement?) {
+      return _WorkspaceLaneStatusActionContract(
+        key: const ValueKey<String>('lane_connection_action_reconnect'),
+        label: isRestartInProgress
+            ? ConnectionWorkspaceCopy.reconnectProgressFor(requirement)
+            : ConnectionWorkspaceCopy.reconnectActionFor(requirement),
+        onPressed: isBusy ? null : _restartLane,
+      );
+    }
+
     switch (remoteRuntime?.hostCapability.status ??
         ConnectionRemoteHostCapabilityStatus.unknown) {
       case ConnectionRemoteHostCapabilityStatus.unknown:
@@ -750,10 +747,12 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
   const _WorkspaceLaneConnectionStrip({
     required this.status,
     this.primaryAction,
+    this.notice,
   });
 
   final _WorkspaceLaneStatusContract status;
   final _WorkspaceLaneStatusActionContract? primaryAction;
+  final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
@@ -842,6 +841,10 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
                 height: 1.35,
               ),
             ),
+            if (notice != null) ...[
+              const SizedBox(height: 12),
+              notice!,
+            ],
           ],
         ),
       ),
