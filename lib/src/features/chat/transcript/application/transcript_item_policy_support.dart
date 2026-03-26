@@ -37,14 +37,20 @@ String _nextItemEntryId(
     ...codexUiBlockIds(state.blocks),
     if (activeTurn != null) ...codexTurnArtifactIds(activeTurn.artifacts),
   };
+  bool conflicts(String candidate) {
+    return usedIds.contains(candidate) ||
+        usedIds.contains('work_group_$candidate') ||
+        usedIds.contains('changed_files_group_$candidate');
+  }
+
   final baseId = 'item_$itemId';
-  if (!usedIds.contains(baseId)) {
+  if (!conflicts(baseId)) {
     return baseId;
   }
 
   var ordinal = 2;
   var candidate = '$baseId-$ordinal';
-  while (usedIds.contains(candidate)) {
+  while (conflicts(candidate)) {
     ordinal += 1;
     candidate = '$baseId-$ordinal';
   }

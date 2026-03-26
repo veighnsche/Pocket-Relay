@@ -1784,23 +1784,79 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Changed files'), findsNWidgets(2));
-      expect(find.text('README.md'), findsNWidgets(2));
-      expect(find.text('app.dart'), findsOneWidget);
-      expect(find.text('File change approval resolved'), findsOneWidget);
+      final firstChangedFilesEntry = find.byKey(
+        const ValueKey('transcript_changed_files_group_item_file_change_1'),
+      );
+      final resolvedApprovalEntry = find.byKey(
+        const ValueKey('transcript_request_i:99'),
+      );
+      final resumedChangedFilesEntry = find.byKey(
+        const ValueKey('transcript_changed_files_group_item_file_change_1-2'),
+      );
 
-      final firstChangedFilesDy = tester
-          .getTopLeft(find.text('Changed files').first)
-          .dy;
-      final resolvedDy = tester
-          .getTopLeft(find.text('File change approval resolved'))
-          .dy;
-      final secondChangedFilesDy = tester
-          .getTopLeft(find.text('Changed files').last)
-          .dy;
+      expect(resolvedApprovalEntry, findsOneWidget);
+      expect(resumedChangedFilesEntry, findsOneWidget);
+      expect(
+        find.descendant(
+          of: resumedChangedFilesEntry,
+          matching: find.text('Changed files'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: resumedChangedFilesEntry,
+          matching: find.text('README.md'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: resumedChangedFilesEntry,
+          matching: find.text('app.dart'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: resolvedApprovalEntry,
+          matching: find.text('File change approval resolved'),
+        ),
+        findsOneWidget,
+      );
 
-      expect(firstChangedFilesDy, lessThan(resolvedDy));
-      expect(resolvedDy, lessThan(secondChangedFilesDy));
+      final transcriptScrollable = find.byType(Scrollable).first;
+      for (
+        var attempt = 0;
+        attempt < 8 && firstChangedFilesEntry.evaluate().isEmpty;
+        attempt += 1
+      ) {
+        await tester.drag(transcriptScrollable, const Offset(0, 200));
+        await tester.pumpAndSettle();
+      }
+
+      expect(firstChangedFilesEntry, findsOneWidget);
+      expect(
+        find.descendant(
+          of: firstChangedFilesEntry,
+          matching: find.text('Changed files'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: firstChangedFilesEntry,
+          matching: find.text('README.md'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: firstChangedFilesEntry,
+          matching: find.text('app.dart'),
+        ),
+        findsNothing,
+      );
     },
   );
 
