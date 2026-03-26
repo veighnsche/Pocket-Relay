@@ -18,6 +18,7 @@ part 'flutter_chat_screen_renderer_timeline.dart';
 class FlutterChatScreenRenderer extends StatelessWidget {
   const FlutterChatScreenRenderer({
     super.key,
+    required this.platformBehavior,
     required this.screen,
     required this.appChrome,
     required this.transcriptRegion,
@@ -28,6 +29,7 @@ class FlutterChatScreenRenderer extends StatelessWidget {
     this.onRestartLane,
   });
 
+  final PocketPlatformBehavior platformBehavior;
   final ChatScreenContract screen;
   final PreferredSizeWidget appChrome;
   final Widget transcriptRegion;
@@ -43,6 +45,7 @@ class FlutterChatScreenRenderer extends StatelessWidget {
       appBar: appChrome,
       body: ChatScreenGradientBackground(
         child: ChatScreenBody(
+          platformBehavior: platformBehavior,
           screen: screen,
           transcriptRegion: transcriptRegion,
           composerRegion: composerRegion,

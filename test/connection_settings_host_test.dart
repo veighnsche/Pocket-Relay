@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
@@ -119,6 +120,30 @@ void main() {
       expect(find.text('Host'), findsNothing);
       expect(find.text('SSH password'), findsNothing);
       expect(find.text('Local Codex'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'desktop settings use centered desktop chrome without the sheet drag handle',
+    (tester) async {
+      tester.view.physicalSize = const Size(1440, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          platformBehavior: _desktopBehavior,
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('desktop_connection_settings_surface'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(ModalSheetDragHandle), findsNothing);
     },
   );
 
@@ -910,7 +935,11 @@ Widget _buildMaterialSettingsApp({
         builder:
             builder ??
             (context, viewModel, actions) {
-              return ConnectionSheet(viewModel: viewModel, actions: actions);
+              return ConnectionSheet(
+                platformBehavior: platformBehavior,
+                viewModel: viewModel,
+                actions: actions,
+              );
             },
       ),
     ),

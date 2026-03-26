@@ -245,6 +245,7 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                     final screen =
                         WidgetbookFixtures.denseTranscriptLaneScreen();
                     return FlutterChatScreenRenderer(
+                      platformBehavior: WidgetbookFixtures.desktopBehavior,
                       screen: screen,
                       appChrome: FlutterChatAppChrome(
                         screen: screen,
@@ -694,6 +695,7 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                   onSubmit: (_) {},
                   builder: (context, viewModel, actions) {
                     return ConnectionSheet(
+                      platformBehavior: WidgetbookFixtures.desktopBehavior,
                       viewModel: viewModel,
                       actions: actions,
                     );
@@ -716,6 +718,7 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                   onSubmit: (_) {},
                   builder: (context, viewModel, actions) {
                     return ConnectionSheet(
+                      platformBehavior: WidgetbookFixtures.desktopBehavior,
                       viewModel: viewModel,
                       actions: actions,
                     );

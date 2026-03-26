@@ -13,15 +13,26 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     super.key,
     required this.viewModel,
     required this.actions,
+    this.isDesktopPresentation = false,
   });
 
   final ConnectionSettingsHostViewModel viewModel;
   final ConnectionSettingsHostActions actions;
+  final bool isDesktopPresentation;
+  static const _desktopSurfacePadding = 24.0;
+  static const _desktopSurfaceVerticalMargin = _desktopSurfacePadding * 2;
+  static const _desktopSurfaceMaxWidth = 880.0;
+  static const _desktopSurfaceHeaderBottomPadding = 20.0;
+  static const _desktopSurfaceContentTopPadding = 20.0;
+  static const _desktopSurfaceElevation = 18.0;
+  static const _desktopSurfaceRadius = 32.0;
 
   @override
   Widget build(BuildContext context) {
     final contract = viewModel.contract;
-    return _buildMaterialSurface(context, contract);
+    return isDesktopPresentation
+        ? _buildDesktopSurface(context, contract)
+        : _buildMaterialSurface(context, contract);
   }
 
   Widget _buildMaterialSurface(
@@ -29,8 +40,75 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     ConnectionSettingsContract contract,
   ) {
     return ModalSheetScaffold(
-      header: _buildStickyHeader(context, contract),
-      body: _buildScrollableContent(context, contract),
+      header: _buildSheetHeader(context, contract),
+      body: _buildScrollableContent(context, contract, includeIntro: true),
+    );
+  }
+
+  Widget _buildDesktopSurface(
+    BuildContext context,
+    ConnectionSettingsContract contract,
+  ) {
+    final palette = context.pocketPalette;
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          _desktopSurfacePadding,
+          _desktopSurfacePadding,
+          _desktopSurfacePadding,
+          _desktopSurfacePadding + viewInsets.bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: _desktopSurfaceMaxWidth,
+            maxHeight:
+                screenHeight -
+                _desktopSurfaceVerticalMargin -
+                viewInsets.bottom,
+          ),
+          child: Material(
+            key: const ValueKey<String>('desktop_connection_settings_surface'),
+            color: palette.sheetBackground,
+            elevation: _desktopSurfaceElevation,
+            shadowColor: palette.shadowColor.withValues(alpha: 0.32),
+            borderRadius: BorderRadius.circular(_desktopSurfaceRadius),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    _desktopSurfacePadding,
+                    _desktopSurfacePadding,
+                    _desktopSurfacePadding,
+                    _desktopSurfaceHeaderBottomPadding,
+                  ),
+                  child: _buildDesktopHeader(context, contract),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: _desktopSurfacePadding,
+                      right: _desktopSurfacePadding,
+                      top: _desktopSurfaceContentTopPadding,
+                      bottom: _desktopSurfacePadding,
+                    ),
+                    child: _buildScrollableContent(
+                      context,
+                      contract,
+                      includeIntro: false,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -329,7 +407,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
-  Widget _buildStickyHeader(
+  Widget _buildSheetHeader(
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
@@ -361,17 +439,58 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
-  Widget _buildScrollableContent(
+  Widget _buildDesktopHeader(
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(contract.title, style: _titleStyle(context)),
+              const SizedBox(height: 8),
+              Text(contract.description, style: _descriptionStyle(context)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 24),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              key: const ValueKey<String>('connection_settings_cancel_top'),
+              onPressed: actions.onCancel,
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: 12),
+            FilledButton(
+              key: const ValueKey<String>('connection_settings_save_top'),
+              onPressed: actions.onSave,
+              child: Text(contract.saveAction.label),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScrollableContent(
+    BuildContext context,
+    ConnectionSettingsContract contract, {
+    required bool includeIntro,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(contract.title, style: _titleStyle(context)),
-        const SizedBox(height: 8),
-        Text(contract.description, style: _descriptionStyle(context)),
-        const SizedBox(height: 20),
+        if (includeIntro) ...[
+          Text(contract.title, style: _titleStyle(context)),
+          const SizedBox(height: 8),
+          Text(contract.description, style: _descriptionStyle(context)),
+          const SizedBox(height: 20),
+        ],
         _buildSection(
           context,
           title: contract.profileSection.title,

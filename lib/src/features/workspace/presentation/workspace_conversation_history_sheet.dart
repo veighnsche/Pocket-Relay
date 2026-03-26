@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
 import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+
+enum ConnectionWorkspaceConversationHistoryPresentation { mobile, desktop }
 
 class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
   const ConnectionWorkspaceConversationHistorySheet({
@@ -12,22 +15,33 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     required this.future,
     required this.onResumeConversation,
     this.onOpenConnectionSettings,
+    this.presentation =
+        ConnectionWorkspaceConversationHistoryPresentation.mobile,
   });
+
+  static const _bodyDescription =
+      'Pick a saved conversation to resume in this lane.';
 
   final String title;
   final Future<List<CodexWorkspaceConversationSummary>> future;
   final ValueChanged<CodexWorkspaceConversationSummary> onResumeConversation;
   final VoidCallback? onOpenConnectionSettings;
+  final ConnectionWorkspaceConversationHistoryPresentation presentation;
 
   @override
   Widget build(BuildContext context) {
     final cards = TranscriptPalette.of(context);
 
-    return ModalSheetScaffold(
-      header: _buildStickyHeader(context, cards),
-      bodyIsScrollable: false,
-      body: _buildBody(context, cards),
-    );
+    return switch (presentation) {
+      ConnectionWorkspaceConversationHistoryPresentation.mobile =>
+        ModalSheetScaffold(
+          header: _buildSheetHeader(context, cards),
+          bodyIsScrollable: false,
+          body: _buildBody(context, cards, showIntro: true),
+        ),
+      ConnectionWorkspaceConversationHistoryPresentation.desktop =>
+        _buildDesktopSurface(context, cards),
+    };
   }
 
   String _subtitleFor(CodexWorkspaceConversationSummary conversation) {
@@ -46,7 +60,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     return '${value.year}-$twoDigitMonth-$twoDigitDay $twoDigitHour:$twoDigitMinute';
   }
 
-  Widget _buildStickyHeader(BuildContext context, TranscriptPalette cards) {
+  Widget _buildSheetHeader(BuildContext context, TranscriptPalette cards) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -66,13 +80,48 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, TranscriptPalette cards) {
+  Widget _buildDesktopSurface(BuildContext context, TranscriptPalette cards) {
+    final palette = context.pocketPalette;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 880,
+            maxHeight: MediaQuery.sizeOf(context).height - 48,
+          ),
+          child: Material(
+            key: const ValueKey<String>('desktop_conversation_history_surface'),
+            color: palette.sheetBackground,
+            elevation: 18,
+            shadowColor: palette.shadowColor.withValues(alpha: 0.32),
+            borderRadius: BorderRadius.circular(32),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 16, 20),
+                  child: _buildDesktopHeader(context, cards),
+                ),
+                const Divider(height: 1),
+                Expanded(child: _buildBody(context, cards, showIntro: false)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeader(BuildContext context, TranscriptPalette cards) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -84,7 +133,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Pick a saved conversation to resume in this lane.',
+                _bodyDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -92,6 +141,47 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 16),
+        IconButton(
+          tooltip: 'Close conversation history',
+          onPressed: () => Navigator.of(context).pop(),
+          icon: Icon(Icons.close, color: cards.textMuted),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    TranscriptPalette cards, {
+    required bool showIntro,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showIntro)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _bodyDescription,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: FutureBuilder<List<CodexWorkspaceConversationSummary>>(
             future: future,
