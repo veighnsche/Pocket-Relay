@@ -2,6 +2,8 @@ part of 'workspace_desktop_shell.dart';
 
 extension on _MaterialDesktopSidebar {
   List<Widget> _buildCollapsedChildren(BuildContext context) {
+    final inventoryEntries = connectionWorkspaceInventoryEntriesFromState(state);
+
     return <Widget>[
       if (onToggleCollapsed case final onPressed?)
         Align(
@@ -11,29 +13,26 @@ extension on _MaterialDesktopSidebar {
           ),
         ),
       if (onToggleCollapsed != null) const SizedBox(height: 14),
-      ...state.liveConnectionIds.indexed.map((entry) {
+      ...inventoryEntries.indexed.map((entry) {
         final index = entry.$1;
-        final connectionId = entry.$2;
-        final laneBinding = workspaceController.bindingForConnectionId(
-          connectionId,
-        );
-        final liveProfile = laneBinding?.sessionController.profile;
-        if (liveProfile == null) {
-          return const SizedBox.shrink();
-        }
-
+        final inventoryEntry = entry.$2;
+        final connectionId = inventoryEntry.connection.id;
         return Padding(
           padding: EdgeInsets.only(
-            bottom: index == state.liveConnectionIds.length - 1 ? 0 : 10,
+            bottom: index == inventoryEntries.length - 1 ? 0 : 10,
           ),
           child: _MaterialCollapsedSidebarButton(
-            buttonKey: ValueKey<String>('desktop_live_$connectionId'),
-            label: _monogramFor(liveProfile.label),
-            isSelected:
-                state.isShowingLiveLane &&
-                state.selectedConnectionId == connectionId,
+            buttonKey: ValueKey<String>('desktop_connection_$connectionId'),
+            label: _monogramFor(inventoryEntry.connection.profile.label),
+            isSelected: inventoryEntry.isCurrent,
             showsActivityDot: state.requiresReconnect(connectionId),
-            onTap: () => workspaceController.selectConnection(connectionId),
+            onTap: () {
+              if (inventoryEntry.isLive) {
+                workspaceController.selectConnection(connectionId);
+                return;
+              }
+              unawaited(onOpenConnection(connectionId));
+            },
           ),
         );
       }),

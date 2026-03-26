@@ -14,6 +14,7 @@ import 'package:pocket_relay/src/features/connection_settings/presentation/conne
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_inventory.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 
 part 'workspace_saved_connections_content_items.dart';
@@ -69,16 +70,18 @@ class _ConnectionWorkspaceSavedConnectionsContentState
   @override
   Widget build(BuildContext context) {
     final workspaceState = widget.workspaceController.state;
-    final savedConnections = workspaceState.catalog.orderedConnections;
+    final inventoryEntries = connectionWorkspaceInventoryEntriesFromState(
+      workspaceState,
+    );
     _scheduleMissingRemoteRuntimeProbes(
       workspaceState: workspaceState,
-      savedConnections: savedConnections,
+      inventoryEntries: inventoryEntries,
     );
 
     final content = _buildMaterialContent(
       context,
       workspaceState: workspaceState,
-      savedConnections: savedConnections,
+      inventoryEntries: inventoryEntries,
     );
 
     final wrappedContent = widget.useSafeArea
@@ -271,47 +274,34 @@ class _ConnectionWorkspaceSavedConnectionsContentState
   }
 
   List<Widget> _statusBadgesFor(
-    BuildContext context, {
-    required String connectionId,
-    required bool isLive,
-    required bool isSelected,
-    required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
-  }) {
+    BuildContext context,
+    List<ConnectionWorkspaceInventoryBadge> badges,
+  ) {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
     final warning = theme.colorScheme.tertiary;
 
     return <Widget>[
-      if (isLive)
+      for (final badge in badges)
         PocketTintBadge(
-          label: ConnectionWorkspaceCopy.openConnectionBadge,
-          color: accent,
-        ),
-      if (isSelected)
-        PocketTintBadge(
-          label: ConnectionWorkspaceCopy.currentConnectionBadge,
-          color: accent,
-        ),
-      if (reconnectRequirement != null)
-        PocketTintBadge(
-          label: ConnectionWorkspaceCopy.reconnectBadgeFor(
-            reconnectRequirement,
-          ),
-          color: warning,
+          label: badge.label,
+          color: badge.tone == ConnectionWorkspaceInventoryBadgeTone.warning
+              ? warning
+              : accent,
         ),
     ];
   }
 
   void _scheduleMissingRemoteRuntimeProbes({
     required ConnectionWorkspaceState workspaceState,
-    required List<SavedConnectionSummary> savedConnections,
+    required List<ConnectionWorkspaceInventoryEntry> inventoryEntries,
   }) {
     final connectionIdsToProbe = <String>[
-      for (final connection in savedConnections)
-        if (connection.profile.isRemote &&
-            workspaceState.remoteRuntimeFor(connection.id) == null &&
-            !_autoProbedRemoteRuntimeConnectionIds.contains(connection.id))
-          connection.id,
+      for (final entry in inventoryEntries)
+        if (entry.connection.profile.isRemote &&
+            entry.remoteRuntime == null &&
+            !_autoProbedRemoteRuntimeConnectionIds.contains(entry.connection.id))
+          entry.connection.id,
     ];
     if (connectionIdsToProbe.isEmpty) {
       return;

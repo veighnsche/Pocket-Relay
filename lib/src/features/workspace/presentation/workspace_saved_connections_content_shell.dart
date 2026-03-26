@@ -4,7 +4,7 @@ extension on _ConnectionWorkspaceSavedConnectionsContentState {
   Widget _buildMaterialContent(
     BuildContext context, {
     required ConnectionWorkspaceState workspaceState,
-    required List<SavedConnectionSummary> savedConnections,
+    required List<ConnectionWorkspaceInventoryEntry> inventoryEntries,
   }) {
     return ListView(
       controller: _scrollController,
@@ -38,24 +38,16 @@ extension on _ConnectionWorkspaceSavedConnectionsContentState {
           ),
         ),
         const SizedBox(height: 18),
-        if (savedConnections.isEmpty)
+        if (inventoryEntries.isEmpty)
           const _SavedConnectionsEmptyState()
         else
-          ...savedConnections.indexed.map((entry) {
+          ...inventoryEntries.indexed.map((entry) {
             final index = entry.$1;
-            final connection = entry.$2;
-            final isLive = workspaceState.isConnectionLive(connection.id);
-            final isSelected =
-                isLive && workspaceState.selectedConnectionId == connection.id;
-            final reconnectRequirement = workspaceState.reconnectRequirementFor(
-              connection.id,
-            );
-            final remoteRuntime = workspaceState.remoteRuntimeFor(
-              connection.id,
-            );
+            final inventoryEntry = entry.$2;
+            final connection = inventoryEntry.connection;
             return Padding(
               padding: EdgeInsets.only(
-                bottom: index == savedConnections.length - 1 ? 0 : 12,
+                bottom: index == inventoryEntries.length - 1 ? 0 : 12,
               ),
               child: _SavedConnectionItem(
                 connectionId: connection.id,
@@ -63,23 +55,16 @@ extension on _ConnectionWorkspaceSavedConnectionsContentState {
                 subtitle: _connectionSubtitle(connection.profile),
                 statusBadges: _statusBadgesFor(
                   context,
-                  connectionId: connection.id,
-                  isLive: isLive,
-                  isSelected: isSelected,
-                  reconnectRequirement: reconnectRequirement,
+                  inventoryEntry.badges,
                 ),
-                remoteStatusSummary:
-                    ConnectionWorkspaceCopy.savedConnectionRemoteStatusSummary(
-                      connection.profile,
-                      remoteRuntime,
-                    ),
-                isLive: isLive,
+                remoteStatusSummary: inventoryEntry.remoteStatusSummary,
+                isLive: inventoryEntry.isLive,
                 isOpening: _instantiatingConnectionIds.contains(connection.id),
                 isEditing: _editingConnectionIds.contains(connection.id),
                 isDeleting: _deletingConnectionIds.contains(connection.id),
                 onOpen: () => _openConnection(connection),
                 onEdit: () => _editConnection(connection),
-                onDelete: isLive
+                onDelete: inventoryEntry.isLive
                     ? null
                     : () => _deleteConnection(connection.id),
               ),

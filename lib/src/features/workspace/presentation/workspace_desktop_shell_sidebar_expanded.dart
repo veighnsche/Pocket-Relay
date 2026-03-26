@@ -3,6 +3,7 @@ part of 'workspace_desktop_shell.dart';
 extension on _MaterialDesktopSidebar {
   List<Widget> _buildExpandedChildren(BuildContext context) {
     final theme = Theme.of(context);
+    final inventoryEntries = connectionWorkspaceInventoryEntriesFromState(state);
 
     return <Widget>[
       Row(
@@ -31,82 +32,43 @@ extension on _MaterialDesktopSidebar {
       ),
       const SizedBox(height: 22),
       _MaterialSidebarSectionTitle(
-        title: ConnectionWorkspaceCopy.openLanesSectionTitle,
-        trailingCount: state.liveConnectionIds.length,
+        title: ConnectionWorkspaceCopy.connectionInventorySectionTitle,
+        trailingCount: inventoryEntries.length,
       ),
       const SizedBox(height: 10),
-      ...state.liveConnectionIds.indexed.map((entry) {
+      ...inventoryEntries.indexed.map((entry) {
         final index = entry.$1;
-        final connectionId = entry.$2;
-        final laneBinding = workspaceController.bindingForConnectionId(
-          connectionId,
-        );
-        final liveProfile = laneBinding?.sessionController.profile;
-        final isBusy =
-            laneBinding?.sessionController.sessionState.isBusy ?? false;
-        if (liveProfile == null) {
-          return const SizedBox.shrink();
-        }
-
+        final inventoryEntry = entry.$2;
+        final connectionId = inventoryEntry.connection.id;
+        final laneBinding = workspaceController.bindingForConnectionId(connectionId);
+        final isBusy = laneBinding?.sessionController.sessionState.isBusy ?? false;
         return Padding(
           padding: EdgeInsets.only(
-            bottom: index == state.liveConnectionIds.length - 1 ? 0 : 10,
+            bottom: index == inventoryEntries.length - 1 ? 0 : 10,
           ),
           child: _MaterialSidebarConnectionRow(
-            connectionId: connectionId,
-            title: liveProfile.label,
-            subtitle: connectionSubtitleBuilder(liveProfile),
-            reconnectRequirement: state.reconnectRequirementFor(connectionId),
-            isSelected:
-                state.isShowingLiveLane &&
-                state.selectedConnectionId == connectionId,
-            onTap: () => workspaceController.selectConnection(connectionId),
-            canClose: !isBusy,
-            onClose: () =>
-                workspaceController.terminateConnection(connectionId),
+            entry: inventoryEntry,
+            isSelected: inventoryEntry.isCurrent,
+            isOpening: openingConnectionIds.contains(connectionId),
+            onTap: () {
+              if (inventoryEntry.isLive) {
+                workspaceController.selectConnection(connectionId);
+                return;
+              }
+              unawaited(onOpenConnection(connectionId));
+            },
+            onClose:
+                inventoryEntry.isLive && !isBusy
+                ? () => workspaceController.terminateConnection(connectionId)
+                : null,
           ),
         );
       }),
       const SizedBox(height: 22),
-      _MaterialSidebarSectionTitle(
-        title: ConnectionWorkspaceCopy.savedSectionTitle,
-        trailingCount: state.savedConnectionIds.length,
-      ),
-      const SizedBox(height: 10),
       _MaterialSavedConnectionsSidebarRow(
         isSelected: state.isShowingSavedConnections,
         onTap: workspaceController.showSavedConnections,
       ),
-      if (state.savedConnectionIds.isNotEmpty) ...[
-        const SizedBox(height: 10),
-        ...state.savedConnectionIds.indexed.map((entry) {
-          final index = entry.$1;
-          final connectionId = entry.$2;
-          final summary = state.catalog.connectionForId(connectionId);
-          if (summary == null) {
-            return const SizedBox.shrink();
-          }
-
-          final isOpen = state.isConnectionLive(connectionId);
-          final inventoryLabel =
-              ConnectionWorkspaceCopy.compactSavedConnectionLabel(
-                summary.profile,
-              ) +
-              (isOpen
-                  ? ' · ${ConnectionWorkspaceCopy.openConnectionBadge}'
-                  : '');
-
-          return Padding(
-            padding: EdgeInsets.only(left: 12, top: index == 0 ? 0 : 8),
-            child: Text(
-              '${summary.profile.label} · $inventoryLabel',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          );
-        }),
-      ],
     ];
   }
 }

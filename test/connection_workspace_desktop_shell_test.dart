@@ -22,7 +22,7 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake
 import 'support/fake_connection_settings_overlay_delegate.dart';
 
 void main() {
-  testWidgets('renders live and dormant sections in the desktop sidebar', (
+  testWidgets('renders a unified connection inventory in the desktop sidebar', (
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -37,17 +37,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Connections'), findsOneWidget);
-    expect(find.text('Open lanes'), findsOneWidget);
-    expect(find.text('Saved'), findsOneWidget);
+    expect(find.text('Inventory'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('desktop_live_conn_primary')),
+      find.byKey(const ValueKey('desktop_connection_conn_primary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('desktop_connection_conn_secondary')),
       findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('desktop_saved_connections')),
       findsOneWidget,
     );
-    expect(find.textContaining('Secondary Box'), findsOneWidget);
+    expect(find.text('Manage connections'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('desktop_sidebar_toggle')),
       findsOneWidget,
@@ -160,7 +163,7 @@ void main() {
     },
   );
 
-  testWidgets('dormant sidebar action shows the roster in the main pane', (
+  testWidgets('manage connections action shows the roster in the main pane', (
     tester,
   ) async {
     final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
@@ -184,6 +187,34 @@ void main() {
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
   });
+
+  testWidgets(
+    'dormant inventory rows open a lane directly from the desktop sidebar',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(_buildShell(controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('desktop_connection_conn_secondary')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.state.isShowingLiveLane, isTrue);
+      expect(controller.state.selectedConnectionId, 'conn_secondary');
+      expect(controller.state.liveConnectionIds, <String>[
+        'conn_primary',
+        'conn_secondary',
+      ]);
+    },
+  );
 
   testWidgets(
     'desktop overflow menu opens the workspace conversation history sheet',
@@ -707,21 +738,23 @@ void main() {
     controller.showSavedConnections();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('desktop_live_conn_secondary')));
+    await tester.tap(
+      find.byKey(const ValueKey('desktop_connection_conn_secondary')),
+    );
     await tester.pumpAndSettle();
 
     expect(controller.state.isShowingLiveLane, isTrue);
     expect(controller.state.selectedConnectionId, 'conn_secondary');
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('desktop_live_conn_secondary')),
+        of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
         matching: find.text('Secondary Box'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('desktop_live_conn_secondary')),
+        of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
         matching: find.text('secondary.local · /workspace'),
       ),
       findsOneWidget,
@@ -756,19 +789,23 @@ void main() {
       'conn_primary',
     ]);
     expect(
-      find.byKey(const ValueKey('desktop_live_conn_primary')),
+      find.byKey(const ValueKey('desktop_connection_conn_primary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('desktop_close_lane_conn_primary')),
       findsNothing,
     );
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('desktop_live_conn_secondary')),
+        of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
         matching: find.text('Secondary Box'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('desktop_live_conn_secondary')),
+        of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
         matching: find.text('secondary.local · /workspace'),
       ),
       findsOneWidget,
@@ -993,7 +1030,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Secondary Box · Remote connection not configured'),
+        find.descendant(
+          of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
+          matching: find.text('Secondary Box'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
+          matching: find.text('Remote connection not configured'),
+        ),
         findsOneWidget,
       );
     },

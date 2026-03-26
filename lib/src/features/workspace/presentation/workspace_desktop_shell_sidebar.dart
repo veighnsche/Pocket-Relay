@@ -6,14 +6,16 @@ class _MaterialDesktopSidebar extends StatelessWidget {
     required this.state,
     required this.isCollapsed,
     required this.onToggleCollapsed,
-    required this.connectionSubtitleBuilder,
+    required this.openingConnectionIds,
+    required this.onOpenConnection,
   });
 
   final ConnectionWorkspaceController workspaceController;
   final ConnectionWorkspaceState state;
   final bool isCollapsed;
   final VoidCallback? onToggleCollapsed;
-  final String Function(ConnectionProfile profile) connectionSubtitleBuilder;
+  final Set<String> openingConnectionIds;
+  final Future<void> Function(String connectionId) onOpenConnection;
 
   @override
   Widget build(BuildContext context) {
@@ -128,24 +130,18 @@ class _MaterialSidebarSectionTitle extends StatelessWidget {
 
 class _MaterialSidebarConnectionRow extends StatelessWidget {
   const _MaterialSidebarConnectionRow({
-    required this.connectionId,
-    required this.title,
-    required this.subtitle,
-    required this.reconnectRequirement,
+    required this.entry,
     required this.isSelected,
     required this.onTap,
-    required this.canClose,
-    required this.onClose,
+    required this.isOpening,
+    this.onClose,
   });
 
-  final String connectionId;
-  final String title;
-  final String subtitle;
-  final ConnectionWorkspaceReconnectRequirement? reconnectRequirement;
+  final ConnectionWorkspaceInventoryEntry entry;
   final bool isSelected;
   final VoidCallback onTap;
-  final bool canClose;
-  final VoidCallback onClose;
+  final bool isOpening;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -170,42 +166,70 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
           children: [
             Expanded(
               child: InkWell(
-                key: ValueKey<String>('desktop_live_$connectionId'),
+                key: ValueKey<String>('desktop_connection_${entry.connection.id}'),
                 borderRadius: PocketRadii.circular(22),
-                onTap: onTap,
+                onTap: isOpening ? null : onTap,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        entry.connection.profile.label,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                      if (entry.badges.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final badge in entry.badges)
+                              DefaultTextStyle(
+                                style: theme.textTheme.labelSmall!.copyWith(
+                                  color:
+                                      badge.tone ==
+                                          ConnectionWorkspaceInventoryBadgeTone
+                                              .warning
+                                      ? theme.colorScheme.onTertiaryContainer
+                                      : theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                child: PocketTintBadge(
+                                  label: badge.label,
+                                  color:
+                                      badge.tone ==
+                                          ConnectionWorkspaceInventoryBadgeTone
+                                              .warning
+                                      ? theme.colorScheme.tertiary
+                                      : theme.colorScheme.primary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
-                        subtitle,
+                        ConnectionWorkspaceCopy.connectionSubtitle(
+                          entry.connection.profile,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      if (reconnectRequirement case final requirement?) ...[
+                      if (entry.remoteStatusSummary case final summary?) ...[
                         const SizedBox(height: 8),
-                        DefaultTextStyle(
-                          style: theme.textTheme.labelSmall!.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          child: PocketTintBadge(
-                            label: ConnectionWorkspaceCopy.reconnectBadgeFor(
-                              requirement,
-                            ),
-                            color: theme.colorScheme.primary,
+                        Text(
+                          summary,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -214,16 +238,31 @@ class _MaterialSidebarConnectionRow extends StatelessWidget {
                 ),
               ),
             ),
-            Tooltip(
-              message: ConnectionWorkspaceCopy.closeLaneAction,
-              child: IconButton(
-                key: ValueKey<String>('desktop_close_lane_$connectionId'),
-                visualDensity: VisualDensity.compact,
-                onPressed: canClose ? onClose : null,
-                color: theme.colorScheme.onSurfaceVariant,
-                icon: const Icon(Icons.close),
+            if (entry.isLive && onClose != null)
+              Tooltip(
+                message: ConnectionWorkspaceCopy.closeLaneAction,
+                child: IconButton(
+                  key: ValueKey<String>('desktop_close_lane_${entry.connection.id}'),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onClose,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  icon: const Icon(Icons.close),
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: isOpening
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        Icons.arrow_forward_rounded,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
               ),
-            ),
             const SizedBox(width: 4),
           ],
         ),
@@ -284,7 +323,7 @@ class _MaterialSavedConnectionsSidebarRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    ConnectionWorkspaceCopy.savedConnectionsTitle,
+                    ConnectionWorkspaceCopy.manageConnectionsAction,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
