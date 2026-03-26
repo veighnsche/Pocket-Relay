@@ -52,6 +52,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   bool _isRestartingLane = false;
   bool _isRefreshingLaneRemoteRuntime = false;
   bool _isConnectingLaneTransport = false;
+  bool _isDisconnectingLaneTransport = false;
   ConnectionSettingsRemoteServerActionId? _activeLaneRemoteServerAction;
   StreamSubscription<CodexAppServerEvent>? _laneAppServerEventSubscription;
 
@@ -73,6 +74,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     _isRestartingLane = false;
     _isRefreshingLaneRemoteRuntime = false;
     _isConnectingLaneTransport = false;
+    _isDisconnectingLaneTransport = false;
     _activeLaneRemoteServerAction = null;
     _attachLaneBindingListeners(widget.laneBinding);
   }
@@ -134,6 +136,12 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     });
   }
 
+  void _setDisconnectingLaneTransport(bool value) {
+    setState(() {
+      _isDisconnectingLaneTransport = value;
+    });
+  }
+
   void _setActiveLaneRemoteServerAction(
     ConnectionSettingsRemoteServerActionId? value,
   ) {
@@ -174,6 +182,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       platformPolicy: widget.platformPolicy,
       onConnectionSettingsRequested: _handleConnectionSettingsRequested,
       supplementalMenuActions: _supplementalMenuActionsFor(
+        profile: profile,
         isLaneBusy: isLaneBusy,
       ),
       supplementalStatusRegion: _buildLaneConnectionStrip(
@@ -310,6 +319,36 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     }
   }
 
+  Future<void> _disconnectLaneTransport() async {
+    if (_isDisconnectingLaneTransport ||
+        !widget.laneBinding.appServerClient.isConnected) {
+      return;
+    }
+
+    final workspaceController = widget.workspaceController;
+    final connectionId = widget.laneBinding.connectionId;
+    _setDisconnectingLaneTransport(true);
+    try {
+      await workspaceController.disconnectConnection(connectionId);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final detail = error.toString().trim();
+      _showTransientMessage(
+        detail.isEmpty
+            ? 'Could not disconnect lane.'
+            : 'Could not disconnect lane. $detail',
+      );
+    } finally {
+      if (mounted &&
+          widget.workspaceController == workspaceController &&
+          widget.laneBinding.connectionId == connectionId) {
+        _setDisconnectingLaneTransport(false);
+      }
+    }
+  }
+
   bool _didRemoteServerActionSucceed(
     ConnectionSettingsRemoteServerActionId actionId,
     ConnectionRemoteRuntimeState remoteRuntime,
@@ -414,6 +453,18 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     required bool isRestartInProgress,
     required Widget? recoveryNotice,
   }) {
+    final appServerConnected = widget.laneBinding.appServerClient.isConnected;
+    final showSteadyStateStrip =
+        !appServerConnected ||
+        reconnectRequirement != null ||
+        transportRecoveryPhase != null ||
+        liveReattachPhase != null ||
+        recoveryNotice != null ||
+        _isConnectingLaneTransport;
+    if (!showSteadyStateStrip) {
+      return null;
+    }
+
     final status = _laneStatusContractFor(
       profile: profile,
       reconnectRequirement: reconnectRequirement,
@@ -660,6 +711,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         isLaneBusy ||
         _isRefreshingLaneRemoteRuntime ||
         _isConnectingLaneTransport ||
+        _isDisconnectingLaneTransport ||
         _activeLaneRemoteServerAction != null ||
         isRestartInProgress;
     if (reconnectRequirement case final requirement?) {

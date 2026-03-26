@@ -82,59 +82,6 @@ void main() {
   );
 
   testWidgets(
-    'live lane shows a persistent connected status strip for healthy remote lanes',
-    (tester) async {
-      final clientsById = _buildClientsById('conn_primary');
-      final controller = _buildWorkspaceController(
-        clientsById: clientsById,
-        remoteAppServerHostProbe: const _FakeRemoteHostProbe(
-          CodexRemoteAppServerHostCapabilities(),
-        ),
-        remoteAppServerOwnerInspector: _MapRemoteOwnerInspector(
-          <String, CodexRemoteAppServerOwnerSnapshot>{
-            'conn_primary': _runningOwnerSnapshot('conn_primary'),
-          },
-        ),
-      );
-      addTearDown(() async {
-        await controller.flushRecoveryPersistence();
-        controller.dispose();
-        await _closeClients(clientsById);
-      });
-
-      await controller.initialize();
-      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
-      await clientsById['conn_primary']!.connect(
-        profile: ConnectionProfile.defaults(),
-        secrets: const ConnectionSecrets(),
-      );
-      final laneBinding = controller.selectedLaneBinding!;
-
-      await tester.pumpWidget(
-        _buildLiveLaneApp(
-          controller,
-          laneBinding,
-          settingsOverlayDelegate: _DeferredConnectionSettingsOverlayDelegate()
-            ..complete(null),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const ValueKey<String>('lane_connection_status_strip')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('lane_connection_status_label')),
-        findsOneWidget,
-      );
-      expect(find.text('Connected'), findsOneWidget);
-      expect(find.text('primary.local · /workspace'), findsOneWidget);
-      await controller.flushRecoveryPersistence();
-    },
-  );
-
-  testWidgets(
     'live lane status strip starts the remote server for the selected lane',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary');
@@ -443,7 +390,7 @@ void main() {
   );
 
   testWidgets(
-    'live lane connect action attaches the selected lane when the remote server is running',
+    'live lane connect action hides steady-state connection chrome and exposes connected-lane controls in overflow',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary');
       final client = clientsById['conn_primary']!;
@@ -482,7 +429,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(client.connectCalls, 1);
-      expect(find.text('Connected'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_status_strip')),
+        findsNothing,
+      );
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Conversation history'), findsOneWidget);
+      expect(find.text('Disconnect'), findsOneWidget);
+      await controller.flushRecoveryPersistence();
     },
   );
 

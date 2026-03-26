@@ -2,20 +2,43 @@ part of 'workspace_live_lane_surface.dart';
 
 extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   List<ChatChromeMenuAction> _supplementalMenuActionsFor({
+    required ConnectionProfile profile,
     required bool isLaneBusy,
   }) {
+    final isConnected = widget.laneBinding.appServerClient.isConnected;
+    final hasWorkspaceHistoryScope = profile.workspaceDir.trim().isNotEmpty;
+    final isDisconnectActionEnabled =
+        !isLaneBusy && !_isDisconnectingLaneTransport;
     return <ChatChromeMenuAction>[
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
         onSelected: widget.workspaceController.showSavedConnections,
       ),
+      if (isConnected && hasWorkspaceHistoryScope)
+        ChatChromeMenuAction(
+          label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
+          onSelected: () {
+            unawaited(_showConversationHistory());
+          },
+          isEnabled: !isLaneBusy,
+        ),
+      if (profile.isRemote && isConnected)
+        ChatChromeMenuAction(
+          label: _isDisconnectingLaneTransport
+              ? ConnectionWorkspaceCopy.disconnectProgress
+              : ConnectionWorkspaceCopy.disconnectAction,
+          onSelected: () {
+            unawaited(_disconnectLaneTransport());
+          },
+          isEnabled: isDisconnectActionEnabled,
+        ),
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.closeLaneAction,
         onSelected: () => widget.workspaceController.terminateConnection(
           widget.laneBinding.connectionId,
         ),
         isDestructive: true,
-        isEnabled: !isLaneBusy,
+        isEnabled: !isLaneBusy && !_isDisconnectingLaneTransport,
       ),
     ];
   }

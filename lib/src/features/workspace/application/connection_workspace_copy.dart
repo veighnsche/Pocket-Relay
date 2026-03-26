@@ -89,6 +89,8 @@ abstract final class ConnectionWorkspaceCopy {
       'Connect this lane to Codex to continue.';
   static const String connectAction = 'Connect';
   static const String connectProgress = 'Connecting…';
+  static const String disconnectAction = 'Disconnect';
+  static const String disconnectProgress = 'Disconnecting…';
   static const String checkHostAction = 'Check host';
   static const String checkHostProgress = 'Checking…';
   static const String collapseSidebarAction = 'Collapse sidebar';
