@@ -11,6 +11,7 @@ class EmptyState extends StatelessWidget {
     required this.platformBehavior,
     required this.onConfigure,
     this.onSelectConnectionMode,
+    this.supplementalContent,
   });
 
   final bool isConfigured;
@@ -18,6 +19,7 @@ class EmptyState extends StatelessWidget {
   final PocketPlatformBehavior platformBehavior;
   final VoidCallback onConfigure;
   final ValueChanged<ConnectionMode>? onSelectConnectionMode;
+  final Widget? supplementalContent;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +29,7 @@ class EmptyState extends StatelessWidget {
       platformBehavior: platformBehavior,
       onConfigure: onConfigure,
       onSelectConnectionMode: onSelectConnectionMode,
+      supplementalContent: supplementalContent,
     );
   }
 }

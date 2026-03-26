@@ -28,6 +28,10 @@ extension on ChatEmptyStateBody {
             const SizedBox(height: 20),
             _buildConfigureButton(desktop: false, fullWidth: true),
           ],
+          if (supplementalContent != null) ...[
+            const SizedBox(height: 20),
+            supplementalContent!,
+          ],
           const SizedBox(height: 22),
           _buildDetailsPanel(context, items: _mobileDetails(), maxWidth: 520),
         ],

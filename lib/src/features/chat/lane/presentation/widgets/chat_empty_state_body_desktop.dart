@@ -26,6 +26,10 @@ extension on ChatEmptyStateBody {
                   textAlign: TextAlign.center,
                   style: _bodyStyle(context),
                 ),
+                if (supplementalContent != null) ...[
+                  const SizedBox(height: 20),
+                  supplementalContent!,
+                ],
               ],
             ),
           ),

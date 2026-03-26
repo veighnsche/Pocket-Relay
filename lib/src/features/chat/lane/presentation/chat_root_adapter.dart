@@ -28,6 +28,7 @@ class ChatRootAdapter extends StatefulWidget {
     this.supplementalMenuActions = const <ChatChromeMenuAction>[],
     this.supplementalStatusRegion,
     this.supplementalComposerNotice,
+    this.supplementalEmptyStateContent,
     this.laneRestartAction,
     this.onRestartLane,
   });
@@ -41,6 +42,7 @@ class ChatRootAdapter extends StatefulWidget {
   final List<ChatChromeMenuAction> supplementalMenuActions;
   final Widget? supplementalStatusRegion;
   final Widget? supplementalComposerNotice;
+  final Widget? supplementalEmptyStateContent;
   final ChatLaneRestartActionContract? laneRestartAction;
   final Future<void> Function()? onRestartLane;
 
@@ -101,6 +103,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
             onSelectConnectionMode: _selectConnectionMode,
             onRequestChangedFileDiff: _requestChangedFileDiff,
             onContinueFromUserMessage: _continueFromUserMessage,
+            supplementalEmptyStateContent: widget.supplementalEmptyStateContent,
           ),
           composerRegion: _ChatComposerRegionHost(
             sessionScreen: sessionScreen,
@@ -213,6 +216,7 @@ class _ChatTranscriptRegionHost extends StatelessWidget {
     required this.onSelectConnectionMode,
     required this.onRequestChangedFileDiff,
     required this.onContinueFromUserMessage,
+    this.supplementalEmptyStateContent,
   });
 
   final ChatScreenSessionContract sessionScreen;
@@ -224,6 +228,7 @@ class _ChatTranscriptRegionHost extends StatelessWidget {
   final void Function(ChatChangedFileDiffContract diff)
   onRequestChangedFileDiff;
   final Future<void> Function(String blockId) onContinueFromUserMessage;
+  final Widget? supplementalEmptyStateContent;
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +259,7 @@ class _ChatTranscriptRegionHost extends StatelessWidget {
           onSubmitUserInput: sessionController.submitUserInput,
           onSaveHostFingerprint: sessionController.saveObservedHostFingerprint,
           onContinueFromUserMessage: onContinueFromUserMessage,
+          supplementalEmptyStateContent: supplementalEmptyStateContent,
         );
       },
     );

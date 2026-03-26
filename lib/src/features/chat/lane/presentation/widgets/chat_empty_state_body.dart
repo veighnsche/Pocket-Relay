@@ -18,6 +18,7 @@ class ChatEmptyStateBody extends StatelessWidget {
     required this.platformBehavior,
     required this.onConfigure,
     this.onSelectConnectionMode,
+    this.supplementalContent,
   });
 
   final bool isConfigured;
@@ -25,6 +26,7 @@ class ChatEmptyStateBody extends StatelessWidget {
   final PocketPlatformBehavior platformBehavior;
   final VoidCallback onConfigure;
   final ValueChanged<ConnectionMode>? onSelectConnectionMode;
+  final Widget? supplementalContent;
 
   @override
   Widget build(BuildContext context) {

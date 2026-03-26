@@ -174,6 +174,25 @@ void main() {
   });
 
   testWidgets(
+    'renders supplemental empty-state content through the root adapter',
+    (tester) async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        _buildAdapterApp(
+          appServerClient: appServerClient,
+          overlayDelegate: const FlutterChatRootOverlayDelegate(),
+          supplementalEmptyStateContent: const Text('Workspace controls'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Workspace controls'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'desktop empty-state route selection seeds the settings payload',
     (tester) async {
       tester.view.physicalSize = const Size(1440, 1800);
@@ -1102,6 +1121,7 @@ Widget _buildAdapterApp({
   SavedProfile? savedProfile,
   ChatScreenPresenter? screenPresenter,
   ThemeData? theme,
+  Widget? supplementalEmptyStateContent,
 }) {
   final resolvedPlatformPolicy =
       platformPolicy ??
@@ -1120,6 +1140,7 @@ Widget _buildAdapterApp({
       screenPresenter: screenPresenter ?? const ChatScreenPresenter(),
       onConnectionSettingsRequested:
           onConnectionSettingsRequested ?? (_) async {},
+      supplementalEmptyStateContent: supplementalEmptyStateContent,
     ),
   );
 }
@@ -1445,6 +1466,7 @@ class _ChatRootAdapterHarness extends StatefulWidget {
     required this.overlayDelegate,
     required this.screenPresenter,
     required this.onConnectionSettingsRequested,
+    this.supplementalEmptyStateContent,
     this.laneBinding,
     this.profileStore,
   });
@@ -1456,6 +1478,7 @@ class _ChatRootAdapterHarness extends StatefulWidget {
   final ChatScreenPresenter screenPresenter;
   final Future<void> Function(ChatConnectionSettingsLaunchContract payload)
   onConnectionSettingsRequested;
+  final Widget? supplementalEmptyStateContent;
   final ConnectionLaneBinding? laneBinding;
   final CodexProfileStore? profileStore;
 
@@ -1502,6 +1525,7 @@ class _ChatRootAdapterHarnessState extends State<_ChatRootAdapterHarness> {
       onConnectionSettingsRequested: widget.onConnectionSettingsRequested,
       screenPresenter: widget.screenPresenter,
       overlayDelegate: widget.overlayDelegate,
+      supplementalEmptyStateContent: widget.supplementalEmptyStateContent,
     );
   }
 
