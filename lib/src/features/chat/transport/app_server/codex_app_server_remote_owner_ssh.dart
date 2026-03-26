@@ -393,19 +393,6 @@ run_requested_codex() {
   fi
   "\$resolved_codex" "\$@"
 }
-
-exec_requested_codex() {
-  resolved_codex=\$(resolve_requested_codex) || return 127
-  if requested_codex_requires_eval; then
-    quoted_args=
-    for arg in "\$@"; do
-      printf -v quoted_args '%s %q' "\$quoted_args" "\$arg"
-    done
-    eval "exec \$resolved_codex\$quoted_args"
-    return \$?
-  fi
-  exec "\$resolved_codex" "\$@"
-}
 ''';
 }
 
@@ -444,6 +431,38 @@ print_result() {
   printf '__pocket_relay_owner__ status=%s pid=%s host=%s port=%s detail=%s log_b64=%s\\n' "\$status" "\$pid" "\$host" "\$port" "\$detail" "\$log_b64"
 }
 
+resolved_process_pid=
+resolved_process_args=
+
+resolve_app_server_process() {
+  current_pid="\$1"
+  depth=0
+
+  while [ -n "\$current_pid" ] && [ "\$current_pid" != "0" ] && [ "\$depth" -lt 6 ]; do
+    current_args=\$(ps -p "\$current_pid" -o args= 2>/dev/null | head -n 1)
+    if [ -z "\$current_args" ]; then
+      return 1
+    fi
+
+    if [[ "\$current_args" =~ app-server ]]; then
+      resolved_process_pid="\$current_pid"
+      resolved_process_args="\$current_args"
+      return 0
+    fi
+
+    child_pids=\$(ps -o pid= --ppid "\$current_pid" 2>/dev/null | awk 'NF { gsub(/^[[:space:]]+|[[:space:]]+\$/, ""); print }')
+    child_count=\$(printf '%s\\n' "\$child_pids" | sed '/^\$/d' | wc -l | tr -d '[:space:]')
+    if [ "\$child_count" != "1" ]; then
+      return 1
+    fi
+
+    current_pid=\$(printf '%s\\n' "\$child_pids" | sed -n '1p')
+    depth=\$((depth + 1))
+  done
+
+  return 1
+}
+
 if ! command -v tmux >/dev/null 2>&1; then
   print_result unhealthy "" "" "" tmux_unavailable
   exit 0
@@ -478,16 +497,13 @@ if [ -n "\$expected_workspace" ]; then
   fi
 fi
 
-process_args=\$(ps -p "\$pane_pid" -o args= 2>/dev/null | head -n 1)
-if [ -z "\$process_args" ]; then
+if ! resolve_app_server_process "\$pane_pid"; then
   print_result stopped "\$pane_pid" "" "" process_missing
   exit 0
 fi
 
-if [[ ! "\$process_args" =~ app-server ]]; then
-  print_result stopped "\$pane_pid" "" "" process_missing
-  exit 0
-fi
+pane_pid="\$resolved_process_pid"
+process_args="\$resolved_process_args"
 
 listen_host=
 port=
@@ -534,15 +550,22 @@ String buildSshRemoteOwnerStartCommand({
   final logFile = buildPocketRelayRemoteOwnerLogFilePath(
     sessionName: sessionName,
   );
+  final launchCommand =
+      '${codexPath.trim()} app-server --listen ws://127.0.0.1:$port';
   final tmuxCommand =
       '''
-${_buildRequestedCodexShellFunctions(requestedCodex: codexPath)}
+launch_command=${shellEscape(launchCommand)}
 log_file=${shellEscape(logFile)}
 rm -f "\$log_file"
-exec_requested_codex app-server --listen ws://127.0.0.1:$port >>"\$log_file" 2>&1
+eval "\$launch_command" >>"\$log_file" 2>&1
+status=\$?
+echo "pocket-relay: codex app-server exited with status \$status" >>"\$log_file"
+exit "\$status"
 ''';
+  final paneCommand = 'exec bash -lc ${shellEscape(tmuxCommand)}';
   final command =
       '''
+set -euo pipefail
 session_name=${shellEscape(sessionName)}
 workspace_dir=${shellEscape(workspaceDir.trim())}
 
@@ -556,7 +579,8 @@ if tmux has-session -t "\$session_name" 2>/dev/null; then
   exit 2
 fi
 
-tmux new-session -d -s "\$session_name" -c "\$workspace_dir" "bash -lc ${shellEscape(tmuxCommand)}"
+pane_id=\$(tmux new-session -d -P -F '#{pane_id}' -s "\$session_name" -c "\$workspace_dir")
+tmux respawn-pane -k -t "\$pane_id" ${shellEscape(paneCommand)}
 ''';
   return 'bash -lc ${shellEscape(command)}';
 }

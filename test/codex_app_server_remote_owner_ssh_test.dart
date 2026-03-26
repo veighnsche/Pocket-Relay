@@ -258,9 +258,35 @@ exit 1
     expect(command, contains('tmux new-session'));
     expect(command, contains('ws://127.0.0.1:45123'));
     expect(command, contains('/tmp/pocket-relay-remote-1.log'));
-    expect(command, contains('exec_requested_codex app-server --listen'));
+    expect(command, contains('launch_command='));
+    expect(command, contains('codex app-server --listen ws://127.0.0.1:45123'));
+    expect(command, contains(r'eval "$launch_command"'));
+    expect(command, contains('codex app-server exited with status'));
     expect(command, contains('pocket-relay-remote-1'));
+    expect(command, contains('tmux respawn-pane'));
+    expect(command, contains('exec bash -lc'));
+    expect(command, contains('tmux new-session -d -P -F'));
+    expect(command, contains('#{pane_id}'));
   });
+
+  test(
+    'buildSshRemoteOwnerStartCommand preserves shell-wrapped launch commands',
+    () {
+      final command = buildSshRemoteOwnerStartCommand(
+        sessionName: 'pocket-relay-remote-1',
+        workspaceDir: '/workspace',
+        codexPath: 'source /etc/profile && codex',
+        port: 45123,
+      );
+
+      expect(
+        command,
+        contains(
+          'source /etc/profile && codex app-server --listen ws://127.0.0.1:45123',
+        ),
+      );
+    },
+  );
 
   test('buildSshRemoteOwnerStopCommand kills the expected tmux session', () {
     final command = buildSshRemoteOwnerStopCommand(
@@ -358,6 +384,44 @@ exit 1
       expect(snapshot.status, CodexRemoteAppServerOwnerStatus.stopped);
       expect(snapshot.pid, 2041);
       expect(snapshot.detail, contains('not running a websocket app-server'));
+    },
+  );
+
+  test(
+    'inspectOwner appends explicit app-server exit status from the launch log',
+    () async {
+      final encodedLog = base64.encode(
+        utf8.encode('pocket-relay: codex app-server exited with status 23\n'),
+      );
+      final process = _FakeCodexAppServerProcess(
+        stdoutLines: <String>[
+          '__pocket_relay_owner__ status=stopped pid=2041 host= port= detail=process_missing log_b64=$encodedLog',
+        ],
+      );
+      final inspector = CodexSshRemoteAppServerOwnerInspector(
+        sshBootstrap:
+            ({
+              required profile,
+              required secrets,
+              required verifyHostKey,
+            }) async {
+              return _FakeSshBootstrapClient(process: process);
+            },
+      );
+
+      final snapshot = await inspector.inspectOwner(
+        profile: _profile(),
+        secrets: const ConnectionSecrets(password: 'secret'),
+        ownerId: 'remote-1',
+        workspaceDir: '/workspace',
+      );
+
+      expect(snapshot.status, CodexRemoteAppServerOwnerStatus.stopped);
+      expect(snapshot.detail, contains('Underlying error:'));
+      expect(
+        snapshot.detail,
+        contains('codex app-server exited with status 23'),
+      );
     },
   );
 
