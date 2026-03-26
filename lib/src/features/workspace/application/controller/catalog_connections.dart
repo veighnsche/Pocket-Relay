@@ -182,6 +182,17 @@ Future<void> _saveWorkspaceInactiveSavedConnection(
       ),
     ),
   );
+
+  if (!profile.isRemote || controller._isDisposed) {
+    return;
+  }
+
+  await _refreshWorkspaceRemoteRuntime(
+    controller,
+    normalizedConnectionId,
+    profile: profile,
+    secrets: secrets,
+  );
 }
 
 Future<void> _saveWorkspaceLiveConnectionEdits(
@@ -276,6 +287,17 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
         remoteRuntimeByConnectionId: nextRemoteRuntimeByConnectionId,
       ),
     ),
+  );
+
+  if (!profile.isRemote || controller._isDisposed) {
+    return;
+  }
+
+  await _refreshWorkspaceRemoteRuntime(
+    controller,
+    normalizedConnectionId,
+    profile: profile,
+    secrets: secrets,
   );
 }
 

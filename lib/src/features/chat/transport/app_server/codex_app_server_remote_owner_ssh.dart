@@ -263,6 +263,7 @@ String buildSshRemoteHostCapabilityProbeCommand({
 }) {
   final command =
       '''
+${_buildRequestedCodexShellFunctions(requestedCodex: profile.codexPath)}
 tmux_status=1
 if command -v tmux >/dev/null 2>&1; then
   tmux_status=0
@@ -272,7 +273,7 @@ if cd ${shellEscape(profile.workspaceDir.trim())} >/dev/null 2>&1; then
   workspace_status=0
 fi
 codex_status=1
-if [ "\$workspace_status" = "0" ] && ${profile.codexPath.trim()} app-server --help >/dev/null 2>&1; then
+if [ "\$workspace_status" = "0" ] && run_requested_codex app-server --help >/dev/null 2>&1; then
   codex_status=0
 fi
 printf '__pocket_relay_capabilities__ tmux=%s workspace=%s codex=%s\\n' "\$tmux_status" "\$workspace_status" "\$codex_status"
@@ -291,6 +292,14 @@ String buildPocketRelayRemoteOwnerSessionName({required String ownerId}) {
       .replaceAll(RegExp(r'^-+|-+$'), '');
   final suffix = sanitized.isEmpty ? 'owner' : sanitized;
   return 'pocket-relay-$suffix';
+}
+
+String buildPocketRelayRemoteOwnerLogFilePath({required String sessionName}) {
+  final normalized = sessionName.trim();
+  if (normalized.isEmpty) {
+    throw ArgumentError.value(sessionName, 'sessionName', 'must not be empty');
+  }
+  return '/tmp/$normalized.log';
 }
 
 @visibleForTesting
@@ -337,15 +346,96 @@ int _fnv1a32(String value) {
   return hash & 0x7FFFFFFF;
 }
 
+String _buildRequestedCodexShellFunctions({required String requestedCodex}) {
+  final normalizedRequestedCodex = requestedCodex.trim();
+  return '''
+requested_codex=${shellEscape(normalizedRequestedCodex)}
+PATH="\$HOME/.local/bin:\$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:\$PATH"
+
+requested_codex_requires_eval() {
+  [[ "\$requested_codex" == *[[:space:]]* || "\$requested_codex" == */* ]]
+}
+
+resolve_requested_codex() {
+  if [ -z "\$requested_codex" ]; then
+    return 1
+  fi
+
+  if requested_codex_requires_eval; then
+    printf '%s' "\$requested_codex"
+    return 0
+  fi
+
+  if command -v "\$requested_codex" >/dev/null 2>&1; then
+    command -v "\$requested_codex"
+    return 0
+  fi
+
+  for candidate in
+    "\$HOME/.local/bin/\$requested_codex"
+    "\$HOME/bin/\$requested_codex"
+    "/usr/local/bin/\$requested_codex"
+    "/opt/homebrew/bin/\$requested_codex"
+    "/usr/bin/\$requested_codex"
+    "/bin/\$requested_codex"
+  do
+    if [ -x "\$candidate" ]; then
+      printf '%s' "\$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+run_requested_codex() {
+  resolved_codex=\$(resolve_requested_codex) || return 127
+  if requested_codex_requires_eval; then
+    quoted_args=
+    for arg in "\$@"; do
+      printf -v quoted_args '%s %q' "\$quoted_args" "\$arg"
+    done
+    eval "\$resolved_codex\$quoted_args"
+    return \$?
+  fi
+  "\$resolved_codex" "\$@"
+}
+
+exec_requested_codex() {
+  resolved_codex=\$(resolve_requested_codex) || return 127
+  if requested_codex_requires_eval; then
+    quoted_args=
+    for arg in "\$@"; do
+      printf -v quoted_args '%s %q' "\$quoted_args" "\$arg"
+    done
+    eval "exec \$resolved_codex\$quoted_args"
+    return \$?
+  fi
+  exec "\$resolved_codex" "\$@"
+}
+''';
+}
+
 @visibleForTesting
 String buildSshRemoteOwnerInspectCommand({
   required String sessionName,
   required String workspaceDir,
 }) {
+  final logFile = buildPocketRelayRemoteOwnerLogFilePath(
+    sessionName: sessionName,
+  );
   final command =
       '''
 session_name=${shellEscape(sessionName)}
 expected_workspace=${shellEscape(workspaceDir.trim())}
+log_file=${shellEscape(logFile)}
+
+encode_log_tail() {
+  if [ ! -f "\$log_file" ]; then
+    return 0
+  fi
+  tail -n 40 "\$log_file" 2>/dev/null | base64 | tr -d '\\n'
+}
 
 print_result() {
   status="\$1"
@@ -353,7 +443,12 @@ print_result() {
   host="\$3"
   port="\$4"
   detail="\$5"
-  printf '__pocket_relay_owner__ status=%s pid=%s host=%s port=%s detail=%s\\n' "\$status" "\$pid" "\$host" "\$port" "\$detail"
+  if [ "\$status" = "running" ]; then
+    log_b64=
+  else
+    log_b64=\$(encode_log_tail)
+  fi
+  printf '__pocket_relay_owner__ status=%s pid=%s host=%s port=%s detail=%s log_b64=%s\\n' "\$status" "\$pid" "\$host" "\$port" "\$detail" "\$log_b64"
 }
 
 if ! command -v tmux >/dev/null 2>&1; then
@@ -443,11 +538,20 @@ String buildSshRemoteOwnerStartCommand({
   required String codexPath,
   required int port,
 }) {
+  final logFile = buildPocketRelayRemoteOwnerLogFilePath(
+    sessionName: sessionName,
+  );
+  final tmuxCommand =
+      '''
+${_buildRequestedCodexShellFunctions(requestedCodex: codexPath)}
+log_file=${shellEscape(logFile)}
+rm -f "\$log_file"
+exec_requested_codex app-server --listen ws://127.0.0.1:$port >>"\$log_file" 2>&1
+''';
   final command =
       '''
 session_name=${shellEscape(sessionName)}
 workspace_dir=${shellEscape(workspaceDir.trim())}
-launch_command=${shellEscape('${codexPath.trim()} app-server --listen ws://127.0.0.1:$port')}
 
 if ! command -v tmux >/dev/null 2>&1; then
   echo 'tmux is not available on the remote host.' >&2
@@ -459,22 +563,28 @@ if tmux has-session -t "\$session_name" 2>/dev/null; then
   exit 2
 fi
 
-tmux new-session -d -s "\$session_name" -c "\$workspace_dir" "\$launch_command"
+tmux new-session -d -s "\$session_name" -c "\$workspace_dir" "bash -lc ${shellEscape(tmuxCommand)}"
 ''';
   return 'bash -lc ${shellEscape(command)}';
 }
 
 @visibleForTesting
 String buildSshRemoteOwnerStopCommand({required String sessionName}) {
+  final logFile = buildPocketRelayRemoteOwnerLogFilePath(
+    sessionName: sessionName,
+  );
   final command =
       '''
 session_name=${shellEscape(sessionName)}
+log_file=${shellEscape(logFile)}
 if ! command -v tmux >/dev/null 2>&1; then
+  rm -f "\$log_file"
   exit 0
 fi
 if tmux has-session -t "\$session_name" 2>/dev/null; then
   tmux kill-session -t "\$session_name"
 fi
+rm -f "\$log_file"
 ''';
   return 'bash -lc ${shellEscape(command)}';
 }
@@ -610,6 +720,7 @@ CodexRemoteAppServerOwnerSnapshot _parseOwnerSnapshot({
   final pid = int.tryParse(fields['pid'] ?? '');
   final host = fields['host'];
   final port = int.tryParse(fields['port'] ?? '');
+  final logDetail = _decodedOwnerLog(fields['log_b64']);
 
   return CodexRemoteAppServerOwnerSnapshot(
     ownerId: ownerId,
@@ -620,7 +731,7 @@ CodexRemoteAppServerOwnerSnapshot _parseOwnerSnapshot({
     endpoint: host != null && host.isNotEmpty && port != null
         ? CodexRemoteAppServerEndpoint(host: host, port: port)
         : null,
-    detail: _ownerDetailForCode(fields['detail']),
+    detail: _ownerDetailForCode(fields['detail'], logDetail: logDetail),
   );
 }
 
@@ -664,8 +775,8 @@ CodexRemoteAppServerHostCapabilities _parseHostCapabilities({
   );
 }
 
-String? _ownerDetailForCode(String? code) {
-  return switch (code) {
+String? _ownerDetailForCode(String? code, {String? logDetail}) {
+  final baseDetail = switch (code) {
     null || '' => null,
     'ready' => 'Remote Pocket Relay server is ready.',
     'session_missing' =>
@@ -685,6 +796,40 @@ String? _ownerDetailForCode(String? code) {
     'tmux_unavailable' => 'tmux is not available on the remote host.',
     _ => code,
   };
+
+  final normalizedLog = logDetail?.trim();
+  if (normalizedLog == null || normalizedLog.isEmpty) {
+    return baseDetail;
+  }
+  if (baseDetail == null || baseDetail.isEmpty) {
+    return normalizedLog;
+  }
+  if (baseDetail.contains(normalizedLog)) {
+    return baseDetail;
+  }
+  return '$baseDetail Underlying error: $normalizedLog';
+}
+
+String? _decodedOwnerLog(String? encodedLog) {
+  final normalized = encodedLog?.trim() ?? '';
+  if (normalized.isEmpty) {
+    return null;
+  }
+
+  try {
+    final decoded = utf8.decode(base64.decode(normalized));
+    final lines = decoded
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+    if (lines.isEmpty) {
+      return null;
+    }
+    return lines.join(' ');
+  } catch (_) {
+    return null;
+  }
 }
 
 bool _shouldRetryRemoteOwnerStart(CodexRemoteAppServerOwnerSnapshot snapshot) {

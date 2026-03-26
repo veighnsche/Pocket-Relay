@@ -15,7 +15,8 @@ void main() {
     );
 
     expect(command, contains('command -v tmux'));
-    expect(command, contains('codex app-server --help'));
+    expect(command, contains('run_requested_codex app-server --help'));
+    expect(command, contains(r'$HOME/.local/bin/$requested_codex'));
     expect(command, contains('/workspace'));
   });
 
@@ -26,7 +27,8 @@ void main() {
         profile: _profile().copyWith(codexPath: 'just codex-mcp'),
       );
 
-      expect(command, contains('just codex-mcp app-server --help'));
+      expect(command, contains('just codex-mcp'));
+      expect(command, contains('run_requested_codex app-server --help'));
     },
   );
 
@@ -191,6 +193,7 @@ void main() {
 
     expect(command, contains('tmux has-session'));
     expect(command, contains('/readyz'));
+    expect(command, contains('/tmp/pocket-relay-remote-1.log'));
     expect(command, contains('pocket-relay-remote-1'));
   });
 
@@ -204,6 +207,8 @@ void main() {
 
     expect(command, contains('tmux new-session'));
     expect(command, contains('ws://127.0.0.1:45123'));
+    expect(command, contains('/tmp/pocket-relay-remote-1.log'));
+    expect(command, contains('exec_requested_codex app-server --listen'));
     expect(command, contains('pocket-relay-remote-1'));
   });
 
@@ -213,7 +218,36 @@ void main() {
     );
 
     expect(command, contains('tmux kill-session'));
+    expect(command, contains('/tmp/pocket-relay-remote-1.log'));
     expect(command, contains('pocket-relay-remote-1'));
+  });
+
+  test('inspectOwner appends captured launch output when provided', () async {
+    final encodedLog = base64.encode(utf8.encode('codex: command not found\n'));
+    final process = _FakeCodexAppServerProcess(
+      stdoutLines: <String>[
+        '__pocket_relay_owner__ status=missing pid= host= port= detail=session_missing log_b64=$encodedLog',
+      ],
+    );
+    final inspector = CodexSshRemoteAppServerOwnerInspector(
+      sshBootstrap:
+          ({required profile, required secrets, required verifyHostKey}) async {
+            return _FakeSshBootstrapClient(process: process);
+          },
+    );
+
+    final snapshot = await inspector.inspectOwner(
+      profile: _profile(),
+      secrets: const ConnectionSecrets(password: 'secret'),
+      ownerId: 'remote-1',
+      workspaceDir: '/workspace',
+    );
+
+    expect(snapshot.status, CodexRemoteAppServerOwnerStatus.missing);
+    expect(
+      snapshot.detail,
+      contains('Underlying error: codex: command not found'),
+    );
   });
 
   test('inspectOwner reports missing when no managed session exists', () async {
