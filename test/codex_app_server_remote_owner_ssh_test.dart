@@ -245,7 +245,11 @@ exit 1
     expect(command, contains('/readyz'));
     expect(command, contains('resolve_pocket_relay_log_dir()'));
     expect(command, contains(r'$XDG_RUNTIME_DIR/pocket-relay'));
-    expect(command, contains(r'$HOME/.cache/pocket-relay'));
+    expect(command, contains(r'cache_root="$HOME/.cache"'));
+    expect(command, contains(r'$cache_root/pocket-relay'));
+    expect(command, contains(r'[ -n "${HOME-}" ] && [ -d "${HOME-}" ]'));
+    expect(command, contains(r'[ -d "$cache_root" ] && [ -w "$cache_root" ]'));
+    expect(command, contains(r'[ ! -e "$cache_root" ] && [ -w "$HOME" ]'));
     expect(command, contains('resolve_pocket_relay_log_file'));
     expect(command, contains('pocket-relay-remote-1'));
   });
@@ -262,8 +266,10 @@ exit 1
     expect(command, contains('ws://127.0.0.1:45123'));
     expect(command, contains('ensure_pocket_relay_log_dir'));
     expect(command, contains('umask 077'));
+    expect(command, contains('previous_umask=\$(umask)'));
     expect(command, contains('mkdir -p'));
     expect(command, contains('chmod 700'));
+    expect(command, contains('umask "\$previous_umask"'));
     expect(command, contains('resolve_pocket_relay_log_file'));
     expect(command, contains('requested_codex='));
     expect(command, contains('resolve_requested_codex()'));

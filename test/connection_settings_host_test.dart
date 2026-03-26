@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -674,6 +676,57 @@ void main() {
 
       expect(probePayloads, hasLength(1));
       expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+    },
+  );
+
+  testWidgets(
+    'shared host ignores stale probe results after authentication changes pause refresh',
+    (tester) async {
+      final remoteRuntimeStates = <ConnectionRemoteRuntimeState?>[];
+      final pendingProbe = Completer<ConnectionRemoteRuntimeState>();
+
+      await tester.pumpWidget(
+        _buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          onRefreshRemoteRuntime: (_) => pendingProbe.future,
+          builder: (context, viewModel, actions) {
+            remoteRuntimeStates.add(viewModel.contract.remoteRuntime);
+            return ConnectionSheet(
+              platformBehavior: _mobileBehavior,
+              viewModel: viewModel,
+              actions: actions,
+            );
+          },
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.enterText(
+        _materialTextField('SSH password'),
+        'updated-secret',
+      );
+      await tester.pump();
+
+      expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+
+      pendingProbe.complete(
+        const ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.supported(
+            detail: 'ready',
+          ),
+          server: ConnectionRemoteServerState.unknown(),
+        ),
+      );
+      await tester.pump();
+
+      expect(remoteRuntimeStates.last, _pausedRemoteRuntimeForTest);
+      expect(
+        find.text(
+          'Pocket Relay pauses remote checks while you edit authentication settings.',
+        ),
+        findsOneWidget,
+      );
     },
   );
 

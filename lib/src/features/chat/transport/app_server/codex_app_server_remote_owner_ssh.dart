@@ -310,9 +310,12 @@ resolve_pocket_relay_log_dir() {
     return 0
   fi
 
-  if [ -n "\${HOME-}" ]; then
-    printf '%s' "\$HOME/.cache/pocket-relay"
-    return 0
+  if [ -n "\${HOME-}" ] && [ -d "\${HOME-}" ]; then
+    cache_root="\$HOME/.cache"
+    if { [ -d "\$cache_root" ] && [ -w "\$cache_root" ]; } || { [ ! -e "\$cache_root" ] && [ -w "\$HOME" ]; }; then
+      printf '%s' "\$cache_root/pocket-relay"
+      return 0
+    fi
   fi
 
   uid_suffix=\$(id -u 2>/dev/null | tr -cd '0-9')
@@ -329,9 +332,19 @@ resolve_pocket_relay_log_file() {
 
 ensure_pocket_relay_log_dir() {
   log_dir=\$(resolve_pocket_relay_log_dir)
+  previous_umask=\$(umask)
+  if [ -z "\$previous_umask" ]; then
+    previous_umask=022
+  fi
   umask 077
-  mkdir -p "\$log_dir"
+  if mkdir -p "\$log_dir"; then
+    status=0
+  else
+    status=\$?
+  fi
   chmod 700 "\$log_dir" 2>/dev/null || true
+  umask "\$previous_umask"
+  return "\$status"
 }
 ''';
 }
