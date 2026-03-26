@@ -229,6 +229,58 @@ void main() {
       expect(find.text('Saved backend thread'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'desktop conversation history does not reload while the dialog rebuilds on resize',
+    (tester) async {
+      final clientsById = _buildClientsById('conn_primary', 'conn_secondary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      final repository = FakeCodexWorkspaceConversationHistoryRepository(
+        conversations: <CodexWorkspaceConversationSummary>[
+          CodexWorkspaceConversationSummary(
+            threadId: 'thread_saved',
+            preview: 'Saved backend thread',
+            cwd: '/workspace',
+            promptCount: 3,
+            firstPromptAt: DateTime(2026, 3, 20, 9),
+            lastActivityAt: DateTime(2026, 3, 20, 11),
+          ),
+        ],
+      );
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(
+        _buildShell(controller, conversationHistoryRepository: repository),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Conversation history'));
+      await tester.pumpAndSettle();
+
+      expect(repository.loadCalls, hasLength(1));
+
+      tester.view.physicalSize = const Size(1440, 960);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('desktop_conversation_history_surface'),
+        ),
+        findsOneWidget,
+      );
+      expect(repository.loadCalls, hasLength(1));
+    },
+  );
+
   testWidgets(
     'desktop overflow disables non-roster actions when the active lane has no workspace',
     (tester) async {
