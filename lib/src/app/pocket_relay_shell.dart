@@ -69,14 +69,27 @@ class PocketRelayShell extends StatelessWidget {
 }
 
 class PocketRelayBootstrapShell extends StatelessWidget {
-  const PocketRelayBootstrapShell({super.key});
+  const PocketRelayBootstrapShell({
+    super.key,
+    this.message = 'Loading saved connections and workspace state.',
+    this.isLoading = true,
+    this.action,
+  });
+
+  final String message;
+  final bool isLoading;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: _BootstrapBackground(
         child: _BootstrapSplash(
-          progressIndicator: CircularProgressIndicator(strokeWidth: 2.8),
+          message: message,
+          progressIndicator: isLoading
+              ? const CircularProgressIndicator(strokeWidth: 2.8)
+              : null,
+          action: action,
         ),
       ),
     );
@@ -106,9 +119,15 @@ class _BootstrapBackground extends StatelessWidget {
 }
 
 class _BootstrapSplash extends StatelessWidget {
-  const _BootstrapSplash({required this.progressIndicator});
+  const _BootstrapSplash({
+    required this.message,
+    this.progressIndicator,
+    this.action,
+  });
 
-  final Widget progressIndicator;
+  final String message;
+  final Widget? progressIndicator;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -172,12 +191,15 @@ class _BootstrapSplash extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Remote Codex, ready before the first lane opens.',
+                  message,
                   textAlign: TextAlign.center,
                   style: bodyStyle,
                 ),
-                const SizedBox(height: 26),
-                progressIndicator,
+                if (progressIndicator != null) ...[
+                  const SizedBox(height: 26),
+                  progressIndicator!,
+                ],
+                if (action != null) ...[const SizedBox(height: 22), action!],
               ],
             ),
           ),

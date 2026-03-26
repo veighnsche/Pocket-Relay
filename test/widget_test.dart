@@ -200,7 +200,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Pocket Relay'), findsOneWidget);
       expect(
-        find.text('Remote Codex, ready before the first lane opens.'),
+        find.text('Loading saved connections and workspace state.'),
         findsOneWidget,
       );
       expect(find.byType(Image), findsOneWidget);
@@ -209,6 +209,40 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FlutterChatScreenRenderer), findsOneWidget);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets(
+    'shows a retry action when workspace bootstrap initialization fails',
+    (tester) async {
+      final connectionRepository = _FailOnceConnectionRepository(
+        savedConnection: SavedConnection(
+          id: 'conn_primary',
+          profile: _savedProfile().profile,
+          secrets: _savedProfile().secrets,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildCatalogApp(connectionRepository: connectionRepository),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Pocket Relay could not finish loading your workspace.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('retry_workspace_bootstrap')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('retry_workspace_bootstrap')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FlutterChatScreenRenderer), findsOneWidget);
+      expect(connectionRepository.loadCatalogCalls, 2);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
   );
@@ -467,6 +501,53 @@ class _DeferredConnectionRepository implements CodexConnectionRepository {
 
   Future<SavedConnection> _loadSavedConnection() async {
     return _savedConnection ?? await _completer.future;
+  }
+}
+
+class _FailOnceConnectionRepository implements CodexConnectionRepository {
+  _FailOnceConnectionRepository({required this.savedConnection});
+
+  final SavedConnection savedConnection;
+  int loadCatalogCalls = 0;
+
+  @override
+  Future<ConnectionCatalogState> loadCatalog() async {
+    loadCatalogCalls += 1;
+    if (loadCatalogCalls == 1) {
+      throw StateError('catalog load failed');
+    }
+    return ConnectionCatalogState(
+      orderedConnectionIds: <String>[savedConnection.id],
+      connectionsById: <String, SavedConnectionSummary>{
+        savedConnection.id: savedConnection.toSummary(),
+      },
+    );
+  }
+
+  @override
+  Future<SavedConnection> loadConnection(String connectionId) async {
+    if (connectionId != savedConnection.id) {
+      throw StateError('Unknown saved connection: $connectionId');
+    }
+    return savedConnection;
+  }
+
+  @override
+  Future<SavedConnection> createConnection({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    throw UnsupportedError('createConnection is not used in this test.');
+  }
+
+  @override
+  Future<void> saveConnection(SavedConnection connection) async {
+    throw UnsupportedError('saveConnection is not used in this test.');
+  }
+
+  @override
+  Future<void> deleteConnection(String connectionId) async {
+    throw UnsupportedError('deleteConnection is not used in this test.');
   }
 }
 

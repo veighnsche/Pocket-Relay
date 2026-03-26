@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
@@ -26,12 +26,13 @@ class PocketRelayBootstrap extends StatefulWidget {
 class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
   CodexConnectionRepository? _ownedConnectionRepository;
   late ConnectionWorkspaceController _workspaceController;
+  Object? _workspaceInitializationError;
 
   @override
   void initState() {
     super.initState();
     _workspaceController = _createWorkspaceController();
-    unawaited(_workspaceController.initialize());
+    unawaited(_initializeWorkspaceController(_workspaceController));
   }
 
   @override
@@ -50,8 +51,9 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
 
     final previousWorkspaceController = _workspaceController;
     _workspaceController = _createWorkspaceController();
+    _workspaceInitializationError = null;
     setState(() {});
-    unawaited(_workspaceController.initialize());
+    unawaited(_initializeWorkspaceController(_workspaceController));
     unawaited(_flushAndDisposeWorkspaceController(previousWorkspaceController));
   }
 
@@ -69,6 +71,40 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     return bootstrap.workspaceController;
   }
 
+  Future<void> _initializeWorkspaceController(
+    ConnectionWorkspaceController controller,
+  ) async {
+    try {
+      await controller.initialize();
+      if (!mounted || !identical(controller, _workspaceController)) {
+        return;
+      }
+      if (_workspaceInitializationError != null) {
+        setState(() {
+          _workspaceInitializationError = null;
+        });
+      }
+    } catch (error) {
+      debugPrint('Pocket Relay workspace initialization failed: $error');
+      if (!mounted || !identical(controller, _workspaceController)) {
+        return;
+      }
+      setState(() {
+        _workspaceInitializationError = error;
+      });
+    }
+  }
+
+  Future<void> _retryWorkspaceInitialization() async {
+    final previousWorkspaceController = _workspaceController;
+    _workspaceController = _createWorkspaceController();
+    setState(() {
+      _workspaceInitializationError = null;
+    });
+    unawaited(_initializeWorkspaceController(_workspaceController));
+    await _flushAndDisposeWorkspaceController(previousWorkspaceController);
+  }
+
   Future<void> _flushAndDisposeWorkspaceController(
     ConnectionWorkspaceController controller,
   ) async {
@@ -80,6 +116,19 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
   Widget build(BuildContext context) {
     final dependencies = widget.dependencies;
     final platformPolicy = dependencies.resolvedPlatformPolicy;
+
+    if (_workspaceInitializationError != null &&
+        _workspaceController.state.isLoading) {
+      return PocketRelayBootstrapShell(
+        message: 'Pocket Relay could not finish loading your workspace.',
+        isLoading: false,
+        action: FilledButton(
+          key: const ValueKey('retry_workspace_bootstrap'),
+          onPressed: _retryWorkspaceInitialization,
+          child: const Text('Retry'),
+        ),
+      );
+    }
 
     return WorkspaceTurnForegroundServiceHost(
       workspaceController: _workspaceController,
