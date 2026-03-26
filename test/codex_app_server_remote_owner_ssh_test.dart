@@ -272,7 +272,10 @@ void main() {
 
     expect(snapshot.status, CodexRemoteAppServerOwnerStatus.missing);
     expect(snapshot.sessionName, 'pocket-relay-remote-1');
-    expect(snapshot.detail, contains('No Pocket Relay server is running'));
+    expect(
+      snapshot.detail,
+      contains('No managed remote app-server is running'),
+    );
     expect(snapshot.isConnectable, isFalse);
   });
 

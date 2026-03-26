@@ -67,7 +67,7 @@ void main() {
               host: '127.0.0.1',
               port: 4100,
             ),
-            detail: 'Remote Pocket Relay server is ready.',
+            detail: 'Managed remote app-server is ready.',
           ),
         ),
       );
@@ -702,9 +702,9 @@ void main() {
               workspaceDir: '/workspace',
               status: CodexRemoteAppServerOwnerStatus.stopped,
               sessionName: 'pocket-relay-conn_secondary',
-              detail: 'Remote Pocket Relay server is not running.',
+              detail: 'Managed remote app-server is not running.',
             ),
-            message: 'Remote Pocket Relay server is not running.',
+            message: 'Managed remote app-server is not running.',
           );
       final recoveryStore = MemoryConnectionWorkspaceRecoveryStore(
         initialState: const ConnectionWorkspaceRecoveryState(
@@ -734,7 +734,7 @@ void main() {
       );
       expect(
         remoteRuntime.server.detail,
-        'Remote Pocket Relay server is not running.',
+        'Managed remote app-server is not running.',
       );
       expect(
         controller.state.transportRecoveryPhaseFor('conn_secondary'),
@@ -2274,9 +2274,9 @@ void main() {
                       workspaceDir: '/workspace',
                       status: CodexRemoteAppServerOwnerStatus.stopped,
                       sessionName: 'pocket-relay-conn_primary',
-                      detail: 'Remote Pocket Relay server is not running.',
+                      detail: 'Managed remote app-server is not running.',
                     ),
-                    message: 'Remote Pocket Relay server is not running.',
+                    message: 'Managed remote app-server is not running.',
                   );
           clientsByConnectionId[connectionId]!.add(appServerClient);
           return ConnectionLaneBinding(
@@ -2313,9 +2313,9 @@ void main() {
               workspaceDir: '/workspace',
               status: CodexRemoteAppServerOwnerStatus.stopped,
               sessionName: 'pocket-relay-conn_primary',
-              detail: 'Remote Pocket Relay server is not running.',
+              detail: 'Managed remote app-server is not running.',
             ),
-            message: 'Remote Pocket Relay server is not running.',
+            message: 'Managed remote app-server is not running.',
           );
 
       await controller.handleAppLifecycleStateChanged(AppLifecycleState.paused);
@@ -2336,7 +2336,7 @@ void main() {
       );
       expect(
         remoteRuntime.server.detail,
-        'Remote Pocket Relay server is not running.',
+        'Managed remote app-server is not running.',
       );
       expect(
         controller.state.transportRecoveryPhaseFor('conn_primary'),
@@ -3581,7 +3581,7 @@ final class _MutableRemoteOwnerControl
         host: '127.0.0.1',
         port: 4100,
       ),
-      detail: 'Remote Pocket Relay server is ready.',
+      detail: 'Managed remote app-server is ready.',
     );
     return _snapshot;
   }
@@ -3599,7 +3599,7 @@ final class _MutableRemoteOwnerControl
       workspaceDir: workspaceDir,
       status: CodexRemoteAppServerOwnerStatus.missing,
       sessionName: 'pocket-relay-$ownerId',
-      detail: 'No Pocket Relay server is running for this connection.',
+      detail: 'No managed remote app-server is running for this connection.',
     );
     return _snapshot;
   }

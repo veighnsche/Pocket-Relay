@@ -14,7 +14,7 @@ while the overall product model is still confusing:
 - lane state, remote host state, and transport state are split across multiple
   surfaces
 - settings still expose ownership that now belongs to the lane
-- the product still uses misleading "Pocket Relay server" language for a
+- the product was still using misleading "Pocket Relay server" language for a
   managed remote Codex app-server
 - host identity/fingerprint behavior is runtime-required but not yet modeled as
   a first-class UX flow
@@ -26,6 +26,28 @@ It supersedes the "no remaining work" claim in
 [`073_true_live_turn_continuity_remaining_work_plan.md`](./073_true_live_turn_continuity_remaining_work_plan.md)
 for workspace UX ownership. The continuity architecture may be largely present,
 but the user-facing workspace structure is not finished.
+
+## Status On `feat/workspace-connection-ux-overhaul`
+
+The recommended structural cleanup from this document is now implemented on
+[`feat/workspace-connection-ux-overhaul`](../).
+
+Completed on that branch:
+
+- Pass 1: terminology correction across runtime/error surfaces
+- Pass 2: settings no longer own remote lifecycle controls
+- Pass 3: host identity and fingerprint UX now reflects shared `host:port`
+  ownership
+- Pass 4: inventory/navigation is unified across desktop and mobile
+- Pass 5: lane connection chrome is the single operational control surface
+- Pass 6: `Open lane` now has explicit bootstrap semantics in the lane strip
+- Pass 7: lane-level recovery/failure routing is unified around the lane bar
+- Pass 8: conversation history is now a lane-owned action instead of a menu-owned
+  detached tool
+- Pass 9: obsolete menu-model artifacts were deleted
+
+Remaining follow-up is mostly broader release verification, not another
+workspace ownership redesign.
 
 ## Problem Statement
 
@@ -93,7 +115,7 @@ Primary files:
 - [`lib/src/features/workspace/presentation/workspace_saved_connections_content_items.dart`](../lib/src/features/workspace/presentation/workspace_saved_connections_content_items.dart)
 - [`lib/src/features/chat/lane/presentation/chat_root_adapter.dart`](../lib/src/features/chat/lane/presentation/chat_root_adapter.dart)
 
-## Remaining Execution Passes
+## Execution Passes
 
 ### Pass 1: Terminology Correction
 
@@ -348,11 +370,6 @@ Required outcomes:
 - remove low-signal tests that only preserve deleted architecture
 - keep only tests that prove real ownership and runtime behavior
 
-Known candidates:
-
-- [`lib/src/features/workspace/presentation/workspace_live_lane_menu_actions.dart`](../lib/src/features/workspace/presentation/workspace_live_lane_menu_actions.dart)
-- settings remote-server contract/tests after Pass 2 lands
-
 Done when:
 
 - the codebase no longer contains a shadow version of the deleted UX model
@@ -381,9 +398,9 @@ Done when:
 - the final verification matches the actual product structure rather than the
   intermediate implementation scaffolding
 
-## Recommended Execution Order
+## Historical Recommended Execution Order
 
-The highest-value order is:
+The highest-value order was:
 
 1. Pass 2: remove dead remote-server ownership from settings
 2. Pass 4: fix sidebar and inventory IA

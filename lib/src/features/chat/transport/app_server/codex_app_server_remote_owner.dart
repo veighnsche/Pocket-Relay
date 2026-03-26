@@ -93,7 +93,7 @@ extension CodexRemoteAppServerOwnerSnapshotMapping
                 sessionName: sessionName,
                 detail:
                     detail ??
-                    'Remote Pocket Relay server reported running without a websocket endpoint.',
+                    'Managed remote app-server reported running without a websocket endpoint.',
               )
             : ConnectionRemoteServerState.running(
                 ownerId: ownerId,

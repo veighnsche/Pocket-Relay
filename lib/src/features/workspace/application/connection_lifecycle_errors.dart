@@ -43,7 +43,7 @@ abstract final class ConnectionLifecycleErrors {
       definition: PocketErrorCatalog.connectionOpenRemoteUnexpectedFailure,
       title: 'Could not open lane',
       message:
-          'Verify the saved connection and remote Pocket Relay server, then try again.',
+          'Verify the saved connection and managed remote app-server, then try again.',
     );
   }
 
@@ -101,14 +101,14 @@ abstract final class ConnectionLifecycleErrors {
           title: 'Remote server stopped',
           message:
               remoteRuntime?.server.detail ??
-              'The Pocket Relay server for this connection is not running. Start it from this lane, then reconnect.',
+              'The managed remote app-server for this connection is not running. Start it from this lane, then reconnect.',
         ),
         ConnectionRemoteServerStatus.unhealthy => PocketUserFacingError(
           definition: PocketErrorCatalog.connectionReconnectServerUnhealthy,
           title: 'Remote server unhealthy',
           message:
               remoteRuntime?.server.detail ??
-              'The Pocket Relay server exists but is not healthy enough to accept connections. Restart it from this lane, then reconnect.',
+              'The managed remote app-server exists but is not healthy enough to accept connections. Restart it from this lane, then reconnect.',
         ),
         _ => PocketUserFacingError(
           definition: PocketErrorCatalog.connectionTransportUnavailable,
@@ -142,7 +142,7 @@ abstract final class ConnectionLifecycleErrors {
         definition: PocketErrorCatalog.connectionHistoryHostKeyUnpinned,
         title: 'Host key not pinned',
         message:
-            'Conversation history cannot connect until this host fingerprint is saved to the connection profile.\nObserved fingerprint: ${error.fingerprint}',
+            'Conversation history cannot connect until this host fingerprint is saved for this host identity.\nObserved fingerprint: ${error.fingerprint}',
       );
     }
 
@@ -153,14 +153,14 @@ abstract final class ConnectionLifecycleErrors {
           definition: PocketErrorCatalog.connectionHistoryServerStopped,
           title: 'Remote server stopped',
           message: error.message.trim().isEmpty
-              ? 'Remote Pocket Relay server is not running for this connection.'
+              ? 'Managed remote app-server is not running for this connection.'
               : error.message,
         ),
         CodexRemoteAppServerOwnerStatus.unhealthy => PocketUserFacingError(
           definition: PocketErrorCatalog.connectionHistoryServerUnhealthy,
           title: 'Remote server unhealthy',
           message: error.message.trim().isEmpty
-              ? 'Remote Pocket Relay server is unhealthy and cannot load conversation history.'
+              ? 'Managed remote app-server is unhealthy and cannot load conversation history.'
               : error.message,
         ),
         CodexRemoteAppServerOwnerStatus.running => PocketUserFacingError(
@@ -204,17 +204,17 @@ abstract final class ConnectionLifecycleErrors {
         ConnectionRemoteServerStatus.notRunning => (
           PocketErrorCatalog.connectionOpenRemoteServerStopped,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still stopped.',
+              'The managed remote app-server is still stopped.',
         ),
         ConnectionRemoteServerStatus.unhealthy => (
           PocketErrorCatalog.connectionOpenRemoteServerUnhealthy,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still unhealthy.',
+              'The managed remote app-server is still unhealthy.',
         ),
         ConnectionRemoteServerStatus.running => (
           PocketErrorCatalog.connectionOpenRemoteAttachUnavailable,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is running but the lane could not attach.',
+              'The managed remote app-server is running but the lane could not attach.',
         ),
         _ => null,
       },
@@ -259,12 +259,12 @@ abstract final class ConnectionLifecycleErrors {
         ConnectionRemoteServerStatus.notRunning => (
           PocketErrorCatalog.connectionStartServerStillStopped,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still stopped.',
+              'The managed remote app-server is still stopped.',
         ),
         ConnectionRemoteServerStatus.unhealthy => (
           PocketErrorCatalog.connectionStartServerUnhealthy,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still unhealthy.',
+              'The managed remote app-server is still unhealthy.',
         ),
         _ => null,
       },
@@ -289,12 +289,12 @@ abstract final class ConnectionLifecycleErrors {
         ConnectionRemoteServerStatus.running => (
           PocketErrorCatalog.connectionStopServerStillRunning,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still running.',
+              'The managed remote app-server is still running.',
         ),
         ConnectionRemoteServerStatus.unhealthy => (
           PocketErrorCatalog.connectionStopServerStillUnhealthy,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still unhealthy.',
+              'The managed remote app-server is still unhealthy.',
         ),
         _ => null,
       },
@@ -319,12 +319,12 @@ abstract final class ConnectionLifecycleErrors {
         ConnectionRemoteServerStatus.notRunning => (
           PocketErrorCatalog.connectionRestartServerStopped,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still stopped.',
+              'The managed remote app-server is still stopped.',
         ),
         ConnectionRemoteServerStatus.unhealthy => (
           PocketErrorCatalog.connectionRestartServerUnhealthy,
           remoteRuntime.server.detail ??
-              'The remote Pocket Relay server is still unhealthy.',
+              'The managed remote app-server is still unhealthy.',
         ),
         _ => null,
       },
@@ -368,11 +368,11 @@ abstract final class ConnectionLifecycleErrors {
   ) {
     return switch (actionId) {
       ConnectionSettingsRemoteServerActionId.start =>
-        'Pocket Relay could not verify that the remote server started.',
+        'Pocket Relay could not verify that the managed remote app-server started.',
       ConnectionSettingsRemoteServerActionId.stop =>
-        'Pocket Relay could not verify that the remote server stopped.',
+        'Pocket Relay could not verify that the managed remote app-server stopped.',
       ConnectionSettingsRemoteServerActionId.restart =>
-        'Pocket Relay could not verify that the remote server restarted.',
+        'Pocket Relay could not verify that the managed remote app-server restarted.',
     };
   }
 

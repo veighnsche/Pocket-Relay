@@ -268,7 +268,7 @@ void main() {
           },
         ),
         server: ConnectionRemoteServerState.notRunning(
-          detail: 'No Pocket Relay server is running.',
+          detail: 'No managed remote app-server is running.',
         ),
       );
 

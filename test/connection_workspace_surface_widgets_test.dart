@@ -1902,9 +1902,9 @@ void main() {
           workspaceDir: '/workspace',
           status: CodexRemoteAppServerOwnerStatus.stopped,
           sessionName: 'pocket-relay-conn_primary',
-          detail: 'Remote Pocket Relay server is not running.',
+          detail: 'Managed remote app-server is not running.',
         ),
-        message: 'Remote Pocket Relay server is not running.',
+        message: 'Managed remote app-server is not running.',
       );
       await controller.reconnectConnection('conn_primary');
       await tester.pumpAndSettle();
@@ -2198,7 +2198,7 @@ final class _ThrowingRemoteOwnerControl
       workspaceDir: workspaceDir,
       status: CodexRemoteAppServerOwnerStatus.missing,
       sessionName: 'pocket-relay-$ownerId',
-      detail: 'No Pocket Relay server is running for this connection.',
+      detail: 'No managed remote app-server is running for this connection.',
     );
   }
 

@@ -115,7 +115,7 @@ void main() {
             workspaceDir: '/workspace',
             status: CodexRemoteAppServerOwnerStatus.missing,
             sessionName: 'pocket-relay-remote-1',
-            detail: 'No Pocket Relay server is running for this connection.',
+            detail: 'No managed remote app-server is running for this connection.',
           ),
         ),
       );
@@ -123,7 +123,7 @@ void main() {
       expect(runtime.server.status, ConnectionRemoteServerStatus.notRunning);
       expect(
         runtime.server.detail,
-        contains('No Pocket Relay server is running'),
+        contains('No managed remote app-server is running'),
       );
     },
   );

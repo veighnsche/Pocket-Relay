@@ -8,7 +8,7 @@ Future<ConnectionRemoteRuntimeState> _startWorkspaceRemoteServer(
     controller,
     actionId: ConnectionSettingsRemoteServerActionId.start,
     connectionId: connectionId,
-    actionDetail: 'Starting remote Pocket Relay server…',
+    actionDetail: 'Starting managed remote app-server…',
     runAction: ({required profile, required secrets, required ownerId}) =>
         controller._remoteAppServerOwnerControl.startOwner(
           profile: profile,
@@ -27,7 +27,7 @@ Future<ConnectionRemoteRuntimeState> _stopWorkspaceRemoteServer(
     controller,
     actionId: ConnectionSettingsRemoteServerActionId.stop,
     connectionId: connectionId,
-    actionDetail: 'Stopping remote Pocket Relay server…',
+    actionDetail: 'Stopping managed remote app-server…',
     runAction: ({required profile, required secrets, required ownerId}) =>
         controller._remoteAppServerOwnerControl.stopOwner(
           profile: profile,
@@ -46,7 +46,7 @@ Future<ConnectionRemoteRuntimeState> _restartWorkspaceRemoteServer(
     controller,
     actionId: ConnectionSettingsRemoteServerActionId.restart,
     connectionId: connectionId,
-    actionDetail: 'Restarting remote Pocket Relay server…',
+    actionDetail: 'Restarting managed remote app-server…',
     runAction: ({required profile, required secrets, required ownerId}) =>
         controller._remoteAppServerOwnerControl.restartOwner(
           profile: profile,
@@ -80,7 +80,7 @@ Future<ConnectionRemoteRuntimeState> _runWorkspaceRemoteServerAction(
   );
   if (savedConnection.profile.isLocal) {
     throw StateError(
-      'Remote Pocket Relay server lifecycle is only available for remote connections.',
+      'Managed remote app-server lifecycle is only available for remote connections.',
     );
   }
 

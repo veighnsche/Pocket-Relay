@@ -559,7 +559,7 @@ if ! command -v tmux >/dev/null 2>&1; then
 fi
 
 if tmux has-session -t "\$session_name" 2>/dev/null; then
-  echo "Pocket Relay tmux owner already exists: \$session_name" >&2
+  echo "Managed tmux owner already exists: \$session_name" >&2
   exit 2
 fi
 
@@ -770,7 +770,7 @@ CodexRemoteAppServerHostCapabilities _parseHostCapabilities({
   return CodexRemoteAppServerHostCapabilities(
     issues: issues,
     detail: issues.isEmpty
-        ? 'Remote host supports Pocket Relay continuity.'
+        ? 'Remote host supports continuity and can run the managed remote app-server.'
         : null,
   );
 }
@@ -778,21 +778,21 @@ CodexRemoteAppServerHostCapabilities _parseHostCapabilities({
 String? _ownerDetailForCode(String? code, {String? logDetail}) {
   final baseDetail = switch (code) {
     null || '' => null,
-    'ready' => 'Remote Pocket Relay server is ready.',
+    'ready' => 'Managed remote app-server is ready.',
     'session_missing' =>
-      'No Pocket Relay server is running for this connection.',
+      'No managed remote app-server is running for this connection.',
     'pane_missing' =>
-      'The Pocket Relay tmux owner exists but has no live pane process.',
+      'The managed tmux owner exists but has no live pane process.',
     'process_missing' =>
-      'The Pocket Relay tmux owner exists but the app-server process is not running.',
+      'The managed tmux owner exists but the app-server process is not running.',
     'workspace_mismatch' =>
-      'The Pocket Relay tmux owner exists but points at a different workspace.',
+      'The managed tmux owner exists but points at a different workspace.',
     'expected_workspace_unavailable' =>
       'The configured workspace directory is not accessible on the remote host.',
     'listen_url_missing' =>
-      'The Pocket Relay tmux owner is not running a websocket app-server.',
+      'The managed tmux owner is not running a websocket app-server.',
     'ready_check_failed' =>
-      'The Pocket Relay app-server is running but did not pass its readiness check.',
+      'The managed remote app-server is running but did not pass its readiness check.',
     'tmux_unavailable' => 'tmux is not available on the remote host.',
     _ => code,
   };

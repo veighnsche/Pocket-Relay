@@ -68,13 +68,13 @@ CodexRemoteAppServerAttachException _remoteAttachExceptionFor(
     CodexRemoteAppServerOwnerStatus.missing ||
     CodexRemoteAppServerOwnerStatus.stopped =>
       snapshot.detail ??
-          'Remote Pocket Relay server is not running for this connection.',
+          'Managed remote app-server is not running for this connection.',
     CodexRemoteAppServerOwnerStatus.unhealthy =>
       snapshot.detail ??
-          'Remote Pocket Relay server is unhealthy and cannot accept websocket connections.',
+          'Managed remote app-server is unhealthy and cannot accept websocket connections.',
     CodexRemoteAppServerOwnerStatus.running =>
       snapshot.detail ??
-          'Remote Pocket Relay server reported running without a websocket endpoint.',
+          'Managed remote app-server reported running without a websocket endpoint.',
   };
   return CodexRemoteAppServerAttachException(
     snapshot: snapshot,

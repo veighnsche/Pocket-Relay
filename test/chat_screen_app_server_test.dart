@@ -3037,7 +3037,7 @@ PocketRelayApp _buildCatalogApp({
           workspaceDir: '/workspace',
           status: CodexRemoteAppServerOwnerStatus.stopped,
           sessionName: 'pocket-relay-conn_primary',
-          detail: 'Remote Pocket Relay server is not running.',
+          detail: 'Managed remote app-server is not running.',
         ),
       ),
 }) {

@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
@@ -17,7 +16,7 @@ void main() {
           server: ConnectionRemoteServerState.notRunning(
             ownerId: 'conn_primary',
             sessionName: 'pocket-relay-conn_primary',
-            detail: 'No Pocket Relay server is running for this connection.',
+            detail: 'No managed remote app-server is running for this connection.',
           ),
         ),
       );
@@ -45,7 +44,7 @@ void main() {
           server: ConnectionRemoteServerState.notRunning(
             ownerId: 'conn_primary',
             sessionName: 'pocket-relay-conn_primary',
-            detail: 'No Pocket Relay server is running for this connection.',
+            detail: 'No managed remote app-server is running for this connection.',
           ),
         ),
         error: StateError(
