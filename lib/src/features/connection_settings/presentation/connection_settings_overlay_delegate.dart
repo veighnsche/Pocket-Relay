@@ -19,9 +19,6 @@ abstract interface class ConnectionSettingsOverlayDelegate {
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
-    ConnectionSettingsRemoteServerActionRunner? onStartRemoteServer,
-    ConnectionSettingsRemoteServerActionRunner? onStopRemoteServer,
-    ConnectionSettingsRemoteServerActionRunner? onRestartRemoteServer,
   });
 }
 
@@ -41,9 +38,6 @@ class ModalConnectionSettingsOverlayDelegate
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
-    ConnectionSettingsRemoteServerActionRunner? onStartRemoteServer,
-    ConnectionSettingsRemoteServerActionRunner? onStopRemoteServer,
-    ConnectionSettingsRemoteServerActionRunner? onRestartRemoteServer,
   }) {
     return showModalBottomSheet<ConnectionSettingsSubmitPayload>(
       context: context,
@@ -59,9 +53,6 @@ class ModalConnectionSettingsOverlayDelegate
           availableModelCatalogSource: availableModelCatalogSource,
           onRefreshModelCatalog: onRefreshModelCatalog,
           onRefreshRemoteRuntime: onRefreshRemoteRuntime,
-          onStartRemoteServer: onStartRemoteServer,
-          onStopRemoteServer: onStopRemoteServer,
-          onRestartRemoteServer: onRestartRemoteServer,
           platformBehavior: platformBehavior,
           onCancel: () => Navigator.of(sheetContext).pop(),
           onSubmit: (payload) {

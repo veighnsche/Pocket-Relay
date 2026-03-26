@@ -264,8 +264,12 @@ void main() {
         contract.remoteRuntime!.server.status,
         ConnectionRemoteServerStatus.notRunning,
       );
-      expect(contract.remoteServerSection, isNotNull);
-      expect(contract.remoteServerSection!.statusLabel, 'Host unsupported');
+      expect(contract.remoteConnectionSection, isNotNull);
+      expect(contract.remoteConnectionSection!.status, isNotNull);
+      expect(
+        contract.remoteConnectionSection!.status!.label,
+        'Host unsupported',
+      );
     });
 
     test('drops remote runtime state for local settings contracts', () {
@@ -295,11 +299,11 @@ void main() {
       );
 
       expect(contract.remoteRuntime, isNull);
-      expect(contract.remoteServerSection, isNull);
+      expect(contract.remoteConnectionSection, isNull);
     });
 
     test(
-      'surfaces workspace availability failures as host unsupported in the remote server section',
+      'surfaces workspace availability failures inline in the remote target section',
       () {
         final initialProfile = _configuredProfile();
         const initialSecrets = ConnectionSecrets(password: 'secret');
@@ -323,28 +327,23 @@ void main() {
           initialSecrets: initialSecrets,
           formState: formState,
           remoteRuntime: remoteRuntime,
-          supportsRemoteServerStart: true,
-          supportsRemoteServerStop: true,
-          supportsRemoteServerRestart: true,
         );
 
-        expect(contract.remoteServerSection, isNotNull);
-        expect(contract.remoteServerSection!.statusLabel, 'Host unsupported');
+        expect(contract.remoteConnectionSection, isNotNull);
+        expect(contract.remoteConnectionSection!.status, isNotNull);
         expect(
-          contract.remoteServerSection!.detail,
-          'The configured workspace directory is not accessible on the remote host.',
+          contract.remoteConnectionSection!.status!.label,
+          'Host unsupported',
         );
         expect(
-          contract.remoteServerSection!.actions.every(
-            (action) => action.isEnabled == false,
-          ),
-          isTrue,
+          contract.remoteConnectionSection!.status!.detail,
+          'The configured workspace directory is not accessible on the remote host.',
         );
       },
     );
 
     test(
-      'enables explicit remote server controls only for saved, unchanged remote connections',
+      'surfaces managed server state inline when the remote target is saved and unchanged',
       () {
         final initialProfile = _configuredProfile();
         const initialSecrets = ConnectionSecrets(password: 'secret');
@@ -365,25 +364,19 @@ void main() {
           initialSecrets: initialSecrets,
           formState: formState,
           remoteRuntime: remoteRuntime,
-          supportsRemoteServerStart: true,
-          supportsRemoteServerStop: true,
-          supportsRemoteServerRestart: true,
         );
 
-        expect(contract.remoteServerSection, isNotNull);
-        final startAction = contract.remoteServerSection!.actions.firstWhere(
-          (action) => action.id == ConnectionSettingsRemoteServerActionId.start,
+        expect(contract.remoteConnectionSection, isNotNull);
+        expect(contract.remoteConnectionSection!.status, isNotNull);
+        expect(
+          contract.remoteConnectionSection!.status!.label,
+          'Managed server stopped',
         );
-        final stopAction = contract.remoteServerSection!.actions.firstWhere(
-          (action) => action.id == ConnectionSettingsRemoteServerActionId.stop,
-        );
-        expect(startAction.isEnabled, isTrue);
-        expect(stopAction.isEnabled, isFalse);
       },
     );
 
     test(
-      'disables remote server controls while the sheet has unsaved changes',
+      'keeps runtime truth visible while the sheet has unsaved changes',
       () {
         final initialProfile = _configuredProfile();
         const initialSecrets = ConnectionSecrets(password: 'secret');
@@ -411,21 +404,13 @@ void main() {
           initialSecrets: initialSecrets,
           formState: formState,
           remoteRuntime: remoteRuntime,
-          supportsRemoteServerStart: true,
-          supportsRemoteServerStop: true,
-          supportsRemoteServerRestart: true,
         );
 
-        expect(contract.remoteServerSection, isNotNull);
+        expect(contract.remoteConnectionSection, isNotNull);
+        expect(contract.remoteConnectionSection!.status, isNotNull);
         expect(
-          contract.remoteServerSection!.detail,
-          contains('Save or discard staged connection edits'),
-        );
-        expect(
-          contract.remoteServerSection!.actions.every(
-            (action) => !action.isEnabled,
-          ),
-          isTrue,
+          contract.remoteConnectionSection!.status!.label,
+          'Managed server running',
         );
       },
     );
@@ -678,5 +663,6 @@ ConnectionProfile _configuredProfile() {
     username: 'vince',
     workspaceDir: '/workspace',
     codexPath: 'codex',
+    hostFingerprint: 'aa:bb:cc:dd',
   );
 }

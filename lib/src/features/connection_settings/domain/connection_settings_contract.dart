@@ -116,10 +116,22 @@ class ConnectionSettingsSectionContract {
   const ConnectionSettingsSectionContract({
     required this.title,
     required this.fields,
+    this.status,
   });
 
   final String title;
   final List<ConnectionSettingsTextFieldContract> fields;
+  final ConnectionSettingsSectionStatusContract? status;
+}
+
+class ConnectionSettingsSectionStatusContract {
+  const ConnectionSettingsSectionStatusContract({
+    required this.label,
+    required this.detail,
+  });
+
+  final String label;
+  final String detail;
 }
 
 class ConnectionSettingsReasoningEffortOptionContract {
@@ -229,36 +241,6 @@ class ConnectionSettingsSaveActionContract {
   final ConnectionSettingsSubmitPayload? submitPayload;
 }
 
-class ConnectionSettingsRemoteServerActionContract {
-  const ConnectionSettingsRemoteServerActionContract({
-    required this.id,
-    required this.label,
-    required this.isVisible,
-    required this.isEnabled,
-    required this.isInProgress,
-  });
-
-  final ConnectionSettingsRemoteServerActionId id;
-  final String label;
-  final bool isVisible;
-  final bool isEnabled;
-  final bool isInProgress;
-}
-
-class ConnectionSettingsRemoteServerSectionContract {
-  const ConnectionSettingsRemoteServerSectionContract({
-    required this.title,
-    required this.statusLabel,
-    required this.detail,
-    required this.actions,
-  });
-
-  final String title;
-  final String statusLabel;
-  final String detail;
-  final List<ConnectionSettingsRemoteServerActionContract> actions;
-}
-
 class ConnectionSettingsContract {
   const ConnectionSettingsContract({
     required this.title,
@@ -270,7 +252,6 @@ class ConnectionSettingsContract {
     required this.saveAction,
     this.connectionModeSection,
     this.remoteConnectionSection,
-    this.remoteServerSection,
     this.authenticationSection,
     this.remoteRuntime,
   });
@@ -282,7 +263,6 @@ class ConnectionSettingsContract {
   final ConnectionSettingsModelSectionContract modelSection;
   final ConnectionSettingsConnectionModeSectionContract? connectionModeSection;
   final ConnectionSettingsSectionContract? remoteConnectionSection;
-  final ConnectionSettingsRemoteServerSectionContract? remoteServerSection;
   final ConnectionSettingsAuthenticationSectionContract? authenticationSection;
   final ConnectionSettingsRunModeSectionContract runModeSection;
   final ConnectionSettingsSaveActionContract saveAction;

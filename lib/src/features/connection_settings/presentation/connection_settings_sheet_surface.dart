@@ -258,62 +258,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
-  Widget _buildRemoteServerSection(
-    BuildContext context,
-    ConnectionSettingsRemoteServerSectionContract section,
-  ) {
-    final visibleActions = section.actions
-        .where((action) => action.isVisible)
-        .toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          section.statusLabel,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          section.detail,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        if (visibleActions.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: visibleActions
-                .map(
-                  (action) => OutlinedButton.icon(
-                    key: ValueKey<String>(
-                      'connection_settings_remote_server_${action.id.name}',
-                    ),
-                    onPressed: action.isEnabled
-                        ? () {
-                            actions.onRemoteServerAction(action.id);
-                          }
-                        : null,
-                    icon: action.isInProgress
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(_remoteServerActionIcon(action.id)),
-                    label: Text(action.label),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _buildToggle(
     BuildContext context,
     ConnectionSettingsToggleContract toggle,
@@ -390,15 +334,28 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           _buildSection(
             context,
             title: remoteSection.title,
-            child: _buildRemoteConnectionFields(context, remoteSection.fields),
-          ),
-        ],
-        if (contract.remoteServerSection case final remoteServerSection?) ...[
-          const SizedBox(height: 14),
-          _buildSection(
-            context,
-            title: remoteServerSection.title,
-            child: _buildRemoteServerSection(context, remoteServerSection),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildRemoteConnectionFields(context, remoteSection.fields),
+                if (remoteSection.status case final status?) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    status.label,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    status.detail,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
         const SizedBox(height: 14),
@@ -483,12 +440,4 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     };
   }
 
-  IconData _remoteServerActionIcon(ConnectionSettingsRemoteServerActionId id) {
-    return switch (id) {
-      ConnectionSettingsRemoteServerActionId.start => Icons.play_arrow_outlined,
-      ConnectionSettingsRemoteServerActionId.stop => Icons.stop_outlined,
-      ConnectionSettingsRemoteServerActionId.restart =>
-        Icons.restart_alt_outlined,
-    };
-  }
 }

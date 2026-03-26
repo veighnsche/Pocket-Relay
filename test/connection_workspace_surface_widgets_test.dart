@@ -82,51 +82,6 @@ void main() {
   );
 
   testWidgets(
-    'live lane settings no longer expose remote server action callbacks',
-    (tester) async {
-      final clientsById = _buildClientsById('conn_primary');
-      final controller = _buildWorkspaceController(clientsById: clientsById);
-      final settingsOverlayDelegate =
-          _DeferredConnectionSettingsOverlayDelegate();
-      addTearDown(() async {
-        controller.dispose();
-        await _closeClients(clientsById);
-      });
-
-      await controller.initialize();
-      final laneBinding = controller.selectedLaneBinding!;
-
-      await tester.pumpWidget(
-        _buildLiveLaneApp(
-          controller,
-          laneBinding,
-          settingsOverlayDelegate: settingsOverlayDelegate,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byTooltip('Connection settings'));
-      await tester.pump();
-
-      expect(
-        settingsOverlayDelegate.launchedStartRemoteServerCallbacks.single,
-        isNull,
-      );
-      expect(
-        settingsOverlayDelegate.launchedStopRemoteServerCallbacks.single,
-        isNull,
-      );
-      expect(
-        settingsOverlayDelegate.launchedRestartRemoteServerCallbacks.single,
-        isNull,
-      );
-
-      settingsOverlayDelegate.complete(null);
-      await tester.pumpAndSettle();
-    },
-  );
-
-  testWidgets(
     'live lane shows a persistent connected status strip for healthy remote lanes',
     (tester) async {
       final clientsById = _buildClientsById('conn_primary');
@@ -175,6 +130,7 @@ void main() {
       );
       expect(find.text('Connected'), findsOneWidget);
       expect(find.text('primary.local · /workspace'), findsOneWidget);
+      await controller.flushRecoveryPersistence();
     },
   );
 
@@ -619,19 +575,6 @@ void main() {
         settingsOverlayDelegate.launchedModelCatalogSources.single,
         ConnectionSettingsModelCatalogSource.connectionCache,
       );
-      expect(
-        settingsOverlayDelegate.launchedStartRemoteServerCallbacks.single,
-        isNull,
-      );
-      expect(
-        settingsOverlayDelegate.launchedStopRemoteServerCallbacks.single,
-        isNull,
-      );
-      expect(
-        settingsOverlayDelegate.launchedRestartRemoteServerCallbacks.single,
-        isNull,
-      );
-
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
     },
@@ -701,19 +644,6 @@ void main() {
         ConnectionSettingsModelCatalogSource.lastKnownCache,
       );
       expect(settingsOverlayDelegate.launchedRefreshCallbacks.single, isNull);
-      expect(
-        settingsOverlayDelegate.launchedStartRemoteServerCallbacks.single,
-        isNull,
-      );
-      expect(
-        settingsOverlayDelegate.launchedStopRemoteServerCallbacks.single,
-        isNull,
-      );
-      expect(
-        settingsOverlayDelegate.launchedRestartRemoteServerCallbacks.single,
-        isNull,
-      );
-
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
     },
@@ -2550,15 +2480,6 @@ class _DeferredConnectionSettingsOverlayDelegate
   final List<ConnectionSettingsRemoteRuntimeRefresher?>
   launchedRemoteRuntimeCallbacks =
       <ConnectionSettingsRemoteRuntimeRefresher?>[];
-  final List<ConnectionSettingsRemoteServerActionRunner?>
-  launchedStartRemoteServerCallbacks =
-      <ConnectionSettingsRemoteServerActionRunner?>[];
-  final List<ConnectionSettingsRemoteServerActionRunner?>
-  launchedStopRemoteServerCallbacks =
-      <ConnectionSettingsRemoteServerActionRunner?>[];
-  final List<ConnectionSettingsRemoteServerActionRunner?>
-  launchedRestartRemoteServerCallbacks =
-      <ConnectionSettingsRemoteServerActionRunner?>[];
   Completer<ConnectionSettingsSubmitPayload?> _completer =
       Completer<ConnectionSettingsSubmitPayload?>();
 
@@ -2574,9 +2495,6 @@ class _DeferredConnectionSettingsOverlayDelegate
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
-    ConnectionSettingsRemoteServerActionRunner? onStartRemoteServer,
-    ConnectionSettingsRemoteServerActionRunner? onStopRemoteServer,
-    ConnectionSettingsRemoteServerActionRunner? onRestartRemoteServer,
   }) {
     launchCount += 1;
     launchedSettings.add((initialProfile, initialSecrets));
@@ -2585,9 +2503,6 @@ class _DeferredConnectionSettingsOverlayDelegate
     launchedModelCatalogSources.add(availableModelCatalogSource);
     launchedRefreshCallbacks.add(onRefreshModelCatalog);
     launchedRemoteRuntimeCallbacks.add(onRefreshRemoteRuntime);
-    launchedStartRemoteServerCallbacks.add(onStartRemoteServer);
-    launchedStopRemoteServerCallbacks.add(onStopRemoteServer);
-    launchedRestartRemoteServerCallbacks.add(onRestartRemoteServer);
     return _completer.future;
   }
 

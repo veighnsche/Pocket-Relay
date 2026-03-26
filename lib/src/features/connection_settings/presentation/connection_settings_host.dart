@@ -10,7 +10,6 @@ import 'package:pocket_relay/src/features/connection_settings/application/connec
 part 'host/host_models.dart';
 part 'host/model_catalog_refresh.dart';
 part 'host/remote_runtime_refresh.dart';
-part 'host/remote_server_actions.dart';
 part 'host/state_updates.dart';
 
 typedef ConnectionSettingsHostBuilder =
@@ -25,9 +24,6 @@ typedef ConnectionSettingsRemoteRuntimeRefresher =
       ConnectionSettingsSubmitPayload payload,
     );
 
-typedef ConnectionSettingsRemoteServerActionRunner =
-    Future<ConnectionRemoteRuntimeState> Function();
-
 class ConnectionSettingsHost extends StatefulWidget {
   const ConnectionSettingsHost({
     super.key,
@@ -38,9 +34,6 @@ class ConnectionSettingsHost extends StatefulWidget {
     this.availableModelCatalogSource,
     this.onRefreshModelCatalog,
     this.onRefreshRemoteRuntime,
-    this.onStartRemoteServer,
-    this.onStopRemoteServer,
-    this.onRestartRemoteServer,
     required this.onCancel,
     required this.onSubmit,
     required this.builder,
@@ -55,9 +48,6 @@ class ConnectionSettingsHost extends StatefulWidget {
   final Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog;
   final ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime;
-  final ConnectionSettingsRemoteServerActionRunner? onStartRemoteServer;
-  final ConnectionSettingsRemoteServerActionRunner? onStopRemoteServer;
-  final ConnectionSettingsRemoteServerActionRunner? onRestartRemoteServer;
   final VoidCallback onCancel;
   final ValueChanged<ConnectionSettingsSubmitPayload> onSubmit;
   final ConnectionSettingsHostBuilder builder;
@@ -76,7 +66,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
   bool _didModelCatalogRefreshFail = false;
   bool _isRefreshingModelCatalog = false;
   ConnectionRemoteRuntimeState? _remoteRuntime;
-  ConnectionSettingsRemoteServerActionId? _activeRemoteServerAction;
   Timer? _remoteRuntimeRefreshDebounce;
   int _remoteRuntimeRefreshToken = 0;
 
@@ -123,7 +112,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
         onAuthModeChanged: _updateAuthMode,
         onReasoningEffortChanged: _updateReasoningEffort,
         onRefreshModelCatalog: _refreshModelCatalog,
-        onRemoteServerAction: _runRemoteServerAction,
         onToggleChanged: _updateToggle,
         onCancel: widget.onCancel,
         onSave: _save,
@@ -164,19 +152,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
 
   Future<void> _refreshModelCatalog() =>
       _refreshConnectionSettingsModelCatalog(this);
-
-  Future<void> _runRemoteServerAction(
-    ConnectionSettingsRemoteServerActionId actionId,
-  ) => _runConnectionSettingsRemoteServerAction(this, actionId);
-
-  Future<ConnectionRemoteRuntimeState> _remoteRuntimeAfterServerActionFailure({
-    required Object error,
-    required ConnectionRemoteRuntimeState fallbackRuntime,
-  }) => _connectionSettingsRemoteRuntimeAfterServerActionFailure(
-    this,
-    error: error,
-    fallbackRuntime: fallbackRuntime,
-  );
 
   void _setStateInternal(VoidCallback fn) {
     setState(fn);

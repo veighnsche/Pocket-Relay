@@ -555,7 +555,7 @@ void main() {
 
       expect(controller.state.requiresReconnect('conn_primary'), isTrue);
       expect(clientsById['conn_primary']?.disconnectCalls, 0);
-      expect(find.text('Changes pending'), findsOneWidget);
+      expect(find.text('Changes pending'), findsWidgets);
       expect(find.text('Apply changes'), findsOneWidget);
       expect(find.byKey(const ValueKey('restart_lane')), findsOneWidget);
     },

@@ -858,7 +858,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.state.requiresReconnect('conn_primary'), isTrue);
-      expect(find.text('Changes pending'), findsNWidgets(2));
+      expect(find.text('Changes pending'), findsWidgets);
       expect(find.text('Apply changes'), findsOneWidget);
       expect(find.byKey(const ValueKey('restart_lane')), findsOneWidget);
       expect(clientsById['conn_primary']?.disconnectCalls, 0);

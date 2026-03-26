@@ -8,7 +8,6 @@ part 'presenter/section_authentication.dart';
 part 'presenter/section_codex.dart';
 part 'presenter/section_model.dart';
 part 'presenter/section_profile.dart';
-part 'presenter/section_remote_server.dart';
 part 'presenter/submit_payload.dart';
 
 class ConnectionSettingsPresenter {
@@ -19,10 +18,6 @@ class ConnectionSettingsPresenter {
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
     ConnectionRemoteRuntimeState? remoteRuntime,
-    bool supportsRemoteServerStart = false,
-    bool supportsRemoteServerStop = false,
-    bool supportsRemoteServerRestart = false,
-    ConnectionSettingsRemoteServerActionId? activeRemoteServerAction,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
     bool didModelCatalogRefreshFail = false,
@@ -52,14 +47,9 @@ class ConnectionSettingsPresenter {
         presentationState.draft,
         supportsLocalConnectionMode: supportsLocalConnectionMode,
       ),
-      remoteConnectionSection: _buildRemoteConnectionSection(presentationState),
-      remoteServerSection: _buildRemoteServerSection(
+      remoteConnectionSection: _buildRemoteConnectionSection(
         presentationState,
         remoteRuntime: remoteRuntime,
-        supportsRemoteServerStart: supportsRemoteServerStart,
-        supportsRemoteServerStop: supportsRemoteServerStop,
-        supportsRemoteServerRestart: supportsRemoteServerRestart,
-        activeRemoteServerAction: activeRemoteServerAction,
       ),
       authenticationSection: _buildAuthenticationSection(presentationState),
       codexSection: _buildCodexSection(presentationState),
