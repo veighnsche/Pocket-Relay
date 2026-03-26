@@ -350,7 +350,6 @@ String _buildRequestedCodexShellFunctions({required String requestedCodex}) {
   final normalizedRequestedCodex = requestedCodex.trim();
   return '''
 requested_codex=${shellEscape(normalizedRequestedCodex)}
-PATH="\$HOME/.local/bin:\$HOME/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:\$PATH"
 
 requested_codex_requires_eval() {
   [[ "\$requested_codex" == *[[:space:]]* || "\$requested_codex" == */* ]]
