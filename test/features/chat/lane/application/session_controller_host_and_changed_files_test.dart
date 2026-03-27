@@ -136,7 +136,7 @@ void main() {
 
       expect(
         await snackBarMessage,
-        '[${PocketErrorCatalog.chatSessionHostFingerprintSaveFailed.code}] Host fingerprint save failed. Could not save the host fingerprint to this profile.',
+        '[${PocketErrorCatalog.chatSessionHostFingerprintSaveFailed.code}] Host fingerprint save failed. Could not save the host fingerprint to this profile. Underlying error: profile save failed',
       );
       expect(controller.profile.hostFingerprint, isEmpty);
       expect(

@@ -36,9 +36,9 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
 
     try {
       await profileStore.save(nextProfile, _secrets);
-    } catch (_) {
+    } catch (error) {
       _emitUserFacingError(
-        ChatSessionGuardrailErrors.hostFingerprintSaveFailed(),
+        ChatSessionGuardrailErrors.hostFingerprintSaveFailed(error: error),
       );
       return;
     }

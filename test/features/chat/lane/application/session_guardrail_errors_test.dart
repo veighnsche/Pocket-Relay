@@ -16,6 +16,18 @@ void main() {
     );
   });
 
+  test('host fingerprint save failures keep the stable code and detail', () {
+    final error = ChatSessionGuardrailErrors.hostFingerprintSaveFailed(
+      error: StateError('profile save failed'),
+    );
+
+    expect(
+      error.definition,
+      PocketErrorCatalog.chatSessionHostFingerprintSaveFailed,
+    );
+    expect(error.inlineMessage, contains('profile save failed'));
+  });
+
   test('validation guardrails use distinct codes', () {
     expect(
       ChatSessionGuardrailErrors.remoteConnectionDetailsRequired().definition,

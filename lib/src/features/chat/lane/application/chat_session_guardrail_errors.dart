@@ -19,12 +19,12 @@ abstract final class ChatSessionGuardrailErrors {
     );
   }
 
-  static PocketUserFacingError hostFingerprintSaveFailed() {
+  static PocketUserFacingError hostFingerprintSaveFailed({Object? error}) {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.chatSessionHostFingerprintSaveFailed,
       title: 'Host fingerprint save failed',
       message: 'Could not save the host fingerprint to this profile.',
-    );
+    ).withNormalizedUnderlyingError(error);
   }
 
   static PocketUserFacingError remoteConnectionDetailsRequired() {
