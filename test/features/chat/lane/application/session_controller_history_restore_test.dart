@@ -212,6 +212,40 @@ void main() {
   );
 
   test(
+    'reattachConversation preserves live header metadata when history omits it on an empty lane',
+    () async {
+      final appServerClient = FakeCodexAppServerClient()
+        ..startSessionModel = 'gpt-5.4'
+        ..startSessionReasoningEffort = 'high'
+        ..threadHistoriesById['thread_live'] = savedConversationThread(
+          threadId: 'thread_live',
+        );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await controller.reattachConversation('thread_live');
+
+      expect(controller.sessionState.headerMetadata.model, 'gpt-5.4');
+      expect(controller.sessionState.headerMetadata.reasoningEffort, 'high');
+    },
+  );
+
+  test(
     'reattachConversation restores history and keeps the latest running turn active on an empty lane',
     () async {
       const replayedRequest = CodexAppServerRequestEvent(

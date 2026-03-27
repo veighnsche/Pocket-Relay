@@ -126,10 +126,12 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     Object? historyRestoreError;
     StackTrace? historyRestoreStackTrace;
     CodexSessionState? restoredState;
+    CodexSessionHeaderMetadata? resumedHeaderMetadata;
 
     _startBufferingRuntimeEvents();
     try {
       await _resumeConversationThread(threadId);
+      resumedHeaderMetadata = _sessionState.headerMetadata;
       try {
         final thread = await appServerClient.readThreadWithTurns(
           threadId: threadId,
@@ -142,7 +144,14 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     } finally {
       final bufferedEvents = _stopBufferingRuntimeEvents();
       if (restoredState != null) {
-        _applySessionState(restoredState!);
+        _applySessionState(
+          restoredState!.copyWith(
+            headerMetadata: _mergeHeaderMetadataForHistoryBaseline(
+              restoredState!.headerMetadata,
+              fallback: resumedHeaderMetadata,
+            ),
+          ),
+        );
       }
       for (final bufferedEvent in bufferedEvents) {
         _applyChatSessionRuntimeEvent(this, bufferedEvent);
@@ -372,4 +381,40 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     }
     return normalizedValue;
   }
+}
+
+CodexSessionHeaderMetadata _mergeHeaderMetadataForHistoryBaseline(
+  CodexSessionHeaderMetadata restored, {
+  CodexSessionHeaderMetadata? fallback,
+}) {
+  if (fallback == null) {
+    return restored;
+  }
+
+  return restored.copyWith(
+    cwd: _nonEmptyMetadataValue(restored.cwd, fallback.cwd),
+    model: _nonEmptyMetadataValue(restored.model, fallback.model),
+    modelProvider: _nonEmptyMetadataValue(
+      restored.modelProvider,
+      fallback.modelProvider,
+    ),
+    reasoningEffort: _nonEmptyMetadataValue(
+      restored.reasoningEffort,
+      fallback.reasoningEffort,
+    ),
+  );
+}
+
+String? _nonEmptyMetadataValue(String? preferred, String? fallback) {
+  final normalizedPreferred = preferred?.trim();
+  if (normalizedPreferred != null && normalizedPreferred.isNotEmpty) {
+    return normalizedPreferred;
+  }
+
+  final normalizedFallback = fallback?.trim();
+  if (normalizedFallback != null && normalizedFallback.isNotEmpty) {
+    return normalizedFallback;
+  }
+
+  return null;
 }
