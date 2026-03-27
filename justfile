@@ -146,6 +146,20 @@ alias wb-ios := widgetbook-ios
 test-size-audit:
     dart run tool/check_test_file_sizes.dart
 
+# Point this clone at the checked-in Git hooks.
+install-git-hooks:
+    git config core.hooksPath .githooks
+    @echo "Installed repo Git hooks from .githooks"
+
+# Verify the protected-branch commit guard in temp repos.
+[no-exit-message]
+[script]
+test-git-guard:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    exec "{{ justfile_directory() }}/scripts/test-protected-branch-commit-guard.sh"
+
 # Generate launcher icons from icon.png.
 [no-exit-message]
 [script]

@@ -285,3 +285,13 @@ Repo rules for future agents.
 - Before any UI edit on an existing surface, state in concrete terms which
   visual patterns must remain absent, including card/panel/boxed treatments
   whenever relevant.
+
+## 16. Branch Policy
+
+- Do not commit directly on protected branches.
+- Protected branches are `master` and `main`.
+- New feature work must happen on a feature branch and land through a PR.
+- A direct commit on a protected branch requires explicit operator permission
+  in the current turn.
+- Do not bypass the protected-branch commit guard unless the operator has
+  explicitly authorized that exact exception.

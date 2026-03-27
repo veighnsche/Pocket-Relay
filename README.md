@@ -124,6 +124,7 @@ Typical repo commands:
 
 ```bash
 flutter pub get
+just install-git-hooks
 just mobile
 ```
 
@@ -176,6 +177,34 @@ The remote machine needs:
 - a workspace path Pocket Relay can open
 
 Pocket Relay assumes Codex runs remotely, not inside the phone app itself.
+
+## Git Workflow
+
+Direct commits to protected branches are blocked in this repo.
+
+Protected branches:
+
+- `master`
+- `main`
+
+Enable the checked-in hook in this clone:
+
+```bash
+just install-git-hooks
+```
+
+Normal work should start from a feature branch and land through a PR.
+
+If the operator explicitly approves a one-off direct commit to a protected
+branch, bypass the guard for that single commit with:
+
+```bash
+POCKET_ALLOW_PROTECTED_BRANCH_COMMIT=1 git commit ...
+```
+
+GitHub-side protection is still required for real remote enforcement. The
+baseline settings and required CI check are documented in
+[`docs/081_repository_protection_baseline.md`](/home/vince/Projects/codex_pocket/docs/081_repository_protection_baseline.md).
 
 ## Project Layout
 
@@ -250,6 +279,7 @@ Run the full suite:
 ```bash
 flutter analyze
 flutter test
+just test-git-guard
 ```
 
 For Widgetbook-only checks:
