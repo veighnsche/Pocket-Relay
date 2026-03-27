@@ -115,10 +115,10 @@ class _DiffEditorBar extends StatelessWidget {
                 diff.currentPath,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: PocketTypography.monospaceStyle(
+                  base: const TextStyle(),
                   color: cards.textSecondary,
                   fontSize: 12,
-                  fontFamily: 'monospace',
                   height: 1.2,
                 ),
               ),
@@ -171,8 +171,8 @@ class _DiffLineView extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = _styleForDiffLine(line.kind, cards);
     final lineDisplay = _DiffLineDisplay.fromContract(line);
-    final baseTextStyle = TextStyle(
-      fontFamily: 'monospace',
+    final baseTextStyle = PocketTypography.monospaceStyle(
+      base: const TextStyle(),
       fontSize: 12.2,
       height: 1.45,
       color: style.foreground,
@@ -227,9 +227,9 @@ class _LineNumberCell extends StatelessWidget {
       child: Text(
         number?.toString() ?? '',
         textAlign: TextAlign.right,
-        style: TextStyle(
+        style: PocketTypography.monospaceStyle(
+          base: const TextStyle(),
           color: cards.textMuted.withValues(alpha: 0.82),
-          fontFamily: 'monospace',
           fontSize: 11.5,
           height: 1.45,
         ),

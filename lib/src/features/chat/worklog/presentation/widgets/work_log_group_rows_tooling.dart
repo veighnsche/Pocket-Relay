@@ -119,11 +119,11 @@ class _McpToolCallWorkLogEntryRow extends StatelessWidget {
             entry.argumentsLabel!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: PocketTypography.monospaceStyle(
+              base: const TextStyle(),
               color: cards.textSecondary,
               fontSize: 11.25,
               height: 1.25,
-              fontFamily: 'monospace',
             ),
           ),
         if (entry.outcomeLabel != null)

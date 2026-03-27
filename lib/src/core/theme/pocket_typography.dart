@@ -5,23 +5,23 @@ abstract final class PocketFontFamilies {
 }
 
 abstract final class PocketTypography {
-  static TextStyle monospace(
-    BuildContext context, {
+  static TextStyle monospaceStyle({
     TextStyle? base,
     Color? color,
     double? fontSize,
     double? height,
     FontWeight? fontWeight,
     double? letterSpacing,
+    Color? backgroundColor,
   }) {
-    final source =
-        base ?? Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final source = base ?? const TextStyle();
     return source.copyWith(
       color: color ?? source.color,
       fontSize: fontSize ?? source.fontSize,
       height: height ?? source.height,
       fontWeight: fontWeight ?? source.fontWeight,
       letterSpacing: letterSpacing ?? source.letterSpacing,
+      backgroundColor: backgroundColor ?? source.backgroundColor,
       fontFamily: PocketFontFamilies.monospace,
       fontFamilyFallback: const <String>[
         'SF Mono',
@@ -34,6 +34,27 @@ abstract final class PocketTypography {
         'Courier New',
         'monospace',
       ],
+    );
+  }
+
+  static TextStyle monospace(
+    BuildContext context, {
+    TextStyle? base,
+    Color? color,
+    double? fontSize,
+    double? height,
+    FontWeight? fontWeight,
+    double? letterSpacing,
+    Color? backgroundColor,
+  }) {
+    return monospaceStyle(
+      base: base ?? Theme.of(context).textTheme.bodyMedium,
+      color: color,
+      fontSize: fontSize,
+      height: height,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+      backgroundColor: backgroundColor,
     );
   }
 }

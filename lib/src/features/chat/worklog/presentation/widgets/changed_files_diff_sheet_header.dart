@@ -34,21 +34,21 @@ class _ChangedFileDiffSheetHeader extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 diff.fileName,
-                style: TextStyle(
+                style: PocketTypography.monospaceStyle(
+                  base: const TextStyle(),
                   color: cards.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  fontFamily: 'monospace',
                   height: 1.2,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 diff.currentPath,
-                style: TextStyle(
+                style: PocketTypography.monospaceStyle(
+                  base: const TextStyle(),
                   color: cards.textSecondary,
                   fontSize: 12.5,
-                  fontFamily: 'monospace',
                   height: 1.35,
                 ),
               ),

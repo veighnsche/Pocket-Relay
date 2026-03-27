@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/core/theme/pocket_typography.dart';
 import 'ui_block_surface_test_support.dart';
 
 void main() {
@@ -51,7 +52,7 @@ void main() {
 
     expect(codeStyle, isNotNull);
     expect(codeStyle?.color, const Color(0xFFE7F3F4));
-    expect(codeStyle?.fontFamily, 'monospace');
+    expect(codeStyle?.fontFamily, PocketFontFamilies.monospace);
     expect(
       findDecoratedContainerColorForText(tester, 'final answer = 42;'),
       const Color(0xFF0A1314),
@@ -76,7 +77,7 @@ void main() {
     final inlineCodeStyle = findStyleForText(tester, 'dart test');
 
     expect(inlineCodeStyle, isNotNull);
-    expect(inlineCodeStyle?.fontFamily, 'monospace');
+    expect(inlineCodeStyle?.fontFamily, PocketFontFamilies.monospace);
     expect(inlineCodeStyle?.backgroundColor, const Color(0xFFE8E0CF));
   });
 

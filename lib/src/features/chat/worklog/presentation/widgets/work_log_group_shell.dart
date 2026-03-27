@@ -64,13 +64,21 @@ class _WorkLogRowShell extends StatelessWidget {
                     title!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: cards.textPrimary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5,
-                      height: 1.15,
-                      fontFamily: titleMonospace ? 'monospace' : null,
-                    ),
+                    style: titleMonospace
+                        ? PocketTypography.monospaceStyle(
+                            base: TextStyle(
+                              color: cards.textPrimary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13.5,
+                              height: 1.15,
+                            ),
+                          )
+                        : TextStyle(
+                            color: cards.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13.5,
+                            height: 1.15,
+                          ),
                   ),
                 if (details.isNotEmpty) ...[
                   const SizedBox(height: 3),
