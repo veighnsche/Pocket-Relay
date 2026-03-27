@@ -6,6 +6,8 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     required bool isLaneBusy,
   }) {
     final hasWorkspaceHistoryScope = profile.workspaceDir.trim().isNotEmpty;
+    final canDisconnect = !isLaneBusy && !_isDisconnectingLaneTransport;
+    final canCloseLane = !isLaneBusy && !_isDisconnectingLaneTransport;
     return <ChatChromeMenuAction>[
       ChatChromeMenuAction(
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
@@ -19,6 +21,26 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
           },
           isEnabled: !isLaneBusy,
         ),
+      if (profile.isRemote && widget.laneBinding.appServerClient.isConnected)
+        ChatChromeMenuAction(
+          label: _isDisconnectingLaneTransport
+              ? ConnectionWorkspaceCopy.disconnectProgress
+              : ConnectionWorkspaceCopy.disconnectAction,
+          onSelected: () {
+            unawaited(_disconnectLaneTransport());
+          },
+          isEnabled: canDisconnect,
+        ),
+      ChatChromeMenuAction(
+        label: ConnectionWorkspaceCopy.closeLaneAction,
+        onSelected: () {
+          widget.workspaceController.terminateConnection(
+            widget.laneBinding.connectionId,
+          );
+        },
+        isDestructive: true,
+        isEnabled: canCloseLane,
+      ),
     ];
   }
 

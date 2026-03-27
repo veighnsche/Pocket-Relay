@@ -247,7 +247,7 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('lane_connection_action_close')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(savedConnectionsItem.enabled, isTrue);
       expect(
@@ -255,7 +255,7 @@ void main() {
           of: find.text('Close lane'),
           matching: find.byType(PopupMenuItem<int>),
         ),
-        findsNothing,
+        findsOneWidget,
       );
       expect(
         find.ancestor(

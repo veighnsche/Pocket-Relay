@@ -52,7 +52,7 @@ void main() {
   );
 
   testWidgets(
-    'live empty lane connect action keeps the placeholder clean and exposes visible lifecycle controls',
+    'live empty lane connect action keeps the placeholder clean and keeps lifecycle actions in overflow',
     (tester) async {
       final clientsById = buildClientsById('conn_primary');
       final client = clientsById['conn_primary']!;
@@ -101,10 +101,28 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_disconnect')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_close')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.ancestor(
+          of: find.text('Disconnect'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('Close lane'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
         findsOneWidget,
       );
       await controller.flushRecoveryPersistence();
@@ -112,7 +130,7 @@ void main() {
   );
 
   testWidgets(
-    'live connected lane disconnect stays distinct from close lane and preserves the lane',
+    'live connected lane keeps disconnect and close lane in overflow and preserves the lane',
     (tester) async {
       final clientsById = buildClientsById('conn_primary');
       final client = clientsById['conn_primary']!;
@@ -152,16 +170,32 @@ void main() {
 
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_disconnect')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('lane_connection_action_close')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.ancestor(
+          of: find.text('Disconnect'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('Close lane'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
         findsOneWidget,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('lane_connection_action_disconnect')),
-      );
+      await tester.tap(find.text('Disconnect'));
       await tester.pumpAndSettle();
 
       expect(client.disconnectCalls, 1);
@@ -225,6 +259,54 @@ void main() {
       await controller.flushRecoveryPersistence();
     },
   );
+
+  testWidgets('a newly opened second lane can connect its own transport', (
+    tester,
+  ) async {
+    final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+    final secondaryClient = clientsById['conn_secondary']!;
+    final controller = buildWorkspaceController(
+      clientsById: clientsById,
+      remoteAppServerHostProbe: const FakeRemoteHostProbe(
+        CodexRemoteAppServerHostCapabilities(),
+      ),
+      remoteAppServerOwnerInspector:
+          MapRemoteOwnerInspector(<String, CodexRemoteAppServerOwnerSnapshot>{
+            'conn_primary': runningOwnerSnapshot('conn_primary'),
+            'conn_secondary': runningOwnerSnapshot('conn_secondary'),
+          }),
+    );
+    addTearDown(() async {
+      controller.dispose();
+      for (final client in clientsById.values) {
+        await client.dispose();
+      }
+    });
+
+    await controller.initialize();
+    await controller.instantiateConnection('conn_secondary');
+    await controller.refreshRemoteRuntime(connectionId: 'conn_secondary');
+    final laneBinding = controller.selectedLaneBinding!;
+
+    await tester.pumpWidget(
+      buildLiveLaneApp(
+        controller,
+        laneBinding,
+        settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+          ..complete(null),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.state.selectedConnectionId, 'conn_secondary');
+    expect(secondaryClient.connectCalls, 1);
+    await controller.flushRecoveryPersistence();
+  });
 
   testWidgets(
     'live lane connect action surfaces a coded snackbar when transport attach fails',

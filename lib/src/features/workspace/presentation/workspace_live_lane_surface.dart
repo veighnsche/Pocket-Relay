@@ -677,15 +677,13 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     required Widget? recoveryNotice,
   }) {
     final appServerConnected = widget.laneBinding.appServerClient.isConnected;
-    final secondaryActions = _laneSecondaryActionsFor(isLaneBusy: isLaneBusy);
     final showSteadyStateStrip =
         !appServerConnected ||
         reconnectRequirement != null ||
         transportRecoveryPhase != null ||
         liveReattachPhase != null ||
         recoveryNotice != null ||
-        _isConnectingLaneTransport ||
-        secondaryActions.isNotEmpty;
+        _isConnectingLaneTransport;
     if (!showSteadyStateStrip) {
       return null;
     }
@@ -697,14 +695,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
     );
-    if (primaryAction == null &&
-        secondaryActions.isEmpty &&
-        recoveryNotice == null) {
+    if (primaryAction == null && recoveryNotice == null) {
       return null;
     }
     return _WorkspaceLaneConnectionStrip(
       primaryAction: primaryAction,
-      secondaryActions: secondaryActions,
       notice: recoveryNotice,
     );
   }
@@ -731,10 +726,8 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
     );
-    final secondaryActions = _laneSecondaryActionsFor(isLaneBusy: isLaneBusy);
     if (workspacePath.isEmpty &&
         primaryAction == null &&
-        secondaryActions.isEmpty &&
         recoveryNotice == null) {
       return null;
     }
@@ -742,7 +735,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     return _WorkspaceLaneEmptyStateContent(
       workspacePath: workspacePath.isEmpty ? null : workspacePath,
       primaryAction: primaryAction,
-      secondaryActions: secondaryActions,
       notice: recoveryNotice,
     );
   }
@@ -796,47 +788,6 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
             },
     );
   }
-
-  List<_WorkspaceLaneActionContract> _laneSecondaryActionsFor({
-    required bool isLaneBusy,
-  }) {
-    final actions = <_WorkspaceLaneActionContract>[];
-    final isTransportConnected = widget.laneBinding.appServerClient.isConnected;
-    final canDisconnect = !isLaneBusy && !_isDisconnectingLaneTransport;
-    if (widget.laneBinding.sessionController.profile.isRemote &&
-        isTransportConnected) {
-      actions.add(
-        _WorkspaceLaneActionContract(
-          key: const ValueKey<String>('lane_connection_action_disconnect'),
-          label: _isDisconnectingLaneTransport
-              ? ConnectionWorkspaceCopy.disconnectProgress
-              : ConnectionWorkspaceCopy.disconnectAction,
-          onPressed: canDisconnect
-              ? () {
-                  unawaited(_disconnectLaneTransport());
-                }
-              : null,
-        ),
-      );
-    }
-
-    actions.add(
-      _WorkspaceLaneActionContract(
-        key: const ValueKey<String>('lane_connection_action_close'),
-        label: ConnectionWorkspaceCopy.closeLaneAction,
-        isDestructive: true,
-        onPressed: !isLaneBusy && !_isDisconnectingLaneTransport
-            ? () {
-                widget.workspaceController.terminateConnection(
-                  widget.laneBinding.connectionId,
-                );
-              }
-            : null,
-      ),
-    );
-
-    return actions;
-  }
 }
 
 class _WorkspaceLaneActionContract {
@@ -844,33 +795,28 @@ class _WorkspaceLaneActionContract {
     required this.key,
     required this.label,
     required this.onPressed,
-    this.isDestructive = false,
   });
 
   final Key key;
   final String label;
   final VoidCallback? onPressed;
-  final bool isDestructive;
 }
 
 class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
   const _WorkspaceLaneEmptyStateContent({
     this.workspacePath,
     this.primaryAction,
-    this.secondaryActions = const <_WorkspaceLaneActionContract>[],
     this.notice,
   });
 
   final String? workspacePath;
   final _WorkspaceLaneActionContract? primaryAction;
-  final List<_WorkspaceLaneActionContract> secondaryActions;
   final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryAction = this.primaryAction;
-    final secondaryActions = this.secondaryActions;
     final workspacePath = this.workspacePath?.trim();
     final hasWorkspacePath = workspacePath != null && workspacePath.isNotEmpty;
 
@@ -898,32 +844,6 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
               child: Text(primaryAction.label),
             ),
           ],
-          if (secondaryActions.isNotEmpty) ...[
-            if (hasWorkspacePath || primaryAction != null)
-              const SizedBox(height: 14),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final action in secondaryActions)
-                  action.isDestructive
-                      ? TextButton(
-                          key: action.key,
-                          onPressed: action.onPressed,
-                          style: TextButton.styleFrom(
-                            foregroundColor: theme.colorScheme.error,
-                          ),
-                          child: Text(action.label),
-                        )
-                      : OutlinedButton(
-                          key: action.key,
-                          onPressed: action.onPressed,
-                          child: Text(action.label),
-                        ),
-              ],
-            ),
-          ],
           if (notice != null) ...[const SizedBox(height: 14), notice!],
         ],
       ),
@@ -932,29 +852,24 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
 }
 
 class _WorkspaceLaneConnectionStrip extends StatelessWidget {
-  const _WorkspaceLaneConnectionStrip({
-    this.primaryAction,
-    this.secondaryActions = const <_WorkspaceLaneActionContract>[],
-    this.notice,
-  });
+  const _WorkspaceLaneConnectionStrip({this.primaryAction, this.notice});
 
   final _WorkspaceLaneActionContract? primaryAction;
-  final List<_WorkspaceLaneActionContract> secondaryActions;
   final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
     final primaryAction = this.primaryAction;
-    final secondaryActions = this.secondaryActions;
-    final theme = Theme.of(context);
 
     return DecoratedBox(
       key: const ValueKey<String>('lane_connection_status_strip'),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.78),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.45),
           ),
         ),
       ),
@@ -963,33 +878,17 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (primaryAction != null || secondaryActions.isNotEmpty)
+            if (primaryAction != null)
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  if (primaryAction != null)
-                    FilledButton.tonal(
-                      key: primaryAction.key,
-                      onPressed: primaryAction.onPressed,
-                      child: Text(primaryAction.label),
-                    ),
-                  for (final action in secondaryActions)
-                    action.isDestructive
-                        ? TextButton(
-                            key: action.key,
-                            onPressed: action.onPressed,
-                            style: TextButton.styleFrom(
-                              foregroundColor: theme.colorScheme.error,
-                            ),
-                            child: Text(action.label),
-                          )
-                        : OutlinedButton(
-                            key: action.key,
-                            onPressed: action.onPressed,
-                            child: Text(action.label),
-                          ),
+                  FilledButton.tonal(
+                    key: primaryAction.key,
+                    onPressed: primaryAction.onPressed,
+                    child: Text(primaryAction.label),
+                  ),
                 ],
               ),
             if (notice != null) ...[const SizedBox(height: 12), notice!],
