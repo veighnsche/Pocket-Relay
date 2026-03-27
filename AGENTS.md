@@ -75,6 +75,52 @@ Repo rules for future agents.
   breaking the normal active-turn experience is a product regression, not a
   safety improvement.
 
+## 4B. Active work-surface real estate is a hard product constraint
+
+- While a lane or other primary work surface is active, prioritize transcript,
+  editor, and composer space over lifecycle chrome.
+- Do not pin secondary, destructive, or low-frequency actions into always-
+  visible headers, strips, footers, or other persistent chrome on an active
+  work surface.
+- If an action is not required for the user to continue the task they are
+  actively performing, it belongs in overflow, a menu, a sheet, or another
+  contextual affordance instead of persistent chrome.
+- Disabled secondary actions must not remain visible on active work surfaces
+  just for discoverability, consistency, or reassurance.
+- Extra visibility alone is not a valid reason to promote connection lifecycle
+  actions such as disconnect, close lane, restart, or similar controls into
+  persistent chrome.
+- Promote lifecycle actions only when the current runtime state makes them the
+  primary next step, such as disconnected, recovery-required, setup, or
+  explicit destructive confirmation states.
+- Tests must verify that secondary actions remain accessible without locking the
+  product into always-visible placement on active work surfaces unless the user
+  explicitly asked for persistent controls.
+
+## 4C. The agent is a bad judge of what deserves permanent visibility
+
+- Do not trust the agent's instinct about what is "important for the user to
+  see" without explicit product evidence.
+- The agent consistently overvalues orientation copy, helper text, onboarding
+  prose, explanatory paragraphs, and secondary controls, and undervalues live
+  working space. Treat that bias as a known failure mode.
+- When choosing between more explanation and more room for the user's actual
+  task, default to more room for the task.
+- If text is not required for the user's next action, do not pin it into fixed
+  headers, fixed footers, persistent sheets, or other always-visible chrome.
+- Users do not read large paragraphs just because they are visible. Visibility
+  alone does not make copy useful.
+- Do not promote descriptive or instructional text into permanent space to make
+  the UI feel "clearer" or "more guided". If the form, flow, or control labels
+  are not clear enough without a paragraph, fix the ownership and structure of
+  the form instead.
+- On configuration surfaces, prefer concise labels, field-level helper text,
+  progressive disclosure, and contextual affordances over persistent
+  explanatory blocks.
+- Before adding any permanently visible copy, ask what user action it unlocks
+  right now, what would break if it were absent, and why that benefit is worth
+  the fixed space cost. If those answers are weak, the copy does not belong.
+
 ## 5. No speculative product surface area
 
 - Do not invent product states, labels, summaries, UX categories, or review
