@@ -1,3 +1,7 @@
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_errors.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
+
 import '../support/composer_test_support.dart';
 
 void main() {
@@ -89,5 +93,52 @@ void main() {
     await tester.pumpWidget(buildComposerApp(contract: composerContract()));
 
     expect(find.byKey(const ValueKey('attach_image')), findsNothing);
+  });
+
+  testWidgets('attach surfaces a stable coded snackbar for known load errors', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildComposerApp(
+        contract: composerContract(allowsImageAttachment: true),
+        imageAttachmentPicker: () async {
+          throw ChatComposerImageAttachmentLoadException(
+            ChatComposerImageAttachmentErrors.unsupportedType(),
+          );
+        },
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('attach_image')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining(
+        '[${PocketErrorCatalog.chatSessionImageAttachmentUnsupportedType.code}]',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('attach surfaces a stable coded snackbar for unexpected failures', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildComposerApp(
+        contract: composerContract(allowsImageAttachment: true),
+        imageAttachmentPicker: () async => throw StateError('picker exploded'),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('attach_image')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining(
+        '[${PocketErrorCatalog.chatSessionImageAttachmentUnexpectedFailure.code}]',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('picker exploded'), findsOneWidget);
   });
 }
