@@ -7,7 +7,9 @@ Future<void> _deleteWorkspaceSavedConnectionImpl(
   await controller._connectionRepository.deleteConnection(connectionId);
   await controller._modelCatalogStore.delete(connectionId);
   controller._remoteRuntimeRefreshGenerationByConnectionId.remove(connectionId);
-  final nextCatalog = await controller._connectionRepository.loadCatalog();
+  final (nextCatalog, nextSystemCatalog) = await _loadWorkspaceCatalogState(
+    controller,
+  );
   if (controller._isDisposed) {
     return;
   }
@@ -16,6 +18,7 @@ Future<void> _deleteWorkspaceSavedConnectionImpl(
     controller._state.copyWith(
       isLoading: false,
       catalog: nextCatalog,
+      systemCatalog: nextSystemCatalog,
       savedSettingsReconnectRequiredConnectionIds:
           _sanitizeWorkspaceReconnectRequiredIds(
             catalog: nextCatalog,

@@ -27,6 +27,7 @@ part 'controller/app_lifecycle.dart';
 part 'controller/binding_runtime.dart';
 part 'controller/bootstrap.dart';
 part 'controller/catalog_connections.dart';
+part 'controller/catalog_systems.dart';
 part 'controller/conversation_selection.dart';
 part 'controller/delete_connection.dart';
 part 'controller/device_continuity_warnings.dart';
@@ -144,6 +145,30 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     return _createWorkspaceConnection(this, profile: profile, secrets: secrets);
   }
 
+  Future<SavedSystem> loadSavedSystem(String systemId) {
+    return _loadWorkspaceSavedSystem(this, systemId);
+  }
+
+  Future<String> createSystem({
+    required SystemProfile profile,
+    required ConnectionSecrets secrets,
+  }) {
+    return _createWorkspaceSystem(this, profile: profile, secrets: secrets);
+  }
+
+  Future<void> saveSavedSystem({
+    required String systemId,
+    required SystemProfile profile,
+    required ConnectionSecrets secrets,
+  }) {
+    return _saveWorkspaceSavedSystem(
+      this,
+      systemId: systemId,
+      profile: profile,
+      secrets: secrets,
+    );
+  }
+
   Future<void> saveSavedConnection({
     required String connectionId,
     required ConnectionProfile profile,
@@ -252,6 +277,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     return _deleteWorkspaceSavedConnection(this, connectionId);
   }
 
+  Future<void> deleteSavedSystem(String systemId) {
+    return _deleteWorkspaceSavedSystem(this, systemId);
+  }
+
   Future<void> instantiateConnection(String connectionId) {
     return _instantiateWorkspaceLiveConnection(this, connectionId);
   }
@@ -262,6 +291,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
   void showSavedConnections() {
     _showWorkspaceSavedConnections(this);
+  }
+
+  void showSavedSystems() {
+    _showWorkspaceSavedSystems(this);
   }
 
   void setForegroundServiceWarning(PocketUserFacingError? warning) {

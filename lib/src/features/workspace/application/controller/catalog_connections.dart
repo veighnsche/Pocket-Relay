@@ -22,7 +22,9 @@ Future<String> _createWorkspaceConnection(
     profile: profile,
     secrets: secrets,
   );
-  final nextCatalog = await controller._connectionRepository.loadCatalog();
+  final (nextCatalog, nextSystemCatalog) = await _loadWorkspaceCatalogState(
+    controller,
+  );
   if (controller._isDisposed) {
     return connection.id;
   }
@@ -31,6 +33,7 @@ Future<String> _createWorkspaceConnection(
     controller._state.copyWith(
       isLoading: false,
       catalog: nextCatalog,
+      systemCatalog: nextSystemCatalog,
       savedSettingsReconnectRequiredConnectionIds:
           _sanitizeWorkspaceReconnectRequiredIds(
             catalog: nextCatalog,
@@ -124,7 +127,9 @@ Future<void> _saveWorkspaceInactiveSavedConnection(
     ),
   );
 
-  final nextCatalog = await controller._connectionRepository.loadCatalog();
+  final (nextCatalog, nextSystemCatalog) = await _loadWorkspaceCatalogState(
+    controller,
+  );
   final nextRemoteRuntimeByConnectionId =
       Map<String, ConnectionRemoteRuntimeState>.from(
         controller._state.remoteRuntimeByConnectionId,
@@ -143,6 +148,7 @@ Future<void> _saveWorkspaceInactiveSavedConnection(
     controller._state.copyWith(
       isLoading: false,
       catalog: nextCatalog,
+      systemCatalog: nextSystemCatalog,
       savedSettingsReconnectRequiredConnectionIds:
           _sanitizeWorkspaceReconnectRequiredIds(
             catalog: nextCatalog,
@@ -219,7 +225,9 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
     ),
   );
 
-  final nextCatalog = await controller._connectionRepository.loadCatalog();
+  final (nextCatalog, nextSystemCatalog) = await _loadWorkspaceCatalogState(
+    controller,
+  );
   final liveBinding =
       controller._liveBindingsByConnectionId[normalizedConnectionId];
   final shouldRequireReconnect =
@@ -250,6 +258,7 @@ Future<void> _saveWorkspaceLiveConnectionEdits(
     controller._state.copyWith(
       isLoading: false,
       catalog: nextCatalog,
+      systemCatalog: nextSystemCatalog,
       savedSettingsReconnectRequiredConnectionIds:
           _sanitizeWorkspaceReconnectRequiredIds(
             catalog: nextCatalog,

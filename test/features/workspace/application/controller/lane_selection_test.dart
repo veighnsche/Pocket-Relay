@@ -120,6 +120,23 @@ void main() {
     expect(controller.selectedLaneBinding?.connectionId, 'conn_primary');
   });
 
+  test('showSavedSystems preserves the selected live lane', () async {
+    final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+    final controller = buildWorkspaceController(clientsById: clientsById);
+    addTearDown(() async {
+      controller.dispose();
+      await closeClients(clientsById);
+    });
+
+    await controller.initialize();
+
+    controller.showSavedSystems();
+
+    expect(controller.state.viewport, ConnectionWorkspaceViewport.savedSystems);
+    expect(controller.state.selectedConnectionId, 'conn_primary');
+    expect(controller.selectedLaneBinding?.connectionId, 'conn_primary');
+  });
+
   test(
     'instantiating from the dormant roster returns the workspace to a live lane',
     () async {
@@ -205,5 +222,111 @@ void main() {
       'conn_created',
     ]);
     expect(controller.bindingForConnectionId('conn_created'), isNull);
+  });
+
+  test(
+    'createSystem appends a reusable system without opening a lane',
+    () async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      var nextSystemId = 0;
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: workspaceProfile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: workspaceProfile('Secondary Box', 'secondary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+        systemIdGenerator: () => 'sys_created_${nextSystemId++}',
+      );
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        repository: repository,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final initialSystemCount =
+          controller.state.systemCatalog.orderedSystemIds.length;
+
+      final createdSystemId = await controller.createSystem(
+        profile: const SystemProfile(
+          host: 'third.local',
+          port: 22,
+          username: 'vince',
+          authMode: AuthMode.password,
+          hostFingerprint: '',
+        ),
+        secrets: const ConnectionSecrets(password: 'secret-3'),
+      );
+
+      expect(createdSystemId, 'sys_created_2');
+      expect(
+        controller.state.systemCatalog.orderedSystemIds,
+        contains('sys_created_2'),
+      );
+      expect(
+        controller.state.systemCatalog.orderedSystemIds.length,
+        initialSystemCount + 1,
+      );
+      expect(controller.state.liveConnectionIds, <String>['conn_primary']);
+      expect(controller.bindingForConnectionId('sys_created'), isNull);
+    },
+  );
+
+  test('deleteSavedSystem removes an unused reusable system', () async {
+    final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+    var nextSystemId = 0;
+    final repository = MemoryCodexConnectionRepository(
+      initialConnections: <SavedConnection>[
+        SavedConnection(
+          id: 'conn_primary',
+          profile: workspaceProfile('Primary Box', 'primary.local'),
+          secrets: const ConnectionSecrets(password: 'secret-1'),
+        ),
+        SavedConnection(
+          id: 'conn_secondary',
+          profile: workspaceProfile('Secondary Box', 'secondary.local'),
+          secrets: const ConnectionSecrets(password: 'secret-2'),
+        ),
+      ],
+      systemIdGenerator: () => 'sys_created_${nextSystemId++}',
+    );
+    final controller = buildWorkspaceController(
+      clientsById: clientsById,
+      repository: repository,
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    final createdSystemId = await controller.createSystem(
+      profile: const SystemProfile(
+        host: 'third.local',
+        port: 22,
+        username: 'vince',
+        authMode: AuthMode.password,
+        hostFingerprint: '',
+      ),
+      secrets: const ConnectionSecrets(password: 'secret-3'),
+    );
+
+    await controller.deleteSavedSystem(createdSystemId);
+
+    expect(
+      controller.state.systemCatalog.orderedSystemIds,
+      isNot(contains(createdSystemId)),
+    );
+    expect(controller.state.liveConnectionIds, <String>['conn_primary']);
   });
 }

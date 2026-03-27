@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
-enum ConnectionWorkspaceViewport { liveLane, savedConnections }
+enum ConnectionWorkspaceViewport { liveLane, savedConnections, savedSystems }
 
 enum ConnectionWorkspaceBackgroundLifecycleState { inactive, hidden, paused }
 
@@ -260,11 +260,13 @@ class ConnectionWorkspaceState {
   const ConnectionWorkspaceState({
     required this.isLoading,
     required this.catalog,
+    this.systemCatalog = const SystemCatalogState.empty(),
     required this.liveConnectionIds,
     required this.selectedConnectionId,
     required this.viewport,
-    required this.recoveryLoadWarning,
-    required this.deviceContinuityWarnings,
+    this.recoveryLoadWarning,
+    this.deviceContinuityWarnings =
+        const ConnectionWorkspaceDeviceContinuityWarnings(),
     required this.savedSettingsReconnectRequiredConnectionIds,
     required this.transportReconnectRequiredConnectionIds,
     required this.transportRecoveryPhasesByConnectionId,
@@ -276,6 +278,7 @@ class ConnectionWorkspaceState {
   const ConnectionWorkspaceState.initial()
     : isLoading = true,
       catalog = const ConnectionCatalogState.empty(),
+      systemCatalog = const SystemCatalogState.empty(),
       liveConnectionIds = const <String>[],
       selectedConnectionId = null,
       viewport = ConnectionWorkspaceViewport.liveLane,
@@ -295,6 +298,7 @@ class ConnectionWorkspaceState {
 
   final bool isLoading;
   final ConnectionCatalogState catalog;
+  final SystemCatalogState systemCatalog;
   final List<String> liveConnectionIds;
   final String? selectedConnectionId;
   final ConnectionWorkspaceViewport viewport;
@@ -387,9 +391,13 @@ class ConnectionWorkspaceState {
   bool get isShowingSavedConnections =>
       viewport == ConnectionWorkspaceViewport.savedConnections;
 
+  bool get isShowingSavedSystems =>
+      viewport == ConnectionWorkspaceViewport.savedSystems;
+
   ConnectionWorkspaceState copyWith({
     bool? isLoading,
     ConnectionCatalogState? catalog,
+    SystemCatalogState? systemCatalog,
     List<String>? liveConnectionIds,
     String? selectedConnectionId,
     ConnectionWorkspaceViewport? viewport,
@@ -410,6 +418,7 @@ class ConnectionWorkspaceState {
     return ConnectionWorkspaceState(
       isLoading: isLoading ?? this.isLoading,
       catalog: catalog ?? this.catalog,
+      systemCatalog: systemCatalog ?? this.systemCatalog,
       liveConnectionIds: liveConnectionIds ?? this.liveConnectionIds,
       selectedConnectionId: clearSelectedConnectionId
           ? null
@@ -445,6 +454,7 @@ class ConnectionWorkspaceState {
     return other is ConnectionWorkspaceState &&
         other.isLoading == isLoading &&
         other.catalog == catalog &&
+        other.systemCatalog == systemCatalog &&
         listEquals(other.liveConnectionIds, liveConnectionIds) &&
         other.selectedConnectionId == selectedConnectionId &&
         other.viewport == viewport &&
@@ -480,6 +490,7 @@ class ConnectionWorkspaceState {
   int get hashCode => Object.hash(
     isLoading,
     catalog,
+    systemCatalog,
     Object.hashAll(liveConnectionIds),
     selectedConnectionId,
     viewport,

@@ -3,7 +3,7 @@ part of '../connection_workspace_controller.dart';
 Future<void> _initializeWorkspaceController(
   ConnectionWorkspaceController controller,
 ) async {
-  final catalog = await controller._connectionRepository.loadCatalog();
+  final (catalog, systemCatalog) = await _loadWorkspaceCatalogState(controller);
   ConnectionWorkspaceRecoveryState? recoveryState;
   PocketUserFacingError? recoveryLoadWarning;
   try {
@@ -18,6 +18,7 @@ Future<void> _initializeWorkspaceController(
       const ConnectionWorkspaceState(
         isLoading: false,
         catalog: ConnectionCatalogState.empty(),
+        systemCatalog: SystemCatalogState.empty(),
         liveConnectionIds: <String>[],
         selectedConnectionId: null,
         viewport: ConnectionWorkspaceViewport.savedConnections,
@@ -61,6 +62,7 @@ Future<void> _initializeWorkspaceController(
     ConnectionWorkspaceState(
       isLoading: false,
       catalog: catalog,
+      systemCatalog: systemCatalog,
       liveConnectionIds: <String>[firstConnectionId],
       selectedConnectionId: firstConnectionId,
       viewport: ConnectionWorkspaceViewport.liveLane,
