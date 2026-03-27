@@ -1,3 +1,5 @@
+import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
+
 enum PocketErrorDomain { connectionLifecycle, chatSession }
 
 final class PocketErrorDefinition {
@@ -17,15 +19,22 @@ final class PocketUserFacingError {
     required this.definition,
     required this.title,
     required this.message,
+    this.underlyingDetail,
   });
 
   final PocketErrorDefinition definition;
   final String title;
   final String message;
+  final String? underlyingDetail;
+
+  String get formattedMessage => PocketErrorDetailFormatter.composeMessage(
+    message: message,
+    underlyingDetail: underlyingDetail,
+  );
 
   String get inlineMessage {
     final normalizedTitle = title.trim();
-    final normalizedMessage = message.trim();
+    final normalizedMessage = formattedMessage.trim();
     if (normalizedTitle.isEmpty) {
       return '[${definition.code}] $normalizedMessage';
     }
@@ -35,7 +44,35 @@ final class PocketUserFacingError {
     return '[${definition.code}] $normalizedTitle. $normalizedMessage';
   }
 
-  String get bodyWithCode => '[${definition.code}] ${message.trim()}';
+  String get bodyWithCode => '[${definition.code}] ${formattedMessage.trim()}';
+
+  PocketUserFacingError withUnderlyingDetail(String? detail) {
+    final normalizedDetail = detail?.trim();
+    if ((underlyingDetail ?? '') == (normalizedDetail ?? '')) {
+      return this;
+    }
+    return PocketUserFacingError(
+      definition: definition,
+      title: title,
+      message: message,
+      underlyingDetail: normalizedDetail,
+    );
+  }
+
+  PocketUserFacingError withNormalizedUnderlyingError(
+    Object? error, {
+    bool stripRemoteOwnerControlFailure = false,
+  }) {
+    final detail = PocketErrorDetailFormatter.uniqueUnderlyingDetail(
+      existingText: inlineMessage,
+      error: error,
+      stripRemoteOwnerControlFailure: stripRemoteOwnerControlFailure,
+    );
+    if (detail == null) {
+      return this;
+    }
+    return withUnderlyingDetail(detail);
+  }
 }
 
 abstract final class PocketErrorCatalog {

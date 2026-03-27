@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
@@ -11,9 +12,10 @@ abstract final class ConnectionLifecycleErrors {
     Object? error,
   }) {
     if (profile.connectionMode == ConnectionMode.local) {
-      final message =
-          _normalizedErrorDetail(error) ??
-          'Verify the saved connection, then try again.';
+      final message = PocketErrorDetailFormatter.resolvePrimaryMessage(
+        error: error,
+        fallbackMessage: 'Verify the saved connection, then try again.',
+      );
       return PocketUserFacingError(
         definition: PocketErrorCatalog.connectionOpenLocalUnexpectedFailure,
         title: 'Could not open lane',
@@ -30,7 +32,7 @@ abstract final class ConnectionLifecycleErrors {
       );
     }
 
-    final errorDetail = _normalizedErrorDetail(error);
+    final errorDetail = PocketErrorDetailFormatter.normalize(error);
     if (errorDetail != null) {
       return PocketUserFacingError(
         definition: PocketErrorCatalog.connectionOpenRemoteUnexpectedFailure,
@@ -53,18 +55,20 @@ abstract final class ConnectionLifecycleErrors {
     Object? error,
   }) {
     final resolution = _remoteServerActionResolution(actionId, remoteRuntime);
-    final runtimeDetail = resolution?.$2;
-    final errorDetail = _normalizedErrorDetail(error);
-    final message = _combinedFailureDetail(
-      runtimeDetail: runtimeDetail,
-      errorDetail: errorDetail,
+    final message = PocketErrorDetailFormatter.resolvePrimaryMessage(
+      preferredMessage: resolution?.$2,
+      error: error,
       fallbackMessage: _genericRemoteServerActionFailureMessage(actionId),
+      stripRemoteOwnerControlFailure: true,
     );
     return PocketUserFacingError(
       definition:
           resolution?.$1 ?? _unexpectedRemoteServerActionDefinition(actionId),
       title: 'Could not ${_remoteServerActionVerb(actionId)}',
       message: message,
+    ).withNormalizedUnderlyingError(
+      resolution?.$2 == null ? null : error,
+      stripRemoteOwnerControlFailure: true,
     );
   }
 
@@ -128,12 +132,8 @@ abstract final class ConnectionLifecycleErrors {
     return PocketUserFacingError(
       definition: unavailable.definition,
       title: 'Could not connect lane',
-      message: _combinedFailureDetail(
-        runtimeDetail: unavailable.message,
-        errorDetail: _normalizedErrorDetail(error),
-        fallbackMessage: unavailable.message,
-      ),
-    );
+      message: unavailable.message,
+    ).withNormalizedUnderlyingError(error);
   }
 
   static PocketUserFacingError conversationHistoryFailure(Object error) {
@@ -176,9 +176,11 @@ abstract final class ConnectionLifecycleErrors {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.connectionHistoryLoadFailed,
       title: 'Could not load conversations',
-      message:
-          _normalizedErrorDetail(error) ??
-          'Pocket Relay could not load conversations from Codex.',
+      message: PocketErrorDetailFormatter.resolvePrimaryMessage(
+        error: error,
+        fallbackMessage:
+            'Pocket Relay could not load conversations from Codex.',
+      ),
     );
   }
 
@@ -344,25 +346,6 @@ abstract final class ConnectionLifecycleErrors {
     };
   }
 
-  static String _combinedFailureDetail({
-    required String? runtimeDetail,
-    required String? errorDetail,
-    required String fallbackMessage,
-  }) {
-    if (runtimeDetail != null &&
-        errorDetail != null &&
-        errorDetail != runtimeDetail) {
-      return '$runtimeDetail Underlying error: $errorDetail';
-    }
-    if (runtimeDetail != null) {
-      return runtimeDetail;
-    }
-    if (errorDetail != null) {
-      return errorDetail;
-    }
-    return fallbackMessage;
-  }
-
   static String _genericRemoteServerActionFailureMessage(
     ConnectionSettingsRemoteServerActionId actionId,
   ) {
@@ -383,36 +366,6 @@ abstract final class ConnectionLifecycleErrors {
       ConnectionSettingsRemoteServerActionId.start => 'start server',
       ConnectionSettingsRemoteServerActionId.stop => 'stop server',
       ConnectionSettingsRemoteServerActionId.restart => 'restart server',
-    };
-  }
-
-  static String? _normalizedErrorDetail(Object? error) {
-    if (error == null) {
-      return null;
-    }
-
-    final detail = '$error'.trim();
-    if (detail.isEmpty) {
-      return null;
-    }
-
-    return switch (detail) {
-      final value when value.startsWith('Exception: ') => value.substring(
-        'Exception: '.length,
-      ),
-      final value when value.startsWith('Bad state: ') => value.substring(
-        'Bad state: '.length,
-      ),
-      final value when value.startsWith('CodexAppServerException: ') =>
-        value.substring('CodexAppServerException: '.length),
-      final value
-          when value.startsWith('CodexAppServerException(') &&
-              value.contains('): ') =>
-        value.substring(value.indexOf('): ') + 3),
-      final value
-          when value.startsWith('Remote owner control command failed: ') =>
-        value.substring('Remote owner control command failed: '.length),
-      _ => detail,
     };
   }
 }
