@@ -252,6 +252,74 @@ void main() {
   });
 
   testWidgets(
+    'material settings renderer keeps manual system input when reselecting the blank picker option',
+    (tester) async {
+      final template = ConnectionSettingsSystemTemplate(
+        id: 'system_primary',
+        profile: ConnectionProfile.defaults().copyWith(
+          label: 'Primary Workspace',
+          host: 'buildbox.local',
+          port: 2200,
+          username: 'alice',
+          workspaceDir: '/workspace/primary',
+          codexPath: 'codex',
+          authMode: AuthMode.password,
+          hostFingerprint: '11:22:33:44',
+        ),
+        secrets: const ConnectionSecrets(password: 'other-secret'),
+      );
+
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          initialProfile: ConnectionProfile.defaults().copyWith(
+            workspaceDir: '/workspace/current',
+            codexPath: 'codex',
+          ),
+          availableSystemTemplates: <ConnectionSettingsSystemTemplate>[
+            template,
+          ],
+        ),
+      );
+
+      await tester.enterText(materialTextField('Host'), 'manualbox.local');
+      await tester.enterText(materialTextField('Port'), '2201');
+      await tester.enterText(materialTextField('Username'), 'manual-user');
+      await tester.enterText(materialTextField('Password'), 'manual-secret');
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('connection_settings_system_picker')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('connection_settings_system_picker')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Enter a new system').last);
+      await tester.pumpAndSettle();
+
+      final hostField = tester.widget<TextField>(
+        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.host)),
+      );
+      final portField = tester.widget<TextField>(
+        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.port)),
+      );
+      final usernameField = tester.widget<TextField>(
+        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.username)),
+      );
+      final passwordField = tester.widget<TextField>(
+        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
+      );
+
+      expect(hostField.controller!.text, 'manualbox.local');
+      expect(portField.controller!.text, '2201');
+      expect(usernameField.controller!.text, 'manual-user');
+      expect(passwordField.controller!.text, 'manual-secret');
+      expect(find.text('SSH fingerprint needed'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'material settings renderer can clear a reused system template back to a blank system',
     (tester) async {
       final template = ConnectionSettingsSystemTemplate(

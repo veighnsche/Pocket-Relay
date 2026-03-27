@@ -117,7 +117,15 @@ void _selectConnectionSettingsSystemTemplate(
   _ConnectionSettingsHostState state,
   String? templateId,
 ) {
+  final selectedTemplateId = matchingConnectionSettingsSystemTemplateId(
+    draft: state._formState.draft,
+    templates: state._availableSystemTemplates,
+  );
   if (templateId == null) {
+    if (selectedTemplateId == null) {
+      return;
+    }
+
     final nextDraft = _resetConnectionSettingsSystemDraft(
       state._formState.draft,
     );
