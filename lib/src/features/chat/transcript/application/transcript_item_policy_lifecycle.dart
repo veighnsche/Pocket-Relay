@@ -102,7 +102,6 @@ Map<String, dynamic>? _nextLifecycleSnapshot(
   }
 
   if (event.itemType == CodexCanonicalItemType.commandExecution &&
-      event.rawMethod == 'item/commandExecution/terminalInteraction' &&
       existingSnapshot != null) {
     return <String, dynamic>{...existingSnapshot, ...eventSnapshot};
   }

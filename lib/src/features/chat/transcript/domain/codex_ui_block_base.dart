@@ -80,6 +80,7 @@ class CodexWorkLogEntry {
     required this.title,
     this.turnId,
     this.preview,
+    this.body,
     this.isRunning = false,
     this.exitCode,
     this.snapshot,
@@ -91,6 +92,7 @@ class CodexWorkLogEntry {
   final String title;
   final String? turnId;
   final String? preview;
+  final String? body;
   final bool isRunning;
   final int? exitCode;
   final Map<String, dynamic>? snapshot;
@@ -101,6 +103,7 @@ class CodexWorkLogEntry {
     String? title,
     String? turnId,
     String? preview,
+    String? body,
     bool? isRunning,
     int? exitCode,
     Map<String, dynamic>? snapshot,
@@ -112,6 +115,7 @@ class CodexWorkLogEntry {
       title: title ?? this.title,
       turnId: turnId ?? this.turnId,
       preview: preview ?? this.preview,
+      body: body ?? this.body,
       isRunning: isRunning ?? this.isRunning,
       exitCode: exitCode ?? this.exitCode,
       snapshot: snapshot ?? this.snapshot,

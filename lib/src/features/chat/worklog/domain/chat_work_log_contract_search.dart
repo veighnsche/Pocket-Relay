@@ -1,18 +1,20 @@
 part of 'chat_work_log_contract.dart';
 
 sealed class ChatContentSearchWorkLogEntryContract
-    extends ChatWorkLogEntryContract {
+    extends ChatShellWorkLogEntryContract {
   const ChatContentSearchWorkLogEntryContract({
     required super.id,
-    required this.commandText,
+    required super.commandText,
     required this.queryText,
     required this.scopeTargets,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
-  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+  });
 
-  final String commandText;
   final String queryText;
   final List<String> scopeTargets;
 
@@ -45,6 +47,9 @@ final class ChatRipgrepSearchWorkLogEntryContract
     required super.commandText,
     required super.queryText,
     required super.scopeTargets,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -61,6 +66,9 @@ final class ChatGrepSearchWorkLogEntryContract
     required super.commandText,
     required super.queryText,
     required super.scopeTargets,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -77,6 +85,9 @@ final class ChatSelectStringSearchWorkLogEntryContract
     required super.commandText,
     required super.queryText,
     required super.scopeTargets,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -93,6 +104,9 @@ final class ChatFindStrSearchWorkLogEntryContract
     required super.commandText,
     required super.queryText,
     required super.scopeTargets,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,

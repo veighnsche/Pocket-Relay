@@ -76,6 +76,7 @@ class TranscriptTurnArtifactBuilder {
       title: item.title ?? _blockFactory.defaultItemTitle(item.itemType),
       turnId: item.turnId,
       preview: _blockFactory.workLogPreview(item),
+      body: item.body.isEmpty ? null : item.body,
       isRunning: item.isRunning,
       exitCode: item.exitCode,
       snapshot: _memoryBudget.retainWorkLogSnapshot(

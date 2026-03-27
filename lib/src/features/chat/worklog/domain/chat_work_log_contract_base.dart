@@ -16,6 +16,24 @@ sealed class ChatWorkLogEntryContract {
   final String? turnId;
 }
 
+sealed class ChatShellWorkLogEntryContract extends ChatWorkLogEntryContract {
+  const ChatShellWorkLogEntryContract({
+    required super.id,
+    required this.commandText,
+    this.processId,
+    this.terminalInput,
+    this.terminalOutput,
+    super.turnId,
+    required super.isRunning,
+    super.exitCode,
+  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+
+  final String commandText;
+  final String? processId;
+  final String? terminalInput;
+  final String? terminalOutput;
+}
+
 final class ChatGenericWorkLogEntryContract extends ChatWorkLogEntryContract {
   const ChatGenericWorkLogEntryContract({
     required super.id,
@@ -32,37 +50,39 @@ final class ChatGenericWorkLogEntryContract extends ChatWorkLogEntryContract {
 }
 
 final class ChatCommandExecutionWorkLogEntryContract
-    extends ChatWorkLogEntryContract {
+    extends ChatShellWorkLogEntryContract {
   const ChatCommandExecutionWorkLogEntryContract({
     required super.id,
-    required this.commandText,
+    required super.commandText,
     this.outputPreview,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
-  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+  });
 
-  final String commandText;
   final String? outputPreview;
 
   String get activityLabel => isRunning ? 'Running command' : 'Ran command';
 }
 
 final class ChatCommandWaitWorkLogEntryContract
-    extends ChatWorkLogEntryContract {
+    extends ChatShellWorkLogEntryContract {
   const ChatCommandWaitWorkLogEntryContract({
     required super.id,
-    required this.commandText,
+    required super.commandText,
     this.outputPreview,
-    this.processId,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = true,
     super.exitCode,
-  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+  });
 
-  final String commandText;
   final String? outputPreview;
-  final String? processId;
 
   String get activityLabel => 'Waiting for background terminal';
 }

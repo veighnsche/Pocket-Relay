@@ -1,17 +1,20 @@
 part of 'chat_work_log_contract.dart';
 
-sealed class ChatFileReadWorkLogEntryContract extends ChatWorkLogEntryContract {
+sealed class ChatFileReadWorkLogEntryContract
+    extends ChatShellWorkLogEntryContract {
   const ChatFileReadWorkLogEntryContract({
     required super.id,
-    required this.commandText,
+    required super.commandText,
     required this.fileName,
     required this.filePath,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
-  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+  });
 
-  final String commandText;
   final String fileName;
   final String filePath;
 
@@ -28,6 +31,9 @@ final class ChatSedReadWorkLogEntryContract
     required super.filePath,
     required this.lineStart,
     required this.lineEnd,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -54,6 +60,9 @@ final class ChatCatReadWorkLogEntryContract
     required super.commandText,
     required super.fileName,
     required super.filePath,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -73,6 +82,9 @@ final class ChatTypeReadWorkLogEntryContract
     required super.commandText,
     required super.fileName,
     required super.filePath,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -92,6 +104,9 @@ final class ChatMoreReadWorkLogEntryContract
     required super.commandText,
     required super.fileName,
     required super.filePath,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -112,6 +127,9 @@ final class ChatHeadReadWorkLogEntryContract
     required super.fileName,
     required super.filePath,
     required this.lineCount,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -135,6 +153,9 @@ final class ChatTailReadWorkLogEntryContract
     required super.fileName,
     required super.filePath,
     required this.lineCount,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -159,6 +180,9 @@ final class ChatAwkReadWorkLogEntryContract
     required super.filePath,
     required this.lineStart,
     required this.lineEnd,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
@@ -191,6 +215,9 @@ final class ChatGetContentReadWorkLogEntryContract
     this.lineCount,
     this.lineStart,
     this.lineEnd,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
