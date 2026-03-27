@@ -50,6 +50,10 @@ void main() {
 
       expect(
         find.byKey(const ValueKey('connections_section_currentLane')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('connections_section_openLanes')),
         findsOneWidget,
       );
       expect(
@@ -59,7 +63,9 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('connections_section_needsAttention')),
-          matching: find.byKey(const ValueKey('saved_connection_conn_secondary')),
+          matching: find.byKey(
+            const ValueKey('saved_connection_conn_secondary'),
+          ),
         ),
         findsOneWidget,
       );
@@ -72,7 +78,9 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('connections_section_needsAttention')),
-          matching: find.byKey(const ValueKey('saved_connection_conn_tertiary')),
+          matching: find.byKey(
+            const ValueKey('saved_connection_conn_tertiary'),
+          ),
         ),
         findsNothing,
       );
@@ -122,7 +130,9 @@ void main() {
       await tester.pumpWidget(buildDormantRosterApp(controller));
       await tester.pumpAndSettle();
 
-      final localRow = find.byKey(const ValueKey('saved_connection_conn_secondary'));
+      final localRow = find.byKey(
+        const ValueKey('saved_connection_conn_secondary'),
+      );
 
       expect(
         find.descendant(of: localRow, matching: find.textContaining('System:')),

@@ -166,25 +166,19 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             fontSize: isDesktop ? 30 : 24,
           ),
         ),
+        if (summary.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            summary,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         if (badges.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 8, children: badges),
         ],
-        const SizedBox(height: 12),
-        Text(
-          summary,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          contract.description,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.45,
-          ),
-        ),
       ],
     );
   }
@@ -194,16 +188,8 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     ConnectionSettingsContract contract,
   ) {
     final theme = Theme.of(context);
-    final isRemote = _isRemote(contract);
 
     return <Widget>[
-      _buildHeaderBadge(
-        context,
-        label: isRemote ? 'Remote' : 'Local',
-        icon: isRemote ? Icons.cloud_outlined : Icons.laptop_mac_outlined,
-        foregroundColor: theme.colorScheme.primary,
-        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-      ),
       if (contract.saveAction.hasChanges)
         _buildHeaderBadge(
           context,
@@ -325,8 +311,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           context,
           key: const ValueKey<String>('connection_settings_section_workspace'),
           title: 'Workspace',
-          description:
-              'Name this workspace, choose where it runs, and point Pocket Relay at the directory it should use.',
           child: _buildWorkspaceSection(context, contract),
         ),
         if (contract.remoteConnectionSection case final remoteSection?) ...[
@@ -337,8 +321,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
               'connection_settings_section_remote_access',
             ),
             title: 'System',
-            description:
-                'Reuse a saved system or set up a new one. Host sign-in and SSH trust stay here so you can reuse them across workspaces.',
             child: _buildRemoteAccessSection(context, contract, remoteSection),
           ),
         ],
@@ -347,8 +329,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           context,
           key: const ValueKey<String>('connection_settings_section_codex'),
           title: 'Codex',
-          description:
-              'Choose the command and defaults Pocket Relay should apply inside this workspace.',
           child: _buildCodexSection(context, contract),
         ),
         _buildSectionDivider(),
@@ -356,8 +336,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           context,
           key: const ValueKey<String>('connection_settings_section_advanced'),
           title: 'Advanced',
-          description:
-              'Only change these when you need to override the normal lane behavior.',
           child: _buildAdvancedSection(context, contract),
         ),
       ],
@@ -368,7 +346,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     BuildContext context, {
     required Key key,
     required String title,
-    required String description,
     required Widget child,
   }) {
     final theme = Theme.of(context);
@@ -384,15 +361,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           child,
         ],
       ),
@@ -416,16 +385,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       for (final field in contract.codexSection.fields)
         if (field.id == ConnectionSettingsFieldId.workspaceDir) field,
     ];
-    String? routeDescription;
-    if (routeSection != null) {
-      for (final option in routeSection.options) {
-        if (option.mode == routeSection.selectedMode) {
-          routeDescription = option.description;
-          break;
-        }
-      }
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -435,15 +394,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           _buildSubsectionLabel(context, routeSection.title),
           const SizedBox(height: 12),
           _buildConnectionModePicker(context, routeSection),
-          if (routeDescription != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              routeDescription,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
         ],
       ],
     );
@@ -1071,12 +1021,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
-  bool _isRemote(ConnectionSettingsContract contract) {
-    return contract.connectionModeSection?.selectedMode ==
-            ConnectionMode.remote ||
-        contract.remoteConnectionSection != null;
-  }
-
   String _summaryTextFor(ConnectionSettingsContract contract) {
     final label = _fieldValueFor(
       contract.profileSection.fields,
@@ -1086,28 +1030,24 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       contract.codexSection.fields,
       ConnectionSettingsFieldId.workspaceDir,
     );
+    final host = _fieldValueFor(
+      contract.remoteConnectionSection?.fields ?? const [],
+      ConnectionSettingsFieldId.host,
+    );
 
-    if (_isRemote(contract)) {
-      final host = _fieldValueFor(
-        contract.remoteConnectionSection?.fields ?? const [],
-        ConnectionSettingsFieldId.host,
-      );
-      if (host.isNotEmpty && workspaceDir.isNotEmpty) {
-        return '$host · $workspaceDir';
-      }
-      if (host.isNotEmpty) {
-        return '$host · Workspace not set';
-      }
-      if (workspaceDir.isNotEmpty) {
-        return 'Remote workspace · $workspaceDir';
-      }
-      return label.isNotEmpty ? label : 'Remote workspace';
+    if (host.isNotEmpty && workspaceDir.isNotEmpty) {
+      return '$host · $workspaceDir';
     }
-
     if (workspaceDir.isNotEmpty) {
-      return 'Local workspace · $workspaceDir';
+      return workspaceDir;
     }
-    return label.isNotEmpty ? label : 'Local workspace';
+    if (host.isNotEmpty) {
+      return host;
+    }
+    if (label.isNotEmpty && label != contract.title) {
+      return label;
+    }
+    return '';
   }
 
   String _fieldValueFor(

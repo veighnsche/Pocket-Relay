@@ -57,6 +57,28 @@ void main() {
   );
 
   testWidgets(
+    'mobile presentation keeps the title in the sheet header and omits a close icon',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildSheet(
+          future: Future<List<CodexWorkspaceConversationSummary>>.value(
+            const <CodexWorkspaceConversationSummary>[],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ModalSheetDragHandle), findsOneWidget);
+      expect(find.text('Conversation history'), findsOneWidget);
+      expect(
+        find.text('Pick a saved conversation to resume in this lane.'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.close), findsNothing);
+    },
+  );
+
+  testWidgets(
     'falls back to the normalized thread id and resumes the selected conversation',
     (tester) async {
       CodexWorkspaceConversationSummary? resumedConversation;

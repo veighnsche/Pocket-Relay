@@ -299,7 +299,6 @@ class ConnectionSettingsSaveActionContract {
 class ConnectionSettingsContract {
   const ConnectionSettingsContract({
     required this.title,
-    required this.description,
     required this.profileSection,
     required this.codexSection,
     required this.modelSection,
@@ -314,7 +313,6 @@ class ConnectionSettingsContract {
   });
 
   final String title;
-  final String description;
   final ConnectionSettingsSectionContract profileSection;
   final ConnectionSettingsSectionContract codexSection;
   final ConnectionSettingsModelSectionContract modelSection;

@@ -51,10 +51,6 @@ class ConnectionSettingsPresenter {
 
     return ConnectionSettingsContract(
       title: 'Workspace',
-      description: _descriptionFor(
-        connectionMode: presentationState.draft.connectionMode,
-        supportsLocalConnectionMode: supportsLocalConnectionMode,
-      ),
       profileSection: _buildProfileSection(presentationState.draft),
       connectionModeSection: _buildConnectionModeSection(
         presentationState.draft,
@@ -102,22 +98,6 @@ class ConnectionSettingsPresenter {
       ),
       remoteRuntime: presentationState.isRemote ? remoteRuntime : null,
     );
-  }
-
-  String _descriptionFor({
-    required ConnectionMode connectionMode,
-    required bool supportsLocalConnectionMode,
-  }) {
-    if (!supportsLocalConnectionMode) {
-      return 'Choose the system that hosts this workspace, then point Pocket Relay at the directory and Codex command it should use there.';
-    }
-
-    return switch (connectionMode) {
-      ConnectionMode.remote =>
-        'This workspace runs Codex on a remote system over SSH. Switch to Local if this device should host the workspace instead.',
-      ConnectionMode.local =>
-        'This workspace runs Codex on this device. Switch to Remote if Codex should stay on another system instead.',
-    };
   }
 
   String _normalizedLabel(String label) {

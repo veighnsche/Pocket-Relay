@@ -64,6 +64,23 @@ void main() {
   );
 
   testWidgets(
+    'mobile settings header avoids fixed explanatory prose and route badges',
+    (tester) async {
+      await tester.pumpWidget(buildMaterialSettingsApp(onSubmit: (_) {}));
+
+      expect(
+        find.text(
+          'Choose the system that hosts this workspace, then point Pocket Relay at the directory and Codex command it should use there.',
+        ),
+        findsNothing,
+      );
+      expect(find.text('Remote'), findsNothing);
+      expect(find.text('Local'), findsNothing);
+      expect(find.text('devbox.local · /workspace'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'material settings renderer avoids nested panel surfaces inside the drawer',
     (tester) async {
       await tester.pumpWidget(buildMaterialSettingsApp(onSubmit: (_) {}));

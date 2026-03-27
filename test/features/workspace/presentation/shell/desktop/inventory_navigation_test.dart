@@ -16,9 +16,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Workspaces'), findsOneWidget);
-    expect(find.text('Current lane'), findsOneWidget);
+    expect(find.text('Current lane'), findsNothing);
     expect(find.text('Saved workspaces'), findsOneWidget);
-    expect(find.text('Open lanes'), findsNothing);
+    expect(find.text('Open lanes'), findsOneWidget);
     expect(find.text('Needs attention'), findsNothing);
     expect(
       find.byKey(const ValueKey('desktop_connection_conn_primary')),
@@ -209,9 +209,7 @@ void main() {
 
     expect(controller.state.isShowingSavedConnections, isTrue);
     await tester.scrollUntilVisible(
-      find.byKey(
-        const ValueKey('add_connection'),
-      ),
+      find.byKey(const ValueKey('add_connection')),
       200,
       scrollable: find.byType(Scrollable).first,
     );

@@ -10,7 +10,6 @@ abstract final class ConnectionWorkspaceCopy {
   static const String manageConnectionsAction = 'Manage workspaces';
   static const String allConnectionsAction = manageConnectionsAction;
   static const String conversationHistoryMenuLabel = 'Conversation history';
-  static const String currentLaneSectionTitle = 'Current lane';
   static const String openLanesSectionTitle = 'Open lanes';
   static const String needsAttentionSectionTitle = 'Needs attention';
   static const String mobileSavedConnectionsDescription =
@@ -36,7 +35,6 @@ abstract final class ConnectionWorkspaceCopy {
   static const String restartServerProgress = 'Restarting…';
   static const String closeLaneAction = 'Close lane';
   static const String openConnectionBadge = 'Open';
-  static const String currentConnectionBadge = 'Current';
   static const String savedSettingsReconnectBadge = 'Changes pending';
   static const String savedSettingsReconnectAction = 'Apply changes';
   static const String savedSettingsReconnectProgress = 'Applying changes…';
@@ -107,7 +105,6 @@ abstract final class ConnectionWorkspaceCopy {
   static const String emptyWorkspaceMessage =
       'Add your first workspace to open a new lane.';
   static const String laneFactLabel = 'Lane';
-  static const String laneCurrentFact = 'Current';
   static const String laneOpenFact = 'Open';
   static const String laneClosedFact = 'Closed';
   static const String transportFactLabel = 'Transport';
@@ -199,12 +196,8 @@ abstract final class ConnectionWorkspaceCopy {
     };
   }
 
-  static String laneFactFor({required bool isLive, required bool isCurrent}) {
-    final value = switch ((isLive, isCurrent)) {
-      (true, true) => laneCurrentFact,
-      (true, false) => laneOpenFact,
-      (false, _) => laneClosedFact,
-    };
+  static String laneFactFor({required bool isLive}) {
+    final value = isLive ? laneOpenFact : laneClosedFact;
     return '$laneFactLabel: $value';
   }
 

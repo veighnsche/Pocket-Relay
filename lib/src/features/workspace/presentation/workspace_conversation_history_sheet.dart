@@ -34,9 +34,10 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     return switch (presentation) {
       ConnectionWorkspaceConversationHistoryPresentation.mobile =>
         ModalSheetScaffold(
-          header: _buildSheetHeader(context, cards),
+          headerPadding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+          header: _buildMobileHeader(context),
           bodyIsScrollable: false,
-          body: _buildBody(context, cards, showIntro: true),
+          body: _buildBody(context, cards),
         ),
       ConnectionWorkspaceConversationHistoryPresentation.desktop =>
         _buildDesktopSurface(context, cards),
@@ -59,20 +60,25 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     return '${value.year}-$twoDigitMonth-$twoDigitDay $twoDigitHour:$twoDigitMinute';
   }
 
-  Widget _buildSheetHeader(BuildContext context, TranscriptPalette cards) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildMobileHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(child: SizedBox()),
         const ModalSheetDragHandle(),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              tooltip: 'Close conversation history',
-              onPressed: () => Navigator.of(context).pop(),
-              icon: Icon(Icons.close, color: cards.textMuted),
-            ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          _bodyDescription,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -105,7 +111,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
                   child: _buildDesktopHeader(context, cards),
                 ),
                 const Divider(height: 1),
-                Expanded(child: _buildBody(context, cards, showIntro: false)),
+                Expanded(child: _buildBody(context, cards)),
               ],
             ),
           ),
@@ -150,37 +156,10 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    TranscriptPalette cards, {
-    required bool showIntro,
-  }) {
-    final theme = Theme.of(context);
+  Widget _buildBody(BuildContext context, TranscriptPalette cards) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (showIntro)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _bodyDescription,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
         Expanded(
           child: FutureBuilder<List<CodexWorkspaceConversationSummary>>(
             future: future,

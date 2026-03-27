@@ -4,7 +4,6 @@ import 'package:pocket_relay/src/features/workspace/application/connection_works
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 
 enum ConnectionLifecycleSectionId {
-  currentLane,
   openLanes,
   needsAttention,
   savedConnections,
@@ -104,10 +103,12 @@ connectionLifecycleSectionsFromState(
       isTransportConnected: isTransportConnected(connectionId),
     );
     switch (row.sectionId) {
-      case ConnectionLifecycleSectionId.currentLane:
-        currentLaneRows.add(row);
       case ConnectionLifecycleSectionId.openLanes:
-        openLaneRows.add(row);
+        if (row.isCurrent) {
+          currentLaneRows.add(row);
+        } else {
+          openLaneRows.add(row);
+        }
       case ConnectionLifecycleSectionId.needsAttention:
         attentionRows.add(row);
       case ConnectionLifecycleSectionId.savedConnections:
@@ -116,17 +117,14 @@ connectionLifecycleSectionsFromState(
   }
 
   return <ConnectionLifecycleSectionPresentation>[
-    if (currentLaneRows.isNotEmpty)
-      ConnectionLifecycleSectionPresentation(
-        id: ConnectionLifecycleSectionId.currentLane,
-        title: ConnectionWorkspaceCopy.currentLaneSectionTitle,
-        rows: currentLaneRows,
-      ),
-    if (openLaneRows.isNotEmpty)
+    if (currentLaneRows.isNotEmpty || openLaneRows.isNotEmpty)
       ConnectionLifecycleSectionPresentation(
         id: ConnectionLifecycleSectionId.openLanes,
         title: ConnectionWorkspaceCopy.openLanesSectionTitle,
-        rows: openLaneRows,
+        rows: <ConnectionLifecyclePresentation>[
+          ...currentLaneRows,
+          ...openLaneRows,
+        ],
       ),
     if (attentionRows.isNotEmpty)
       ConnectionLifecycleSectionPresentation(
@@ -166,13 +164,8 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
 
   final facts = <ConnectionLifecycleFact>[
     ConnectionLifecycleFact(
-      label: ConnectionWorkspaceCopy.laneFactFor(
-        isLive: isLive,
-        isCurrent: isCurrent,
-      ),
-      tone: isCurrent
-          ? ConnectionLifecycleFactTone.accent
-          : isLive
+      label: ConnectionWorkspaceCopy.laneFactFor(isLive: isLive),
+      tone: isLive
           ? ConnectionLifecycleFactTone.positive
           : ConnectionLifecycleFactTone.neutral,
     ),
@@ -277,11 +270,7 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
   ];
 
   return ConnectionLifecyclePresentation(
-    sectionId: _sectionIdForRow(
-      isLive: isLive,
-      isCurrent: isCurrent,
-      isAttention: isAttention,
-    ),
+    sectionId: _sectionIdForRow(isLive: isLive, isAttention: isAttention),
     connection: connection,
     subtitle: ConnectionWorkspaceCopy.connectionSubtitle(profile),
     facts: facts,
@@ -301,12 +290,8 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
 
 ConnectionLifecycleSectionId _sectionIdForRow({
   required bool isLive,
-  required bool isCurrent,
   required bool isAttention,
 }) {
-  if (isCurrent) {
-    return ConnectionLifecycleSectionId.currentLane;
-  }
   if (isAttention) {
     return ConnectionLifecycleSectionId.needsAttention;
   }
