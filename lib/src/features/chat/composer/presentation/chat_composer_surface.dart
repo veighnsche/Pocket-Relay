@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error_snackbar.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_errors.dart';
 import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -43,12 +46,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   static const _imageTypeGroup = XTypeGroup(
     label: 'images',
     extensions: <String>['png', 'jpg', 'jpeg', 'gif', 'webp'],
-    mimeTypes: <String>[
-      'image/png',
-      'image/jpeg',
-      'image/gif',
-      'image/webp',
-    ],
+    mimeTypes: <String>['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
   );
   static const _imageAttachmentLoader = ChatComposerImageAttachmentLoader();
   late final TextEditingController _controller;
@@ -301,19 +299,19 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
       if (!mounted) {
         return;
       }
-      _showTransientMessage(error.message);
-    } catch (_) {
+      _showTransientError(error.userFacingError);
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      _showTransientMessage('Could not attach image.');
+      _showTransientError(
+        ChatComposerErrors.imageAttachmentUnexpected(error: error),
+      );
     }
   }
 
-  void _showTransientMessage(String message) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  void _showTransientError(PocketUserFacingError error) {
+    showPocketErrorSnackBar(context, error);
   }
 
   Future<ChatComposerImageAttachment?> _pickImageAttachment() async {
@@ -360,7 +358,6 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
     _draft = _draft.copyWith(text: _controller.text).normalized();
     widget.onChanged(_draft);
   }
-
 }
 
 class _ComposerAttachmentSummary extends StatelessWidget {

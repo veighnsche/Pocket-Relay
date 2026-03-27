@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error_snackbar.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
@@ -263,11 +265,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       }
 
       if (!_didRemoteServerActionSucceed(actionId, remoteRuntime)) {
-        _showTransientMessage(
+        _showTransientError(
           ConnectionLifecycleErrors.remoteServerActionFailure(
             actionId,
             remoteRuntime: remoteRuntime,
-          ).inlineMessage,
+          ),
         );
       }
     } catch (error) {
@@ -275,14 +277,14 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         return;
       }
 
-      _showTransientMessage(
+      _showTransientError(
         ConnectionLifecycleErrors.remoteServerActionFailure(
           actionId,
           remoteRuntime: widget.workspaceController.state.remoteRuntimeFor(
             connectionId,
           ),
           error: error,
-        ).inlineMessage,
+        ),
       );
     } finally {
       if (mounted &&
@@ -322,11 +324,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       if (!mounted) {
         return;
       }
-      _showTransientMessage(
+      _showTransientError(
         ConnectionLifecycleErrors.connectLaneFailure(
           remoteRuntime: remoteRuntime,
           error: error,
-        ).inlineMessage,
+        ),
       );
     } finally {
       if (mounted &&
@@ -363,10 +365,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     }
     if (!remoteRuntime.hostCapability.isSupported ||
         !remoteRuntime.server.isConnectable) {
-      _showTransientMessage(
+      _showTransientError(
         ConnectionLifecycleErrors.connectLaneFailure(
           remoteRuntime: remoteRuntime,
-        ).inlineMessage,
+        ),
       );
       return;
     }
@@ -468,11 +470,8 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       if (!mounted) {
         return;
       }
-      final detail = error.toString().trim();
-      _showTransientMessage(
-        detail.isEmpty
-            ? 'Could not disconnect lane.'
-            : 'Could not disconnect lane. $detail',
+      _showTransientError(
+        ConnectionLifecycleErrors.disconnectLaneFailure(error: error),
       );
     } finally {
       if (mounted &&
@@ -501,11 +500,8 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     };
   }
 
-  void _showTransientMessage(String message) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+  void _showTransientError(PocketUserFacingError error) {
+    showPocketErrorSnackBar(context, error);
   }
 
   Widget? _transportRecoveryNoticeFor({

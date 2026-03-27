@@ -1,6 +1,11 @@
 import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
 
-enum PocketErrorDomain { connectionLifecycle, chatSession, connectionSettings }
+enum PocketErrorDomain {
+  connectionLifecycle,
+  chatSession,
+  chatComposer,
+  connectionSettings,
+}
 
 final class PocketErrorDefinition {
   const PocketErrorDefinition({
@@ -291,6 +296,15 @@ abstract final class PocketErrorCatalog {
         'Refreshing passive remote runtime state failed because Pocket Relay could not verify the remote host for the saved connection.',
   );
 
+  // Connection lifecycle: explicit lane disconnect (23xx).
+  static const PocketErrorDefinition
+  connectionDisconnectLaneFailed = PocketErrorDefinition(
+    code: 'PR-CONN-2301',
+    domain: PocketErrorDomain.connectionLifecycle,
+    meaning:
+        'Disconnecting a live lane failed because Pocket Relay could not close the current app-server transport cleanly.',
+  );
+
   // Connection lifecycle: conversation history (31xx).
   static const PocketErrorDefinition
   connectionHistoryLoadFailed = PocketErrorDefinition(
@@ -569,6 +583,50 @@ abstract final class PocketErrorCatalog {
         'Branching the selected conversation was blocked because there is no selectable conversation target yet.',
   );
 
+  // Chat composer: image attachment failures (17xx).
+  static const PocketErrorDefinition
+  chatComposerImageAttachmentEmpty = PocketErrorDefinition(
+    code: 'PR-CHAT-1701',
+    domain: PocketErrorDomain.chatComposer,
+    meaning:
+        'Attaching an image to the composer failed because the selected image file was empty.',
+  );
+  static const PocketErrorDefinition
+  chatComposerImageAttachmentTooLarge = PocketErrorDefinition(
+    code: 'PR-CHAT-1702',
+    domain: PocketErrorDomain.chatComposer,
+    meaning:
+        'Attaching an image to the composer failed because the selected source image exceeded the supported size limit.',
+  );
+  static const PocketErrorDefinition
+  chatComposerImageAttachmentUnsupportedType = PocketErrorDefinition(
+    code: 'PR-CHAT-1703',
+    domain: PocketErrorDomain.chatComposer,
+    meaning:
+        'Attaching an image to the composer failed because the selected file type is not a supported image format.',
+  );
+  static const PocketErrorDefinition
+  chatComposerImageAttachmentDecodeFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1704',
+    domain: PocketErrorDomain.chatComposer,
+    meaning:
+        'Attaching an image to the composer failed because Pocket Relay could not decode the selected file as an image.',
+  );
+  static const PocketErrorDefinition
+  chatComposerImageAttachmentTooLargeForRemote = PocketErrorDefinition(
+    code: 'PR-CHAT-1705',
+    domain: PocketErrorDomain.chatComposer,
+    meaning:
+        'Attaching an image to the composer failed because Pocket Relay could not shrink the image enough for remote delivery.',
+  );
+  static const PocketErrorDefinition
+  chatComposerImageAttachmentUnexpectedFailure = PocketErrorDefinition(
+    code: 'PR-CHAT-1706',
+    domain: PocketErrorDomain.chatComposer,
+    meaning:
+        'Attaching an image to the composer failed for an unexpected reason outside the known image validation and normalization states.',
+  );
+
   // Connection settings: model refresh (11xx).
   static const PocketErrorDefinition
   connectionSettingsModelCatalogUnavailable = PocketErrorDefinition(
@@ -625,6 +683,7 @@ abstract final class PocketErrorCatalog {
         connectionReconnectServerStopped,
         connectionReconnectServerUnhealthy,
         connectionRuntimeProbeFailed,
+        connectionDisconnectLaneFailed,
         connectionHistoryLoadFailed,
         connectionHistoryHostKeyUnpinned,
         connectionHistoryServerStopped,
@@ -669,6 +728,16 @@ abstract final class PocketErrorCatalog {
         chatSessionBranchTargetUnavailable,
       ];
 
+  static const List<PocketErrorDefinition> chatComposerDefinitions =
+      <PocketErrorDefinition>[
+        chatComposerImageAttachmentEmpty,
+        chatComposerImageAttachmentTooLarge,
+        chatComposerImageAttachmentUnsupportedType,
+        chatComposerImageAttachmentDecodeFailed,
+        chatComposerImageAttachmentTooLargeForRemote,
+        chatComposerImageAttachmentUnexpectedFailure,
+      ];
+
   static const List<PocketErrorDefinition> connectionSettingsDefinitions =
       <PocketErrorDefinition>[
         connectionSettingsModelCatalogUnavailable,
@@ -680,6 +749,7 @@ abstract final class PocketErrorCatalog {
       <PocketErrorDefinition>[
         ...connectionLifecycleDefinitions,
         ...chatSessionDefinitions,
+        ...chatComposerDefinitions,
         ...connectionSettingsDefinitions,
       ];
 

@@ -210,4 +210,82 @@ void main() {
       expect(find.textContaining('Disconnected.'), findsNothing);
     },
   );
+
+  testWidgets(
+    'live lane disconnect action surfaces a coded snackbar when transport close fails',
+    (tester) async {
+      final client = _ThrowingDisconnectFakeCodexAppServerClient(
+        const CodexAppServerException('disconnect failed'),
+      );
+      final controller = buildWorkspaceController(
+        clientsById: <String, FakeCodexAppServerClient>{'conn_primary': client},
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector: MapRemoteOwnerInspector(
+          <String, CodexRemoteAppServerOwnerSnapshot>{
+            'conn_primary': runningOwnerSnapshot('conn_primary'),
+          },
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.dispose();
+      });
+
+      await controller.initialize();
+      await client.connect(
+        profile: ConnectionProfile.defaults(),
+        secrets: const ConnectionSecrets(),
+      );
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          controller.selectedLaneBinding!,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Disconnect'));
+      await tester.pumpAndSettle();
+
+      expect(client.disconnectCalls, 1);
+      expect(
+        find.textContaining(
+          '[${PocketErrorCatalog.connectionDisconnectLaneFailed.code}]',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Could not disconnect lane'), findsOneWidget);
+      expect(
+        find.textContaining('Underlying error: disconnect failed'),
+        findsOneWidget,
+      );
+      client.disconnectError = null;
+    },
+  );
+}
+
+class _ThrowingDisconnectFakeCodexAppServerClient
+    extends FakeCodexAppServerClient {
+  _ThrowingDisconnectFakeCodexAppServerClient(this.error);
+
+  Object? error;
+
+  set disconnectError(Object? value) {
+    error = value;
+  }
+
+  @override
+  Future<void> disconnect() async {
+    disconnectCalls += 1;
+    if (error case final disconnectError?) {
+      throw disconnectError;
+    }
+    return super.disconnect();
+  }
 }

@@ -122,6 +122,15 @@ void main() {
     expect(error.definition, PocketErrorCatalog.connectionRuntimeProbeFailed);
     expect(error.inlineMessage, contains('ssh probe failed'));
   });
+
+  test('disconnect lane failures keep a stable code and detail', () {
+    final error = ConnectionLifecycleErrors.disconnectLaneFailure(
+      error: StateError('disconnect refused'),
+    );
+
+    expect(error.definition, PocketErrorCatalog.connectionDisconnectLaneFailed);
+    expect(error.inlineMessage, contains('disconnect refused'));
+  });
 }
 
 ConnectionProfile _remoteProfile() {

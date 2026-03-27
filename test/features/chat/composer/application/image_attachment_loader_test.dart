@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
 
 void main() {
@@ -78,9 +79,9 @@ void main() {
         ),
         throwsA(
           isA<ChatComposerImageAttachmentLoadException>().having(
-            (error) => error.message,
-            'message',
-            contains('Could not shrink this image enough'),
+            (error) => error.userFacingError.definition,
+            'definition',
+            PocketErrorCatalog.chatComposerImageAttachmentTooLargeForRemote,
           ),
         ),
       );
@@ -96,7 +97,13 @@ void main() {
           mimeType: 'image/bmp',
         ),
       ),
-      throwsA(isA<ChatComposerImageAttachmentLoadException>()),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatComposerImageAttachmentUnsupportedType,
+        ),
+      ),
     );
   });
 }

@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:image/image.dart' as img;
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_errors.dart';
 import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 
 class ChatComposerImageAttachmentLoader {
@@ -32,13 +34,13 @@ class ChatComposerImageAttachmentLoader {
   Future<ChatComposerImageAttachment> loadFromXFile(XFile file) async {
     final sourceByteLength = await file.length();
     if (sourceByteLength == 0) {
-      throw const ChatComposerImageAttachmentLoadException(
-        'The selected image was empty.',
+      throw ChatComposerImageAttachmentLoadException(
+        ChatComposerErrors.imageAttachmentEmpty(),
       );
     }
     if (sourceByteLength > maximumSourceImageBytes) {
-      throw const ChatComposerImageAttachmentLoadException(
-        'Images larger than 50 MB are not supported.',
+      throw ChatComposerImageAttachmentLoadException(
+        ChatComposerErrors.imageAttachmentTooLarge(),
       );
     }
 
@@ -46,14 +48,14 @@ class ChatComposerImageAttachmentLoader {
     final displayName = _resolvedDisplayName(file);
     final mimeType = _resolvedMimeType(file, sourceBytes);
     if (mimeType == null) {
-      throw const ChatComposerImageAttachmentLoadException(
-        'Unsupported image type.',
+      throw ChatComposerImageAttachmentLoadException(
+        ChatComposerErrors.imageAttachmentUnsupportedType(),
       );
     }
     final sourceImage = img.decodeNamedImage(displayName, sourceBytes);
     if (sourceImage == null) {
-      throw const ChatComposerImageAttachmentLoadException(
-        'The selected file could not be decoded as an image.',
+      throw ChatComposerImageAttachmentLoadException(
+        ChatComposerErrors.imageAttachmentDecodeFailed(),
       );
     }
 
@@ -114,8 +116,8 @@ class ChatComposerImageAttachmentLoader {
       workingImage = _resizeToLongestEdge(workingImage, nextLongestEdge);
     }
 
-    throw const ChatComposerImageAttachmentLoadException(
-      'Could not shrink this image enough for remote sending. Choose a smaller image.',
+    throw ChatComposerImageAttachmentLoadException(
+      ChatComposerErrors.imageAttachmentTooLargeForRemote(),
     );
   }
 
@@ -245,8 +247,8 @@ class ChatComposerImageAttachmentLoader {
     if (smallestCandidate != null) {
       return smallestCandidate;
     }
-    throw const ChatComposerImageAttachmentLoadException(
-      'Unsupported image type.',
+    throw ChatComposerImageAttachmentLoadException(
+      ChatComposerErrors.imageAttachmentUnsupportedType(),
     );
   }
 
@@ -346,12 +348,14 @@ class ChatComposerImageAttachmentLoader {
 }
 
 class ChatComposerImageAttachmentLoadException implements Exception {
-  const ChatComposerImageAttachmentLoadException(this.message);
+  const ChatComposerImageAttachmentLoadException(this.userFacingError);
 
-  final String message;
+  final PocketUserFacingError userFacingError;
+
+  String get message => userFacingError.message;
 
   @override
-  String toString() => message;
+  String toString() => userFacingError.inlineMessage;
 }
 
 class _NormalizedImagePayload {

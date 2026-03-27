@@ -145,6 +145,14 @@ abstract final class ConnectionLifecycleErrors {
     ).withNormalizedUnderlyingError(error);
   }
 
+  static PocketUserFacingError disconnectLaneFailure({Object? error}) {
+    return PocketUserFacingError(
+      definition: PocketErrorCatalog.connectionDisconnectLaneFailed,
+      title: 'Could not disconnect lane',
+      message: 'Pocket Relay could not close the live transport for this lane.',
+    ).withNormalizedUnderlyingError(error);
+  }
+
   static PocketUserFacingError conversationHistoryFailure(Object error) {
     if (error is CodexWorkspaceConversationHistoryUnpinnedHostKeyException) {
       return PocketUserFacingError(
