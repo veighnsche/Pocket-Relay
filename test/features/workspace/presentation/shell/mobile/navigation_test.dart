@@ -21,7 +21,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Saved connections'), findsWidgets);
+    expect(find.text('Saved workspaces'), findsWidgets);
     expect(
       find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsOneWidget,
@@ -44,7 +44,7 @@ void main() {
 
     await tester.tap(find.byTooltip('More actions'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Saved connections'));
+    await tester.tap(find.text('Saved workspaces'));
     await tester.pumpAndSettle();
 
     expect(controller.state.isShowingSavedConnections, isTrue);

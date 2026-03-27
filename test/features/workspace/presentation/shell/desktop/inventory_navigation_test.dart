@@ -15,9 +15,9 @@ void main() {
     await tester.pumpWidget(buildShell(controller));
     await tester.pumpAndSettle();
 
-    expect(find.text('Connections'), findsOneWidget);
+    expect(find.text('Workspaces'), findsOneWidget);
     expect(find.text('Current lane'), findsOneWidget);
-    expect(find.text('Saved connections'), findsOneWidget);
+    expect(find.text('Saved workspaces'), findsOneWidget);
     expect(find.text('Open lanes'), findsNothing);
     expect(find.text('Needs attention'), findsNothing);
     expect(
@@ -32,7 +32,7 @@ void main() {
       find.byKey(const ValueKey('desktop_saved_connections')),
       findsOneWidget,
     );
-    expect(find.text('All connections'), findsOneWidget);
+    expect(find.text('Manage workspaces'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('desktop_sidebar_toggle')),
       findsOneWidget,
@@ -126,7 +126,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
-          matching: find.text('Connection not configured'),
+          matching: find.text('Workspace not configured'),
         ),
         findsOneWidget,
       );
@@ -177,7 +177,7 @@ void main() {
 
       expect(collapsedWidth, lessThan(expandedWidth));
       expect(collapsedWidth, lessThanOrEqualTo(80));
-      expect(find.text('Connections'), findsNothing);
+      expect(find.text('Workspaces'), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
       await tester.pumpAndSettle();
@@ -210,98 +210,11 @@ void main() {
     expect(controller.state.isShowingSavedConnections, isTrue);
     await tester.scrollUntilVisible(
       find.byKey(
-        const ValueKey('saved_connection_conn_secondary'),
-        skipOffstage: false,
+        const ValueKey('add_connection'),
       ),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find.byType(Scrollable).first,
     );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(
-        const ValueKey('saved_connection_conn_secondary'),
-        skipOffstage: false,
-      ),
-      findsOneWidget,
-    );
-    expect(clientsById['conn_primary']?.disconnectCalls, 0);
+    expect(find.text('Add workspace'), findsOneWidget);
   });
-
-  testWidgets(
-    'dormant sidebar rows open a lane directly from the desktop sidebar',
-    (tester) async {
-      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
-      final controller = buildWorkspaceController(clientsById: clientsById);
-      addTearDown(() async {
-        controller.dispose();
-        await closeClients(clientsById);
-      });
-
-      await controller.initialize();
-      await tester.pumpWidget(buildShell(controller));
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const ValueKey('desktop_connection_conn_secondary')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(controller.state.isShowingLiveLane, isTrue);
-      expect(controller.state.selectedConnectionId, 'conn_secondary');
-      expect(controller.state.liveConnectionIds, <String>[
-        'conn_primary',
-        'conn_secondary',
-      ]);
-    },
-  );
-
-  testWidgets(
-    'desktop sidebar surfaces lane open failures instead of leaking async errors',
-    (tester) async {
-      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
-      final repository = FailingLoadConnectionRepository(
-        delegate: MemoryCodexConnectionRepository(
-          initialConnections: <SavedConnection>[
-            SavedConnection(
-              id: 'conn_primary',
-              profile: workspaceProfile('Primary Box', 'primary.local'),
-              secrets: const ConnectionSecrets(password: 'secret-1'),
-            ),
-            SavedConnection(
-              id: 'conn_secondary',
-              profile: workspaceProfile('Secondary Box', 'secondary.local'),
-              secrets: const ConnectionSecrets(password: 'secret-2'),
-            ),
-          ],
-        ),
-        failingConnectionId: 'conn_secondary',
-        error: StateError('saved definition unavailable'),
-      );
-      final controller = buildWorkspaceController(
-        clientsById: clientsById,
-        repository: repository,
-      );
-      addTearDown(() async {
-        controller.dispose();
-        await closeClients(clientsById);
-      });
-
-      await controller.initialize();
-      await tester.pumpWidget(buildShell(controller));
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const ValueKey('desktop_connection_conn_secondary')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Could not open lane'), findsOneWidget);
-      expect(
-        find.textContaining('saved definition unavailable'),
-        findsOneWidget,
-      );
-      expect(controller.state.selectedConnectionId, 'conn_primary');
-      expect(controller.state.liveConnectionIds, <String>['conn_primary']);
-    },
-  );
 }

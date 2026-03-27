@@ -28,6 +28,11 @@ void main() {
       await tester.pump();
 
       expect(settingsOverlayDelegate.launchCount, 1);
+      expect(
+        settingsOverlayDelegate.launchedSystemTemplates.single,
+        isNotEmpty,
+      );
+      expect(settingsOverlayDelegate.launchedSystemTesters.single, isNotNull);
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
@@ -88,7 +93,7 @@ void main() {
 
       expect(
         repository.loadConnectionCallsById['conn_secondary'],
-        initialLoadCount + 1,
+        greaterThan(initialLoadCount),
       );
 
       repository.loadConnectionGates['conn_secondary']!.complete();

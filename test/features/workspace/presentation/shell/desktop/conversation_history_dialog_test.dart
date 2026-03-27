@@ -143,7 +143,7 @@ void main() {
       );
       final savedConnectionsItem = tester.widget<PopupMenuItem<int>>(
         find.ancestor(
-          of: find.text('Saved connections'),
+          of: find.text('Saved workspaces'),
           matching: find.byType(PopupMenuItem<int>),
         ),
       );

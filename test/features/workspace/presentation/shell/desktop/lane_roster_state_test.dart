@@ -140,7 +140,7 @@ void main() {
     await tester.pumpWidget(buildShell(controller));
     await tester.pumpAndSettle();
 
-    expect(find.text('No saved connections yet.'), findsOneWidget);
+    expect(find.text('No saved workspaces yet.'), findsOneWidget);
     expect(find.text('Return to open lane'), findsNothing);
     expect(find.byKey(const ValueKey('add_connection')), findsOneWidget);
   });

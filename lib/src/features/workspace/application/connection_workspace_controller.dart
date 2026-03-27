@@ -12,7 +12,9 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_templates.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_recovery_errors.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
@@ -34,6 +36,7 @@ part 'controller/recovery_persistence.dart';
 part 'controller/reconnect.dart';
 part 'controller/remote_runtime.dart';
 part 'controller/state_sanitizers.dart';
+part 'controller/system_templates.dart';
 
 typedef ConnectionLaneBindingFactory =
     ConnectionLaneBinding Function({
@@ -179,6 +182,10 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
   Future<ConnectionModelCatalog?> loadLastKnownConnectionModelCatalog() {
     return _loadWorkspaceLastKnownConnectionModelCatalog(this);
+  }
+
+  Future<List<ConnectionSettingsSystemTemplate>> loadReusableSystemTemplates() {
+    return _loadWorkspaceReusableSystemTemplates(this);
   }
 
   Future<void> saveLastKnownConnectionModelCatalog(

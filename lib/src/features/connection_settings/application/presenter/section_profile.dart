@@ -4,11 +4,11 @@ ConnectionSettingsSectionContract _buildProfileSection(
   ConnectionSettingsDraft draft,
 ) {
   return ConnectionSettingsSectionContract(
-    title: 'Profile',
+    title: 'Workspace',
     fields: <ConnectionSettingsTextFieldContract>[
       ConnectionSettingsTextFieldContract(
         id: ConnectionSettingsFieldId.label,
-        label: 'Profile label',
+        label: 'Workspace name',
         value: draft.label,
       ),
     ],
@@ -24,19 +24,19 @@ ConnectionSettingsConnectionModeSectionContract? _buildConnectionModeSection(
   }
 
   return ConnectionSettingsConnectionModeSectionContract(
-    title: 'Connection mode',
+    title: 'Workspace location',
     selectedMode: draft.connectionMode,
     options: const <ConnectionSettingsConnectionModeOptionContract>[
       ConnectionSettingsConnectionModeOptionContract(
         mode: ConnectionMode.remote,
         label: 'Remote',
-        description: 'Connect to a developer box over SSH and run Codex there.',
+        description: 'Run this workspace on a remote system over SSH.',
       ),
       ConnectionSettingsConnectionModeOptionContract(
         mode: ConnectionMode.local,
         label: 'Local',
         description:
-            'Run Codex app-server on this desktop and keep the workspace here.',
+            'Run this workspace on this device and keep the files here.',
       ),
     ],
   );
@@ -52,7 +52,7 @@ ConnectionSettingsSectionContract? _buildRemoteConnectionSection(
 
   final draft = state.draft;
   return ConnectionSettingsSectionContract(
-    title: 'Remote target',
+    title: 'System',
     status: _buildRemoteTargetStatus(remoteRuntime),
     fields: <ConnectionSettingsTextFieldContract>[
       ConnectionSettingsTextFieldContract(
@@ -60,58 +60,25 @@ ConnectionSettingsSectionContract? _buildRemoteConnectionSection(
         label: 'Host',
         value: draft.host,
         hintText: 'devbox.local',
+        helperText:
+            'The hostname or IP address of the system that hosts this workspace.',
         errorText: state.hostError,
       ),
       ConnectionSettingsTextFieldContract(
         id: ConnectionSettingsFieldId.port,
-        label: 'Port',
+        label: 'SSH port',
         value: draft.port,
         keyboardType: ConnectionSettingsKeyboardType.number,
         errorText: state.portError,
       ),
       ConnectionSettingsTextFieldContract(
         id: ConnectionSettingsFieldId.username,
-        label: 'Username',
+        label: 'SSH username',
         value: draft.username,
         errorText: state.usernameError,
       ),
-      ConnectionSettingsTextFieldContract(
-        id: ConnectionSettingsFieldId.hostFingerprint,
-        label: 'Host fingerprint',
-        value: draft.hostFingerprint,
-        hintText: 'aa:bb:cc:dd:...',
-        helperText: _hostFingerprintHelperText(draft),
-        errorText: state.hostFingerprintError,
-      ),
     ],
   );
-}
-
-String _hostFingerprintHelperText(ConnectionSettingsDraft draft) {
-  final hostIdentityLabel = _remoteHostIdentityLabel(draft);
-  if (hostIdentityLabel == null) {
-    return 'Required for remote targets. Pocket Relay shares one pinned fingerprint across every saved connection that points to the same host and port.';
-  }
-
-  if (draft.hostFingerprint.trim().isEmpty) {
-    return 'Required for $hostIdentityLabel. Pocket Relay shares one pinned fingerprint across every saved connection that points there.';
-  }
-
-  return 'Shared host identity: $hostIdentityLabel. This pinned fingerprint is reused by every saved connection that points there.';
-}
-
-String? _remoteHostIdentityLabel(ConnectionSettingsDraft draft) {
-  final host = draft.host.trim();
-  if (host.isEmpty) {
-    return null;
-  }
-
-  final port = draft.port.trim();
-  if (port.isEmpty) {
-    return host;
-  }
-
-  return '$host:$port';
 }
 
 ConnectionSettingsSectionStatusContract? _buildRemoteTargetStatus(
@@ -123,30 +90,30 @@ ConnectionSettingsSectionStatusContract? _buildRemoteTargetStatus(
 
   final (label, detail) = switch (remoteRuntime.hostCapability.status) {
     ConnectionRemoteHostCapabilityStatus.unknown => (
-      'Host status unknown',
+      'System status unknown',
       remoteRuntime.hostCapability.detail ??
-          'Pocket Relay has not checked this remote target yet.',
+          'Pocket Relay has not checked this remote system yet.',
     ),
     ConnectionRemoteHostCapabilityStatus.checking => (
-      'Checking host',
-      'Pocket Relay is checking whether this remote target can support continuity.',
+      'Checking system',
+      'Pocket Relay is checking whether this remote system can support continuity.',
     ),
     ConnectionRemoteHostCapabilityStatus.probeFailed => (
-      'Host check failed',
+      'System check failed',
       remoteRuntime.hostCapability.detail ??
-          'Pocket Relay could not verify the remote target.',
+          'Pocket Relay could not verify the remote system.',
     ),
     ConnectionRemoteHostCapabilityStatus.unsupported => (
-      'Host unsupported',
+      'System unsupported',
       remoteRuntime.hostCapability.detail ??
-          'This remote target does not satisfy the continuity prerequisites.',
+          'This remote system does not satisfy the continuity prerequisites.',
     ),
     ConnectionRemoteHostCapabilityStatus.supported => switch (remoteRuntime
         .server
         .status) {
       ConnectionRemoteServerStatus.unknown => (
-        'Host ready',
-        'Pocket Relay verified the remote target.',
+        'System ready',
+        'Pocket Relay verified the remote system.',
       ),
       ConnectionRemoteServerStatus.checking => (
         'Checking managed server',

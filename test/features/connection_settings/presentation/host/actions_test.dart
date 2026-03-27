@@ -26,9 +26,7 @@ void main() {
         ),
       );
 
-      await tester.enterText(materialTextField('Profile label'), '  ');
-      await tester.enterText(materialTextField('Host'), '  ios.example.com  ');
-      await tester.enterText(materialTextField('Port'), '2222');
+      await tester.enterText(materialTextField('Workspace name'), '  ');
       await tester.ensureVisible(
         find.byKey(const ValueKey<String>('connection_settings_model')),
       );
@@ -57,9 +55,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(materialPayload, isNotNull);
-      expect(materialPayload!.profile.label, 'Developer Box');
-      expect(materialPayload!.profile.host, 'ios.example.com');
-      expect(materialPayload!.profile.port, 2222);
+      expect(materialPayload!.profile.label, 'Workspace');
+      expect(materialPayload!.profile.host, 'devbox.local');
+      expect(materialPayload!.profile.port, 22);
       expect(materialPayload!.profile.model, 'gpt-5.4');
       expect(
         materialPayload!.profile.reasoningEffort,
@@ -81,8 +79,8 @@ void main() {
         ),
       );
 
-      await tester.ensureVisible(find.text('Ephemeral turns'));
-      await tester.tap(find.text('Ephemeral turns'));
+      await tester.ensureVisible(find.text('Ephemeral workspace'));
+      await tester.tap(find.text('Ephemeral workspace'));
       await tester.pumpAndSettle();
 
       await tester.tap(

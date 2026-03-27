@@ -111,7 +111,7 @@ ConnectionSettingsModelSectionContract _buildModelSection(
       ? 'Available efforts follow the backend default model.'
       : 'Available efforts follow ${_catalogModelLabel(effectiveCatalogModel)}.';
   return ConnectionSettingsModelSectionContract(
-    title: 'Model defaults',
+    title: 'Codex defaults',
     selectedModelId: selectedModelId,
     modelOptions: modelOptions,
     modelHelperText: modelHelperText,
@@ -168,7 +168,7 @@ ConnectionSettingsModelSectionContract _buildUnavailableModelSection({
   final hasSavedReasoningEffort = selectedReasoningEffort != null;
 
   return ConnectionSettingsModelSectionContract(
-    title: 'Model defaults',
+    title: 'Codex defaults',
     selectedModelId: selectedModelId,
     modelOptions: hasSavedModel
         ? <ConnectionSettingsModelOptionContract>[

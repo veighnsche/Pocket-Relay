@@ -30,6 +30,8 @@ class ConnectionSettingsHostActions {
     required this.onAuthModeChanged,
     required this.onReasoningEffortChanged,
     required this.onRefreshModelCatalog,
+    required this.onSystemTemplateChanged,
+    required this.onTestSystem,
     required this.onToggleChanged,
     required this.onCancel,
     required this.onSave,
@@ -42,6 +44,8 @@ class ConnectionSettingsHostActions {
   final ValueChanged<AuthMode> onAuthModeChanged;
   final ValueChanged<CodexReasoningEffort?> onReasoningEffortChanged;
   final Future<void> Function() onRefreshModelCatalog;
+  final ValueChanged<String?> onSystemTemplateChanged;
+  final Future<void> Function() onTestSystem;
   final void Function(ConnectionSettingsToggleId toggleId, bool value)
   onToggleChanged;
   final VoidCallback onCancel;

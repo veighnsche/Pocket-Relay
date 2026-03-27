@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 
 import '../domain/connection_settings_contract.dart';
 import 'connection_settings_host.dart';
@@ -16,9 +17,12 @@ abstract interface class ConnectionSettingsOverlayDelegate {
     ConnectionRemoteRuntimeState? initialRemoteRuntime,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+        const <ConnectionSettingsSystemTemplate>[],
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
+    ConnectionSettingsSystemTester? onTestSystem,
   });
 }
 
@@ -35,9 +39,12 @@ class ModalConnectionSettingsOverlayDelegate
     ConnectionRemoteRuntimeState? initialRemoteRuntime,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+        const <ConnectionSettingsSystemTemplate>[],
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
+    ConnectionSettingsSystemTester? onTestSystem,
   }) {
     if (platformBehavior.isDesktopExperience) {
       return showDialog<ConnectionSettingsSubmitPayload>(
@@ -46,9 +53,13 @@ class ModalConnectionSettingsOverlayDelegate
           return ConnectionSettingsHost(
             initialProfile: initialProfile,
             initialSecrets: initialSecrets,
+            initialRemoteRuntime: initialRemoteRuntime,
             availableModelCatalog: availableModelCatalog,
             availableModelCatalogSource: availableModelCatalogSource,
+            availableSystemTemplates: availableSystemTemplates,
             onRefreshModelCatalog: onRefreshModelCatalog,
+            onRefreshRemoteRuntime: onRefreshRemoteRuntime,
+            onTestSystem: onTestSystem,
             platformBehavior: platformBehavior,
             onCancel: () => Navigator.of(dialogContext).pop(),
             onSubmit: (payload) {
@@ -78,8 +89,10 @@ class ModalConnectionSettingsOverlayDelegate
           initialRemoteRuntime: initialRemoteRuntime,
           availableModelCatalog: availableModelCatalog,
           availableModelCatalogSource: availableModelCatalogSource,
+          availableSystemTemplates: availableSystemTemplates,
           onRefreshModelCatalog: onRefreshModelCatalog,
           onRefreshRemoteRuntime: onRefreshRemoteRuntime,
+          onTestSystem: onTestSystem,
           platformBehavior: platformBehavior,
           onCancel: () => Navigator.of(sheetContext).pop(),
           onSubmit: (payload) {

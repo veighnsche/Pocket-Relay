@@ -150,7 +150,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
-          matching: find.text('Remote connection not configured'),
+          matching: find.text('Remote system not configured'),
         ),
         findsOneWidget,
       );

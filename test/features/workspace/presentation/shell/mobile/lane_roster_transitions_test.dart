@@ -46,9 +46,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Saved connections'), findsWidgets);
+    expect(find.text('Saved workspaces'), findsWidgets);
     expect(find.byType(Scaffold), findsWidgets);
-    expect(find.widgetWithText(FilledButton, 'Add connection'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Add workspace'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Open lane'), findsWidgets);
     expect(find.widgetWithText(OutlinedButton, 'Edit'), findsWidgets);
   });
@@ -160,7 +160,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No saved connections yet.'), findsOneWidget);
+      expect(find.text('No saved workspaces yet.'), findsOneWidget);
       expect(find.text('Return to open lane'), findsNothing);
       expect(find.byKey(const ValueKey('add_connection')), findsOneWidget);
 

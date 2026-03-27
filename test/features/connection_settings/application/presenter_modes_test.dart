@@ -42,7 +42,14 @@ void main() {
     expect(contract.connectionModeSection, isNotNull);
     expect(contract.remoteConnectionSection, isNull);
     expect(contract.authenticationSection, isNull);
-    expect(contract.codexSection.title, 'Local Codex');
+    expect(contract.systemTrust, isNull);
+    expect(
+      settingsField(
+        contract.codexSection,
+        ConnectionSettingsFieldId.workspaceDir,
+      ).label,
+      'Workspace directory',
+    );
     expect(contract.modelSection.selectedReasoningEffort, isNull);
     expect(
       contract.modelSection.modelOptions.any(

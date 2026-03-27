@@ -9,7 +9,7 @@ ConnectionSettingsAuthenticationSectionContract? _buildAuthenticationSection(
 
   final draft = state.draft;
   return ConnectionSettingsAuthenticationSectionContract(
-    title: 'Authentication',
+    title: 'System access',
     selectedMode: draft.authMode,
     options: const <ConnectionSettingsAuthOptionContract>[
       ConnectionSettingsAuthOptionContract(
@@ -27,7 +27,7 @@ ConnectionSettingsAuthenticationSectionContract? _buildAuthenticationSection(
       AuthMode.password => <ConnectionSettingsTextFieldContract>[
         ConnectionSettingsTextFieldContract(
           id: ConnectionSettingsFieldId.password,
-          label: 'SSH password',
+          label: 'Password',
           value: draft.password,
           obscureText: true,
           errorText: state.passwordError,
@@ -36,7 +36,7 @@ ConnectionSettingsAuthenticationSectionContract? _buildAuthenticationSection(
       AuthMode.privateKey => <ConnectionSettingsTextFieldContract>[
         ConnectionSettingsTextFieldContract(
           id: ConnectionSettingsFieldId.privateKeyPem,
-          label: 'Private key PEM',
+          label: 'Private key',
           value: draft.privateKeyPem,
           errorText: state.privateKeyError,
           minLines: 6,

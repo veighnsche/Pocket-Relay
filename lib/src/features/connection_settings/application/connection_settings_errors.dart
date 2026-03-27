@@ -74,7 +74,7 @@ abstract final class ConnectionSettingsErrors {
   static PocketUserFacingError remoteRuntimeProbeFailed({Object? error}) {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.connectionSettingsRemoteRuntimeProbeFailed,
-      title: 'Host check failed',
+      title: 'System check failed',
       message: 'Could not verify the remote target.',
     ).withNormalizedUnderlyingError(error);
   }

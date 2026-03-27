@@ -18,6 +18,7 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
@@ -681,6 +682,10 @@ class DeferredConnectionSettingsOverlayDelegate
   final List<ConnectionSettingsRemoteRuntimeRefresher?>
   launchedRemoteRuntimeCallbacks =
       <ConnectionSettingsRemoteRuntimeRefresher?>[];
+  final List<List<ConnectionSettingsSystemTemplate>> launchedSystemTemplates =
+      <List<ConnectionSettingsSystemTemplate>>[];
+  final List<ConnectionSettingsSystemTester?> launchedSystemTesters =
+      <ConnectionSettingsSystemTester?>[];
   Completer<ConnectionSettingsSubmitPayload?> _completer =
       Completer<ConnectionSettingsSubmitPayload?>();
 
@@ -693,9 +698,12 @@ class DeferredConnectionSettingsOverlayDelegate
     ConnectionRemoteRuntimeState? initialRemoteRuntime,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+        const <ConnectionSettingsSystemTemplate>[],
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
+    ConnectionSettingsSystemTester? onTestSystem,
   }) {
     launchCount += 1;
     launchedSettings.add((initialProfile, initialSecrets));
@@ -704,6 +712,8 @@ class DeferredConnectionSettingsOverlayDelegate
     launchedModelCatalogSources.add(availableModelCatalogSource);
     launchedRefreshCallbacks.add(onRefreshModelCatalog);
     launchedRemoteRuntimeCallbacks.add(onRefreshRemoteRuntime);
+    launchedSystemTemplates.add(availableSystemTemplates);
+    launchedSystemTesters.add(onTestSystem);
     return _completer.future;
   }
 

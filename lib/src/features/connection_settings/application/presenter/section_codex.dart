@@ -5,7 +5,7 @@ ConnectionSettingsSectionContract _buildCodexSection(
 ) {
   final draft = state.draft;
   return ConnectionSettingsSectionContract(
-    title: state.isRemote ? 'Remote Codex' : 'Local Codex',
+    title: 'Workspace',
     fields: <ConnectionSettingsTextFieldContract>[
       ConnectionSettingsTextFieldContract(
         id: ConnectionSettingsFieldId.workspaceDir,
@@ -16,12 +16,12 @@ ConnectionSettingsSectionContract _buildCodexSection(
       ),
       ConnectionSettingsTextFieldContract(
         id: ConnectionSettingsFieldId.codexPath,
-        label: 'Codex launch command',
+        label: 'Codex command',
         value: draft.codexPath,
         hintText: 'codex or just codex-mcp',
         helperText: state.isRemote
-            ? 'Command run on the remote machine inside the workspace before app-server args are appended.'
-            : 'Command run on this desktop inside the workspace before app-server args are appended.',
+            ? 'Command run on the remote system inside this workspace before app-server args are appended.'
+            : 'Command run on this device inside this workspace before app-server args are appended.',
         errorText: state.codexPathError,
       ),
     ],

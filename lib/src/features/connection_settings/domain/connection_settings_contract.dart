@@ -44,6 +44,61 @@ class ConnectionSettingsConnectionModeSectionContract {
   final List<ConnectionSettingsConnectionModeOptionContract> options;
 }
 
+class ConnectionSettingsSystemOptionContract {
+  const ConnectionSettingsSystemOptionContract({
+    required this.id,
+    required this.label,
+    required this.description,
+  });
+
+  final String id;
+  final String label;
+  final String description;
+}
+
+class ConnectionSettingsSystemPickerContract {
+  const ConnectionSettingsSystemPickerContract({
+    required this.title,
+    required this.helperText,
+    required this.selectedSystemId,
+    required this.options,
+  });
+
+  final String title;
+  final String helperText;
+  final String? selectedSystemId;
+  final List<ConnectionSettingsSystemOptionContract> options;
+}
+
+enum ConnectionSettingsSystemTrustStateKind {
+  needsTest,
+  checking,
+  ready,
+  failed,
+}
+
+class ConnectionSettingsSystemTrustContract {
+  const ConnectionSettingsSystemTrustContract({
+    required this.title,
+    required this.state,
+    required this.statusLabel,
+    required this.detail,
+    required this.actionLabel,
+    required this.isActionEnabled,
+    required this.isActionInProgress,
+    this.fingerprint,
+  });
+
+  final String title;
+  final ConnectionSettingsSystemTrustStateKind state;
+  final String statusLabel;
+  final String detail;
+  final String actionLabel;
+  final bool isActionEnabled;
+  final bool isActionInProgress;
+  final String? fingerprint;
+}
+
 enum ConnectionSettingsToggleId { dangerouslyBypassSandbox, ephemeralSession }
 
 enum ConnectionSettingsRemoteServerActionId { start, stop, restart }
@@ -251,8 +306,10 @@ class ConnectionSettingsContract {
     required this.runModeSection,
     required this.saveAction,
     this.connectionModeSection,
+    this.systemPicker,
     this.remoteConnectionSection,
     this.authenticationSection,
+    this.systemTrust,
     this.remoteRuntime,
   });
 
@@ -262,8 +319,10 @@ class ConnectionSettingsContract {
   final ConnectionSettingsSectionContract codexSection;
   final ConnectionSettingsModelSectionContract modelSection;
   final ConnectionSettingsConnectionModeSectionContract? connectionModeSection;
+  final ConnectionSettingsSystemPickerContract? systemPicker;
   final ConnectionSettingsSectionContract? remoteConnectionSection;
   final ConnectionSettingsAuthenticationSectionContract? authenticationSection;
+  final ConnectionSettingsSystemTrustContract? systemTrust;
   final ConnectionSettingsRunModeSectionContract runModeSection;
   final ConnectionSettingsSaveActionContract saveAction;
   final ConnectionRemoteRuntimeState? remoteRuntime;

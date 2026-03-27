@@ -125,7 +125,7 @@ void main() {
       final localRow = find.byKey(const ValueKey('saved_connection_conn_secondary'));
 
       expect(
-        find.descendant(of: localRow, matching: find.textContaining('Host:')),
+        find.descendant(of: localRow, matching: find.textContaining('System:')),
         findsNothing,
       );
       expect(
@@ -133,7 +133,7 @@ void main() {
         findsNothing,
       );
       expect(
-        find.descendant(of: localRow, matching: find.text('Check host')),
+        find.descendant(of: localRow, matching: find.text('Check system')),
         findsNothing,
       );
       expect(

@@ -52,7 +52,7 @@ void main() {
             onScreenAction: laneActions.add,
             supplementalMenuActions: <ChatChromeMenuAction>[
               ChatChromeMenuAction(
-                label: 'Saved connections',
+                label: 'Saved workspaces',
                 onSelected: () {
                   openedDormantConnections = true;
                 },
@@ -68,9 +68,9 @@ void main() {
 
     expect(find.text('New thread'), findsOneWidget);
     expect(find.text('Branch conversation'), findsOneWidget);
-    expect(find.text('Saved connections'), findsOneWidget);
+    expect(find.text('Saved workspaces'), findsOneWidget);
 
-    await tester.tap(find.text('Saved connections'));
+    await tester.tap(find.text('Saved workspaces'));
     await tester.pumpAndSettle();
 
     expect(openedDormantConnections, isTrue);

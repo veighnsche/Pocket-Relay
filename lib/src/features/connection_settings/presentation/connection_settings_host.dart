@@ -6,8 +6,11 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_errors.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_presenter.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_templates.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 
 part 'host/host_models.dart';
 part 'host/model_catalog_refresh.dart';
@@ -26,6 +29,12 @@ typedef ConnectionSettingsRemoteRuntimeRefresher =
       ConnectionSettingsSubmitPayload payload,
     );
 
+typedef ConnectionSettingsSystemTester =
+    Future<ConnectionSettingsSystemTestResult> Function(
+      ConnectionProfile profile,
+      ConnectionSecrets secrets,
+    );
+
 class ConnectionSettingsHost extends StatefulWidget {
   const ConnectionSettingsHost({
     super.key,
@@ -34,8 +43,10 @@ class ConnectionSettingsHost extends StatefulWidget {
     this.initialRemoteRuntime,
     this.availableModelCatalog,
     this.availableModelCatalogSource,
+    this.availableSystemTemplates = const <ConnectionSettingsSystemTemplate>[],
     this.onRefreshModelCatalog,
     this.onRefreshRemoteRuntime,
+    this.onTestSystem,
     required this.onCancel,
     required this.onSubmit,
     required this.builder,
@@ -47,9 +58,11 @@ class ConnectionSettingsHost extends StatefulWidget {
   final ConnectionRemoteRuntimeState? initialRemoteRuntime;
   final ConnectionModelCatalog? availableModelCatalog;
   final ConnectionSettingsModelCatalogSource? availableModelCatalogSource;
+  final List<ConnectionSettingsSystemTemplate> availableSystemTemplates;
   final Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog;
   final ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime;
+  final ConnectionSettingsSystemTester? onTestSystem;
   final VoidCallback onCancel;
   final ValueChanged<ConnectionSettingsSubmitPayload> onSubmit;
   final ConnectionSettingsHostBuilder builder;
@@ -68,6 +81,9 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
   PocketUserFacingError? _modelCatalogRefreshError;
   bool _isRefreshingModelCatalog = false;
   ConnectionRemoteRuntimeState? _remoteRuntime;
+  late List<ConnectionSettingsSystemTemplate> _availableSystemTemplates;
+  bool _isTestingSystem = false;
+  String? _systemTestFailure;
   Timer? _remoteRuntimeRefreshDebounce;
   int _remoteRuntimeRefreshToken = 0;
 
@@ -81,6 +97,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
     _remoteRuntime = widget.initialRemoteRuntime;
     _availableModelCatalog = widget.availableModelCatalog;
     _availableModelCatalogSource = widget.availableModelCatalogSource;
+    _availableSystemTemplates = widget.availableSystemTemplates;
     final draft = _formState.draft;
     _controllers = <ConnectionSettingsFieldId, TextEditingController>{
       for (final fieldId in ConnectionSettingsFieldId.values)
@@ -114,6 +131,8 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
         onAuthModeChanged: _updateAuthMode,
         onReasoningEffortChanged: _updateReasoningEffort,
         onRefreshModelCatalog: _refreshModelCatalog,
+        onSystemTemplateChanged: _selectSystemTemplate,
+        onTestSystem: _testSystem,
         onToggleChanged: _updateToggle,
         onCancel: widget.onCancel,
         onSave: _save,
@@ -142,6 +161,11 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
 
   void _updateModel(String? modelId) =>
       _updateConnectionSettingsModel(this, modelId);
+
+  void _selectSystemTemplate(String? templateId) =>
+      _selectConnectionSettingsSystemTemplate(this, templateId);
+
+  Future<void> _testSystem() => _testConnectionSettingsSystem(this);
 
   bool _shouldRefreshRemoteRuntimeForField(ConnectionSettingsFieldId fieldId) =>
       _shouldRefreshConnectionSettingsRemoteRuntimeForField(fieldId);

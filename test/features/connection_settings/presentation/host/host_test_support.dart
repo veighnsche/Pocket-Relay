@@ -3,9 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
 
@@ -20,6 +21,9 @@ Widget buildMaterialSettingsApp({
   Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog,
   ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
+  List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+      const <ConnectionSettingsSystemTemplate>[],
+  ConnectionSettingsSystemTester? onTestSystem,
   ConnectionSettingsHostBuilder? builder,
 }) {
   return MaterialApp(
@@ -36,6 +40,8 @@ Widget buildMaterialSettingsApp({
         initialProfile: initialProfile,
         onRefreshModelCatalog: onRefreshModelCatalog,
         onRefreshRemoteRuntime: onRefreshRemoteRuntime,
+        availableSystemTemplates: availableSystemTemplates,
+        onTestSystem: onTestSystem ?? defaultSystemTester,
         builder:
             builder ??
             (context, viewModel, actions) {
@@ -61,6 +67,9 @@ Widget buildSettingsHost({
   Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
   onRefreshModelCatalog,
   ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
+  List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+      const <ConnectionSettingsSystemTemplate>[],
+  ConnectionSettingsSystemTester? onTestSystem,
 }) {
   return ConnectionSettingsHost(
     initialProfile: initialProfile ?? configuredConnectionProfile(),
@@ -70,6 +79,8 @@ Widget buildSettingsHost({
     availableModelCatalogSource: availableModelCatalogSource,
     onRefreshModelCatalog: onRefreshModelCatalog,
     onRefreshRemoteRuntime: onRefreshRemoteRuntime,
+    availableSystemTemplates: availableSystemTemplates,
+    onTestSystem: onTestSystem ?? defaultSystemTester,
     platformBehavior: platformBehavior,
     onCancel: () {},
     onSubmit: onSubmit,
@@ -87,15 +98,17 @@ ValueKey<String> settingsFieldKey(ConnectionSettingsFieldId fieldId) {
 
 ConnectionSettingsFieldId settingsFieldIdForLabel(String label) {
   return switch (label) {
-    'Profile label' => ConnectionSettingsFieldId.label,
+    'Profile label' || 'Workspace name' => ConnectionSettingsFieldId.label,
     'Host' => ConnectionSettingsFieldId.host,
-    'Port' => ConnectionSettingsFieldId.port,
-    'Username' => ConnectionSettingsFieldId.username,
+    'Port' || 'SSH port' => ConnectionSettingsFieldId.port,
+    'Username' || 'SSH username' => ConnectionSettingsFieldId.username,
     'Workspace directory' => ConnectionSettingsFieldId.workspaceDir,
-    'Codex launch command' => ConnectionSettingsFieldId.codexPath,
+    'Codex launch command' ||
+    'Codex command' => ConnectionSettingsFieldId.codexPath,
     'Host fingerprint' => ConnectionSettingsFieldId.hostFingerprint,
-    'SSH password' => ConnectionSettingsFieldId.password,
-    'Private key PEM' => ConnectionSettingsFieldId.privateKeyPem,
+    'SSH password' || 'Password' => ConnectionSettingsFieldId.password,
+    'Private key PEM' ||
+    'Private key' => ConnectionSettingsFieldId.privateKeyPem,
     'Key passphrase (optional)' =>
       ConnectionSettingsFieldId.privateKeyPassphrase,
     _ => throw ArgumentError.value(label, 'label', 'Unknown settings field'),
@@ -172,3 +185,14 @@ const pausedRemoteRuntimeForTest = ConnectionRemoteRuntimeState(
   ),
   server: ConnectionRemoteServerState.unknown(),
 );
+
+Future<ConnectionSettingsSystemTestResult> defaultSystemTester(
+  ConnectionProfile profile,
+  ConnectionSecrets _,
+) async {
+  final fingerprint = profile.hostFingerprint.trim();
+  return ConnectionSettingsSystemTestResult(
+    keyType: 'ssh-ed25519',
+    fingerprint: fingerprint.isEmpty ? 'aa:bb:cc:dd' : fingerprint,
+  );
+}

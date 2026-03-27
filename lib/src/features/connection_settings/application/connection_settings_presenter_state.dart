@@ -5,9 +5,15 @@ class _ConnectionSettingsPresentationState {
     required this.draft,
     required this.availableModelCatalog,
     required this.availableModelCatalogSource,
+    required this.availableSystemTemplates,
+    required this.selectedSystemTemplateId,
     required this.modelCatalogRefreshError,
     required this.supportsModelCatalogRefresh,
     required this.isRefreshingModelCatalog,
+    required this.isTestingSystem,
+    required this.systemTestFailure,
+    required this.supportsSystemTesting,
+    required this.canTestSystem,
     required this.isRemote,
     required this.hasChanges,
     required this.canSubmit,
@@ -28,9 +34,14 @@ class _ConnectionSettingsPresentationState {
     required ConnectionSettingsFormState formState,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+        const <ConnectionSettingsSystemTemplate>[],
     PocketUserFacingError? modelCatalogRefreshError,
     bool supportsModelCatalogRefresh = false,
     bool isRefreshingModelCatalog = false,
+    bool isTestingSystem = false,
+    String? systemTestFailure,
+    bool supportsSystemTesting = false,
   }) {
     final draft = formState.draft;
     final isRemote = draft.connectionMode == ConnectionMode.remote;
@@ -74,7 +85,7 @@ class _ConnectionSettingsPresentationState {
     );
     final hostFingerprintError = _requiredError(
       value: draft.hostFingerprint,
-      message: 'Host fingerprint is required',
+      message: 'Test this system to save its fingerprint.',
       show: shouldShowValidationErrors && isRemote,
     );
     final workspaceDirError = _requiredError(
@@ -107,14 +118,32 @@ class _ConnectionSettingsPresentationState {
         hasCodexPathError ||
         hasPasswordError ||
         hasPrivateKeyError;
+    final canTestSystem =
+        supportsSystemTesting &&
+        isRemote &&
+        !isTestingSystem &&
+        !hasHostError &&
+        !hasPortError &&
+        !hasUsernameError &&
+        !hasPasswordError &&
+        !hasPrivateKeyError;
 
     return _ConnectionSettingsPresentationState(
       draft: draft,
       availableModelCatalog: availableModelCatalog,
       availableModelCatalogSource: availableModelCatalogSource,
+      availableSystemTemplates: availableSystemTemplates,
+      selectedSystemTemplateId: matchingConnectionSettingsSystemTemplateId(
+        draft: draft,
+        templates: availableSystemTemplates,
+      ),
       modelCatalogRefreshError: modelCatalogRefreshError,
       supportsModelCatalogRefresh: supportsModelCatalogRefresh,
       isRefreshingModelCatalog: isRefreshingModelCatalog,
+      isTestingSystem: isTestingSystem,
+      systemTestFailure: systemTestFailure,
+      supportsSystemTesting: supportsSystemTesting,
+      canTestSystem: canTestSystem,
       isRemote: isRemote,
       hasChanges: hasChanges,
       canSubmit: !hasChanges || !hasValidationErrors,
@@ -133,9 +162,15 @@ class _ConnectionSettingsPresentationState {
   final ConnectionSettingsDraft draft;
   final ConnectionModelCatalog? availableModelCatalog;
   final ConnectionSettingsModelCatalogSource? availableModelCatalogSource;
+  final List<ConnectionSettingsSystemTemplate> availableSystemTemplates;
+  final String? selectedSystemTemplateId;
   final PocketUserFacingError? modelCatalogRefreshError;
   final bool supportsModelCatalogRefresh;
   final bool isRefreshingModelCatalog;
+  final bool isTestingSystem;
+  final String? systemTestFailure;
+  final bool supportsSystemTesting;
+  final bool canTestSystem;
   final bool isRemote;
   final bool hasChanges;
   final bool canSubmit;

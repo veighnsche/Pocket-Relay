@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 
@@ -32,6 +33,10 @@ class FakeConnectionSettingsOverlayDelegate
   final List<ConnectionSettingsRemoteRuntimeRefresher?>
   launchedRemoteRuntimeCallbacks =
       <ConnectionSettingsRemoteRuntimeRefresher?>[];
+  final List<List<ConnectionSettingsSystemTemplate>> launchedSystemTemplates =
+      <List<ConnectionSettingsSystemTemplate>>[];
+  final List<ConnectionSettingsSystemTester?> launchedSystemTesters =
+      <ConnectionSettingsSystemTester?>[];
 
   @override
   Future<ConnectionSettingsSubmitPayload?> openConnectionSettings({
@@ -42,9 +47,12 @@ class FakeConnectionSettingsOverlayDelegate
     ConnectionRemoteRuntimeState? initialRemoteRuntime,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+        const <ConnectionSettingsSystemTemplate>[],
     Future<ConnectionModelCatalog?> Function(ConnectionSettingsDraft draft)?
     onRefreshModelCatalog,
     ConnectionSettingsRemoteRuntimeRefresher? onRefreshRemoteRuntime,
+    ConnectionSettingsSystemTester? onTestSystem,
   }) async {
     launchedSettings.add((initialProfile, initialSecrets));
     launchedModelCatalogs.add(availableModelCatalog);
@@ -52,6 +60,8 @@ class FakeConnectionSettingsOverlayDelegate
     launchedModelCatalogSources.add(availableModelCatalogSource);
     launchedRefreshCallbacks.add(onRefreshModelCatalog);
     launchedRemoteRuntimeCallbacks.add(onRefreshRemoteRuntime);
+    launchedSystemTemplates.add(availableSystemTemplates);
+    launchedSystemTesters.add(onTestSystem);
     if (_results.isEmpty) {
       return null;
     }

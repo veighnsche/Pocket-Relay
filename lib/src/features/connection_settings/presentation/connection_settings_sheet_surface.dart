@@ -323,11 +323,11 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       children: [
         _buildSection(
           context,
-          key: const ValueKey<String>('connection_settings_section_basics'),
-          title: 'Basics',
+          key: const ValueKey<String>('connection_settings_section_workspace'),
+          title: 'Workspace',
           description:
-              'Give this connection a name and choose where Codex runs.',
-          child: _buildBasicsSection(context, contract),
+              'Name this workspace, choose where it runs, and point Pocket Relay at the directory it should use.',
+          child: _buildWorkspaceSection(context, contract),
         ),
         if (contract.remoteConnectionSection case final remoteSection?) ...[
           _buildSectionDivider(),
@@ -336,20 +336,20 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             key: const ValueKey<String>(
               'connection_settings_section_remote_access',
             ),
-            title: 'Remote access',
+            title: 'System',
             description:
-                'Set the SSH target, verify host trust, and choose how Pocket Relay authenticates.',
+                'Reuse a saved system or set up a new one. Host sign-in and SSH trust stay here so you can reuse them across workspaces.',
             child: _buildRemoteAccessSection(context, contract, remoteSection),
           ),
         ],
         _buildSectionDivider(),
         _buildSection(
           context,
-          key: const ValueKey<String>('connection_settings_section_workspace'),
-          title: 'Workspace and defaults',
+          key: const ValueKey<String>('connection_settings_section_codex'),
+          title: 'Codex',
           description:
-              'Point Pocket Relay at the workspace, Codex command, and any backend model overrides.',
-          child: _buildWorkspaceDefaultsSection(context, contract),
+              'Choose the command and defaults Pocket Relay should apply inside this workspace.',
+          child: _buildCodexSection(context, contract),
         ),
         _buildSectionDivider(),
         _buildSection(
@@ -406,11 +406,16 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
-  Widget _buildBasicsSection(
+  Widget _buildWorkspaceSection(
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
     final routeSection = contract.connectionModeSection;
+    final workspaceFields = <ConnectionSettingsTextFieldContract>[
+      ...contract.profileSection.fields,
+      for (final field in contract.codexSection.fields)
+        if (field.id == ConnectionSettingsFieldId.workspaceDir) field,
+    ];
     String? routeDescription;
     if (routeSection != null) {
       for (final option in routeSection.options) {
@@ -424,7 +429,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldColumn(context, contract.profileSection.fields),
+        _buildFieldColumn(context, workspaceFields),
         if (routeSection != null) ...[
           const SizedBox(height: _sectionSpacing),
           _buildSubsectionLabel(context, routeSection.title),
@@ -452,10 +457,25 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (contract.systemPicker case final picker?) ...[
+          _buildSubsectionLabel(context, picker.title),
+          const SizedBox(height: 12),
+          _buildSystemPicker(context, picker),
+          const SizedBox(height: 10),
+          Text(
+            picker.helperText,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: _sectionSpacing),
+        ],
         if (remoteSection.status case final status?) ...[
           _buildRemoteStatusStrip(context, contract, status),
           const SizedBox(height: _sectionSpacing),
         ],
+        _buildSubsectionLabel(context, 'System details'),
+        const SizedBox(height: 12),
         _buildRemoteConnectionFields(context, remoteSection.fields),
         if (contract.authenticationSection case final authSection?) ...[
           const SizedBox(height: _sectionSpacing),
@@ -465,19 +485,30 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           const SizedBox(height: 14),
           _buildFieldColumn(context, authSection.fields),
         ],
+        if (contract.systemTrust case final trustSection?) ...[
+          const SizedBox(height: _sectionSpacing),
+          _buildSubsectionLabel(context, trustSection.title),
+          const SizedBox(height: 12),
+          _buildSystemTrustPanel(context, trustSection),
+        ],
       ],
     );
   }
 
-  Widget _buildWorkspaceDefaultsSection(
+  Widget _buildCodexSection(
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
+    final codexFields = <ConnectionSettingsTextFieldContract>[
+      for (final field in contract.codexSection.fields)
+        if (field.id != ConnectionSettingsFieldId.workspaceDir) field,
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldColumn(context, contract.codexSection.fields),
-        const SizedBox(height: _sectionSpacing),
+        if (codexFields.isNotEmpty) _buildFieldColumn(context, codexFields),
+        if (codexFields.isNotEmpty) const SizedBox(height: _sectionSpacing),
         _buildSubsectionLabel(context, contract.modelSection.title),
         const SizedBox(height: 12),
         _buildModelDefaultsSection(context, contract.modelSection),
@@ -642,12 +673,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     final hostField = fieldMap[ConnectionSettingsFieldId.host];
     final portField = fieldMap[ConnectionSettingsFieldId.port];
     final usernameField = fieldMap[ConnectionSettingsFieldId.username];
-    final fingerprintField =
-        fieldMap[ConnectionSettingsFieldId.hostFingerprint];
-    if (hostField == null ||
-        portField == null ||
-        usernameField == null ||
-        fingerprintField == null) {
+    if (hostField == null || portField == null || usernameField == null) {
       return _buildFieldColumn(context, fields);
     }
 
@@ -662,8 +688,133 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
         ),
         const SizedBox(height: _fieldSpacing),
         _buildTextField(context, usernameField),
-        const SizedBox(height: _fieldSpacing),
-        _buildTextField(context, fingerprintField),
+      ],
+    );
+  }
+
+  Widget _buildSystemPicker(
+    BuildContext context,
+    ConnectionSettingsSystemPickerContract picker,
+  ) {
+    return DropdownButtonFormField<String?>(
+      key: const ValueKey<String>('connection_settings_system_picker'),
+      initialValue: picker.selectedSystemId,
+      decoration: const InputDecoration(labelText: 'Reuse system (optional)'),
+      isExpanded: true,
+      items: <DropdownMenuItem<String?>>[
+        const DropdownMenuItem<String?>(
+          value: null,
+          child: Text('Enter a new system'),
+        ),
+        ...picker.options.map(
+          (option) => DropdownMenuItem<String?>(
+            value: option.id,
+            child: Text(
+              '${option.label} · ${option.description}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+      selectedItemBuilder: (context) {
+        return <Widget>[
+          const Text('Enter a new system'),
+          ...picker.options.map(
+            (option) => Text(
+              option.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ];
+      },
+      onChanged: actions.onSystemTemplateChanged,
+    );
+  }
+
+  Widget _buildSystemTrustPanel(
+    BuildContext context,
+    ConnectionSettingsSystemTrustContract trust,
+  ) {
+    final theme = Theme.of(context);
+    final color = switch (trust.state) {
+      ConnectionSettingsSystemTrustStateKind.ready =>
+        theme.colorScheme.secondary,
+      ConnectionSettingsSystemTrustStateKind.failed =>
+        theme.colorScheme.tertiary,
+      ConnectionSettingsSystemTrustStateKind.checking =>
+        theme.colorScheme.primary,
+      ConnectionSettingsSystemTrustStateKind.needsTest =>
+        theme.colorScheme.onSurfaceVariant,
+    };
+    final icon = switch (trust.state) {
+      ConnectionSettingsSystemTrustStateKind.ready => Icons.verified_outlined,
+      ConnectionSettingsSystemTrustStateKind.failed => Icons.error_outline,
+      ConnectionSettingsSystemTrustStateKind.checking => Icons.sync,
+      ConnectionSettingsSystemTrustStateKind.needsTest => Icons.shield_outlined,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    trust.statusLabel,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    trust.detail,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (trust.fingerprint case final fingerprint?) ...[
+          const SizedBox(height: 12),
+          SelectableText(
+            fingerprint,
+            key: const ValueKey<String>(
+              'connection_settings_system_fingerprint',
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+        const SizedBox(height: 14),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('connection_settings_test_system'),
+          onPressed: trust.isActionEnabled ? actions.onTestSystem : null,
+          icon: trust.isActionInProgress
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.router_outlined),
+          label: Text(trust.actionLabel),
+        ),
       ],
     );
   }
@@ -715,6 +866,15 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       controller: viewModel.controllerForField(field.id),
       obscureText: field.obscureText,
       keyboardType: _textInputType(field.keyboardType),
+      textCapitalization: _textCapitalizationForField(field.id),
+      autocorrect: _autocorrectForField(field.id),
+      enableSuggestions: _enableSuggestionsForField(field.id),
+      smartDashesType: _smartTypingEnabledForField(field.id)
+          ? SmartDashesType.enabled
+          : SmartDashesType.disabled,
+      smartQuotesType: _smartTypingEnabledForField(field.id)
+          ? SmartQuotesType.enabled
+          : SmartQuotesType.disabled,
       minLines: field.minLines,
       maxLines: field.maxLines,
       onChanged: (value) {
@@ -728,6 +888,36 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
         alignLabelWithHint: field.alignLabelWithHint,
       ),
     );
+  }
+
+  TextCapitalization _textCapitalizationForField(
+    ConnectionSettingsFieldId fieldId,
+  ) {
+    return switch (fieldId) {
+      ConnectionSettingsFieldId.label => TextCapitalization.words,
+      _ => TextCapitalization.none,
+    };
+  }
+
+  bool _autocorrectForField(ConnectionSettingsFieldId fieldId) {
+    return switch (fieldId) {
+      ConnectionSettingsFieldId.label => true,
+      _ => false,
+    };
+  }
+
+  bool _enableSuggestionsForField(ConnectionSettingsFieldId fieldId) {
+    return switch (fieldId) {
+      ConnectionSettingsFieldId.label => true,
+      _ => false,
+    };
+  }
+
+  bool _smartTypingEnabledForField(ConnectionSettingsFieldId fieldId) {
+    return switch (fieldId) {
+      ConnectionSettingsFieldId.label => true,
+      _ => false,
+    };
   }
 
   Widget _buildAuthModePicker(
@@ -909,15 +1099,15 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
         return '$host · Workspace not set';
       }
       if (workspaceDir.isNotEmpty) {
-        return 'Remote target · $workspaceDir';
+        return 'Remote workspace · $workspaceDir';
       }
-      return label.isNotEmpty ? label : 'Remote connection';
+      return label.isNotEmpty ? label : 'Remote workspace';
     }
 
     if (workspaceDir.isNotEmpty) {
-      return 'Local Codex · $workspaceDir';
+      return 'Local workspace · $workspaceDir';
     }
-    return label.isNotEmpty ? label : 'Local connection';
+    return label.isNotEmpty ? label : 'Local workspace';
   }
 
   String _fieldValueFor(
