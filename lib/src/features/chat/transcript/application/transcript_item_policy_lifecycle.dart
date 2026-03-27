@@ -102,7 +102,8 @@ Map<String, dynamic>? _nextLifecycleSnapshot(
   }
 
   if (event.itemType == CodexCanonicalItemType.commandExecution &&
-      existingSnapshot != null) {
+      existingSnapshot != null &&
+      event.rawMethod == 'item/commandExecution/terminalInteraction') {
     return <String, dynamic>{...existingSnapshot, ...eventSnapshot};
   }
 
@@ -128,10 +129,6 @@ String _commandExecutionRawTitle(
   CodexRuntimeItemLifecycleEvent event,
   String? existingTitle,
 ) {
-  if (existingTitle != null) {
-    return existingTitle;
-  }
-
   final snapshot = event.snapshot;
   final snapshotCommand = policy._support.stringFromCandidates(<Object?>[
     snapshot?['command'],
@@ -140,7 +137,7 @@ String _commandExecutionRawTitle(
   if (snapshotCommand != null) {
     return snapshotCommand;
   }
-  if (event.title case final title?) {
+  if (_meaningfulCommandExecutionTitle(policy, event.title) case final title?) {
     return title;
   }
 
@@ -149,7 +146,29 @@ String _commandExecutionRawTitle(
       detail?.trim().isNotEmpty == true) {
     return detail!;
   }
+  if (_meaningfulCommandExecutionTitle(policy, existingTitle)
+      case final existingTitle?) {
+    return existingTitle;
+  }
   return 'Command';
+}
+
+String? _meaningfulCommandExecutionTitle(
+  TranscriptItemPolicy policy,
+  String? value,
+) {
+  if (value == null) {
+    return null;
+  }
+  final trimmed = value.trim();
+  if (trimmed.isEmpty ||
+      trimmed ==
+          policy._blockFactory.defaultItemTitle(
+            CodexCanonicalItemType.commandExecution,
+          )) {
+    return null;
+  }
+  return value;
 }
 
 String _itemBody(
