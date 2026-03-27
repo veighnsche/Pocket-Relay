@@ -164,7 +164,7 @@ void main() {
   );
 
   testWidgets(
-    'workspace host records a typed foreground-service warning when permission request fails',
+    'workspace host keeps continuity when permission request probes fail',
     (tester) async {
       final clientsById = _buildClientsById(firstConnectionId: 'conn_primary');
       final workspaceController = _buildWorkspaceController(
@@ -214,7 +214,7 @@ void main() {
         warning?.bodyWithCode,
         contains('notification permission missing'),
       );
-      expect(foregroundServiceController.enabledStates, isEmpty);
+      expect(foregroundServiceController.enabledStates, <bool>[true]);
       await workspaceController.flushRecoveryPersistence();
     },
   );

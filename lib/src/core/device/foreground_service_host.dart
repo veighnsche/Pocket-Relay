@@ -217,7 +217,11 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
       }
 
       _requestedForegroundServiceEnabled = true;
-      await _setEnabledSafely(widget.foregroundServiceController, true);
+      await _setEnabledSafely(
+        widget.foregroundServiceController,
+        true,
+        clearWarningOnSuccess: notificationPermission.warning == null,
+      );
     } finally {
       if (mounted && requestEpoch == _notificationPermissionRequestEpoch) {
         _isRequestingNotificationPermission = false;
@@ -256,17 +260,20 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
             error: error,
           );
       _setWarning(warning);
-      return (granted: false, warning: warning);
+      return (granted: true, warning: warning);
     }
   }
 
   Future<bool> _setEnabledSafely(
     ForegroundServiceController controller,
-    bool enabled,
-  ) async {
+    bool enabled, {
+    bool clearWarningOnSuccess = true,
+  }) async {
     try {
       await controller.setEnabled(enabled);
-      _setWarning(null);
+      if (clearWarningOnSuccess) {
+        _setWarning(null);
+      }
       return true;
     } catch (error) {
       _setWarning(

@@ -112,7 +112,7 @@ void main() {
   );
 
   testWidgets(
-    'permission-channel failures surface a typed warning and keep the service disabled',
+    'permission-channel failures surface a typed warning and still enable the service',
     (tester) async {
       final controller = _FakeForegroundServiceController();
       final permissionController = _ThrowingNotificationPermissionController();
@@ -132,7 +132,7 @@ void main() {
       await tester.pump();
 
       expect(permissionController.requestCalls, 1);
-      expect(controller.enabledStates, isEmpty);
+      expect(controller.enabledStates, <bool>[true]);
       expect(
         warning?.definition,
         PocketErrorCatalog.deviceForegroundServicePermissionRequestFailed,
