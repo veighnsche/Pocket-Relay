@@ -9,6 +9,7 @@ import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -34,6 +35,7 @@ export 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 export 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+export 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_overlay_delegate.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -375,6 +377,8 @@ class FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
       <ChatConnectionSettingsLaunchContract>[];
   final List<ChatChangedFileDiffContract> changedFileDiffs =
       <ChatChangedFileDiffContract>[];
+  final List<ChatWorkLogTerminalContract> workLogTerminals =
+      <ChatWorkLogTerminalContract>[];
   final List<String> transientFeedbackMessages = <String>[];
 
   @override
@@ -393,6 +397,14 @@ class FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
     required ChatChangedFileDiffContract diff,
   }) async {
     changedFileDiffs.add(diff);
+  }
+
+  @override
+  Future<void> openWorkLogTerminal({
+    required BuildContext context,
+    required ChatWorkLogTerminalContract terminal,
+  }) async {
+    workLogTerminals.add(terminal);
   }
 
   @override

@@ -297,6 +297,50 @@ void main() {
     },
   );
 
+  testWidgets('routes command terminal openings through the overlay delegate', (
+    tester,
+  ) async {
+    final appServerClient = FakeCodexAppServerClient();
+    final overlayDelegate = FakeChatRootOverlayDelegate();
+    addTearDown(appServerClient.close);
+
+    await tester.pumpWidget(
+      buildAdapterApp(
+        appServerClient: appServerClient,
+        overlayDelegate: overlayDelegate,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    appServerClient.emit(
+      const CodexAppServerNotificationEvent(
+        method: 'item/completed',
+        params: <String, Object?>{
+          'threadId': 'thread_123',
+          'turnId': 'turn_1',
+          'item': <String, Object?>{
+            'id': 'command_1',
+            'type': 'commandExecution',
+            'status': 'completed',
+            'command': 'pwd',
+            'processId': 'proc_1',
+            'aggregatedOutput': '/repo\n',
+            'exitCode': 0,
+          },
+        },
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.text('pwd'));
+    await tester.pump();
+
+    expect(overlayDelegate.workLogTerminals, hasLength(1));
+    expect(overlayDelegate.workLogTerminals.single.commandText, 'pwd');
+    expect(overlayDelegate.workLogTerminals.single.processId, 'proc_1');
+    expect(overlayDelegate.workLogTerminals.single.terminalOutput, '/repo\n');
+  });
+
   testWidgets(
     'renders through the material shell foundation on every platform',
     (tester) async {

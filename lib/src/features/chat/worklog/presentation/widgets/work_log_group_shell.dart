@@ -9,6 +9,7 @@ class _WorkLogRowShell extends StatelessWidget {
     this.titleWidget,
     this.titleMonospace = false,
     this.statusBadge,
+    this.onTap,
     this.details = const <Widget>[],
   });
 
@@ -19,13 +20,14 @@ class _WorkLogRowShell extends StatelessWidget {
   final Widget? titleWidget;
   final bool titleMonospace;
   final Widget? statusBadge;
+  final VoidCallback? onTap;
   final List<Widget> details;
 
   @override
   Widget build(BuildContext context) {
     final cards = TranscriptPalette.of(context);
 
-    return Padding(
+    final body = Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,6 +85,23 @@ class _WorkLogRowShell extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    final tap = onTap;
+    if (tap == null) {
+      return body;
+    }
+
+    return Semantics(
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: PocketRadii.circular(PocketRadii.sm),
+          onTap: tap,
+          child: body,
+        ),
       ),
     );
   }

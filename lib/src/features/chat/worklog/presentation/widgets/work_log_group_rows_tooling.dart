@@ -5,11 +5,13 @@ class _SearchWorkLogEntryRow extends StatelessWidget {
     required this.entry,
     required this.accent,
     required this.icon,
+    this.onTap,
   });
 
   final ChatContentSearchWorkLogEntryContract entry;
   final Color accent;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,7 @@ class _SearchWorkLogEntryRow extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
+      onTap: onTap,
       statusBadge: _specialCommandStatusBadge(
         theme: Theme.of(context),
         isRunning: entry.isRunning,

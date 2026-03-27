@@ -21,6 +21,7 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/transcript_list.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/changed_files_surface.dart';
 
 export 'package:flutter/material.dart';
@@ -43,6 +44,7 @@ export 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 export 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_form_scope.dart';
 export 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 export 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+export 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 export 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/changed_files_surface.dart';
 
 const itemProjector = ChatTranscriptItemProjector();
@@ -115,6 +117,7 @@ Widget entrySurface({
   Future<void> Function(String requestId)? onApproveRequest,
   Future<void> Function(String requestId)? onDenyRequest,
   void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,
+  void Function(ChatWorkLogTerminalContract terminal)? onOpenWorkLogTerminal,
   Future<void> Function(String requestId, Map<String, List<String>> answers)?
   onSubmitUserInput,
   Future<void> Function(String blockId)? onSaveHostFingerprint,
@@ -139,6 +142,7 @@ Widget entrySurface({
                 builder: (context) => ChangedFileDiffSheet(diff: diff),
               );
             },
+        onOpenWorkLogTerminal: onOpenWorkLogTerminal,
         onSubmitUserInput: onSubmitUserInput,
         onSaveHostFingerprint: onSaveHostFingerprint,
         onConfigure: onConfigure,
