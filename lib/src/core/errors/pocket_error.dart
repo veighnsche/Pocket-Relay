@@ -80,6 +80,10 @@ final class PocketUserFacingError {
     }
     return withUnderlyingDetail(detail);
   }
+
+  String inlineMessageWithDetail(Object? error) {
+    return withNormalizedUnderlyingError(error).inlineMessage;
+  }
 }
 
 abstract final class PocketErrorCatalog {
@@ -608,50 +612,6 @@ abstract final class PocketErrorCatalog {
         'Reading best-effort child-thread metadata failed, so timeline labels may remain incomplete until later runtime data fills them in.',
   );
 
-  // Chat composer: image attachment failures (17xx).
-  static const PocketErrorDefinition
-  chatComposerImageAttachmentEmpty = PocketErrorDefinition(
-    code: 'PR-CHAT-1701',
-    domain: PocketErrorDomain.chatComposer,
-    meaning:
-        'Attaching an image to the composer failed because the selected image file was empty.',
-  );
-  static const PocketErrorDefinition
-  chatComposerImageAttachmentTooLarge = PocketErrorDefinition(
-    code: 'PR-CHAT-1702',
-    domain: PocketErrorDomain.chatComposer,
-    meaning:
-        'Attaching an image to the composer failed because the selected source image exceeded the supported size limit.',
-  );
-  static const PocketErrorDefinition
-  chatComposerImageAttachmentUnsupportedType = PocketErrorDefinition(
-    code: 'PR-CHAT-1703',
-    domain: PocketErrorDomain.chatComposer,
-    meaning:
-        'Attaching an image to the composer failed because the selected file type is not a supported image format.',
-  );
-  static const PocketErrorDefinition
-  chatComposerImageAttachmentDecodeFailed = PocketErrorDefinition(
-    code: 'PR-CHAT-1704',
-    domain: PocketErrorDomain.chatComposer,
-    meaning:
-        'Attaching an image to the composer failed because Pocket Relay could not decode the selected file as an image.',
-  );
-  static const PocketErrorDefinition
-  chatComposerImageAttachmentTooLargeForRemote = PocketErrorDefinition(
-    code: 'PR-CHAT-1705',
-    domain: PocketErrorDomain.chatComposer,
-    meaning:
-        'Attaching an image to the composer failed because Pocket Relay could not shrink the image enough for remote delivery.',
-  );
-  static const PocketErrorDefinition
-  chatComposerImageAttachmentUnexpectedFailure = PocketErrorDefinition(
-    code: 'PR-CHAT-1706',
-    domain: PocketErrorDomain.chatComposer,
-    meaning:
-        'Attaching an image to the composer failed for an unexpected reason outside the known image validation and normalization states.',
-  );
-
   // Connection settings: model refresh (11xx).
   static const PocketErrorDefinition
   connectionSettingsModelCatalogUnavailable = PocketErrorDefinition(
@@ -751,6 +711,50 @@ abstract final class PocketErrorCatalog {
         'Pocket Relay could not enable or disable the display wake lock used to preserve an active turn while the app remains in the foreground.',
   );
 
+  // Chat session: image attachment (15xx).
+  static const PocketErrorDefinition chatSessionImageAttachmentEmpty =
+      PocketErrorDefinition(
+        code: 'PR-CHAT-1501',
+        domain: PocketErrorDomain.chatSession,
+        meaning:
+            'Attaching an image failed because the selected file was empty.',
+      );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentTooLarge = PocketErrorDefinition(
+    code: 'PR-CHAT-1502',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because the selected file exceeded Pocket Relay attachment limits.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentUnsupportedType = PocketErrorDefinition(
+    code: 'PR-CHAT-1503',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because the selected file was not a supported image type.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentDecodeFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1504',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because Pocket Relay could not decode the selected file as an image payload.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentTooLargeForRemote = PocketErrorDefinition(
+    code: 'PR-CHAT-1505',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because Pocket Relay could not shrink the selected image enough for remote sending.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentUnexpectedFailure = PocketErrorDefinition(
+    code: 'PR-CHAT-1506',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed for an unexpected local picker or preprocessing reason outside the known attachment-validation states.',
+  );
+
   static const List<PocketErrorDefinition> connectionLifecycleDefinitions =
       <PocketErrorDefinition>[
         connectionOpenRemoteHostProbeFailed,
@@ -828,16 +832,12 @@ abstract final class PocketErrorCatalog {
         chatSessionBranchTargetUnavailable,
         chatSessionModelCatalogHydrationFailed,
         chatSessionThreadMetadataHydrationFailed,
-      ];
-
-  static const List<PocketErrorDefinition> chatComposerDefinitions =
-      <PocketErrorDefinition>[
-        chatComposerImageAttachmentEmpty,
-        chatComposerImageAttachmentTooLarge,
-        chatComposerImageAttachmentUnsupportedType,
-        chatComposerImageAttachmentDecodeFailed,
-        chatComposerImageAttachmentTooLargeForRemote,
-        chatComposerImageAttachmentUnexpectedFailure,
+        chatSessionImageAttachmentEmpty,
+        chatSessionImageAttachmentTooLarge,
+        chatSessionImageAttachmentUnsupportedType,
+        chatSessionImageAttachmentDecodeFailed,
+        chatSessionImageAttachmentTooLargeForRemote,
+        chatSessionImageAttachmentUnexpectedFailure,
       ];
 
   static const List<PocketErrorDefinition> connectionSettingsDefinitions =
@@ -869,7 +869,6 @@ abstract final class PocketErrorCatalog {
       <PocketErrorDefinition>[
         ...connectionLifecycleDefinitions,
         ...chatSessionDefinitions,
-        ...chatComposerDefinitions,
         ...connectionSettingsDefinitions,
         ...appBootstrapDefinitions,
         ...deviceCapabilityDefinitions,

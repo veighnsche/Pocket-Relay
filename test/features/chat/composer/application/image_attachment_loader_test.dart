@@ -78,11 +78,17 @@ void main() {
           ),
         ),
         throwsA(
-          isA<ChatComposerImageAttachmentLoadException>().having(
-            (error) => error.userFacingError.definition,
-            'definition',
-            PocketErrorCatalog.chatComposerImageAttachmentTooLargeForRemote,
-          ),
+          isA<ChatComposerImageAttachmentLoadException>()
+              .having(
+                (error) => error.userFacingError.definition,
+                'definition',
+                PocketErrorCatalog.chatSessionImageAttachmentTooLargeForRemote,
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Could not shrink this image enough'),
+              ),
         ),
       );
     },
@@ -101,7 +107,68 @@ void main() {
         isA<ChatComposerImageAttachmentLoadException>().having(
           (error) => error.userFacingError.definition,
           'definition',
-          PocketErrorCatalog.chatComposerImageAttachmentUnsupportedType,
+          PocketErrorCatalog.chatSessionImageAttachmentUnsupportedType,
+        ),
+      ),
+    );
+  });
+
+  test('rejects empty images with a stable code', () async {
+    await expectLater(
+      loader.loadFromXFile(
+        XFile.fromData(
+          Uint8List(0),
+          name: 'reference.png',
+          mimeType: 'image/png',
+        ),
+      ),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentEmpty,
+        ),
+      ),
+    );
+  });
+
+  test('rejects oversized source images with a stable code', () async {
+    final loader = ChatComposerImageAttachmentLoader(
+      maximumSourceImageBytes: 4,
+    );
+
+    await expectLater(
+      loader.loadFromXFile(
+        XFile.fromData(
+          Uint8List.fromList(const <int>[1, 2, 3, 4, 5]),
+          name: 'reference.png',
+          mimeType: 'image/png',
+        ),
+      ),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentTooLarge,
+        ),
+      ),
+    );
+  });
+
+  test('rejects undecodable image payloads with a stable code', () async {
+    await expectLater(
+      loader.loadFromXFile(
+        XFile.fromData(
+          Uint8List.fromList(const <int>[137, 80, 78, 71, 13, 10, 26, 10]),
+          name: 'reference.png',
+          mimeType: 'image/png',
+        ),
+      ),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentDecodeFailed,
         ),
       ),
     );

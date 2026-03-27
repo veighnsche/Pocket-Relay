@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:image/image.dart' as img;
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
-import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_errors.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_errors.dart';
 import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 
 class ChatComposerImageAttachmentLoader {
@@ -35,12 +35,12 @@ class ChatComposerImageAttachmentLoader {
     final sourceByteLength = await file.length();
     if (sourceByteLength == 0) {
       throw ChatComposerImageAttachmentLoadException(
-        ChatComposerErrors.imageAttachmentEmpty(),
+        ChatComposerImageAttachmentErrors.emptyImage(),
       );
     }
     if (sourceByteLength > maximumSourceImageBytes) {
       throw ChatComposerImageAttachmentLoadException(
-        ChatComposerErrors.imageAttachmentTooLarge(),
+        ChatComposerImageAttachmentErrors.sourceTooLarge(),
       );
     }
 
@@ -49,13 +49,20 @@ class ChatComposerImageAttachmentLoader {
     final mimeType = _resolvedMimeType(file, sourceBytes);
     if (mimeType == null) {
       throw ChatComposerImageAttachmentLoadException(
-        ChatComposerErrors.imageAttachmentUnsupportedType(),
+        ChatComposerImageAttachmentErrors.unsupportedType(),
       );
     }
-    final sourceImage = img.decodeNamedImage(displayName, sourceBytes);
+    img.Image? sourceImage;
+    try {
+      sourceImage = img.decodeNamedImage(displayName, sourceBytes);
+    } catch (_) {
+      throw ChatComposerImageAttachmentLoadException(
+        ChatComposerImageAttachmentErrors.decodeFailed(),
+      );
+    }
     if (sourceImage == null) {
       throw ChatComposerImageAttachmentLoadException(
-        ChatComposerErrors.imageAttachmentDecodeFailed(),
+        ChatComposerImageAttachmentErrors.decodeFailed(),
       );
     }
 
@@ -117,7 +124,7 @@ class ChatComposerImageAttachmentLoader {
     }
 
     throw ChatComposerImageAttachmentLoadException(
-      ChatComposerErrors.imageAttachmentTooLargeForRemote(),
+      ChatComposerImageAttachmentErrors.tooLargeForRemote(),
     );
   }
 
@@ -248,7 +255,7 @@ class ChatComposerImageAttachmentLoader {
       return smallestCandidate;
     }
     throw ChatComposerImageAttachmentLoadException(
-      ChatComposerErrors.imageAttachmentUnsupportedType(),
+      ChatComposerImageAttachmentErrors.unsupportedType(),
     );
   }
 

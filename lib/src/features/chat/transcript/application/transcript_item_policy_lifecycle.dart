@@ -102,8 +102,8 @@ Map<String, dynamic>? _nextLifecycleSnapshot(
   }
 
   if (event.itemType == CodexCanonicalItemType.commandExecution &&
-      event.rawMethod == 'item/commandExecution/terminalInteraction' &&
-      existingSnapshot != null) {
+      existingSnapshot != null &&
+      event.rawMethod == 'item/commandExecution/terminalInteraction') {
     return <String, dynamic>{...existingSnapshot, ...eventSnapshot};
   }
 
@@ -116,14 +116,59 @@ String _itemTitle(
   String? existingTitle,
 ) {
   if (event.itemType == CodexCanonicalItemType.commandExecution) {
-    final rawTitle = event.detail?.trim().isNotEmpty == true
-        ? event.detail!
-        : (existingTitle ?? event.title ?? 'Command');
+    final rawTitle = _commandExecutionRawTitle(policy, event, existingTitle);
     return policy._blockFactory.normalizeCommandExecutionTitle(rawTitle);
   }
   return existingTitle ??
       event.title ??
       policy._blockFactory.defaultItemTitle(event.itemType);
+}
+
+String _commandExecutionRawTitle(
+  TranscriptItemPolicy policy,
+  CodexRuntimeItemLifecycleEvent event,
+  String? existingTitle,
+) {
+  final snapshot = event.snapshot;
+  final snapshotCommand = policy._support.stringFromCandidates(<Object?>[
+    snapshot?['command'],
+    (snapshot?['result'] as Map?)?['command'],
+  ]);
+  if (snapshotCommand != null) {
+    return snapshotCommand;
+  }
+  if (_meaningfulCommandExecutionTitle(policy, event.title) case final title?) {
+    return title;
+  }
+
+  final detail = event.detail;
+  if (event.rawMethod != 'item/commandExecution/terminalInteraction' &&
+      detail?.trim().isNotEmpty == true) {
+    return detail!;
+  }
+  if (_meaningfulCommandExecutionTitle(policy, existingTitle)
+      case final existingTitle?) {
+    return existingTitle;
+  }
+  return 'Command';
+}
+
+String? _meaningfulCommandExecutionTitle(
+  TranscriptItemPolicy policy,
+  String? value,
+) {
+  if (value == null) {
+    return null;
+  }
+  final trimmed = value.trim();
+  if (trimmed.isEmpty ||
+      trimmed ==
+          policy._blockFactory.defaultItemTitle(
+            CodexCanonicalItemType.commandExecution,
+          )) {
+    return null;
+  }
+  return value;
 }
 
 String _itemBody(

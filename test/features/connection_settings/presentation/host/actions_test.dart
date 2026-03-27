@@ -67,4 +67,31 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'advanced toggle labels keep tile-level interaction in the material renderer',
+    (tester) async {
+      ConnectionSettingsSubmitPayload? materialPayload;
+
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (payload) {
+            materialPayload = payload;
+          },
+        ),
+      );
+
+      await tester.ensureVisible(find.text('Ephemeral turns'));
+      await tester.tap(find.text('Ephemeral turns'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('connection_settings_save_top')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(materialPayload, isNotNull);
+      expect(materialPayload!.profile.ephemeralSession, isTrue);
+    },
+  );
 }

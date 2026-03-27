@@ -20,6 +20,7 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_e
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 
 part 'chat_session_controller_events.dart';
 part 'chat_session_controller_history.dart';
@@ -29,6 +30,7 @@ part 'chat_session_controller_prompt_flow.dart';
 part 'chat_session_controller_recovery.dart';
 part 'chat_session_controller_support.dart';
 part 'chat_session_controller_thread_metadata.dart';
+part 'chat_session_controller_work_log_terminal.dart';
 
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
@@ -193,6 +195,12 @@ class ChatSessionController extends ChangeNotifier {
     return _ChatSessionControllerRecovery(
       this,
     ).continueFromUserMessage(blockId);
+  }
+
+  Future<ChatWorkLogTerminalContract> hydrateWorkLogTerminal(
+    ChatWorkLogTerminalContract terminal,
+  ) {
+    return _hydrateChatWorkLogTerminal(this, terminal);
   }
 
   Future<bool> branchSelectedConversation() {

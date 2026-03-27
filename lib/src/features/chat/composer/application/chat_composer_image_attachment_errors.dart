@@ -1,54 +1,54 @@
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 
-abstract final class ChatComposerErrors {
-  static PocketUserFacingError imageAttachmentEmpty() {
+abstract final class ChatComposerImageAttachmentErrors {
+  static PocketUserFacingError emptyImage() {
     return const PocketUserFacingError(
-      definition: PocketErrorCatalog.chatComposerImageAttachmentEmpty,
+      definition: PocketErrorCatalog.chatSessionImageAttachmentEmpty,
       title: 'Image attach failed',
       message: 'The selected image was empty.',
     );
   }
 
-  static PocketUserFacingError imageAttachmentTooLarge() {
+  static PocketUserFacingError sourceTooLarge() {
     return const PocketUserFacingError(
-      definition: PocketErrorCatalog.chatComposerImageAttachmentTooLarge,
+      definition: PocketErrorCatalog.chatSessionImageAttachmentTooLarge,
       title: 'Image attach failed',
       message: 'Images larger than 50 MB are not supported.',
     );
   }
 
-  static PocketUserFacingError imageAttachmentUnsupportedType() {
+  static PocketUserFacingError unsupportedType() {
     return const PocketUserFacingError(
-      definition: PocketErrorCatalog.chatComposerImageAttachmentUnsupportedType,
+      definition: PocketErrorCatalog.chatSessionImageAttachmentUnsupportedType,
       title: 'Image attach failed',
       message: 'Unsupported image type.',
     );
   }
 
-  static PocketUserFacingError imageAttachmentDecodeFailed() {
+  static PocketUserFacingError decodeFailed() {
     return const PocketUserFacingError(
-      definition: PocketErrorCatalog.chatComposerImageAttachmentDecodeFailed,
+      definition: PocketErrorCatalog.chatSessionImageAttachmentDecodeFailed,
       title: 'Image attach failed',
       message: 'The selected file could not be decoded as an image.',
     );
   }
 
-  static PocketUserFacingError imageAttachmentTooLargeForRemote() {
+  static PocketUserFacingError tooLargeForRemote() {
     return const PocketUserFacingError(
       definition:
-          PocketErrorCatalog.chatComposerImageAttachmentTooLargeForRemote,
+          PocketErrorCatalog.chatSessionImageAttachmentTooLargeForRemote,
       title: 'Image attach failed',
       message:
           'Could not shrink this image enough for remote sending. Choose a smaller image.',
     );
   }
 
-  static PocketUserFacingError imageAttachmentUnexpected({Object? error}) {
+  static PocketUserFacingError unexpected() {
     return const PocketUserFacingError(
       definition:
-          PocketErrorCatalog.chatComposerImageAttachmentUnexpectedFailure,
+          PocketErrorCatalog.chatSessionImageAttachmentUnexpectedFailure,
       title: 'Image attach failed',
       message: 'Could not attach the selected image.',
-    ).withNormalizedUnderlyingError(error);
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -102,6 +103,7 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
             onScreenAction: _handleScreenAction,
             onSelectConnectionMode: _selectConnectionMode,
             onRequestChangedFileDiff: _requestChangedFileDiff,
+            onRequestWorkLogTerminal: _requestWorkLogTerminal,
             onContinueFromUserMessage: _continueFromUserMessage,
             supplementalEmptyStateContent: widget.supplementalEmptyStateContent,
           ),
@@ -162,6 +164,12 @@ class _ChatRootAdapterState extends State<ChatRootAdapter> {
   void _requestChangedFileDiff(ChatChangedFileDiffContract diff) =>
       _requestChatChangedFileDiff(this, diff);
 
+  Future<void> _openWorkLogTerminal(ChatWorkLogTerminalContract terminal) =>
+      _openChatWorkLogTerminal(this, terminal);
+
+  void _requestWorkLogTerminal(ChatWorkLogTerminalContract terminal) =>
+      _requestChatWorkLogTerminal(this, terminal);
+
   void _handleScreenAction(
     ChatScreenActionId action,
     ChatScreenContract screen,
@@ -215,6 +223,7 @@ class _ChatTranscriptRegionHost extends StatelessWidget {
     required this.onScreenAction,
     required this.onSelectConnectionMode,
     required this.onRequestChangedFileDiff,
+    required this.onRequestWorkLogTerminal,
     required this.onContinueFromUserMessage,
     this.supplementalEmptyStateContent,
   });
@@ -227,6 +236,8 @@ class _ChatTranscriptRegionHost extends StatelessWidget {
   final ValueChanged<ConnectionMode> onSelectConnectionMode;
   final void Function(ChatChangedFileDiffContract diff)
   onRequestChangedFileDiff;
+  final void Function(ChatWorkLogTerminalContract terminal)
+  onRequestWorkLogTerminal;
   final Future<void> Function(String blockId) onContinueFromUserMessage;
   final Widget? supplementalEmptyStateContent;
 
@@ -256,6 +267,7 @@ class _ChatTranscriptRegionHost extends StatelessWidget {
           onApproveRequest: sessionController.approveRequest,
           onDenyRequest: sessionController.denyRequest,
           onOpenChangedFileDiff: onRequestChangedFileDiff,
+          onOpenWorkLogTerminal: onRequestWorkLogTerminal,
           onSubmitUserInput: sessionController.submitUserInput,
           onSaveHostFingerprint: sessionController.saveObservedHostFingerprint,
           onContinueFromUserMessage: onContinueFromUserMessage,

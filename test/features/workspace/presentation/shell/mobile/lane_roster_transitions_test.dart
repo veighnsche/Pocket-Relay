@@ -110,9 +110,7 @@ void main() {
     await tester.pumpWidget(buildShell(controller));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('More actions'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Close lane'));
+    await tester.tap(find.byKey(const ValueKey('lane_connection_action_close')));
     await tester.pumpAndSettle();
 
     expect(controller.state.liveConnectionIds, isEmpty);

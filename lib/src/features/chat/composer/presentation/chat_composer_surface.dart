@@ -1,14 +1,13 @@
 import 'dart:async';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
-import 'package:pocket_relay/src/core/errors/pocket_error_snackbar.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_errors.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_errors.dart';
 import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
+import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_picker.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 
@@ -43,12 +42,8 @@ class _DesktopInsertNewlineIntent extends Intent {
 class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
   static const _desktopSendIntent = _DesktopSendIntent();
   static const _desktopInsertNewlineIntent = _DesktopInsertNewlineIntent();
-  static const _imageTypeGroup = XTypeGroup(
-    label: 'images',
-    extensions: <String>['png', 'jpg', 'jpeg', 'gif', 'webp'],
-    mimeTypes: <String>['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
-  );
   static const _imageAttachmentLoader = ChatComposerImageAttachmentLoader();
+  static const _imageAttachmentPicker = ChatComposerImageAttachmentPicker();
   late final TextEditingController _controller;
   late final _AtomicPlaceholderTextInputFormatter _placeholderFormatter;
   late ChatComposerDraft _draft;
@@ -305,13 +300,23 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
         return;
       }
       _showTransientError(
-        ChatComposerErrors.imageAttachmentUnexpected(error: error),
+        ChatComposerImageAttachmentErrors.unexpected(),
+        underlyingError: error,
       );
     }
   }
 
-  void _showTransientError(PocketUserFacingError error) {
-    showPocketErrorSnackBar(context, error);
+  void _showTransientMessage(String message) {
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showTransientError(
+    PocketUserFacingError error, {
+    Object? underlyingError,
+  }) {
+    _showTransientMessage(error.inlineMessageWithDetail(underlyingError));
   }
 
   Future<ChatComposerImageAttachment?> _pickImageAttachment() async {
@@ -319,9 +324,7 @@ class _ChatComposerSurfaceState extends State<ChatComposerSurface> {
       return picker();
     }
 
-    final file = await openFile(
-      acceptedTypeGroups: const <XTypeGroup>[_imageTypeGroup],
-    );
+    final file = await _imageAttachmentPicker.pickImageFile();
     if (file == null) {
       return null;
     }

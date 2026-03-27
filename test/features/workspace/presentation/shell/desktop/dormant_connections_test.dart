@@ -81,8 +81,17 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('desktop_saved_connections')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('saved_connection_conn_secondary')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
     await tester.ensureVisible(
-      find.byKey(const ValueKey('delete_conn_secondary')),
+      find.byKey(
+        const ValueKey('delete_conn_secondary'),
+        skipOffstage: false,
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('delete_conn_secondary')));

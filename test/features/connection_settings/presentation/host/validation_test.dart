@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 
 import 'host_test_support.dart';
@@ -25,7 +26,7 @@ void main() {
   );
 
   testWidgets(
-    'material settings renderer keeps cancel and save pinned at the top',
+    'material settings renderer keeps the action bar pinned while the form scrolls',
     (tester) async {
       tester.view.physicalSize = const Size(430, 700);
       tester.view.devicePixelRatio = 1;
@@ -57,6 +58,15 @@ void main() {
         find.byKey(const ValueKey<String>('connection_settings_save_top')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'material settings renderer avoids nested panel surfaces inside the drawer',
+    (tester) async {
+      await tester.pumpWidget(buildMaterialSettingsApp(onSubmit: (_) {}));
+
+      expect(find.byType(PocketPanelSurface), findsNothing);
     },
   );
 
@@ -110,17 +120,31 @@ void main() {
         ),
       );
 
-      expect(find.text('Remote'), findsOneWidget);
-      expect(find.text('Local'), findsOneWidget);
+      final connectionModePicker = find.byType(SegmentedButton<ConnectionMode>);
+      expect(
+        find.descendant(of: connectionModePicker, matching: find.text('Remote')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: connectionModePicker, matching: find.text('Local')),
+        findsOneWidget,
+      );
       expect(find.text('Host'), findsOneWidget);
       expect(find.text('SSH password'), findsOneWidget);
 
-      await tester.tap(find.text('Local'));
+      await tester.ensureVisible(connectionModePicker);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: connectionModePicker,
+          matching: find.byIcon(Icons.laptop_mac_outlined),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Host'), findsNothing);
       expect(find.text('SSH password'), findsNothing);
-      expect(find.text('Local Codex'), findsOneWidget);
+      expect(find.textContaining('Local Codex'), findsOneWidget);
     },
   );
 
