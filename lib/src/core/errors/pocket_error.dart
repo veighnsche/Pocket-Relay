@@ -36,6 +36,50 @@ final class PocketUserFacingError {
   }
 
   String get bodyWithCode => '[${definition.code}] ${message.trim()}';
+
+  String inlineMessageWithDetail(Object? error) {
+    final detail = normalizePocketErrorDetail(error);
+    if (detail == null || inlineMessage.contains(detail)) {
+      return inlineMessage;
+    }
+    return '$inlineMessage Underlying error: $detail';
+  }
+}
+
+String? normalizePocketErrorDetail(Object? error) {
+  if (error == null) {
+    return null;
+  }
+
+  final detail = '$error'.trim();
+  if (detail.isEmpty) {
+    return null;
+  }
+
+  return switch (detail) {
+    final value when value.startsWith('Exception: ') => value.substring(
+      'Exception: '.length,
+    ),
+    final value when value.startsWith('Bad state: ') => value.substring(
+      'Bad state: '.length,
+    ),
+    final value when value.startsWith('CodexAppServerException: ') =>
+      value.substring('CodexAppServerException: '.length),
+    final value
+        when value.startsWith('CodexAppServerException(') &&
+            value.contains('): ') =>
+      value.substring(value.indexOf('): ') + 3),
+    final value when value.startsWith('CodexJsonRpcRemoteException: ') =>
+      value.substring('CodexJsonRpcRemoteException: '.length),
+    final value
+        when value.startsWith('CodexJsonRpcRemoteException(') &&
+            value.contains('): ') =>
+      value.substring(value.indexOf('): ') + 3),
+    final value
+        when value.startsWith('Remote owner control command failed: ') =>
+      value.substring('Remote owner control command failed: '.length),
+    _ => detail,
+  };
 }
 
 abstract final class PocketErrorCatalog {
@@ -372,6 +416,50 @@ abstract final class PocketErrorCatalog {
         'Rejecting an unsupported app-server request from the active live session failed.',
   );
 
+  // Chat session: image attachment (15xx).
+  static const PocketErrorDefinition chatSessionImageAttachmentEmpty =
+      PocketErrorDefinition(
+        code: 'PR-CHAT-1501',
+        domain: PocketErrorDomain.chatSession,
+        meaning:
+            'Attaching an image failed because the selected file was empty.',
+      );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentTooLarge = PocketErrorDefinition(
+    code: 'PR-CHAT-1502',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because the selected file exceeded Pocket Relay attachment limits.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentUnsupportedType = PocketErrorDefinition(
+    code: 'PR-CHAT-1503',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because the selected file was not a supported image type.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentDecodeFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1504',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because Pocket Relay could not decode the selected file as an image payload.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentTooLargeForRemote = PocketErrorDefinition(
+    code: 'PR-CHAT-1505',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because Pocket Relay could not shrink the selected image enough for remote sending.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentUnexpectedFailure = PocketErrorDefinition(
+    code: 'PR-CHAT-1506',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed for an unexpected local picker or preprocessing reason outside the known attachment-validation states.',
+  );
+
   static const List<PocketErrorDefinition> connectionLifecycleDefinitions =
       <PocketErrorDefinition>[
         connectionOpenRemoteHostProbeFailed,
@@ -423,6 +511,12 @@ abstract final class PocketErrorCatalog {
         chatSessionApproveRequestFailed,
         chatSessionDenyRequestFailed,
         chatSessionRejectUnsupportedRequestFailed,
+        chatSessionImageAttachmentEmpty,
+        chatSessionImageAttachmentTooLarge,
+        chatSessionImageAttachmentUnsupportedType,
+        chatSessionImageAttachmentDecodeFailed,
+        chatSessionImageAttachmentTooLargeForRemote,
+        chatSessionImageAttachmentUnexpectedFailure,
       ];
 
   static const List<PocketErrorDefinition> allDefinitions =

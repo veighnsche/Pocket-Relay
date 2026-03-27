@@ -387,32 +387,6 @@ abstract final class ConnectionLifecycleErrors {
   }
 
   static String? _normalizedErrorDetail(Object? error) {
-    if (error == null) {
-      return null;
-    }
-
-    final detail = '$error'.trim();
-    if (detail.isEmpty) {
-      return null;
-    }
-
-    return switch (detail) {
-      final value when value.startsWith('Exception: ') => value.substring(
-        'Exception: '.length,
-      ),
-      final value when value.startsWith('Bad state: ') => value.substring(
-        'Bad state: '.length,
-      ),
-      final value when value.startsWith('CodexAppServerException: ') =>
-        value.substring('CodexAppServerException: '.length),
-      final value
-          when value.startsWith('CodexAppServerException(') &&
-              value.contains('): ') =>
-        value.substring(value.indexOf('): ') + 3),
-      final value
-          when value.startsWith('Remote owner control command failed: ') =>
-        value.substring('Remote owner control command failed: '.length),
-      _ => detail,
-    };
+    return normalizePocketErrorDetail(error);
   }
 }
