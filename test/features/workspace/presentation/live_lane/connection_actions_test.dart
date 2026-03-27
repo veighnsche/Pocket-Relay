@@ -1,0 +1,213 @@
+import '../support/workspace_surface_test_support.dart';
+
+void main() {
+  testWidgets(
+    'live empty lane shows a disconnected status and connect action when the remote server is running',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector: MapRemoteOwnerInspector(
+          <String, CodexRemoteAppServerOwnerSnapshot>{
+            'conn_primary': runningOwnerSnapshot('conn_primary'),
+          },
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await clientsById['conn_primary']!.dispose();
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      final laneBinding = controller.selectedLaneBinding!;
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_status_strip')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_status_label')),
+        findsNothing,
+      );
+      expect(find.textContaining('Disconnected.'), findsNothing);
+      expect(find.text('Connect'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'live empty lane connect action keeps the placeholder clean and exposes connected-lane controls in overflow',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!;
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector: MapRemoteOwnerInspector(
+          <String, CodexRemoteAppServerOwnerSnapshot>{
+            'conn_primary': runningOwnerSnapshot('conn_primary'),
+          },
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.dispose();
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      final laneBinding = controller.selectedLaneBinding!;
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(client.connectCalls, 1);
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_status_strip')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+        findsNothing,
+      );
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Conversation history'), findsOneWidget);
+      expect(find.text('Disconnect'), findsOneWidget);
+      await controller.flushRecoveryPersistence();
+    },
+  );
+
+  testWidgets(
+    'live empty lane connect action can start the remote server and attach in one click',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final remoteOwnerRuntime = StatefulRemoteOwnerRuntime(
+        statusesByOwnerId: <String, CodexRemoteAppServerOwnerStatus>{
+          'conn_primary': CodexRemoteAppServerOwnerStatus.stopped,
+        },
+      );
+      final client = clientsById['conn_primary']!;
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector: remoteOwnerRuntime,
+        remoteAppServerOwnerControl: remoteOwnerRuntime,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.dispose();
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      final laneBinding = controller.selectedLaneBinding!;
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(remoteOwnerRuntime.startCalls, hasLength(1));
+      expect(remoteOwnerRuntime.startCalls.single.ownerId, 'conn_primary');
+      expect(client.connectCalls, 1);
+      await controller.flushRecoveryPersistence();
+    },
+  );
+
+  testWidgets(
+    'live lane connect action surfaces a coded snackbar when transport attach fails',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!;
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector: MapRemoteOwnerInspector(
+          <String, CodexRemoteAppServerOwnerSnapshot>{
+            'conn_primary': runningOwnerSnapshot('conn_primary'),
+          },
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.dispose();
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      client.connectError = const CodexAppServerException('connect failed');
+      final laneBinding = controller.selectedLaneBinding!;
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          '[${PocketErrorCatalog.connectionTransportUnavailable.code}]',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Could not connect lane'), findsOneWidget);
+      expect(
+        find.textContaining('Underlying error: connect failed'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Disconnected.'), findsNothing);
+    },
+  );
+}

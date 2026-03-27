@@ -423,10 +423,7 @@ void _emitCompletedAssistantTurn(FakeCodexAppServerClient appServerClient) {
       method: 'turn/completed',
       params: <String, Object?>{
         'threadId': 'thread_123',
-        'turn': <String, Object?>{
-          'id': 'turn_1',
-          'status': 'completed',
-        },
+        'turn': <String, Object?>{'id': 'turn_1', 'status': 'completed'},
       },
     ),
   );

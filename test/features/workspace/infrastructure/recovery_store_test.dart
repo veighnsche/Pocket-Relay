@@ -164,7 +164,8 @@ void main() {
         ),
       );
 
-      secureStorage.data['pocket_relay.workspace.recovery_state.draft_text.conn_secondary'] =
+      secureStorage
+              .data['pocket_relay.workspace.recovery_state.draft_text.conn_secondary'] =
           'secondary draft';
 
       final loadedState = await store.load();

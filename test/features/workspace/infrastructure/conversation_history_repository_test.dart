@@ -140,30 +140,27 @@ void main() {
     ]);
   });
 
-  test(
-    'rejects remote history loading without a managed owner id',
-    () async {
-      const repository = CodexAppServerConversationHistoryRepository();
+  test('rejects remote history loading without a managed owner id', () async {
+    const repository = CodexAppServerConversationHistoryRepository();
 
-      await expectLater(
-        repository.loadWorkspaceConversations(
-          profile: ConnectionProfile.defaults().copyWith(
-            host: 'example.com',
-            username: 'vince',
-            workspaceDir: '/workspace',
-          ),
-          secrets: const ConnectionSecrets(password: 'secret'),
+    await expectLater(
+      repository.loadWorkspaceConversations(
+        profile: ConnectionProfile.defaults().copyWith(
+          host: 'example.com',
+          username: 'vince',
+          workspaceDir: '/workspace',
         ),
-        throwsA(
-          isA<CodexAppServerException>().having(
-            (error) => error.message,
-            'message',
-            contains('managed owner id'),
-          ),
+        secrets: const ConnectionSecrets(password: 'secret'),
+      ),
+      throwsA(
+        isA<CodexAppServerException>().having(
+          (error) => error.message,
+          'message',
+          contains('managed owner id'),
         ),
-      );
-    },
-  );
+      ),
+    );
+  });
 
   test(
     'surfaces an actionable unpinned host key error when history loading hits an untrusted remote',
