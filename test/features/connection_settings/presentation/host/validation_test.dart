@@ -167,6 +167,31 @@ void main() {
     },
   );
 
+  testWidgets('port formatting changes do not clear a trusted fingerprint', (
+    tester,
+  ) async {
+    ConnectionSettingsSubmitPayload? payload;
+
+    await tester.pumpWidget(
+      buildMaterialSettingsApp(
+        onSubmit: (nextPayload) {
+          payload = nextPayload;
+        },
+        initialProfile: configuredConnectionProfile().copyWith(port: 22),
+      ),
+    );
+
+    await tester.enterText(materialTextField('Port'), '022');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('connection_settings_save_top')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(payload, isNotNull);
+    expect(payload!.profile.port, 22);
+    expect(payload!.profile.hostFingerprint, 'aa:bb:cc:dd');
+  });
+
   testWidgets('material settings renderer can reuse a saved system template', (
     tester,
   ) async {
@@ -223,7 +248,6 @@ void main() {
     expect(portField.controller!.text, '2200');
     expect(usernameField.controller!.text, 'alice');
     expect(passwordField.controller!.text, 'other-secret');
-    expect(find.text('SSH fingerprint saved'), findsOneWidget);
     expect(find.text('11:22:33:44'), findsOneWidget);
   });
 

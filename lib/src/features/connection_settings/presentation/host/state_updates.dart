@@ -286,7 +286,13 @@ bool _remoteHostIdentityChanged(
   ConnectionSettingsDraft next,
 ) {
   return previous.host.trim().toLowerCase() != next.host.trim().toLowerCase() ||
-      previous.port.trim() != next.port.trim();
+      _normalizedRemotePortIdentity(previous.port) !=
+          _normalizedRemotePortIdentity(next.port);
+}
+
+Object _normalizedRemotePortIdentity(String value) {
+  final trimmed = value.trim();
+  return int.tryParse(trimmed) ?? trimmed;
 }
 
 ConnectionProfile _connectionSettingsSystemProfile(

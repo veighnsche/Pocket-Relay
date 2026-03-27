@@ -10,7 +10,12 @@ _loadWorkspaceReusableSystemTemplates(
       connections.add(
         await controller._connectionRepository.loadConnection(connectionId),
       );
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Failed to load connection $connectionId for reusable system template: '
+        '$error | $stackTrace',
+      );
+    }
   }
 
   return deriveConnectionSettingsSystemTemplates(connections);
