@@ -9,6 +9,7 @@ import 'package:pocket_relay/src/features/connection_settings/domain/connection_
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_sheet_surface.dart';
 
 Widget buildMaterialSettingsApp({
   Brightness brightness = Brightness.light,
@@ -25,6 +26,8 @@ Widget buildMaterialSettingsApp({
       const <ConnectionSettingsSystemTemplate>[],
   ConnectionSettingsSystemTester? onTestSystem,
   ConnectionSettingsHostBuilder? builder,
+  ConnectionSettingsSurfaceMode surfaceMode =
+      ConnectionSettingsSurfaceMode.workspace,
 }) {
   return MaterialApp(
     theme: buildPocketTheme(brightness),
@@ -49,6 +52,7 @@ Widget buildMaterialSettingsApp({
                 platformBehavior: platformBehavior,
                 viewModel: viewModel,
                 actions: actions,
+                surfaceMode: surfaceMode,
               );
             },
       ),

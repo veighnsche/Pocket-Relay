@@ -7,6 +7,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_sheet_surface.dart';
 
 import 'host_test_support.dart';
 
@@ -111,6 +112,7 @@ void main() {
               platformBehavior: mobileSettingsBehavior,
               viewModel: viewModel,
               actions: actions,
+              surfaceMode: ConnectionSettingsSurfaceMode.system,
             );
           },
         ),
@@ -166,6 +168,7 @@ void main() {
               platformBehavior: mobileSettingsBehavior,
               viewModel: viewModel,
               actions: actions,
+              surfaceMode: ConnectionSettingsSurfaceMode.system,
             );
           },
         ),
@@ -215,6 +218,7 @@ void main() {
               platformBehavior: mobileSettingsBehavior,
               viewModel: viewModel,
               actions: actions,
+              surfaceMode: ConnectionSettingsSurfaceMode.system,
             );
           },
         ),

@@ -5,17 +5,21 @@ import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 
+enum ConnectionSettingsSurfaceMode { workspace, system }
+
 class ConnectionSettingsSheetSurface extends StatelessWidget {
   const ConnectionSettingsSheetSurface({
     super.key,
     required this.viewModel,
     required this.actions,
     this.isDesktopPresentation = false,
+    this.surfaceMode = ConnectionSettingsSurfaceMode.workspace,
   });
 
   final ConnectionSettingsHostViewModel viewModel;
   final ConnectionSettingsHostActions actions;
   final bool isDesktopPresentation;
+  final ConnectionSettingsSurfaceMode surfaceMode;
 
   static const double _mobileHorizontalPadding = 20;
   static const double _mobileHeaderTopPadding = 16;
@@ -160,7 +164,9 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          contract.title,
+          surfaceMode == ConnectionSettingsSurfaceMode.system
+              ? 'System'
+              : contract.title,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: isDesktop ? 30 : 24,
@@ -304,6 +310,15 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
+    return surfaceMode == ConnectionSettingsSurfaceMode.system
+        ? _buildSystemScrollableContent(context, contract)
+        : _buildWorkspaceScrollableContent(context, contract);
+  }
+
+  Widget _buildWorkspaceScrollableContent(
+    BuildContext context,
+    ConnectionSettingsContract contract,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -313,17 +328,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           title: 'Workspace',
           child: _buildWorkspaceSection(context, contract),
         ),
-        if (contract.remoteConnectionSection case final remoteSection?) ...[
-          _buildSectionDivider(),
-          _buildSection(
-            context,
-            key: const ValueKey<String>(
-              'connection_settings_section_remote_access',
-            ),
-            title: 'System',
-            child: _buildRemoteAccessSection(context, contract, remoteSection),
-          ),
-        ],
         _buildSectionDivider(),
         _buildSection(
           context,
@@ -338,6 +342,29 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           title: 'Advanced',
           child: _buildAdvancedSection(context, contract),
         ),
+      ],
+    );
+  }
+
+  Widget _buildSystemScrollableContent(
+    BuildContext context,
+    ConnectionSettingsContract contract,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (contract.remoteConnectionSection case final remoteSection?)
+          _buildSection(
+            context,
+            key: const ValueKey<String>('connection_settings_section_system'),
+            title: 'System',
+            child: _buildRemoteAccessSection(
+              context,
+              contract,
+              remoteSection,
+              showSystemPicker: false,
+            ),
+          ),
       ],
     );
   }
@@ -395,6 +422,19 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           const SizedBox(height: 12),
           _buildConnectionModePicker(context, routeSection),
         ],
+        if (contract.systemPicker case final picker?) ...[
+          const SizedBox(height: _sectionSpacing),
+          _buildSubsectionLabel(context, 'System'),
+          const SizedBox(height: 12),
+          _buildSystemPicker(context, picker),
+          const SizedBox(height: 10),
+          Text(
+            picker.helperText,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -402,18 +442,20 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   Widget _buildRemoteAccessSection(
     BuildContext context,
     ConnectionSettingsContract contract,
-    ConnectionSettingsSectionContract remoteSection,
-  ) {
+    ConnectionSettingsSectionContract remoteSection, {
+    required bool showSystemPicker,
+  }) {
+    final systemPicker = showSystemPicker ? contract.systemPicker : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (contract.systemPicker case final picker?) ...[
-          _buildSubsectionLabel(context, picker.title),
+        if (systemPicker != null) ...[
+          _buildSubsectionLabel(context, systemPicker.title),
           const SizedBox(height: 12),
-          _buildSystemPicker(context, picker),
+          _buildSystemPicker(context, systemPicker),
           const SizedBox(height: 10),
           Text(
-            picker.helperText,
+            systemPicker.helperText,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -649,12 +691,12 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     return DropdownButtonFormField<String?>(
       key: const ValueKey<String>('connection_settings_system_picker'),
       initialValue: picker.selectedSystemId,
-      decoration: const InputDecoration(labelText: 'Reuse system (optional)'),
+      decoration: const InputDecoration(labelText: 'System'),
       isExpanded: true,
       items: <DropdownMenuItem<String?>>[
         const DropdownMenuItem<String?>(
           value: null,
-          child: Text('Enter a new system'),
+          child: Text('No system selected'),
         ),
         ...picker.options.map(
           (option) => DropdownMenuItem<String?>(
@@ -669,7 +711,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       ],
       selectedItemBuilder: (context) {
         return <Widget>[
-          const Text('Enter a new system'),
+          const Text('No system selected'),
           ...picker.options.map(
             (option) => Text(
               option.label,

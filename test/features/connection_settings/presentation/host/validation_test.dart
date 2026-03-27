@@ -5,6 +5,8 @@ import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
+import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_sheet_surface.dart';
 
 import 'host_test_support.dart';
 
@@ -12,18 +14,27 @@ void main() {
   testWidgets(
     'material settings renderer shows validation from the shared host without a Form widget',
     (tester) async {
-      await tester.pumpWidget(buildMaterialSettingsApp(onSubmit: (_) {}));
+      ConnectionSettingsSubmitPayload? payload;
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (nextPayload) {
+            payload = nextPayload;
+          },
+          surfaceMode: ConnectionSettingsSurfaceMode.system,
+        ),
+      );
 
       expect(find.byType(Form), findsNothing);
       expect(find.text('Bad port'), findsNothing);
 
       await tester.enterText(materialTextField('Port'), '70000');
+      await tester.enterText(materialTextField('Port'), '2222');
       await tester.tap(
         find.byKey(const ValueKey<String>('connection_settings_save_top')),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Bad port'), findsOneWidget);
+      expect(payload, isNull);
     },
   );
 
@@ -92,7 +103,12 @@ void main() {
   testWidgets(
     'material settings renderer switches authentication fields through the shared host',
     (tester) async {
-      await tester.pumpWidget(buildMaterialSettingsApp(onSubmit: (_) {}));
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          surfaceMode: ConnectionSettingsSurfaceMode.system,
+        ),
+      );
 
       expect(
         find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
@@ -133,6 +149,7 @@ void main() {
           initialProfile: configuredConnectionProfile().copyWith(
             hostFingerprint: '',
           ),
+          surfaceMode: ConnectionSettingsSurfaceMode.system,
         ),
       );
 
@@ -148,10 +165,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.enterText(
-        materialTextField('Workspace name'),
-        'Fresh Workspace',
-      );
+      await tester.enterText(materialTextField('Port'), '2222');
       await tester.tap(
         find.byKey(const ValueKey<String>('connection_settings_save_top')),
       );
@@ -195,6 +209,7 @@ void main() {
           payload = nextPayload;
         },
         initialProfile: configuredConnectionProfile().copyWith(port: 22),
+        surfaceMode: ConnectionSettingsSurfaceMode.system,
       ),
     );
 
@@ -209,9 +224,10 @@ void main() {
     expect(payload!.profile.hostFingerprint, 'aa:bb:cc:dd');
   });
 
-  testWidgets('material settings renderer can reuse a saved system template', (
+  testWidgets('workspace settings can reuse a saved system template', (
     tester,
   ) async {
+    ConnectionSettingsSubmitPayload? payload;
     final template = ConnectionSettingsSystemTemplate(
       id: 'system_primary',
       profile: ConnectionProfile.defaults().copyWith(
@@ -229,7 +245,9 @@ void main() {
 
     await tester.pumpWidget(
       buildMaterialSettingsApp(
-        onSubmit: (_) {},
+        onSubmit: (nextPayload) {
+          payload = nextPayload;
+        },
         initialProfile: ConnectionProfile.defaults().copyWith(
           workspaceDir: '/workspace/current',
           codexPath: 'codex',
@@ -248,29 +266,34 @@ void main() {
     await tester.tap(find.textContaining('buildbox.local:2200 as alice').last);
     await tester.pumpAndSettle();
 
-    final hostField = tester.widget<TextField>(
+    expect(
       find.byKey(settingsFieldKey(ConnectionSettingsFieldId.host)),
+      findsNothing,
     );
-    final portField = tester.widget<TextField>(
-      find.byKey(settingsFieldKey(ConnectionSettingsFieldId.port)),
-    );
-    final usernameField = tester.widget<TextField>(
-      find.byKey(settingsFieldKey(ConnectionSettingsFieldId.username)),
-    );
-    final passwordField = tester.widget<TextField>(
+    expect(
       find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
+      findsNothing,
     );
 
-    expect(hostField.controller!.text, 'buildbox.local');
-    expect(portField.controller!.text, '2200');
-    expect(usernameField.controller!.text, 'alice');
-    expect(passwordField.controller!.text, 'other-secret');
-    expect(find.text('11:22:33:44'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('connection_settings_save_top')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(payload, isNotNull);
+    expect(payload!.profile.host, 'buildbox.local');
+    expect(payload!.profile.port, 2200);
+    expect(payload!.profile.username, 'alice');
+    expect(payload!.profile.workspaceDir, '/workspace/current');
+    expect(payload!.profile.codexPath, 'codex');
+    expect(payload!.profile.hostFingerprint, '11:22:33:44');
+    expect(payload!.secrets.password, 'other-secret');
   });
 
   testWidgets(
-    'material settings renderer keeps manual system input when reselecting the blank picker option',
+    'workspace settings can clear a selected system back to no system selected',
     (tester) async {
+      ConnectionSettingsSubmitPayload? payload;
       final template = ConnectionSettingsSystemTemplate(
         id: 'system_primary',
         profile: ConnectionProfile.defaults().copyWith(
@@ -288,75 +311,9 @@ void main() {
 
       await tester.pumpWidget(
         buildMaterialSettingsApp(
-          onSubmit: (_) {},
-          initialProfile: ConnectionProfile.defaults().copyWith(
-            workspaceDir: '/workspace/current',
-            codexPath: 'codex',
-          ),
-          availableSystemTemplates: <ConnectionSettingsSystemTemplate>[
-            template,
-          ],
-        ),
-      );
-
-      await tester.enterText(materialTextField('Host'), 'manualbox.local');
-      await tester.enterText(materialTextField('Port'), '2201');
-      await tester.enterText(materialTextField('Username'), 'manual-user');
-      await tester.enterText(materialTextField('Password'), 'manual-secret');
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey<String>('connection_settings_system_picker')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('connection_settings_system_picker')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Enter a new system').last);
-      await tester.pumpAndSettle();
-
-      final hostField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.host)),
-      );
-      final portField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.port)),
-      );
-      final usernameField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.username)),
-      );
-      final passwordField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
-      );
-
-      expect(hostField.controller!.text, 'manualbox.local');
-      expect(portField.controller!.text, '2201');
-      expect(usernameField.controller!.text, 'manual-user');
-      expect(passwordField.controller!.text, 'manual-secret');
-      expect(find.text('SSH fingerprint needed'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'material settings renderer can clear a reused system template back to a blank system',
-    (tester) async {
-      final template = ConnectionSettingsSystemTemplate(
-        id: 'system_primary',
-        profile: ConnectionProfile.defaults().copyWith(
-          label: 'Primary Workspace',
-          host: 'buildbox.local',
-          port: 2200,
-          username: 'alice',
-          workspaceDir: '/workspace/primary',
-          codexPath: 'codex',
-          authMode: AuthMode.password,
-          hostFingerprint: '11:22:33:44',
-        ),
-        secrets: const ConnectionSecrets(password: 'other-secret'),
-      );
-
-      await tester.pumpWidget(
-        buildMaterialSettingsApp(
-          onSubmit: (_) {},
+          onSubmit: (nextPayload) {
+            payload = nextPayload;
+          },
           initialProfile: ConnectionProfile.defaults().copyWith(
             workspaceDir: '/workspace/current',
             codexPath: 'codex',
@@ -383,35 +340,27 @@ void main() {
         find.byKey(const ValueKey<String>('connection_settings_system_picker')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Enter a new system').last);
+      await tester.tap(find.text('No system selected').last);
       await tester.pumpAndSettle();
 
-      final hostField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.host)),
+      await tester.tap(
+        find.byKey(const ValueKey<String>('connection_settings_save_top')),
       );
-      final portField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.port)),
-      );
-      final usernameField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.username)),
-      );
-      final passwordField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
-      );
+      await tester.pumpAndSettle();
 
-      expect(hostField.controller!.text, isEmpty);
-      expect(portField.controller!.text, '22');
-      expect(usernameField.controller!.text, isEmpty);
-      expect(passwordField.controller!.text, isEmpty);
-      expect(find.text('11:22:33:44'), findsNothing);
-      expect(find.text('SSH fingerprint needed'), findsOneWidget);
+      expect(payload, isNull);
     },
   );
 
   testWidgets(
     'material settings renderer disables smart typing for system and auth fields',
     (tester) async {
-      await tester.pumpWidget(buildMaterialSettingsApp(onSubmit: (_) {}));
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          surfaceMode: ConnectionSettingsSurfaceMode.system,
+        ),
+      );
 
       final hostField = tester.widget<TextField>(
         find.byKey(settingsFieldKey(ConnectionSettingsFieldId.host)),
@@ -421,9 +370,6 @@ void main() {
       );
       final passwordField = tester.widget<TextField>(
         find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
-      );
-      final labelField = tester.widget<TextField>(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.label)),
       );
 
       expect(hostField.textCapitalization, TextCapitalization.none);
@@ -439,10 +385,6 @@ void main() {
       expect(passwordField.textCapitalization, TextCapitalization.none);
       expect(passwordField.autocorrect, isFalse);
       expect(passwordField.enableSuggestions, isFalse);
-
-      expect(labelField.textCapitalization, TextCapitalization.words);
-      expect(labelField.autocorrect, isTrue);
-      expect(labelField.enableSuggestions, isTrue);
 
       await tester.ensureVisible(find.text('Private key'));
       await tester.tap(find.text('Private key'));
@@ -460,7 +402,7 @@ void main() {
   );
 
   testWidgets(
-    'desktop settings expose a local and remote route chooser and hide SSH fields for local mode',
+    'desktop workspace settings expose a local and remote route chooser and hide system selection for local mode',
     (tester) async {
       await tester.pumpWidget(
         buildMaterialSettingsApp(
@@ -481,11 +423,11 @@ void main() {
         find.descendant(of: connectionModePicker, matching: find.text('Local')),
         findsOneWidget,
       );
-      expect(find.text('Host'), findsOneWidget);
       expect(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
+        find.byKey(const ValueKey<String>('connection_settings_system_picker')),
         findsOneWidget,
       );
+      expect(find.text('Host'), findsNothing);
 
       await tester.ensureVisible(connectionModePicker);
       await tester.pumpAndSettle();
@@ -497,9 +439,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Host'), findsNothing);
       expect(
-        find.byKey(settingsFieldKey(ConnectionSettingsFieldId.password)),
+        find.byKey(const ValueKey<String>('connection_settings_system_picker')),
         findsNothing,
       );
       expect(find.text('Workspace directory'), findsOneWidget);

@@ -3,14 +3,15 @@ part of '../connection_settings_presenter.dart';
 ConnectionSettingsSystemPickerContract? _buildSystemPicker(
   _ConnectionSettingsPresentationState state,
 ) {
-  if (!state.isRemote || state.availableSystemTemplates.isEmpty) {
+  if (!state.isRemote) {
     return null;
   }
 
   return ConnectionSettingsSystemPickerContract(
-    title: 'Reuse a system',
-    helperText:
-        'Choose a saved system to reuse its host, sign-in details, and trusted SSH fingerprint across workspaces.',
+    title: 'System',
+    helperText: state.availableSystemTemplates.isEmpty
+        ? 'No systems are available yet. Create one from the Systems page, then come back and attach it to this workspace.'
+        : 'Choose the system this workspace should run on. Manage machine access and trust from the Systems page.',
     selectedSystemId: state.selectedSystemTemplateId,
     options: state.availableSystemTemplates
         .map<ConnectionSettingsSystemOptionContract>(_systemOptionContract)

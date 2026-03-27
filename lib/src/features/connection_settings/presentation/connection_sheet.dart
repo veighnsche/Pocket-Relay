@@ -9,11 +9,13 @@ class ConnectionSheet extends StatelessWidget {
     required this.platformBehavior,
     required this.viewModel,
     required this.actions,
+    this.surfaceMode = ConnectionSettingsSurfaceMode.workspace,
   });
 
   final PocketPlatformBehavior platformBehavior;
   final ConnectionSettingsHostViewModel viewModel;
   final ConnectionSettingsHostActions actions;
+  final ConnectionSettingsSurfaceMode surfaceMode;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +23,7 @@ class ConnectionSheet extends StatelessWidget {
       isDesktopPresentation: platformBehavior.isDesktopExperience,
       viewModel: viewModel,
       actions: actions,
+      surfaceMode: surfaceMode,
     );
   }
 }

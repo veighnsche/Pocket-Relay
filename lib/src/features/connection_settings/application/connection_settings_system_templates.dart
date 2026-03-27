@@ -42,6 +42,31 @@ List<ConnectionSettingsSystemTemplate> deriveConnectionSettingsSystemTemplates(
   ];
 }
 
+List<ConnectionSettingsSystemTemplate>
+deriveConnectionSettingsSystemTemplatesFromSystems(
+  Iterable<SavedSystem> systems,
+) {
+  return <ConnectionSettingsSystemTemplate>[
+    for (final system in systems)
+      ConnectionSettingsSystemTemplate(
+        id: system.id,
+        profile: connectionProfileFromWorkspace(
+          workspace: const WorkspaceProfile(
+            label: 'Workspace',
+            connectionMode: ConnectionMode.remote,
+            systemId: null,
+            workspaceDir: '',
+            codexPath: 'codex',
+            dangerouslyBypassSandbox: false,
+            ephemeralSession: false,
+          ),
+          system: system,
+        ),
+        secrets: system.secrets,
+      ),
+  ];
+}
+
 String? matchingConnectionSettingsSystemTemplateId({
   required ConnectionSettingsDraft draft,
   required List<ConnectionSettingsSystemTemplate> templates,
