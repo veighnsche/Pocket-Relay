@@ -24,7 +24,8 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   static const double _mobileFooterBottomPadding = 16;
 
   static const double _desktopSurfacePadding = 24;
-  static const double _desktopSurfaceVerticalMargin = _desktopSurfacePadding * 2;
+  static const double _desktopSurfaceVerticalMargin =
+      _desktopSurfacePadding * 2;
   static const double _desktopSurfaceMaxWidth = 880;
   static const double _desktopSurfaceHeaderBottomPadding = 18;
   static const double _desktopSurfaceContentTopPadding = 20;
@@ -34,6 +35,8 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   static const double _sectionSpacing = 28;
   static const double _sectionDividerSpacing = 24;
   static const double _fieldSpacing = 12;
+  static const double _subsectionSpacing = 14;
+  static const double _modelRefreshSpacing = 16;
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +168,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
         ),
         if (badges.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: badges,
-          ),
+          Wrap(spacing: 8, runSpacing: 8, children: badges),
         ],
         const SizedBox(height: 12),
         Text(
@@ -326,14 +325,17 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           context,
           key: const ValueKey<String>('connection_settings_section_basics'),
           title: 'Basics',
-          description: 'Give this connection a name and choose where Codex runs.',
+          description:
+              'Give this connection a name and choose where Codex runs.',
           child: _buildBasicsSection(context, contract),
         ),
         if (contract.remoteConnectionSection case final remoteSection?) ...[
           _buildSectionDivider(),
           _buildSection(
             context,
-            key: const ValueKey<String>('connection_settings_section_remote_access'),
+            key: const ValueKey<String>(
+              'connection_settings_section_remote_access',
+            ),
             title: 'Remote access',
             description:
                 'Set the SSH target, verify host trust, and choose how Pocket Relay authenticates.',
@@ -497,7 +499,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
               _buildToggle(context, toggle),
               if (index != toggles.length - 1)
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: _fieldSpacing),
                   child: Divider(height: 1),
                 ),
             ];
@@ -527,9 +529,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(left: 14),
       decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: visuals.color, width: 3),
-        ),
+        border: Border(left: BorderSide(color: visuals.color, width: 3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,25 +578,19 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       );
     }
 
-    final hostStatus = remoteRuntime.hostCapability.status;
-    if (hostStatus == ConnectionRemoteHostCapabilityStatus.checking) {
-      return (
-        icon: Icons.sync,
-        color: theme.colorScheme.primary,
-      );
-    }
-    if (hostStatus == ConnectionRemoteHostCapabilityStatus.probeFailed ||
-        hostStatus == ConnectionRemoteHostCapabilityStatus.unsupported) {
-      return (
-        icon: Icons.error_outline,
-        color: theme.colorScheme.tertiary,
-      );
-    }
-    if (hostStatus != ConnectionRemoteHostCapabilityStatus.supported) {
-      return (
-        icon: Icons.help_outline,
-        color: theme.colorScheme.onSurfaceVariant,
-      );
+    switch (remoteRuntime.hostCapability.status) {
+      case ConnectionRemoteHostCapabilityStatus.checking:
+        return (icon: Icons.sync, color: theme.colorScheme.primary);
+      case ConnectionRemoteHostCapabilityStatus.probeFailed:
+      case ConnectionRemoteHostCapabilityStatus.unsupported:
+        return (icon: Icons.error_outline, color: theme.colorScheme.tertiary);
+      case ConnectionRemoteHostCapabilityStatus.supported:
+        break;
+      case ConnectionRemoteHostCapabilityStatus.unknown:
+        return (
+          icon: Icons.help_outline,
+          color: theme.colorScheme.onSurfaceVariant,
+        );
     }
 
     return switch (remoteRuntime.server.status) {
@@ -695,7 +689,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
             : Column(
                 children: [
                   _buildModelPicker(context, section),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: _subsectionSpacing),
                   _buildReasoningEffortPicker(context, section),
                 ],
               );
@@ -704,7 +698,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             pickerContent,
-            const SizedBox(height: 16),
+            const SizedBox(height: _modelRefreshSpacing),
             _buildRefreshModelsAction(context, section),
           ],
         );
@@ -865,46 +859,31 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  toggle.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  toggle.subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return SwitchListTile.adaptive(
+      value: toggle.value,
+      onChanged: (value) {
+        actions.onToggleChanged(toggle.id, value);
+      },
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        toggle.title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
         ),
-        const SizedBox(width: 16),
-        Switch.adaptive(
-          value: toggle.value,
-          onChanged: (value) {
-            actions.onToggleChanged(toggle.id, value);
-          },
+      ),
+      subtitle: Text(
+        toggle.subtitle,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          height: 1.45,
         ),
-      ],
+      ),
     );
   }
 
   bool _isRemote(ConnectionSettingsContract contract) {
-    return contract.connectionModeSection?.selectedMode == ConnectionMode.remote ||
+    return contract.connectionModeSection?.selectedMode ==
+            ConnectionMode.remote ||
         contract.remoteConnectionSection != null;
   }
 
