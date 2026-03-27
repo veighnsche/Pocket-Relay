@@ -30,13 +30,31 @@ SecureCodexConnectionRepository buildSecureConnectionRepository({
   required FakeFlutterSecureStorage secureStorage,
   required SharedPreferencesAsync preferences,
   required String Function() connectionIdGenerator,
+  String Function()? systemIdGenerator,
 }) {
   return SecureCodexConnectionRepository(
     secureStorage: secureStorage,
     preferences: preferences,
     connectionIdGenerator: connectionIdGenerator,
+    systemIdGenerator: systemIdGenerator,
   );
 }
+
+String workspaceIndexKey() => 'pocket_relay.workspaces.index';
+
+String workspaceProfileKey(String workspaceId) =>
+    'pocket_relay.workspace.$workspaceId.profile';
+
+String systemIndexKey() => 'pocket_relay.systems.index';
+
+String systemProfileKey(String systemId) =>
+    'pocket_relay.system.$systemId.profile';
+
+String systemPasswordKey(String systemId) =>
+    'pocket_relay.system.$systemId.secret.password';
+
+String systemPrivateKeyKey(String systemId) =>
+    'pocket_relay.system.$systemId.secret.private_key';
 
 Future<void> writeConnectionIndex(
   SharedPreferencesAsync preferences, {

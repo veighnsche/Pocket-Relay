@@ -161,12 +161,73 @@ class DeferredConnectionRepository implements CodexConnectionRepository {
   }
 
   @override
+  Future<WorkspaceCatalogState> loadWorkspaceCatalog() async {
+    final savedConnection = await _loadSavedConnection();
+    return WorkspaceCatalogState(
+      orderedWorkspaceIds: <String>[savedConnection.id],
+      workspacesById: <String, SavedWorkspaceSummary>{
+        savedConnection.id: SavedWorkspaceSummary(
+          id: savedConnection.id,
+          profile: workspaceProfileFromConnectionProfile(
+            savedConnection.profile,
+            systemId: _systemIdForConnection(savedConnection),
+          ),
+        ),
+      },
+    );
+  }
+
+  @override
+  Future<SystemCatalogState> loadSystemCatalog() async {
+    final savedConnection = await _loadSavedConnection();
+    if (!savedConnection.profile.isRemote) {
+      return const SystemCatalogState.empty();
+    }
+    final systemId = _systemIdForConnection(savedConnection)!;
+    return SystemCatalogState(
+      orderedSystemIds: <String>[systemId],
+      systemsById: <String, SavedSystemSummary>{
+        systemId: SavedSystemSummary(
+          id: systemId,
+          profile: systemProfileFromConnectionProfile(savedConnection.profile),
+        ),
+      },
+    );
+  }
+
+  @override
   Future<SavedConnection> loadConnection(String connectionId) async {
     final savedConnection = await _loadSavedConnection();
     if (savedConnection.id != connectionId) {
       throw StateError('Unknown saved connection: $connectionId');
     }
     return savedConnection;
+  }
+
+  @override
+  Future<SavedWorkspace> loadWorkspace(String workspaceId) async {
+    final savedConnection = await loadConnection(workspaceId);
+    return SavedWorkspace(
+      id: savedConnection.id,
+      profile: workspaceProfileFromConnectionProfile(
+        savedConnection.profile,
+        systemId: _systemIdForConnection(savedConnection),
+      ),
+    );
+  }
+
+  @override
+  Future<SavedSystem> loadSystem(String systemId) async {
+    final savedConnection = await _loadSavedConnection();
+    final expectedSystemId = _systemIdForConnection(savedConnection);
+    if (expectedSystemId == null || expectedSystemId != systemId) {
+      throw StateError('Unknown saved system: $systemId');
+    }
+    return SavedSystem(
+      id: systemId,
+      profile: systemProfileFromConnectionProfile(savedConnection.profile),
+      secrets: savedConnection.secrets,
+    );
   }
 
   @override
@@ -184,6 +245,21 @@ class DeferredConnectionRepository implements CodexConnectionRepository {
   }
 
   @override
+  Future<SavedWorkspace> createWorkspace({
+    required WorkspaceProfile profile,
+  }) async {
+    throw UnsupportedError('createWorkspace is not used in this test.');
+  }
+
+  @override
+  Future<SavedSystem> createSystem({
+    required SystemProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    throw UnsupportedError('createSystem is not used in this test.');
+  }
+
+  @override
   Future<void> saveConnection(SavedConnection connection) async {
     _savedConnection = connection;
     if (!_completer.isCompleted) {
@@ -192,10 +268,30 @@ class DeferredConnectionRepository implements CodexConnectionRepository {
   }
 
   @override
+  Future<void> saveWorkspace(SavedWorkspace workspace) async {
+    throw UnsupportedError('saveWorkspace is not used in this test.');
+  }
+
+  @override
+  Future<void> saveSystem(SavedSystem system) async {
+    throw UnsupportedError('saveSystem is not used in this test.');
+  }
+
+  @override
   Future<void> deleteConnection(String connectionId) async {
     if (_savedConnection?.id == connectionId) {
       throw UnsupportedError('deleteConnection is not used in this test.');
     }
+  }
+
+  @override
+  Future<void> deleteWorkspace(String workspaceId) async {
+    throw UnsupportedError('deleteWorkspace is not used in this test.');
+  }
+
+  @override
+  Future<void> deleteSystem(String systemId) async {
+    throw UnsupportedError('deleteSystem is not used in this test.');
   }
 
   Future<SavedConnection> _loadSavedConnection() async {
@@ -224,11 +320,44 @@ class FailOnceConnectionRepository implements CodexConnectionRepository {
   }
 
   @override
+  Future<WorkspaceCatalogState> loadWorkspaceCatalog() =>
+      _singleWorkspaceCatalog(savedConnection);
+
+  @override
+  Future<SystemCatalogState> loadSystemCatalog() =>
+      _singleSystemCatalog(savedConnection);
+
+  @override
   Future<SavedConnection> loadConnection(String connectionId) async {
     if (connectionId != savedConnection.id) {
       throw StateError('Unknown saved connection: $connectionId');
     }
     return savedConnection;
+  }
+
+  @override
+  Future<SavedWorkspace> loadWorkspace(String workspaceId) async {
+    final connection = await loadConnection(workspaceId);
+    return SavedWorkspace(
+      id: connection.id,
+      profile: workspaceProfileFromConnectionProfile(
+        connection.profile,
+        systemId: _systemIdForConnection(connection),
+      ),
+    );
+  }
+
+  @override
+  Future<SavedSystem> loadSystem(String systemId) async {
+    final expectedSystemId = _systemIdForConnection(savedConnection);
+    if (expectedSystemId == null || expectedSystemId != systemId) {
+      throw StateError('Unknown saved system: $systemId');
+    }
+    return SavedSystem(
+      id: systemId,
+      profile: systemProfileFromConnectionProfile(savedConnection.profile),
+      secrets: savedConnection.secrets,
+    );
   }
 
   @override
@@ -240,14 +369,88 @@ class FailOnceConnectionRepository implements CodexConnectionRepository {
   }
 
   @override
+  Future<SavedWorkspace> createWorkspace({
+    required WorkspaceProfile profile,
+  }) async {
+    throw UnsupportedError('createWorkspace is not used in this test.');
+  }
+
+  @override
+  Future<SavedSystem> createSystem({
+    required SystemProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    throw UnsupportedError('createSystem is not used in this test.');
+  }
+
+  @override
   Future<void> saveConnection(SavedConnection connection) async {
     throw UnsupportedError('saveConnection is not used in this test.');
+  }
+
+  @override
+  Future<void> saveWorkspace(SavedWorkspace workspace) async {
+    throw UnsupportedError('saveWorkspace is not used in this test.');
+  }
+
+  @override
+  Future<void> saveSystem(SavedSystem system) async {
+    throw UnsupportedError('saveSystem is not used in this test.');
   }
 
   @override
   Future<void> deleteConnection(String connectionId) async {
     throw UnsupportedError('deleteConnection is not used in this test.');
   }
+
+  @override
+  Future<void> deleteWorkspace(String workspaceId) async {
+    throw UnsupportedError('deleteWorkspace is not used in this test.');
+  }
+
+  @override
+  Future<void> deleteSystem(String systemId) async {
+    throw UnsupportedError('deleteSystem is not used in this test.');
+  }
+}
+
+String? _systemIdForConnection(SavedConnection connection) {
+  return connection.profile.isRemote ? 'sys_${connection.id}' : null;
+}
+
+Future<WorkspaceCatalogState> _singleWorkspaceCatalog(
+  SavedConnection connection,
+) async {
+  return WorkspaceCatalogState(
+    orderedWorkspaceIds: <String>[connection.id],
+    workspacesById: <String, SavedWorkspaceSummary>{
+      connection.id: SavedWorkspaceSummary(
+        id: connection.id,
+        profile: workspaceProfileFromConnectionProfile(
+          connection.profile,
+          systemId: _systemIdForConnection(connection),
+        ),
+      ),
+    },
+  );
+}
+
+Future<SystemCatalogState> _singleSystemCatalog(
+  SavedConnection connection,
+) async {
+  final systemId = _systemIdForConnection(connection);
+  if (systemId == null) {
+    return const SystemCatalogState.empty();
+  }
+  return SystemCatalogState(
+    orderedSystemIds: <String>[systemId],
+    systemsById: <String, SavedSystemSummary>{
+      systemId: SavedSystemSummary(
+        id: systemId,
+        profile: systemProfileFromConnectionProfile(connection.profile),
+      ),
+    },
+  );
 }
 
 class FakeDisplayWakeLockController implements DisplayWakeLockController {
