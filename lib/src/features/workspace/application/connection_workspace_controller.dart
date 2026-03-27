@@ -27,6 +27,7 @@ part 'controller/bootstrap.dart';
 part 'controller/catalog_connections.dart';
 part 'controller/conversation_selection.dart';
 part 'controller/delete_connection.dart';
+part 'controller/device_continuity_warnings.dart';
 part 'controller/model_catalogs.dart';
 part 'controller/recovery_diagnostics.dart';
 part 'controller/recovery_persistence.dart';
@@ -254,6 +255,18 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
   void showSavedConnections() {
     _showWorkspaceSavedConnections(this);
+  }
+
+  void setForegroundServiceWarning(PocketUserFacingError? warning) {
+    _setWorkspaceForegroundServiceWarning(this, warning);
+  }
+
+  void setBackgroundGraceWarning(PocketUserFacingError? warning) {
+    _setWorkspaceBackgroundGraceWarning(this, warning);
+  }
+
+  void setWakeLockWarning(PocketUserFacingError? warning) {
+    _setWorkspaceWakeLockWarning(this, warning);
   }
 
   void terminateConnection(String connectionId) {

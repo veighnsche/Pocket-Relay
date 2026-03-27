@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
 
 void main() {
@@ -111,10 +112,11 @@ void main() {
   );
 
   testWidgets(
-    'permission-channel failures fail open and still attempt to enable the service',
+    'permission-channel failures surface a typed warning and keep the service disabled',
     (tester) async {
       final controller = _FakeForegroundServiceController();
       final permissionController = _ThrowingNotificationPermissionController();
+      PocketUserFacingError? warning;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -122,6 +124,7 @@ void main() {
             foregroundServiceController: controller,
             notificationPermissionController: permissionController,
             supportsForegroundService: true,
+            onWarningChanged: (value) => warning = value,
             child: const SizedBox(),
           ),
         ),
@@ -129,9 +132,42 @@ void main() {
       await tester.pump();
 
       expect(permissionController.requestCalls, 1);
-      expect(controller.enabledStates, <bool>[true]);
+      expect(controller.enabledStates, isEmpty);
+      expect(
+        warning?.definition,
+        PocketErrorCatalog.deviceForegroundServicePermissionRequestFailed,
+      );
+      expect(warning?.bodyWithCode, contains('channel missing'));
     },
   );
+
+  testWidgets('foreground-service enable failures surface a typed warning', (
+    tester,
+  ) async {
+    final controller = _ThrowingForegroundServiceController();
+    final permissionController = _FakeNotificationPermissionController();
+    PocketUserFacingError? warning;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ForegroundServiceHost(
+          foregroundServiceController: controller,
+          notificationPermissionController: permissionController,
+          supportsForegroundService: true,
+          onWarningChanged: (value) => warning = value,
+          child: const SizedBox(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(controller.enabledStates, <bool>[true]);
+    expect(
+      warning?.definition,
+      PocketErrorCatalog.deviceForegroundServiceEnableFailed,
+    );
+    expect(warning?.bodyWithCode, contains('setEnabled failed'));
+  });
 
   testWidgets(
     'rechecks notification permission on resume after an initial denial',
@@ -180,6 +216,17 @@ class _FakeForegroundServiceController implements ForegroundServiceController {
   @override
   Future<void> setEnabled(bool enabled) async {
     enabledStates.add(enabled);
+  }
+}
+
+class _ThrowingForegroundServiceController
+    implements ForegroundServiceController {
+  final List<bool> enabledStates = <bool>[];
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    enabledStates.add(enabled);
+    throw StateError('setEnabled failed');
   }
 }
 

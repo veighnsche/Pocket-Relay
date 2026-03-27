@@ -22,6 +22,7 @@ Future<void> _initializeWorkspaceController(
         selectedConnectionId: null,
         viewport: ConnectionWorkspaceViewport.savedConnections,
         recoveryLoadWarning: null,
+        deviceContinuityWarnings: ConnectionWorkspaceDeviceContinuityWarnings(),
         savedSettingsReconnectRequiredConnectionIds: <String>{},
         transportReconnectRequiredConnectionIds: <String>{},
         transportRecoveryPhasesByConnectionId:
@@ -64,6 +65,8 @@ Future<void> _initializeWorkspaceController(
       selectedConnectionId: firstConnectionId,
       viewport: ConnectionWorkspaceViewport.liveLane,
       recoveryLoadWarning: recoveryLoadWarning,
+      deviceContinuityWarnings:
+          const ConnectionWorkspaceDeviceContinuityWarnings(),
       savedSettingsReconnectRequiredConnectionIds: const <String>{},
       transportReconnectRequiredConnectionIds: const <String>{},
       transportRecoveryPhasesByConnectionId:

@@ -27,6 +27,7 @@ class WorkspaceTurnBackgroundGraceHost extends StatelessWidget {
           backgroundGraceController: backgroundGraceController,
           supportsBackgroundGrace: supportsBackgroundGrace,
           keepBackgroundGraceAlive: hasActiveTurn,
+          onWarningChanged: workspaceController.setBackgroundGraceWarning,
           child: child,
         );
       },

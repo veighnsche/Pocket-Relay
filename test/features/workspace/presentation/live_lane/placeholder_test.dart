@@ -95,6 +95,45 @@ void main() {
   );
 
   testWidgets(
+    'live lane shows typed device continuity warnings from workspace state',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final controller = buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      controller.setWakeLockWarning(
+        DeviceCapabilityErrors.wakeLockEnableFailed(
+          error: StateError('wakelock plugin unavailable'),
+        ),
+      );
+
+      await tester.pumpWidget(
+        buildWorkspaceDrivenLiveLaneApp(
+          controller,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wake lock unavailable'), findsOneWidget);
+      expect(
+        find.textContaining(
+          '[${PocketErrorCatalog.deviceWakeLockEnableFailed.code}]',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('wakelock plugin unavailable'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'live empty lane connect action starts the remote server for the selected lane',
     (tester) async {
       final clientsById = buildClientsById('conn_primary');

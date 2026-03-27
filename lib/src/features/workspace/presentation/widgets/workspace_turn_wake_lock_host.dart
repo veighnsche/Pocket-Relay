@@ -27,6 +27,7 @@ class WorkspaceTurnWakeLockHost extends StatelessWidget {
           displayWakeLockController: displayWakeLockController,
           supportsWakeLock: supportsWakeLock,
           keepDisplayAwake: hasActiveTurn,
+          onWarningChanged: workspaceController.setWakeLockWarning,
           child: child,
         );
       },

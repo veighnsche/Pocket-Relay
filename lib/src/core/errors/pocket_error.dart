@@ -6,6 +6,7 @@ enum PocketErrorDomain {
   chatComposer,
   connectionSettings,
   appBootstrap,
+  deviceCapability,
 }
 
 final class PocketErrorDefinition {
@@ -669,6 +670,43 @@ abstract final class PocketErrorCatalog {
         'Pocket Relay could not restore the previously persisted local workspace recovery state during app bootstrap, so startup continued without that recovery snapshot.',
   );
 
+  // Device capability: active-turn continuity hosts (11xx).
+  static const PocketErrorDefinition
+  deviceForegroundServicePermissionQueryFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1101',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not verify notification permission before trying to enable the Android foreground service used for active-turn continuity.',
+  );
+  static const PocketErrorDefinition
+  deviceForegroundServicePermissionRequestFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1102',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not request notification permission before trying to enable the Android foreground service used for active-turn continuity.',
+  );
+  static const PocketErrorDefinition
+  deviceForegroundServiceEnableFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1103',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not enable or disable the Android foreground service used for active-turn continuity.',
+  );
+  static const PocketErrorDefinition
+  deviceBackgroundGraceEnableFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1104',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not enable or disable the finite background-grace host used to preserve an active turn while the app is backgrounded.',
+  );
+  static const PocketErrorDefinition
+  deviceWakeLockEnableFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1105',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not enable or disable the display wake lock used to preserve an active turn while the app remains in the foreground.',
+  );
+
   static const List<PocketErrorDefinition> connectionLifecycleDefinitions =
       <PocketErrorDefinition>[
         connectionOpenRemoteHostProbeFailed,
@@ -768,6 +806,15 @@ abstract final class PocketErrorCatalog {
         appBootstrapRecoveryStateLoadFailed,
       ];
 
+  static const List<PocketErrorDefinition> deviceCapabilityDefinitions =
+      <PocketErrorDefinition>[
+        deviceForegroundServicePermissionQueryFailed,
+        deviceForegroundServicePermissionRequestFailed,
+        deviceForegroundServiceEnableFailed,
+        deviceBackgroundGraceEnableFailed,
+        deviceWakeLockEnableFailed,
+      ];
+
   static const List<PocketErrorDefinition> allDefinitions =
       <PocketErrorDefinition>[
         ...connectionLifecycleDefinitions,
@@ -775,6 +822,7 @@ abstract final class PocketErrorCatalog {
         ...chatComposerDefinitions,
         ...connectionSettingsDefinitions,
         ...appBootstrapDefinitions,
+        ...deviceCapabilityDefinitions,
       ];
 
   static PocketErrorDefinition? lookup(String code) {

@@ -168,6 +168,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       widget.laneBinding.connectionId,
     );
     final recoveryLoadWarning = workspaceState.recoveryLoadWarning;
+    final deviceContinuityWarnings = workspaceState.deviceContinuityWarnings;
     final remoteRuntime = workspaceState.remoteRuntimeFor(
       widget.laneBinding.connectionId,
     );
@@ -192,9 +193,15 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final startupWarningNotice = _recoveryLoadWarningNoticeFor(
       recoveryLoadWarning,
     );
+    final deviceContinuityNotice = _deviceContinuityWarningNoticeFor(
+      deviceContinuityWarnings,
+    );
     final laneNotice = _composedLaneNotice(
-      primaryNotice: recoveryNotice,
-      secondaryNotice: startupWarningNotice,
+      notices: <Widget?>[
+        recoveryNotice,
+        startupWarningNotice,
+        deviceContinuityNotice,
+      ],
     );
     final emptyStateContent = _buildLaneEmptyStateContent(
       profile: profile,
@@ -593,28 +600,62 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       return null;
     }
 
+    return _warningNoticeFor(warning, icon: Icons.history_toggle_off_rounded);
+  }
+
+  Widget? _deviceContinuityWarningNoticeFor(
+    ConnectionWorkspaceDeviceContinuityWarnings warnings,
+  ) {
+    final activeWarnings = warnings.activeWarnings;
+    if (activeWarnings.isEmpty) {
+      return null;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < activeWarnings.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          _warningNoticeFor(
+            activeWarnings[index],
+            icon: Icons.phone_android_rounded,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _warningNoticeFor(
+    PocketUserFacingError warning, {
+    required IconData icon,
+  }) {
     return _WorkspaceLaneTransportNotice(
       title: warning.title,
       message: warning.bodyWithCode,
       isLoading: false,
-      icon: Icons.history_toggle_off_rounded,
+      icon: icon,
     );
   }
 
-  Widget? _composedLaneNotice({
-    required Widget? primaryNotice,
-    required Widget? secondaryNotice,
-  }) {
-    if (primaryNotice == null) {
-      return secondaryNotice;
+  Widget? _composedLaneNotice({required List<Widget?> notices}) {
+    final activeNotices = notices.whereType<Widget>().toList(growable: false);
+    if (activeNotices.isEmpty) {
+      return null;
     }
-    if (secondaryNotice == null) {
-      return primaryNotice;
+    if (activeNotices.length == 1) {
+      return activeNotices.single;
     }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: [primaryNotice, const SizedBox(height: 12), secondaryNotice],
+      children: [
+        for (var index = 0; index < activeNotices.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          activeNotices[index],
+        ],
+      ],
     );
   }
 

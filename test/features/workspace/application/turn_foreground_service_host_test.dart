@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
@@ -160,6 +162,62 @@ void main() {
       cleanedUp = true;
     },
   );
+
+  testWidgets(
+    'workspace host records a typed foreground-service warning when permission request fails',
+    (tester) async {
+      final clientsById = _buildClientsById(firstConnectionId: 'conn_primary');
+      final workspaceController = _buildWorkspaceController(
+        clientsById: clientsById,
+      );
+      final foregroundServiceController = _FakeForegroundServiceController();
+      final notificationPermissionController =
+          _ThrowingNotificationPermissionController();
+      addTearDown(() async {
+        workspaceController.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await workspaceController.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceTurnForegroundServiceHost(
+            workspaceController: workspaceController,
+            foregroundServiceController: foregroundServiceController,
+            notificationPermissionController: notificationPermissionController,
+            supportsForegroundService: true,
+            child: const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final laneBinding = workspaceController.selectedLaneBinding!;
+      expect(
+        await laneBinding.sessionController.sendPrompt(
+          'Trigger foreground continuity',
+        ),
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      final warning = workspaceController
+          .state
+          .deviceContinuityWarnings
+          .foregroundServiceWarning;
+      expect(
+        warning?.definition,
+        PocketErrorCatalog.deviceForegroundServicePermissionRequestFailed,
+      );
+      expect(
+        warning?.bodyWithCode,
+        contains('notification permission missing'),
+      );
+      expect(foregroundServiceController.enabledStates, isEmpty);
+      await workspaceController.flushRecoveryPersistence();
+    },
+  );
 }
 
 ConnectionWorkspaceController _buildWorkspaceController({
@@ -236,4 +294,15 @@ class _FakeNotificationPermissionController
 
   @override
   Future<bool> requestPermission() async => true;
+}
+
+class _ThrowingNotificationPermissionController
+    implements NotificationPermissionController {
+  @override
+  Future<bool> isGranted() async => false;
+
+  @override
+  Future<bool> requestPermission() {
+    throw MissingPluginException('notification permission missing');
+  }
 }

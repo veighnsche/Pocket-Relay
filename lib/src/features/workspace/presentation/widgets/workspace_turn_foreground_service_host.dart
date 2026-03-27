@@ -31,6 +31,7 @@ class WorkspaceTurnForegroundServiceHost extends StatelessWidget {
           notificationPermissionController: notificationPermissionController,
           supportsForegroundService: supportsForegroundService,
           keepForegroundServiceRunning: hasActiveTurn,
+          onWarningChanged: workspaceController.setForegroundServiceWarning,
           child: child,
         );
       },

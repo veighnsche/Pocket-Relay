@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
@@ -158,6 +159,48 @@ void main() {
       cleanedUp = true;
     },
   );
+
+  testWidgets(
+    'workspace host records a typed wake-lock warning when enabling fails',
+    (tester) async {
+      final clientsById = _buildClientsById(firstConnectionId: 'conn_primary');
+      final controller = _buildWorkspaceController(clientsById: clientsById);
+      final wakeLockController = _ThrowingDisplayWakeLockController();
+      addTearDown(() async {
+        controller.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceTurnWakeLockHost(
+            workspaceController: controller,
+            displayWakeLockController: wakeLockController,
+            supportsWakeLock: true,
+            child: const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final laneBinding = controller.selectedLaneBinding!;
+      expect(
+        await laneBinding.sessionController.sendPrompt('Stay awake'),
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      final warning = controller.state.deviceContinuityWarnings.wakeLockWarning;
+      expect(
+        warning?.definition,
+        PocketErrorCatalog.deviceWakeLockEnableFailed,
+      );
+      expect(warning?.bodyWithCode, contains('wake lock unavailable'));
+      await controller.flushRecoveryPersistence();
+    },
+  );
 }
 
 ConnectionWorkspaceController _buildWorkspaceController({
@@ -240,5 +283,15 @@ class _FakeDisplayWakeLockController implements DisplayWakeLockController {
   @override
   Future<void> setEnabled(bool enabled) async {
     enabledStates.add(enabled);
+  }
+}
+
+class _ThrowingDisplayWakeLockController implements DisplayWakeLockController {
+  final List<bool> enabledStates = <bool>[];
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    enabledStates.add(enabled);
+    throw StateError('wake lock unavailable');
   }
 }

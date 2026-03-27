@@ -186,6 +186,66 @@ class ConnectionWorkspaceRecoveryDiagnostics {
   );
 }
 
+@immutable
+class ConnectionWorkspaceDeviceContinuityWarnings {
+  const ConnectionWorkspaceDeviceContinuityWarnings({
+    this.foregroundServiceWarning,
+    this.backgroundGraceWarning,
+    this.wakeLockWarning,
+  });
+
+  final PocketUserFacingError? foregroundServiceWarning;
+  final PocketUserFacingError? backgroundGraceWarning;
+  final PocketUserFacingError? wakeLockWarning;
+
+  bool get isEmpty =>
+      foregroundServiceWarning == null &&
+      backgroundGraceWarning == null &&
+      wakeLockWarning == null;
+
+  List<PocketUserFacingError> get activeWarnings => <PocketUserFacingError>[
+    if (foregroundServiceWarning case final warning?) warning,
+    if (backgroundGraceWarning case final warning?) warning,
+    if (wakeLockWarning case final warning?) warning,
+  ];
+
+  ConnectionWorkspaceDeviceContinuityWarnings copyWith({
+    PocketUserFacingError? foregroundServiceWarning,
+    PocketUserFacingError? backgroundGraceWarning,
+    PocketUserFacingError? wakeLockWarning,
+    bool clearForegroundServiceWarning = false,
+    bool clearBackgroundGraceWarning = false,
+    bool clearWakeLockWarning = false,
+  }) {
+    return ConnectionWorkspaceDeviceContinuityWarnings(
+      foregroundServiceWarning: clearForegroundServiceWarning
+          ? null
+          : (foregroundServiceWarning ?? this.foregroundServiceWarning),
+      backgroundGraceWarning: clearBackgroundGraceWarning
+          ? null
+          : (backgroundGraceWarning ?? this.backgroundGraceWarning),
+      wakeLockWarning: clearWakeLockWarning
+          ? null
+          : (wakeLockWarning ?? this.wakeLockWarning),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ConnectionWorkspaceDeviceContinuityWarnings &&
+        other.foregroundServiceWarning == foregroundServiceWarning &&
+        other.backgroundGraceWarning == backgroundGraceWarning &&
+        other.wakeLockWarning == wakeLockWarning;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    foregroundServiceWarning,
+    backgroundGraceWarning,
+    wakeLockWarning,
+  );
+}
+
 class ConnectionWorkspaceState {
   const ConnectionWorkspaceState({
     required this.isLoading,
@@ -194,6 +254,7 @@ class ConnectionWorkspaceState {
     required this.selectedConnectionId,
     required this.viewport,
     required this.recoveryLoadWarning,
+    required this.deviceContinuityWarnings,
     required this.savedSettingsReconnectRequiredConnectionIds,
     required this.transportReconnectRequiredConnectionIds,
     required this.transportRecoveryPhasesByConnectionId,
@@ -209,6 +270,8 @@ class ConnectionWorkspaceState {
       selectedConnectionId = null,
       viewport = ConnectionWorkspaceViewport.liveLane,
       recoveryLoadWarning = null,
+      deviceContinuityWarnings =
+          const ConnectionWorkspaceDeviceContinuityWarnings(),
       savedSettingsReconnectRequiredConnectionIds = const <String>{},
       transportReconnectRequiredConnectionIds = const <String>{},
       transportRecoveryPhasesByConnectionId =
@@ -226,6 +289,7 @@ class ConnectionWorkspaceState {
   final String? selectedConnectionId;
   final ConnectionWorkspaceViewport viewport;
   final PocketUserFacingError? recoveryLoadWarning;
+  final ConnectionWorkspaceDeviceContinuityWarnings deviceContinuityWarnings;
   final Set<String> savedSettingsReconnectRequiredConnectionIds;
   final Set<String> transportReconnectRequiredConnectionIds;
   final Map<String, ConnectionWorkspaceTransportRecoveryPhase>
@@ -320,6 +384,7 @@ class ConnectionWorkspaceState {
     String? selectedConnectionId,
     ConnectionWorkspaceViewport? viewport,
     PocketUserFacingError? recoveryLoadWarning,
+    ConnectionWorkspaceDeviceContinuityWarnings? deviceContinuityWarnings,
     Set<String>? savedSettingsReconnectRequiredConnectionIds,
     Set<String>? transportReconnectRequiredConnectionIds,
     Map<String, ConnectionWorkspaceTransportRecoveryPhase>?
@@ -343,6 +408,8 @@ class ConnectionWorkspaceState {
       recoveryLoadWarning: clearRecoveryLoadWarning
           ? null
           : (recoveryLoadWarning ?? this.recoveryLoadWarning),
+      deviceContinuityWarnings:
+          deviceContinuityWarnings ?? this.deviceContinuityWarnings,
       savedSettingsReconnectRequiredConnectionIds:
           savedSettingsReconnectRequiredConnectionIds ??
           this.savedSettingsReconnectRequiredConnectionIds,
@@ -372,6 +439,7 @@ class ConnectionWorkspaceState {
         other.selectedConnectionId == selectedConnectionId &&
         other.viewport == viewport &&
         other.recoveryLoadWarning == recoveryLoadWarning &&
+        other.deviceContinuityWarnings == deviceContinuityWarnings &&
         setEquals(
           other.savedSettingsReconnectRequiredConnectionIds,
           savedSettingsReconnectRequiredConnectionIds,
@@ -406,6 +474,7 @@ class ConnectionWorkspaceState {
     selectedConnectionId,
     viewport,
     recoveryLoadWarning,
+    deviceContinuityWarnings,
     Object.hashAllUnordered(savedSettingsReconnectRequiredConnectionIds),
     Object.hashAllUnordered(transportReconnectRequiredConnectionIds),
     Object.hashAllUnordered(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
@@ -28,6 +29,7 @@ import 'package:pocket_relay/src/features/workspace/presentation/workspace_saved
 export 'dart:async';
 export 'package:flutter/material.dart';
 export 'package:flutter_test/flutter_test.dart';
+export 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
 export 'package:pocket_relay/src/core/errors/pocket_error.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
