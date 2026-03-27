@@ -15,6 +15,7 @@ import 'package:pocket_relay/src/features/workspace/application/connection_works
 import 'package:pocket_relay/src/features/workspace/presentation/connection_lifecycle_presentation.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_lifecycle_widgets.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_saved_connections_content.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_saved_systems_content.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
 
 part 'workspace_desktop_shell_sidebar.dart';
@@ -75,19 +76,25 @@ class _ConnectionWorkspaceDesktopShellState
                 onOpenConnection: _openConnectionFromInventory,
               ),
               Expanded(
-                child: switch ((
-                  state.isShowingSavedConnections,
-                  selectedLaneBinding,
-                )) {
-                  (true, _) => ConnectionWorkspaceSavedConnectionsContent(
-                    workspaceController: widget.workspaceController,
-                    description: ConnectionWorkspaceCopy
-                        .desktopSavedConnectionsDescription,
-                    platformBehavior: widget.platformPolicy.behavior,
-                    settingsOverlayDelegate: widget.settingsOverlayDelegate,
-                    useSafeArea: true,
-                  ),
-                  (false, final laneBinding?) =>
+                child: switch ((state.viewport, selectedLaneBinding)) {
+                  (ConnectionWorkspaceViewport.savedConnections, _) =>
+                    ConnectionWorkspaceSavedConnectionsContent(
+                      workspaceController: widget.workspaceController,
+                      description: ConnectionWorkspaceCopy
+                          .desktopSavedConnectionsDescription,
+                      platformBehavior: widget.platformPolicy.behavior,
+                      settingsOverlayDelegate: widget.settingsOverlayDelegate,
+                      useSafeArea: true,
+                    ),
+                  (ConnectionWorkspaceViewport.savedSystems, _) =>
+                    ConnectionWorkspaceSavedSystemsContent(
+                      workspaceController: widget.workspaceController,
+                      description: ConnectionWorkspaceCopy
+                          .desktopSavedSystemsDescription,
+                      platformBehavior: widget.platformPolicy.behavior,
+                      useSafeArea: true,
+                    ),
+                  (ConnectionWorkspaceViewport.liveLane, final laneBinding?) =>
                     ConnectionWorkspaceLiveLaneSurface(
                       workspaceController: widget.workspaceController,
                       laneBinding: laneBinding,

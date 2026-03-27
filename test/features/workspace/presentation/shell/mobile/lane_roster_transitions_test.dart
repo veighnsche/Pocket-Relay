@@ -46,9 +46,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Saved workspaces'), findsWidgets);
+    expect(find.text('Workspaces'), findsWidgets);
     expect(find.byType(Scaffold), findsWidgets);
-    expect(find.widgetWithText(FilledButton, 'Add workspace'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'New workspace'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Open lane'), findsWidgets);
     expect(find.widgetWithText(OutlinedButton, 'Edit'), findsWidgets);
   });
@@ -93,7 +93,7 @@ void main() {
     final pageView = tester.widget<PageView>(
       find.byKey(const ValueKey('workspace_page_view')),
     );
-    expect(pageView.childrenDelegate.estimatedChildCount, 3);
+    expect(pageView.childrenDelegate.estimatedChildCount, 4);
   });
 
   testWidgets('closing the only live lane from the overflow shows the roster', (

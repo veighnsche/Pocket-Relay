@@ -70,10 +70,20 @@ class _MaterialDesktopSidebar extends StatelessWidget {
             ),
             Padding(
               padding: footerPadding,
-              child: _MaterialSavedConnectionsSidebarRow(
-                isSelected: state.isShowingSavedConnections,
-                isCollapsed: isCollapsed,
-                onTap: workspaceController.showSavedConnections,
+              child: Column(
+                children: [
+                  _MaterialSavedConnectionsSidebarRow(
+                    isSelected: state.isShowingSavedConnections,
+                    isCollapsed: isCollapsed,
+                    onTap: workspaceController.showSavedConnections,
+                  ),
+                  const SizedBox(height: 10),
+                  _MaterialSavedSystemsSidebarRow(
+                    isSelected: state.isShowingSavedSystems,
+                    isCollapsed: isCollapsed,
+                    onTap: workspaceController.showSavedSystems,
+                  ),
+                ],
               ),
             ),
           ],
@@ -325,6 +335,73 @@ class _MaterialSavedConnectionsSidebarRow extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ConnectionWorkspaceCopy.allConnectionsAction,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialSavedSystemsSidebarRow extends StatelessWidget {
+  const _MaterialSavedSystemsSidebarRow({
+    required this.isSelected,
+    required this.onTap,
+    this.isCollapsed = false,
+  });
+
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isCollapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCollapsed) {
+      return _MaterialCollapsedSidebarButton(
+        buttonKey: const ValueKey('desktop_saved_systems'),
+        label: 'S',
+        icon: Icons.dns_outlined,
+        isSelected: isSelected,
+        onTap: onTap,
+      );
+    }
+
+    final theme = Theme.of(context);
+    final palette = context.pocketPalette;
+    final backgroundColor = isSelected
+        ? theme.colorScheme.primary.withValues(alpha: 0.12)
+        : palette.subtleSurface.withValues(alpha: 0.8);
+    final borderColor = isSelected
+        ? theme.colorScheme.primary.withValues(alpha: 0.36)
+        : palette.surfaceBorder;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const ValueKey('desktop_saved_systems'),
+        borderRadius: PocketRadii.circular(22),
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: PocketRadii.circular(22),
+            border: Border.all(color: borderColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: [
+                const Icon(Icons.dns_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    ConnectionWorkspaceCopy.manageSystemsAction,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),

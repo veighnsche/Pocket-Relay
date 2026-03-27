@@ -8,6 +8,7 @@ import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_saved_connections_content.dart';
+import 'package:pocket_relay/src/features/workspace/presentation/workspace_saved_systems_content.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
 
 class ConnectionWorkspaceMobileShell extends StatefulWidget {
@@ -90,6 +91,11 @@ class _ConnectionWorkspaceMobileShellState
               platformPolicy: widget.platformPolicy,
               settingsOverlayDelegate: widget.settingsOverlayDelegate,
             ),
+            _ConnectionWorkspaceSavedSystemsPage(
+              key: const ValueKey('saved_systems_page'),
+              workspaceController: widget.workspaceController,
+              platformPolicy: widget.platformPolicy,
+            ),
           ],
         );
       },
@@ -119,8 +125,12 @@ class _ConnectionWorkspaceMobileShellState
   }) {
     _currentPageIndex = index;
     _scheduledTargetPage = index;
-    if (index >= liveConnectionIds.length) {
+    if (index == liveConnectionIds.length) {
       widget.workspaceController.showSavedConnections();
+      return;
+    }
+    if (index > liveConnectionIds.length) {
+      widget.workspaceController.showSavedSystems();
       return;
     }
 
@@ -128,6 +138,9 @@ class _ConnectionWorkspaceMobileShellState
   }
 
   int _targetPageIndex(ConnectionWorkspaceState state) {
+    if (state.isShowingSavedSystems) {
+      return state.liveConnectionIds.length + 1;
+    }
     if (state.isShowingSavedConnections || state.selectedConnectionId == null) {
       return state.liveConnectionIds.length;
     }
@@ -217,6 +230,35 @@ class _ConnectionWorkspaceSavedConnectionsPageState
       description: ConnectionWorkspaceCopy.mobileSavedConnectionsDescription,
       platformBehavior: widget.platformPolicy.behavior,
       settingsOverlayDelegate: widget.settingsOverlayDelegate,
+    );
+
+    return Scaffold(body: content);
+  }
+}
+
+class _ConnectionWorkspaceSavedSystemsPage extends StatefulWidget {
+  const _ConnectionWorkspaceSavedSystemsPage({
+    super.key,
+    required this.workspaceController,
+    required this.platformPolicy,
+  });
+
+  final ConnectionWorkspaceController workspaceController;
+  final PocketPlatformPolicy platformPolicy;
+
+  @override
+  State<_ConnectionWorkspaceSavedSystemsPage> createState() =>
+      _ConnectionWorkspaceSavedSystemsPageState();
+}
+
+class _ConnectionWorkspaceSavedSystemsPageState
+    extends State<_ConnectionWorkspaceSavedSystemsPage> {
+  @override
+  Widget build(BuildContext context) {
+    final content = ConnectionWorkspaceSavedSystemsContent(
+      workspaceController: widget.workspaceController,
+      description: ConnectionWorkspaceCopy.mobileSavedSystemsDescription,
+      platformBehavior: widget.platformPolicy.behavior,
     );
 
     return Scaffold(body: content);

@@ -5,21 +5,29 @@ import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_
 abstract final class ConnectionWorkspaceCopy {
   static const String workspaceTitle = 'Workspaces';
   static const String connectionInventorySectionTitle = workspaceTitle;
-  static const String savedConnectionsTitle = 'Saved workspaces';
+  static const String savedConnectionsTitle = 'Workspaces';
   static const String savedConnectionsMenuLabel = savedConnectionsTitle;
   static const String manageConnectionsAction = 'Manage workspaces';
   static const String allConnectionsAction = manageConnectionsAction;
+  static const String systemsTitle = 'Systems';
+  static const String manageSystemsAction = systemsTitle;
   static const String conversationHistoryMenuLabel = 'Conversation history';
   static const String openLanesSectionTitle = 'Open lanes';
   static const String needsAttentionSectionTitle = 'Needs attention';
   static const String mobileSavedConnectionsDescription =
-      'Jump back to an open lane or open another saved workspace. System and lane controls stay inside each lane.';
+      'Jump back to an open lane or open another saved workspace. Manage machines from Systems.';
+  static const String mobileSavedSystemsDescription =
+      'Manage the reusable machines that remote workspaces run on.';
   static const String desktopSidebarDescription =
       'Keep multiple lanes open while every saved workspace stays visible in one list.';
   static const String desktopSavedConnectionsDescription =
-      'Open another saved workspace or jump back to a lane that is already open. System and lane controls stay inside each lane.';
-  static const String addConnectionAction = 'Add workspace';
-  static const String addConnectionProgress = 'Adding…';
+      'Open another saved workspace or jump back to a lane that is already open. Manage machines from Systems.';
+  static const String desktopSavedSystemsDescription =
+      'Edit the reusable machines that remote workspaces point at.';
+  static const String addConnectionAction = 'New workspace';
+  static const String addConnectionProgress = 'Creating…';
+  static const String addSystemAction = 'New system';
+  static const String addSystemProgress = 'Creating…';
   static const String openLaneAction = 'Open lane';
   static const String goToLaneAction = 'Go to lane';
   static const String openingLaneAction = 'Opening…';
@@ -104,6 +112,9 @@ abstract final class ConnectionWorkspaceCopy {
   static const String emptyWorkspaceTitle = 'No saved workspaces yet.';
   static const String emptyWorkspaceMessage =
       'Add your first workspace to open a new lane.';
+  static const String emptySystemsTitle = 'No systems yet.';
+  static const String emptySystemsMessage =
+      'Add a system to reuse one machine across multiple workspaces.';
   static const String laneFactLabel = 'Lane';
   static const String laneOpenFact = 'Open';
   static const String laneClosedFact = 'Closed';
@@ -134,6 +145,17 @@ abstract final class ConnectionWorkspaceCopy {
         'Local workspace · $workspaceDir',
       ConnectionMode.local => 'Local workspace · $workspaceNotSet',
     };
+  }
+
+  static String systemSubtitle(SystemProfile profile) {
+    final authLabel = switch (profile.authMode) {
+      AuthMode.password => 'Password sign-in',
+      AuthMode.privateKey => 'Private key sign-in',
+    };
+    final trustLabel = profile.hostFingerprint.trim().isEmpty
+        ? 'Fingerprint not saved'
+        : 'Fingerprint saved';
+    return '$authLabel · $trustLabel';
   }
 
   static String reconnectBadgeFor(
