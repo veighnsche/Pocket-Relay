@@ -86,7 +86,7 @@ void main() {
 
       expect(
         await snackBarMessage,
-        'This host fingerprint prompt is no longer available.',
+        '[${PocketErrorCatalog.chatSessionHostFingerprintPromptUnavailable.code}] Host fingerprint unavailable. This host fingerprint prompt is no longer available.',
       );
       expect(controller.profile.hostFingerprint, isEmpty);
     },
@@ -136,7 +136,7 @@ void main() {
 
       expect(
         await snackBarMessage,
-        'Could not save the host fingerprint to this profile.',
+        '[${PocketErrorCatalog.chatSessionHostFingerprintSaveFailed.code}] Host fingerprint save failed. Could not save the host fingerprint to this profile.',
       );
       expect(controller.profile.hostFingerprint, isEmpty);
       expect(

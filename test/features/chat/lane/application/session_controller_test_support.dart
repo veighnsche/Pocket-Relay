@@ -18,6 +18,7 @@ export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 export 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 export 'package:pocket_relay/src/features/chat/lane/application/chat_session_controller.dart';
+export 'package:pocket_relay/src/features/chat/lane/application/chat_session_guardrail_errors.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';

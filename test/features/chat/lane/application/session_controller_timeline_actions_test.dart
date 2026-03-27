@@ -147,6 +147,79 @@ void main() {
     },
   );
 
+  test(
+    'submitUserInput reports a typed error when the request is stale',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      await controller.submitUserInput(
+        'missing_request',
+        const <String, List<String>>{
+          'q1': <String>['Vince'],
+        },
+      );
+
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionUserInputRequestUnavailable.code}] Input request unavailable. This input request is no longer pending.',
+      );
+    },
+  );
+
+  test(
+    'approveRequest reports a typed error when the request is stale',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      await controller.approveRequest('missing_request');
+
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionApprovalRequestUnavailable.code}] Approval request unavailable. This approval request is no longer pending.',
+      );
+    },
+  );
+
   test('hydrates missing child thread metadata through thread/read', () async {
     final appServerClient = FakeCodexAppServerClient()
       ..threadsById['thread_child'] = const CodexAppServerThreadSummary(

@@ -83,11 +83,18 @@ void main() {
       await controller.initialize();
       await controller.selectConversationForResume('thread_saved');
       expect(await controller.sendPrompt('Keep running'), isTrue);
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
 
       final branched = await controller.branchSelectedConversation();
 
       expect(branched, isFalse);
       expect(appServerClient.forkThreadRequests, isEmpty);
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionBranchBlockedByActiveTurn.code}] Branch blocked. Stop the active turn before branching this conversation.',
+      );
     },
   );
 

@@ -408,6 +408,157 @@ abstract final class PocketErrorCatalog {
     meaning:
         'Rejecting an unsupported app-server request from the active live session failed.',
   );
+  static const PocketErrorDefinition
+  chatSessionUserInputRequestUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1405',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Submitting user input was blocked because the target request was no longer pending in the active chat session.',
+  );
+  static const PocketErrorDefinition
+  chatSessionApprovalRequestUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1406',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Resolving an approval request was blocked because the target request was no longer pending in the active chat session.',
+  );
+
+  // Chat session: send guardrails and prerequisites (15xx).
+  static const PocketErrorDefinition
+  chatSessionHostFingerprintPromptUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1501',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Saving an observed host fingerprint was blocked because the referenced host-key prompt was no longer available in the transcript.',
+  );
+  static const PocketErrorDefinition
+  chatSessionHostFingerprintConflict = PocketErrorDefinition(
+    code: 'PR-CHAT-1502',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Saving an observed host fingerprint was blocked because the profile already stores a different pinned fingerprint.',
+  );
+  static const PocketErrorDefinition
+  chatSessionHostFingerprintSaveFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1503',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Saving an observed host fingerprint failed because Pocket Relay could not persist the updated profile.',
+  );
+  static const PocketErrorDefinition
+  chatSessionRemoteConfigurationRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1504',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the remote connection profile is incomplete.',
+  );
+  static const PocketErrorDefinition
+  chatSessionLocalConfigurationRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1505',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the local Codex profile is incomplete.',
+  );
+  static const PocketErrorDefinition
+  chatSessionLocalModeUnsupported = PocketErrorDefinition(
+    code: 'PR-CHAT-1506',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because local Codex mode is unavailable on the current platform.',
+  );
+  static const PocketErrorDefinition
+  chatSessionSshPasswordRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1507',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the selected remote profile requires an SSH password that is not present.',
+  );
+  static const PocketErrorDefinition
+  chatSessionPrivateKeyRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1508',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the selected remote profile requires a private key that is not present.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageInputUnsupported = PocketErrorDefinition(
+    code: 'PR-CHAT-1509',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending a draft was blocked because the effective model does not support image inputs.',
+  );
+
+  // Chat session: recovery guardrails (16xx).
+  static const PocketErrorDefinition
+  chatSessionFreshConversationBlocked = PocketErrorDefinition(
+    code: 'PR-CHAT-1601',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Starting a fresh conversation was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionClearTranscriptBlocked = PocketErrorDefinition(
+    code: 'PR-CHAT-1602',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Clearing the transcript was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionAlternateSessionUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1603',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Switching to the alternate recovered session was blocked because that local session is no longer available.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinueBlockedByTranscriptRestore = PocketErrorDefinition(
+    code: 'PR-CHAT-1604',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because transcript restoration is still in progress.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinueBlockedByActiveTurn = PocketErrorDefinition(
+    code: 'PR-CHAT-1605',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinueTargetUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1606',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because there is no resumable active conversation target yet.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinuePromptUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1607',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because the selected user prompt is no longer available in the transcript.',
+  );
+  static const PocketErrorDefinition
+  chatSessionBranchBlockedByTranscriptRestore = PocketErrorDefinition(
+    code: 'PR-CHAT-1608',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Branching the selected conversation was blocked because transcript restoration is still in progress.',
+  );
+  static const PocketErrorDefinition
+  chatSessionBranchBlockedByActiveTurn = PocketErrorDefinition(
+    code: 'PR-CHAT-1609',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Branching the selected conversation was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionBranchTargetUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1610',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Branching the selected conversation was blocked because there is no selectable conversation target yet.',
+  );
 
   static const List<PocketErrorDefinition> connectionLifecycleDefinitions =
       <PocketErrorDefinition>[
@@ -460,6 +611,27 @@ abstract final class PocketErrorCatalog {
         chatSessionApproveRequestFailed,
         chatSessionDenyRequestFailed,
         chatSessionRejectUnsupportedRequestFailed,
+        chatSessionUserInputRequestUnavailable,
+        chatSessionApprovalRequestUnavailable,
+        chatSessionHostFingerprintPromptUnavailable,
+        chatSessionHostFingerprintConflict,
+        chatSessionHostFingerprintSaveFailed,
+        chatSessionRemoteConfigurationRequired,
+        chatSessionLocalConfigurationRequired,
+        chatSessionLocalModeUnsupported,
+        chatSessionSshPasswordRequired,
+        chatSessionPrivateKeyRequired,
+        chatSessionImageInputUnsupported,
+        chatSessionFreshConversationBlocked,
+        chatSessionClearTranscriptBlocked,
+        chatSessionAlternateSessionUnavailable,
+        chatSessionContinueBlockedByTranscriptRestore,
+        chatSessionContinueBlockedByActiveTurn,
+        chatSessionContinueTargetUnavailable,
+        chatSessionContinuePromptUnavailable,
+        chatSessionBranchBlockedByTranscriptRestore,
+        chatSessionBranchBlockedByActiveTurn,
+        chatSessionBranchTargetUnavailable,
       ];
 
   static const List<PocketErrorDefinition> allDefinitions =

@@ -130,6 +130,10 @@ extension on ChatSessionController {
     _snackBarMessagesController.add(message);
   }
 
+  void _emitUserFacingError(PocketUserFacingError error) {
+    _emitSnackBar(error.inlineMessage);
+  }
+
   String _sessionLabel() {
     return switch (_profile.connectionMode) {
       ConnectionMode.remote => 'remote Codex',

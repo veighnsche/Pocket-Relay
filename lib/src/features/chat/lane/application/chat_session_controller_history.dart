@@ -306,7 +306,9 @@ Future<void> _resolveChatSessionApproval(
 }) async {
   final pendingRequest = controller._findPendingApprovalRequest(requestId);
   if (pendingRequest == null) {
-    controller._emitSnackBar('This approval request is no longer pending.');
+    controller._emitUserFacingError(
+      ChatSessionGuardrailErrors.approvalRequestUnavailable(),
+    );
     return;
   }
 

@@ -9,6 +9,7 @@ import 'package:pocket_relay/src/core/utils/shell_utils.dart';
 import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_conversation_recovery_policy.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_session_errors.dart';
+import 'package:pocket_relay/src/features/chat/lane/application/chat_session_guardrail_errors.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';

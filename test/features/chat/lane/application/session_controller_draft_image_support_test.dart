@@ -147,7 +147,7 @@ void main() {
       expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
         await snackBarMessage,
-        'Model gpt-text-only does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-text-only does not support image inputs. Remove images or switch models.',
       );
     },
   );
@@ -219,7 +219,7 @@ void main() {
       expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
         await snackBarMessage,
-        'Model gpt-default-text-only does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-default-text-only does not support image inputs. Remove images or switch models.',
       );
     },
   );
@@ -295,7 +295,7 @@ void main() {
       expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
         await snackBarMessage,
-        'Model gpt-5.3-codex does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-5.3-codex does not support image inputs. Remove images or switch models.',
       );
     },
   );
@@ -383,7 +383,7 @@ void main() {
       expect(appServerClient.sentTurns.single.model, 'gpt-text-only');
       expect(
         await snackBarMessage,
-        'Model gpt-text-only does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-text-only does not support image inputs. Remove images or switch models.',
       );
     },
   );
