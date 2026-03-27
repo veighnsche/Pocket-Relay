@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/chat/composer/application/chat_composer_image_attachment_loader.dart';
 
 void main() {
@@ -77,11 +78,17 @@ void main() {
           ),
         ),
         throwsA(
-          isA<ChatComposerImageAttachmentLoadException>().having(
-            (error) => error.message,
-            'message',
-            contains('Could not shrink this image enough'),
-          ),
+          isA<ChatComposerImageAttachmentLoadException>()
+              .having(
+                (error) => error.userFacingError.definition,
+                'definition',
+                PocketErrorCatalog.chatSessionImageAttachmentTooLargeForRemote,
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Could not shrink this image enough'),
+              ),
         ),
       );
     },
@@ -96,7 +103,74 @@ void main() {
           mimeType: 'image/bmp',
         ),
       ),
-      throwsA(isA<ChatComposerImageAttachmentLoadException>()),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentUnsupportedType,
+        ),
+      ),
+    );
+  });
+
+  test('rejects empty images with a stable code', () async {
+    await expectLater(
+      loader.loadFromXFile(
+        XFile.fromData(
+          Uint8List(0),
+          name: 'reference.png',
+          mimeType: 'image/png',
+        ),
+      ),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentEmpty,
+        ),
+      ),
+    );
+  });
+
+  test('rejects oversized source images with a stable code', () async {
+    final loader = ChatComposerImageAttachmentLoader(
+      maximumSourceImageBytes: 4,
+    );
+
+    await expectLater(
+      loader.loadFromXFile(
+        XFile.fromData(
+          Uint8List.fromList(const <int>[1, 2, 3, 4, 5]),
+          name: 'reference.png',
+          mimeType: 'image/png',
+        ),
+      ),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentTooLarge,
+        ),
+      ),
+    );
+  });
+
+  test('rejects undecodable image payloads with a stable code', () async {
+    await expectLater(
+      loader.loadFromXFile(
+        XFile.fromData(
+          Uint8List.fromList(const <int>[137, 80, 78, 71, 13, 10, 26, 10]),
+          name: 'reference.png',
+          mimeType: 'image/png',
+        ),
+      ),
+      throwsA(
+        isA<ChatComposerImageAttachmentLoadException>().having(
+          (error) => error.userFacingError.definition,
+          'definition',
+          PocketErrorCatalog.chatSessionImageAttachmentDecodeFailed,
+        ),
+      ),
     );
   });
 }
