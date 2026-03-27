@@ -222,6 +222,7 @@ void main() {
         diagnostics!.lastTransportLossReason,
         ConnectionWorkspaceTransportLossReason.sshConnectFailed,
       );
+      expect(diagnostics.lastTransportFailureDetail, isNull);
       expect(
         diagnostics.lastRecoveryOutcome,
         ConnectionWorkspaceRecoveryOutcome.transportUnavailable,

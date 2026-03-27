@@ -205,6 +205,7 @@ void _recordWorkspaceFallbackTransportConnectFailure(
   ConnectionWorkspaceController controller,
   String connectionId, {
   required DateTime occurredAt,
+  required Object? error,
 }) {
   final diagnostics = controller._state.recoveryDiagnosticsFor(connectionId);
   final lastRecoveryStartedAt = diagnostics?.lastRecoveryStartedAt;
@@ -220,6 +221,12 @@ void _recordWorkspaceFallbackTransportConnectFailure(
     occurredAt: occurredAt,
     reason: ConnectionWorkspaceTransportLossReason.connectFailed,
   );
+  controller._updateRecoveryDiagnostics(
+    connectionId,
+    (current) => current.copyWith(
+      lastTransportFailureDetail: PocketErrorDetailFormatter.normalize(error),
+    ),
+  );
 }
 
 void _beginWorkspaceRecoveryAttempt(
@@ -233,6 +240,7 @@ void _beginWorkspaceRecoveryAttempt(
     (current) => current.copyWith(
       lastRecoveryOrigin: origin,
       lastRecoveryStartedAt: startedAt,
+      clearLastTransportFailureDetail: true,
       clearLastRecoveryCompletedAt: true,
       clearLastRecoveryOutcome: true,
     ),

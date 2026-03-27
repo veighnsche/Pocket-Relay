@@ -77,6 +77,7 @@ Future<void> _reconnectWorkspaceConnection(
         controller._recordFallbackTransportConnectFailure(
           connectionId,
           occurredAt: controller._now(),
+          error: error,
         );
         controller._setLiveReattachPhase(
           connectionId,
@@ -100,11 +101,12 @@ Future<void> _reconnectWorkspaceConnection(
         );
       }
       return;
-    } catch (_) {
+    } catch (error) {
       if (!controller._isDisposed) {
         controller._recordFallbackTransportConnectFailure(
           connectionId,
           occurredAt: controller._now(),
+          error: error,
         );
         controller._clearLiveReattachPhase(connectionId);
         controller._setTransportRecoveryPhase(
@@ -241,6 +243,7 @@ Future<void> _reconnectWorkspaceConnection(
         controller._recordFallbackTransportConnectFailure(
           connectionId,
           occurredAt: controller._now(),
+          error: error,
         );
         controller._setLiveReattachPhase(
           connectionId,
@@ -264,11 +267,12 @@ Future<void> _reconnectWorkspaceConnection(
         );
       }
       return;
-    } catch (_) {
+    } catch (error) {
       if (!controller._isDisposed) {
         controller._recordFallbackTransportConnectFailure(
           connectionId,
           occurredAt: controller._now(),
+          error: error,
         );
         controller._clearLiveReattachPhase(connectionId);
         controller._setTransportRecoveryPhase(

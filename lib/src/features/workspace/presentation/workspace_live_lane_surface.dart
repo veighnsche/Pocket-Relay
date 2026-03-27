@@ -164,6 +164,9 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final liveReattachPhase = workspaceState.liveReattachPhaseFor(
       widget.laneBinding.connectionId,
     );
+    final recoveryDiagnostics = workspaceState.recoveryDiagnosticsFor(
+      widget.laneBinding.connectionId,
+    );
     final remoteRuntime = workspaceState.remoteRuntimeFor(
       widget.laneBinding.connectionId,
     );
@@ -182,6 +185,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final recoveryNotice = _transportRecoveryNoticeFor(
       liveReattachPhase: liveReattachPhase,
       phase: transportRecoveryPhase,
+      diagnostics: recoveryDiagnostics,
       remoteRuntime: remoteRuntime,
     );
     final emptyStateContent = _buildLaneEmptyStateContent(
@@ -507,6 +511,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   Widget? _transportRecoveryNoticeFor({
     required ConnectionWorkspaceLiveReattachPhase? liveReattachPhase,
     required ConnectionWorkspaceTransportRecoveryPhase? phase,
+    required ConnectionWorkspaceRecoveryDiagnostics? diagnostics,
     required ConnectionRemoteRuntimeState? remoteRuntime,
   }) {
     final sessionController = widget.laneBinding.sessionController;
@@ -532,7 +537,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
     final transportLostError = ConnectionLifecycleErrors.transportLostNotice();
     final unavailableError =
-        ConnectionLifecycleErrors.transportUnavailableNotice(remoteRuntime);
+        ConnectionLifecycleErrors.transportUnavailableNotice(
+          remoteRuntime,
+          recoveryFailureDetail: diagnostics?.lastTransportFailureDetail,
+        );
     final unavailableNotice = (
       unavailableError.title,
       unavailableError.bodyWithCode,

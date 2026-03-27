@@ -82,8 +82,9 @@ abstract final class ConnectionLifecycleErrors {
   }
 
   static PocketUserFacingError transportUnavailableNotice(
-    ConnectionRemoteRuntimeState? remoteRuntime,
-  ) {
+    ConnectionRemoteRuntimeState? remoteRuntime, {
+    String? recoveryFailureDetail,
+  }) {
     return switch (remoteRuntime?.hostCapability.status) {
       ConnectionRemoteHostCapabilityStatus.unsupported => PocketUserFacingError(
         definition: PocketErrorCatalog.connectionReconnectContinuityUnsupported,
@@ -119,7 +120,7 @@ abstract final class ConnectionLifecycleErrors {
           title: 'Remote session unavailable',
           message:
               'Pocket Relay could not reconnect this lane to Codex. Your draft is preserved below. Try reconnecting again.',
-        ),
+        ).withUnderlyingDetail(recoveryFailureDetail),
       },
     };
   }

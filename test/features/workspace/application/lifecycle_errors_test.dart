@@ -94,6 +94,22 @@ void main() {
   );
 
   test(
+    'transport unavailable notice keeps preserved generic reconnect detail',
+    () {
+      final error = ConnectionLifecycleErrors.transportUnavailableNotice(
+        null,
+        recoveryFailureDetail: 'connect failed',
+      );
+
+      expect(
+        error.definition,
+        PocketErrorCatalog.connectionTransportUnavailable,
+      );
+      expect(error.inlineMessage, contains('connect failed'));
+    },
+  );
+
+  test(
     'conversation history failure maps unpinned host keys to a stable code',
     () {
       final error = ConnectionLifecycleErrors.conversationHistoryFailure(

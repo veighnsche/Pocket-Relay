@@ -58,6 +58,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     this.lastRecoveryCompletedAt,
     this.lastTransportLossAt,
     this.lastTransportLossReason,
+    this.lastTransportFailureDetail,
     this.lastRecoveryOutcome,
   });
 
@@ -70,6 +71,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
   final DateTime? lastRecoveryCompletedAt;
   final DateTime? lastTransportLossAt;
   final ConnectionWorkspaceTransportLossReason? lastTransportLossReason;
+  final String? lastTransportFailureDetail;
   final ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome;
 
   ConnectionWorkspaceRecoveryDiagnostics copyWith({
@@ -81,6 +83,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     DateTime? lastRecoveryCompletedAt,
     DateTime? lastTransportLossAt,
     ConnectionWorkspaceTransportLossReason? lastTransportLossReason,
+    String? lastTransportFailureDetail,
     ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome,
     bool clearLastBackgroundedAt = false,
     bool clearLastBackgroundedLifecycleState = false,
@@ -90,6 +93,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     bool clearLastRecoveryCompletedAt = false,
     bool clearLastTransportLossAt = false,
     bool clearLastTransportLossReason = false,
+    bool clearLastTransportFailureDetail = false,
     bool clearLastRecoveryOutcome = false,
   }) {
     return ConnectionWorkspaceRecoveryDiagnostics(
@@ -118,6 +122,9 @@ class ConnectionWorkspaceRecoveryDiagnostics {
       lastTransportLossReason: clearLastTransportLossReason
           ? null
           : (lastTransportLossReason ?? this.lastTransportLossReason),
+      lastTransportFailureDetail: clearLastTransportFailureDetail
+          ? null
+          : (lastTransportFailureDetail ?? this.lastTransportFailureDetail),
       lastRecoveryOutcome: clearLastRecoveryOutcome
           ? null
           : (lastRecoveryOutcome ?? this.lastRecoveryOutcome),
@@ -136,6 +143,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
         other.lastRecoveryCompletedAt == lastRecoveryCompletedAt &&
         other.lastTransportLossAt == lastTransportLossAt &&
         other.lastTransportLossReason == lastTransportLossReason &&
+        other.lastTransportFailureDetail == lastTransportFailureDetail &&
         other.lastRecoveryOutcome == lastRecoveryOutcome;
   }
 
@@ -149,6 +157,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     lastRecoveryCompletedAt,
     lastTransportLossAt,
     lastTransportLossReason,
+    lastTransportFailureDetail,
     lastRecoveryOutcome,
   );
 }

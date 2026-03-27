@@ -58,6 +58,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Remote session unavailable'), findsOneWidget);
+      expect(
+        find.textContaining(
+          '[${PocketErrorCatalog.connectionTransportUnavailable.code}]',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Underlying error: connect failed'),
+        findsOneWidget,
+      );
       expect(find.text('Reconnect'), findsOneWidget);
       expect(
         controller.selectedLaneBinding!.composerDraftHost.draft.text,

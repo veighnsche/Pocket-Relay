@@ -133,6 +133,7 @@ Future<void> _initializeWorkspaceController(
       controller._recordFallbackTransportConnectFailure(
         firstConnectionId,
         occurredAt: controller._now(),
+        error: error,
       );
       controller._setLiveReattachPhase(
         firstConnectionId,
@@ -156,11 +157,12 @@ Future<void> _initializeWorkspaceController(
       );
     }
     return;
-  } catch (_) {
+  } catch (error) {
     if (!controller._isDisposed) {
       controller._recordFallbackTransportConnectFailure(
         firstConnectionId,
         occurredAt: controller._now(),
+        error: error,
       );
       controller._clearLiveReattachPhase(firstConnectionId);
       controller._setTransportRecoveryPhase(

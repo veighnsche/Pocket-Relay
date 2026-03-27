@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
@@ -387,10 +388,12 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   void _recordFallbackTransportConnectFailure(
     String connectionId, {
     required DateTime occurredAt,
+    required Object? error,
   }) => _recordWorkspaceFallbackTransportConnectFailure(
     this,
     connectionId,
     occurredAt: occurredAt,
+    error: error,
   );
 
   void _beginRecoveryAttempt(

@@ -5,6 +5,7 @@ import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_app_lifecycle_host.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_background_grace_host.dart';
@@ -12,6 +13,7 @@ import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspa
 import 'package:pocket_relay/src/features/workspace/presentation/widgets/workspace_turn_wake_lock_host.dart';
 
 import 'pocket_relay_dependencies.dart';
+import 'pocket_relay_bootstrap_errors.dart';
 import 'pocket_relay_shell.dart';
 
 class PocketRelayBootstrap extends StatefulWidget {
@@ -26,7 +28,7 @@ class PocketRelayBootstrap extends StatefulWidget {
 class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
   CodexConnectionRepository? _ownedConnectionRepository;
   late ConnectionWorkspaceController _workspaceController;
-  Object? _workspaceInitializationError;
+  PocketUserFacingError? _workspaceInitializationError;
 
   @override
   void initState() {
@@ -85,12 +87,18 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
         });
       }
     } catch (error) {
-      debugPrint('Pocket Relay workspace initialization failed: $error');
+      final userFacingError =
+          PocketRelayBootstrapErrors.workspaceInitializationFailed(
+            error: error,
+          );
+      debugPrint(
+        'Pocket Relay workspace initialization failed: ${userFacingError.inlineMessage}',
+      );
       if (!mounted || !identical(controller, _workspaceController)) {
         return;
       }
       setState(() {
-        _workspaceInitializationError = error;
+        _workspaceInitializationError = userFacingError;
       });
     }
   }
@@ -120,7 +128,7 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     if (_workspaceInitializationError != null &&
         _workspaceController.state.isLoading) {
       return PocketRelayBootstrapShell(
-        message: 'Pocket Relay could not finish loading your workspace.',
+        message: _workspaceInitializationError!.inlineMessage,
         isLoading: false,
         action: FilledButton(
           key: const ValueKey('retry_workspace_bootstrap'),

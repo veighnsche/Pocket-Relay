@@ -5,6 +5,7 @@ enum PocketErrorDomain {
   chatSession,
   chatComposer,
   connectionSettings,
+  appBootstrap,
 }
 
 final class PocketErrorDefinition {
@@ -652,6 +653,15 @@ abstract final class PocketErrorCatalog {
         'Probing the remote target from the connection settings sheet failed before Pocket Relay could determine continuity support.',
   );
 
+  // App bootstrap: workspace initialization (11xx).
+  static const PocketErrorDefinition
+  appBootstrapWorkspaceInitializationFailed = PocketErrorDefinition(
+    code: 'PR-BOOT-1101',
+    domain: PocketErrorDomain.appBootstrap,
+    meaning:
+        'Pocket Relay failed to initialize the workspace shell during app bootstrap.',
+  );
+
   static const List<PocketErrorDefinition> connectionLifecycleDefinitions =
       <PocketErrorDefinition>[
         connectionOpenRemoteHostProbeFailed,
@@ -745,12 +755,16 @@ abstract final class PocketErrorCatalog {
         connectionSettingsRemoteRuntimeProbeFailed,
       ];
 
+  static const List<PocketErrorDefinition> appBootstrapDefinitions =
+      <PocketErrorDefinition>[appBootstrapWorkspaceInitializationFailed];
+
   static const List<PocketErrorDefinition> allDefinitions =
       <PocketErrorDefinition>[
         ...connectionLifecycleDefinitions,
         ...chatSessionDefinitions,
         ...chatComposerDefinitions,
         ...connectionSettingsDefinitions,
+        ...appBootstrapDefinitions,
       ];
 
   static PocketErrorDefinition? lookup(String code) {
