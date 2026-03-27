@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
@@ -24,6 +25,7 @@ export 'dart:async';
 export 'package:flutter_secure_storage/flutter_secure_storage.dart';
 export 'package:flutter/widgets.dart';
 export 'package:flutter_test/flutter_test.dart';
+export 'package:pocket_relay/src/core/errors/pocket_error.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 export 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
@@ -40,6 +42,20 @@ export 'package:pocket_relay/src/features/workspace/infrastructure/connection_wo
 export 'package:shared_preferences/shared_preferences.dart';
 export 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 export 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+final class ThrowingRemoteHostProbe implements CodexRemoteAppServerHostProbe {
+  const ThrowingRemoteHostProbe(this.message);
+
+  final String message;
+
+  @override
+  Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    throw StateError(message);
+  }
+}
 
 ConnectionWorkspaceController buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,

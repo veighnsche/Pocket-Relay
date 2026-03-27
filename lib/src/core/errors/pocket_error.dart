@@ -282,6 +282,15 @@ abstract final class PocketErrorCatalog {
         'Reconnecting the lane failed because the managed remote app-server was present but unhealthy.',
   );
 
+  // Connection lifecycle: passive runtime probing (22xx).
+  static const PocketErrorDefinition
+  connectionRuntimeProbeFailed = PocketErrorDefinition(
+    code: 'PR-CONN-2201',
+    domain: PocketErrorDomain.connectionLifecycle,
+    meaning:
+        'Refreshing passive remote runtime state failed because Pocket Relay could not verify the remote host for the saved connection.',
+  );
+
   // Connection lifecycle: conversation history (31xx).
   static const PocketErrorDefinition
   connectionHistoryLoadFailed = PocketErrorDefinition(
@@ -615,6 +624,7 @@ abstract final class PocketErrorCatalog {
         connectionReconnectHostProbeFailed,
         connectionReconnectServerStopped,
         connectionReconnectServerUnhealthy,
+        connectionRuntimeProbeFailed,
         connectionHistoryLoadFailed,
         connectionHistoryHostKeyUnpinned,
         connectionHistoryServerStopped,

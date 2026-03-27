@@ -136,6 +136,15 @@ abstract final class ConnectionLifecycleErrors {
     ).withNormalizedUnderlyingError(error);
   }
 
+  static PocketUserFacingError remoteRuntimeProbeFailure({Object? error}) {
+    return PocketUserFacingError(
+      definition: PocketErrorCatalog.connectionRuntimeProbeFailed,
+      title: 'Remote continuity unavailable',
+      message:
+          'Pocket Relay could not verify the remote host for this connection.',
+    ).withNormalizedUnderlyingError(error);
+  }
+
   static PocketUserFacingError conversationHistoryFailure(Object error) {
     if (error is CodexWorkspaceConversationHistoryUnpinnedHostKeyException) {
       return PocketUserFacingError(

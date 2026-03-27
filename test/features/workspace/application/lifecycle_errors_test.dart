@@ -113,6 +113,15 @@ void main() {
       expect(error.bodyWithCode, contains('7a:9f:d7:dc:2e:f2'));
     },
   );
+
+  test('remote runtime probe failures keep a stable code and detail', () {
+    final error = ConnectionLifecycleErrors.remoteRuntimeProbeFailure(
+      error: StateError('ssh probe failed'),
+    );
+
+    expect(error.definition, PocketErrorCatalog.connectionRuntimeProbeFailed);
+    expect(error.inlineMessage, contains('ssh probe failed'));
+  });
 }
 
 ConnectionProfile _remoteProfile() {

@@ -123,9 +123,12 @@ Future<ConnectionRemoteRuntimeState> _probeWorkspaceRemoteRuntime(
       ownerInspector: controller._remoteAppServerOwnerInspector,
     );
   } catch (error) {
+    final userFacingError = ConnectionLifecycleErrors.remoteRuntimeProbeFailure(
+      error: error,
+    );
     return ConnectionRemoteRuntimeState(
       hostCapability: ConnectionRemoteHostCapabilityState.probeFailed(
-        detail: '$error',
+        detail: userFacingError.bodyWithCode,
       ),
       server: const ConnectionRemoteServerState.unknown(),
     );

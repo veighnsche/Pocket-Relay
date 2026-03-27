@@ -215,6 +215,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Remote continuity unavailable'), findsOneWidget);
+      expect(
+        find.textContaining(
+          '[${PocketErrorCatalog.connectionRuntimeProbeFailed.code}]',
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('ssh probe failed'), findsOneWidget);
       expect(find.text('Reconnect'), findsOneWidget);
       expect(
