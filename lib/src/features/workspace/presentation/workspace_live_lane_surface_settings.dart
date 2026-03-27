@@ -32,8 +32,11 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         connectionId: connectionId,
         preferConnectionCatalog: shouldPreferCachedModelCatalog,
       );
+      final availableSystemTemplatesFuture = workspaceController
+          .loadReusableSystemTemplates();
       final initialSettings = await initialSettingsFuture;
       final availableModelCatalog = await availableModelCatalogFuture;
+      final availableSystemTemplates = await availableSystemTemplatesFuture;
       if (!_matchesLiveRequestContext(
         workspaceController: workspaceController,
         laneBinding: laneBinding,
@@ -66,12 +69,19 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         ),
         availableModelCatalog: availableModelCatalog.$1,
         availableModelCatalogSource: availableModelCatalog.$2,
+        availableSystemTemplates: availableSystemTemplates,
         onRefreshModelCatalog: onRefreshModelCatalog,
         onRefreshRemoteRuntime: (payload) {
           return workspaceController.refreshRemoteRuntime(
             connectionId: connectionId,
             profile: payload.profile,
             secrets: payload.secrets,
+          );
+        },
+        onTestSystem: (profile, secrets) {
+          return testConnectionSettingsRemoteSystem(
+            profile: profile,
+            secrets: secrets,
           );
         },
       );

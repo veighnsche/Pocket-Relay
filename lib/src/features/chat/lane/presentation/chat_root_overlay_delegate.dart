@@ -4,6 +4,7 @@ import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/changed_files_surface.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 
@@ -48,6 +49,12 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
       onRefreshModelCatalog: null,
       onRefreshRemoteRuntime: (payload) {
         return probeConnectionSettingsRemoteRuntime(payload: payload);
+      },
+      onTestSystem: (profile, secrets) {
+        return testConnectionSettingsRemoteSystem(
+          profile: profile,
+          secrets: secrets,
+        );
       },
     );
   }

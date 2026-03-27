@@ -3,19 +3,19 @@ import 'package:pocket_relay/src/features/connection_settings/domain/connection_
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 
 abstract final class ConnectionWorkspaceCopy {
-  static const String workspaceTitle = 'Connections';
-  static const String connectionInventorySectionTitle = 'Inventory';
-  static const String savedConnectionsTitle = 'Saved connections';
+  static const String workspaceTitle = 'Workspaces';
+  static const String connectionInventorySectionTitle = 'Workspaces';
+  static const String savedConnectionsTitle = 'Saved workspaces';
   static const String savedConnectionsMenuLabel = savedConnectionsTitle;
-  static const String manageConnectionsAction = 'Manage connections';
+  static const String manageConnectionsAction = 'Manage workspaces';
   static const String conversationHistoryMenuLabel = 'Conversation history';
   static const String mobileSavedConnectionsDescription =
-      'Jump back to an open lane or open another saved connection. Connection and server controls stay inside each lane.';
+      'Jump back to an open lane or open another saved workspace. System and lane controls stay inside each lane.';
   static const String desktopSidebarDescription =
-      'Keep multiple lanes open while every saved connection stays visible in one inventory.';
+      'Keep multiple lanes open while every saved workspace stays visible in one list.';
   static const String desktopSavedConnectionsDescription =
-      'Open another saved connection or jump back to a lane that is already open. Connection and server controls stay inside each lane.';
-  static const String addConnectionAction = 'Add connection';
+      'Open another saved workspace or jump back to a lane that is already open. System and lane controls stay inside each lane.';
+  static const String addConnectionAction = 'Add workspace';
   static const String addConnectionProgress = 'Adding…';
   static const String openLaneAction = 'Open lane';
   static const String goToLaneAction = 'Go to lane';
@@ -55,34 +55,34 @@ abstract final class ConnectionWorkspaceCopy {
   static const String remoteServerRunningSummary = 'Server running';
   static const String remoteServerStoppedSummary = 'Server stopped';
   static const String remoteServerUnhealthySummary = 'Server unhealthy';
-  static const String remoteHostUnsupportedSummary = 'Host unsupported';
-  static const String remoteHostProbeFailedSummary = 'Host check failed';
-  static const String remoteHostCheckingSummary = 'Checking host';
+  static const String remoteHostUnsupportedSummary = 'System unsupported';
+  static const String remoteHostProbeFailedSummary = 'System check failed';
+  static const String remoteHostCheckingSummary = 'Checking system';
   static const String remoteServerCheckingSummary = 'Checking server';
   static const String laneConnectedStatus = 'Connected';
   static const String laneDisconnectedStatus = 'Disconnected';
   static const String laneConnectingStatus = 'Connecting';
   static const String laneConfigurationIncompleteStatus =
-      'Connection not configured';
+      'Workspace not configured';
   static const String laneLocalReadyStatus = 'Local workspace ready';
   static const String laneServerRunningStatus = 'Server running';
   static const String laneServerStoppedStatus = 'Server stopped';
   static const String laneServerUnhealthyStatus = 'Server unhealthy';
-  static const String laneHostUnknownStatus = 'Host status unknown';
-  static const String laneHostCheckingStatus = 'Checking host';
+  static const String laneHostUnknownStatus = 'System status unknown';
+  static const String laneHostCheckingStatus = 'Checking system';
   static const String laneServerCheckingStatus = 'Checking server';
-  static const String laneHostCheckFailedStatus = 'Host check failed';
+  static const String laneHostCheckFailedStatus = 'System check failed';
   static const String laneContinuityUnavailableStatus =
       'Remote continuity unavailable';
   static const String laneReconnectNeededStatus = 'Reconnect needed';
   static const String laneChangesPendingStatus = 'Changes pending';
   static const String laneReconnectingStatus = 'Reconnecting';
   static const String laneBootstrapDetail =
-      'Open lane does not connect automatically. Check this host to continue from here.';
+      'Open lane does not connect automatically. Check this system to continue from here.';
   static const String laneConfigurationIncompleteDetail =
-      'Finish the connection definition before this lane can continue.';
+      'Finish the workspace setup before this lane can continue.';
   static const String laneHostCheckingDetail =
-      'Pocket Relay is checking whether this host can support continuity for this lane.';
+      'Pocket Relay is checking whether this system can support continuity for this lane.';
   static const String laneServerCheckingDetail =
       'Pocket Relay is checking the managed remote session for this lane.';
   static const String laneDisconnectedDetail =
@@ -91,17 +91,17 @@ abstract final class ConnectionWorkspaceCopy {
   static const String connectProgress = 'Connecting…';
   static const String disconnectAction = 'Disconnect';
   static const String disconnectProgress = 'Disconnecting…';
-  static const String checkHostAction = 'Check host';
+  static const String checkHostAction = 'Check system';
   static const String checkHostProgress = 'Checking…';
   static const String collapseSidebarAction = 'Collapse sidebar';
   static const String expandSidebarAction = 'Expand sidebar';
   static const String workspaceNotSet = 'Workspace not set';
-  static const String hostNotSet = 'Host not set';
+  static const String hostNotSet = 'System not set';
   static const String remoteConnectionNotConfigured =
-      'Remote connection not configured';
-  static const String emptyWorkspaceTitle = 'No saved connections yet.';
+      'Remote system not configured';
+  static const String emptyWorkspaceTitle = 'No saved workspaces yet.';
   static const String emptyWorkspaceMessage =
-      'Add your first connection to open a new lane.';
+      'Add your first workspace to open a new lane.';
   static String connectionSubtitle(ConnectionProfile profile) {
     final host = profile.host.trim();
     final workspaceDir = profile.workspaceDir.trim();
@@ -114,8 +114,8 @@ abstract final class ConnectionWorkspaceCopy {
         '$hostNotSet · $workspaceDir',
       ConnectionMode.remote => remoteConnectionNotConfigured,
       ConnectionMode.local when workspaceDir.isNotEmpty =>
-        'Local Codex · $workspaceDir',
-      ConnectionMode.local => 'Local Codex · $workspaceNotSet',
+        'Local workspace · $workspaceDir',
+      ConnectionMode.local => 'Local workspace · $workspaceNotSet',
     };
   }
 

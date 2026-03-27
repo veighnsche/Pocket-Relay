@@ -47,11 +47,14 @@ void main() {
     );
     expect(contract.remoteConnectionSection, isNotNull);
     expect(contract.remoteConnectionSection!.status, isNotNull);
-    expect(contract.remoteConnectionSection!.status!.label, 'Host unsupported');
+    expect(
+      contract.remoteConnectionSection!.status!.label,
+      'System unsupported',
+    );
   });
 
   test(
-    'surfaces workspace availability failures inline in the remote target section',
+    'surfaces workspace availability failures inline in the remote system section',
     () {
       final initialProfile = configuredConnectionProfile();
       const initialSecrets = ConnectionSecrets(password: 'secret');
@@ -81,7 +84,7 @@ void main() {
       expect(contract.remoteConnectionSection!.status, isNotNull);
       expect(
         contract.remoteConnectionSection!.status!.label,
-        'Host unsupported',
+        'System unsupported',
       );
       expect(
         contract.remoteConnectionSection!.status!.detail,
@@ -91,7 +94,7 @@ void main() {
   );
 
   test(
-    'surfaces managed server state inline when the remote target is saved and unchanged',
+    'surfaces managed server state inline when the remote system is saved and unchanged',
     () {
       final initialProfile = configuredConnectionProfile();
       const initialSecrets = ConnectionSecrets(password: 'secret');

@@ -41,6 +41,11 @@ void main() {
       await tester.pump();
 
       expect(settingsOverlayDelegate.launchCount, 1);
+      expect(
+        settingsOverlayDelegate.launchedSystemTemplates.single,
+        isNotEmpty,
+      );
+      expect(settingsOverlayDelegate.launchedSystemTesters.single, isNotNull);
 
       await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
       await tester.pump();
@@ -142,6 +147,11 @@ void main() {
         settingsOverlayDelegate.launchedRemoteRuntimeCallbacks.single,
         isNotNull,
       );
+      expect(
+        settingsOverlayDelegate.launchedSystemTemplates.single,
+        isNotEmpty,
+      );
+      expect(settingsOverlayDelegate.launchedSystemTesters.single, isNotNull);
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();

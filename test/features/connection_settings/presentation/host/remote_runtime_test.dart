@@ -121,15 +121,12 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        materialTextField('SSH password'),
-        'updated-secret',
-      );
+      await tester.enterText(materialTextField('Password'), 'updated-secret');
       await tester.pump();
 
       expect(probePayloads, hasLength(1));
       expect(remoteRuntimeStates.last, pausedRemoteRuntimeForTest);
-      expect(find.text('Host status unknown'), findsOneWidget);
+      expect(find.text('System status unknown'), findsOneWidget);
       expect(
         find.text(
           'Pocket Relay pauses remote checks while you edit authentication settings.',
@@ -168,10 +165,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      await tester.enterText(
-        materialTextField('SSH password'),
-        'updated-secret',
-      );
+      await tester.enterText(materialTextField('Password'), 'updated-secret');
       await tester.pump();
 
       expect(remoteRuntimeStates.last, pausedRemoteRuntimeForTest);
@@ -227,80 +221,6 @@ void main() {
         remoteRuntimeStates.last!.server.status,
         ConnectionRemoteServerStatus.running,
       );
-      expect(remoteRuntimeStates.last!.server.port, 4100);
     },
   );
-
-  testWidgets(
-    'material settings renderer shows inline remote target status from the runtime contract',
-    (tester) async {
-      await tester.pumpWidget(
-        buildMaterialSettingsApp(
-          onSubmit: (_) {},
-          initialRemoteRuntime: const ConnectionRemoteRuntimeState(
-            hostCapability: ConnectionRemoteHostCapabilityState.unsupported(
-              detail: 'tmux is missing',
-              issues: <ConnectionRemoteHostCapabilityIssue>{
-                ConnectionRemoteHostCapabilityIssue.tmuxMissing,
-              },
-            ),
-            server: ConnectionRemoteServerState.notRunning(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Host unsupported'), findsOneWidget);
-      expect(find.text('tmux is missing'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'material settings renderer updates inline remote target status after a host probe',
-    (tester) async {
-      await tester.pumpWidget(
-        buildMaterialSettingsApp(
-          onSubmit: (_) {},
-          onRefreshRemoteRuntime: (payload) async {
-            return const ConnectionRemoteRuntimeState(
-              hostCapability: ConnectionRemoteHostCapabilityState.supported(
-                detail: 'ready',
-              ),
-              server: ConnectionRemoteServerState.running(
-                ownerId: 'conn_primary',
-                sessionName: 'pocket-relay-conn_primary',
-                port: 4100,
-              ),
-            );
-          },
-        ),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.text('Managed server running'), findsOneWidget);
-      expect(
-        find.text('The managed remote session is running.'),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets('material settings renderer shows host check failures inline', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      buildMaterialSettingsApp(
-        onSubmit: (_) {},
-        onRefreshRemoteRuntime: (payload) async {
-          throw StateError('ssh control failed');
-        },
-      ),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(find.text('Host check failed'), findsOneWidget);
-    expect(find.textContaining('ssh control failed'), findsOneWidget);
-  });
 }

@@ -9,7 +9,9 @@ import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/chat_screen_shell.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
@@ -168,8 +170,12 @@ class _ConnectionWorkspaceSavedConnectionsContentState
     });
 
     try {
-      final availableModelCatalog = await widget.workspaceController
+      final availableModelCatalogFuture = widget.workspaceController
           .loadLastKnownConnectionModelCatalog();
+      final availableSystemTemplatesFuture = widget.workspaceController
+          .loadReusableSystemTemplates();
+      final availableModelCatalog = await availableModelCatalogFuture;
+      final availableSystemTemplates = await availableSystemTemplatesFuture;
       if (!mounted) {
         return;
       }
@@ -180,6 +186,7 @@ class _ConnectionWorkspaceSavedConnectionsContentState
         availableModelCatalogSource: availableModelCatalog == null
             ? null
             : ConnectionSettingsModelCatalogSource.lastKnownCache,
+        availableSystemTemplates: availableSystemTemplates,
       );
       if (!mounted || payload == null) {
         return;
@@ -215,9 +222,12 @@ class _ConnectionWorkspaceSavedConnectionsContentState
           .loadConnectionModelCatalog(connectionId);
       final lastKnownModelCatalogFuture = widget.workspaceController
           .loadLastKnownConnectionModelCatalog();
+      final availableSystemTemplatesFuture = widget.workspaceController
+          .loadReusableSystemTemplates();
       final savedConnection = await savedConnectionFuture;
       final cachedModelCatalog = await cachedModelCatalogFuture;
       final lastKnownModelCatalog = await lastKnownModelCatalogFuture;
+      final availableSystemTemplates = await availableSystemTemplatesFuture;
       if (!mounted) {
         return;
       }
@@ -232,6 +242,7 @@ class _ConnectionWorkspaceSavedConnectionsContentState
             : lastKnownModelCatalog != null
             ? ConnectionSettingsModelCatalogSource.lastKnownCache
             : null,
+        availableSystemTemplates: availableSystemTemplates,
       );
       if (!mounted || payload == null) {
         return;
@@ -300,7 +311,9 @@ class _ConnectionWorkspaceSavedConnectionsContentState
       for (final entry in inventoryEntries)
         if (entry.connection.profile.isRemote &&
             entry.remoteRuntime == null &&
-            !_autoProbedRemoteRuntimeConnectionIds.contains(entry.connection.id))
+            !_autoProbedRemoteRuntimeConnectionIds.contains(
+              entry.connection.id,
+            ))
           entry.connection.id,
     ];
     if (connectionIdsToProbe.isEmpty) {
@@ -331,6 +344,8 @@ class _ConnectionWorkspaceSavedConnectionsContentState
     required ConnectionSecrets secrets,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
+    List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
+        const <ConnectionSettingsSystemTemplate>[],
   }) {
     return widget.settingsOverlayDelegate.openConnectionSettings(
       context: context,
@@ -342,6 +357,7 @@ class _ConnectionWorkspaceSavedConnectionsContentState
           : widget.workspaceController.state.remoteRuntimeFor(connectionId),
       availableModelCatalog: availableModelCatalog,
       availableModelCatalogSource: availableModelCatalogSource,
+      availableSystemTemplates: availableSystemTemplates,
       onRefreshRemoteRuntime: (payload) {
         if (connectionId == null) {
           return probeConnectionSettingsRemoteRuntime(payload: payload);
@@ -350,6 +366,12 @@ class _ConnectionWorkspaceSavedConnectionsContentState
           connectionId: connectionId,
           profile: payload.profile,
           secrets: payload.secrets,
+        );
+      },
+      onTestSystem: (profile, secrets) {
+        return testConnectionSettingsRemoteSystem(
+          profile: profile,
+          secrets: secrets,
         );
       },
     );

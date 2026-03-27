@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
-import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 
 import 'host_test_support.dart';
 

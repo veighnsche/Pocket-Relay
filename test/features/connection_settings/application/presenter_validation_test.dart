@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_presenter.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
 
 import 'presenter_test_support.dart';
 
@@ -136,37 +137,83 @@ void main() {
     expect(contract.saveAction.requiresValidation, isTrue);
     expect(contract.saveAction.canSubmit, isTrue);
     expect(payload, isNotNull);
-    expect(payload!.profile.label, 'Developer Box');
+    expect(payload!.profile.label, 'Workspace');
     expect(payload.profile.codexPath, 'codex-mcp');
     expect(payload.profile.dangerouslyBypassSandbox, isTrue);
     expect(payload.secrets.password, 'secret');
   });
 
-  test(
-    'describes the host fingerprint as shared across saved connections on the same host identity',
-    () {
-      final initialProfile = configuredConnectionProfile();
-      const initialSecrets = ConnectionSecrets(password: 'secret');
-      final formState = ConnectionSettingsFormState.initial(
-        profile: initialProfile,
-        secrets: initialSecrets,
-      );
+  test('surfaces reusable systems as a picker when matching systems exist', () {
+    final initialProfile = configuredConnectionProfile();
+    const initialSecrets = ConnectionSecrets(password: 'secret');
+    final formState = ConnectionSettingsFormState.initial(
+      profile: initialProfile,
+      secrets: initialSecrets,
+    );
 
-      final contract = presenter.present(
-        initialProfile: initialProfile,
-        initialSecrets: initialSecrets,
-        formState: formState,
-      );
+    final contract = presenter.present(
+      initialProfile: initialProfile,
+      initialSecrets: initialSecrets,
+      formState: formState,
+      availableSystemTemplates: const <ConnectionSettingsSystemTemplate>[
+        ConnectionSettingsSystemTemplate(
+          id: 'system_primary',
+          profile: ConnectionProfile(
+            connectionMode: ConnectionMode.remote,
+            label: 'Primary Workspace',
+            host: 'devbox.local',
+            port: 22,
+            username: 'vince',
+            workspaceDir: '/workspace/other',
+            codexPath: 'codex',
+            model: '',
+            reasoningEffort: null,
+            hostFingerprint: 'aa:bb:cc:dd',
+            authMode: AuthMode.password,
+            dangerouslyBypassSandbox: false,
+            ephemeralSession: false,
+          ),
+          secrets: ConnectionSecrets(password: 'secret'),
+        ),
+      ],
+    );
 
-      expect(
-        settingsField(
-          contract.remoteConnectionSection!,
-          ConnectionSettingsFieldId.hostFingerprint,
-        ).helperText,
-        'Shared host identity: devbox.local:22. This pinned fingerprint is reused by every saved connection that points there.',
-      );
-    },
-  );
+    expect(contract.systemPicker, isNotNull);
+    expect(contract.systemPicker!.selectedSystemId, 'system_primary');
+    expect(
+      contract.systemPicker!.options.single.label,
+      'devbox.local as vince',
+    );
+  });
+
+  test('uses system trust instead of an editable fingerprint field', () {
+    final initialProfile = configuredConnectionProfile().copyWith(
+      hostFingerprint: '',
+    );
+    const initialSecrets = ConnectionSecrets(password: 'secret');
+    final formState = ConnectionSettingsFormState.initial(
+      profile: initialProfile,
+      secrets: initialSecrets,
+    );
+
+    final contract = presenter.present(
+      initialProfile: initialProfile,
+      initialSecrets: initialSecrets,
+      formState: formState,
+      supportsSystemTesting: true,
+    );
+
+    expect(
+      contract.remoteConnectionSection!.fields.any(
+        (field) => field.id == ConnectionSettingsFieldId.hostFingerprint,
+      ),
+      isFalse,
+    );
+    expect(contract.systemTrust, isNotNull);
+    expect(contract.systemTrust!.statusLabel, 'SSH fingerprint needed');
+    expect(contract.systemTrust!.actionLabel, 'Test system');
+    expect(contract.systemTrust!.isActionEnabled, isTrue);
+  });
 
   test(
     'includes model and reasoning effort in the normalized save payload',
