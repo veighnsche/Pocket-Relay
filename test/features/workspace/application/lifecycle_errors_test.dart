@@ -109,6 +109,19 @@ void main() {
     },
   );
 
+  test('live reattach fallback notice keeps a stable code and detail', () {
+    final error = ConnectionLifecycleErrors.liveReattachFallbackNotice(
+      reattachFailureDetail: 'resume failed',
+    );
+
+    expect(
+      error.definition,
+      PocketErrorCatalog.connectionLiveReattachFallbackRestore,
+    );
+    expect(error.title, 'Restoring conversation from history');
+    expect(error.inlineMessage, contains('resume failed'));
+  });
+
   test(
     'conversation history failure maps unpinned host keys to a stable code',
     () {

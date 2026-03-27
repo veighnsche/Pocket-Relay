@@ -125,6 +125,17 @@ abstract final class ConnectionLifecycleErrors {
     };
   }
 
+  static PocketUserFacingError liveReattachFallbackNotice({
+    String? reattachFailureDetail,
+  }) {
+    return const PocketUserFacingError(
+      definition: PocketErrorCatalog.connectionLiveReattachFallbackRestore,
+      title: 'Restoring conversation from history',
+      message:
+          'Pocket Relay reconnected the lane transport but could not reattach the live remote session directly. It is restoring the conversation from Codex history instead.',
+    ).withUnderlyingDetail(reattachFailureDetail);
+  }
+
   static PocketUserFacingError connectLaneFailure({
     ConnectionRemoteRuntimeState? remoteRuntime,
     Object? error,

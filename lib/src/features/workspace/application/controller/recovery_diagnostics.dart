@@ -231,6 +231,21 @@ void _recordWorkspaceFallbackTransportConnectFailure(
   );
 }
 
+void _recordWorkspaceLiveReattachFailure(
+  ConnectionWorkspaceController controller,
+  String connectionId, {
+  required Object? error,
+}) {
+  controller._updateRecoveryDiagnostics(
+    connectionId,
+    (current) => current.copyWith(
+      lastLiveReattachFailureDetail: PocketErrorDetailFormatter.normalize(
+        error,
+      ),
+    ),
+  );
+}
+
 void _beginWorkspaceRecoveryAttempt(
   ConnectionWorkspaceController controller,
   String connectionId, {
@@ -243,6 +258,7 @@ void _beginWorkspaceRecoveryAttempt(
       lastRecoveryOrigin: origin,
       lastRecoveryStartedAt: startedAt,
       clearLastTransportFailureDetail: true,
+      clearLastLiveReattachFailureDetail: true,
       clearLastRecoveryCompletedAt: true,
       clearLastRecoveryOutcome: true,
     ),

@@ -423,6 +423,11 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     error: error,
   );
 
+  void _recordLiveReattachFailure(
+    String connectionId, {
+    required Object? error,
+  }) => _recordWorkspaceLiveReattachFailure(this, connectionId, error: error);
+
   void _beginRecoveryAttempt(
     String connectionId, {
     required DateTime startedAt,

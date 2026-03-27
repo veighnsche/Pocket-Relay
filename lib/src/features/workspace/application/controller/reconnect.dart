@@ -366,7 +366,8 @@ Future<void> _recoverWorkspaceConversationAfterTransportReconnect(
       connectionId,
       completedAt: controller._now(),
     );
-  } catch (_) {
+  } catch (error) {
+    controller._recordLiveReattachFailure(connectionId, error: error);
     if (controller._isDisposed) {
       return;
     }

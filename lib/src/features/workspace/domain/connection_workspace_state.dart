@@ -60,6 +60,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     this.lastTransportLossAt,
     this.lastTransportLossReason,
     this.lastTransportFailureDetail,
+    this.lastLiveReattachFailureDetail,
     this.lastRecoveryPersistenceFailureAt,
     this.lastRecoveryPersistenceFailureDetail,
     this.lastRecoveryOutcome,
@@ -75,6 +76,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
   final DateTime? lastTransportLossAt;
   final ConnectionWorkspaceTransportLossReason? lastTransportLossReason;
   final String? lastTransportFailureDetail;
+  final String? lastLiveReattachFailureDetail;
   final DateTime? lastRecoveryPersistenceFailureAt;
   final String? lastRecoveryPersistenceFailureDetail;
   final ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome;
@@ -89,6 +91,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     DateTime? lastTransportLossAt,
     ConnectionWorkspaceTransportLossReason? lastTransportLossReason,
     String? lastTransportFailureDetail,
+    String? lastLiveReattachFailureDetail,
     DateTime? lastRecoveryPersistenceFailureAt,
     String? lastRecoveryPersistenceFailureDetail,
     ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome,
@@ -101,6 +104,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     bool clearLastTransportLossAt = false,
     bool clearLastTransportLossReason = false,
     bool clearLastTransportFailureDetail = false,
+    bool clearLastLiveReattachFailureDetail = false,
     bool clearLastRecoveryPersistenceFailureAt = false,
     bool clearLastRecoveryPersistenceFailureDetail = false,
     bool clearLastRecoveryOutcome = false,
@@ -134,6 +138,10 @@ class ConnectionWorkspaceRecoveryDiagnostics {
       lastTransportFailureDetail: clearLastTransportFailureDetail
           ? null
           : (lastTransportFailureDetail ?? this.lastTransportFailureDetail),
+      lastLiveReattachFailureDetail: clearLastLiveReattachFailureDetail
+          ? null
+          : (lastLiveReattachFailureDetail ??
+                this.lastLiveReattachFailureDetail),
       lastRecoveryPersistenceFailureAt: clearLastRecoveryPersistenceFailureAt
           ? null
           : (lastRecoveryPersistenceFailureAt ??
@@ -162,6 +170,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
         other.lastTransportLossAt == lastTransportLossAt &&
         other.lastTransportLossReason == lastTransportLossReason &&
         other.lastTransportFailureDetail == lastTransportFailureDetail &&
+        other.lastLiveReattachFailureDetail == lastLiveReattachFailureDetail &&
         other.lastRecoveryPersistenceFailureAt ==
             lastRecoveryPersistenceFailureAt &&
         other.lastRecoveryPersistenceFailureDetail ==
@@ -180,6 +189,7 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     lastTransportLossAt,
     lastTransportLossReason,
     lastTransportFailureDetail,
+    lastLiveReattachFailureDetail,
     lastRecoveryPersistenceFailureAt,
     lastRecoveryPersistenceFailureDetail,
     lastRecoveryOutcome,

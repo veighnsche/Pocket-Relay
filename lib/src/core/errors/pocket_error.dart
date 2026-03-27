@@ -288,6 +288,13 @@ abstract final class PocketErrorCatalog {
     meaning:
         'Reconnecting the lane failed because the managed remote app-server was present but unhealthy.',
   );
+  static const PocketErrorDefinition
+  connectionLiveReattachFallbackRestore = PocketErrorDefinition(
+    code: 'PR-CONN-2107',
+    domain: PocketErrorDomain.connectionLifecycle,
+    meaning:
+        'Pocket Relay restored a lane from Codex history after transport reconnect because direct live-session reattach failed.',
+  );
 
   // Connection lifecycle: passive runtime probing (22xx).
   static const PocketErrorDefinition
@@ -753,6 +760,7 @@ abstract final class PocketErrorCatalog {
         connectionReconnectHostProbeFailed,
         connectionReconnectServerStopped,
         connectionReconnectServerUnhealthy,
+        connectionLiveReattachFallbackRestore,
         connectionRuntimeProbeFailed,
         connectionDisconnectLaneFailed,
         connectionHistoryLoadFailed,

@@ -543,9 +543,13 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
     if (liveReattachPhase ==
         ConnectionWorkspaceLiveReattachPhase.fallbackRestore) {
-      return const _WorkspaceLaneTransportNotice(
-        title: ConnectionWorkspaceCopy.restoringConversationNoticeTitle,
-        message: ConnectionWorkspaceCopy.restoringConversationNoticeMessage,
+      final fallbackError =
+          ConnectionLifecycleErrors.liveReattachFallbackNotice(
+            reattachFailureDetail: diagnostics?.lastLiveReattachFailureDetail,
+          );
+      return _WorkspaceLaneTransportNotice(
+        title: fallbackError.title,
+        message: fallbackError.bodyWithCode,
         isLoading: true,
       );
     }

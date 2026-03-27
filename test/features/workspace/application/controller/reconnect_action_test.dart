@@ -175,6 +175,12 @@ void main() {
             .lastRecoveryOutcome,
         ConnectionWorkspaceRecoveryOutcome.conversationRestored,
       );
+      expect(
+        controller.state
+            .recoveryDiagnosticsFor('conn_primary')!
+            .lastLiveReattachFailureDetail,
+        contains('resume failed'),
+      );
       expect(controller.state.requiresReconnect('conn_primary'), isFalse);
     },
   );
