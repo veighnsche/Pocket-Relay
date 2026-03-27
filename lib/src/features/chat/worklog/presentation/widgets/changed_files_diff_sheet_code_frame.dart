@@ -144,7 +144,7 @@ class _DiffEditorBar extends StatelessWidget {
                 diff.currentPath,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: _changedFileCodeTextStyle(
+                style: TextStyle(
                   color: cards.textSecondary,
                   fontSize: 12,
                   height: 1.2,

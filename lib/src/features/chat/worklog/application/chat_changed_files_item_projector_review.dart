@@ -127,7 +127,7 @@ void _appendCollapsedContextSections({
   required List<ChatChangedFileDiffReviewRowContract> rows,
   required String label,
 }) {
-  const edgeContext = 2;
+  const collapsedEdgeContextSize = 2;
   final currentChunk = <ChatChangedFileDiffReviewRowContract>[];
   String? nextLabel = label;
   var index = 0;
@@ -163,20 +163,20 @@ void _appendCollapsedContextSections({
       index += 1;
     }
     final run = rows.sublist(start, index);
-    if (run.length <= edgeContext * 2) {
+    if (run.length <= collapsedEdgeContextSize * 2) {
       currentChunk.addAll(run);
       continue;
     }
 
-    currentChunk.addAll(run.take(edgeContext));
+    currentChunk.addAll(run.take(collapsedEdgeContextSize));
     commitChunk();
     sections.add(
       ChatChangedFileDiffReviewSectionContract(
         kind: ChatChangedFileDiffReviewSectionKind.collapsedGap,
-        hiddenLineCount: run.length - (edgeContext * 2),
+        hiddenLineCount: run.length - (collapsedEdgeContextSize * 2),
       ),
     );
-    currentChunk.addAll(run.skip(run.length - edgeContext));
+    currentChunk.addAll(run.skip(run.length - collapsedEdgeContextSize));
   }
 
   commitChunk();
@@ -193,8 +193,12 @@ ChatChangedFileDiffReviewRowContract _reviewRowFromLine(
         ChatChangedFileDiffReviewRowKind.deletion,
       ChatChangedFileDiffLineKind.context =>
         ChatChangedFileDiffReviewRowKind.context,
-      ChatChangedFileDiffLineKind.meta || ChatChangedFileDiffLineKind.hunk =>
-        ChatChangedFileDiffReviewRowKind.context,
+      ChatChangedFileDiffLineKind.meta ||
+      ChatChangedFileDiffLineKind.hunk => throw ArgumentError.value(
+        line.kind,
+        'line.kind',
+        'Unsupported line kind for a review row.',
+      ),
     },
     content: _contentForReviewLine(line),
     lineToken: _lineTokenForReviewLine(line),
