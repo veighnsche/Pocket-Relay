@@ -65,7 +65,7 @@ String? _processIdFromSnapshot(Map<String, dynamic>? snapshot) {
   ]);
 }
 
-String? _nonEmptyTextPreservingWhitespace(Object? value) {
+String? _nonBlankTextPreservingWhitespace(Object? value) {
   if (value is! String || value.trim().isEmpty) {
     return null;
   }
@@ -73,7 +73,7 @@ String? _nonEmptyTextPreservingWhitespace(Object? value) {
 }
 
 String? _terminalInputText(Map<String, dynamic>? snapshot) {
-  return _nonEmptyTextPreservingWhitespace(snapshot?['stdin']);
+  return _nonBlankTextPreservingWhitespace(snapshot?['stdin']);
 }
 
 String? _terminalOutputText(
@@ -81,7 +81,7 @@ String? _terminalOutputText(
   required String commandText,
   String? terminalInput,
 }) {
-  final body = _nonEmptyTextPreservingWhitespace(entry.body);
+  final body = _nonBlankTextPreservingWhitespace(entry.body);
   if (body == null) {
     return null;
   }

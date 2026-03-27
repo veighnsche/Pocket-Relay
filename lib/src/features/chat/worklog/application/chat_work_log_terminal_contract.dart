@@ -7,6 +7,7 @@ class ChatWorkLogTerminalContract {
     required this.commandText,
     required this.isRunning,
     required this.isWaiting,
+    this.isFailed = false,
     this.itemId,
     this.threadId,
     this.turnId,
@@ -34,6 +35,7 @@ class ChatWorkLogTerminalContract {
       commandText: entry.commandText,
       isRunning: entry.isRunning,
       isWaiting: entry is ChatCommandWaitWorkLogEntryContract,
+      isFailed: entry.exitCode != null && entry.exitCode != 0,
       itemId: entry.itemId,
       threadId: entry.threadId,
       turnId: entry.turnId,
@@ -49,6 +51,7 @@ class ChatWorkLogTerminalContract {
   final String commandText;
   final bool isRunning;
   final bool isWaiting;
+  final bool isFailed;
   final String? itemId;
   final String? threadId;
   final String? turnId;
@@ -62,6 +65,7 @@ class ChatWorkLogTerminalContract {
     String? commandText,
     bool? isRunning,
     bool? isWaiting,
+    bool? isFailed,
     String? itemId,
     String? threadId,
     String? turnId,
@@ -76,6 +80,7 @@ class ChatWorkLogTerminalContract {
       commandText: commandText ?? this.commandText,
       isRunning: isRunning ?? this.isRunning,
       isWaiting: isWaiting ?? this.isWaiting,
+      isFailed: isFailed ?? this.isFailed,
       itemId: itemId ?? this.itemId,
       threadId: threadId ?? this.threadId,
       turnId: turnId ?? this.turnId,
@@ -99,6 +104,9 @@ class ChatWorkLogTerminalContract {
     final code = exitCode;
     if (code != null && code != 0) {
       return 'exit $code';
+    }
+    if (isFailed) {
+      return 'failed';
     }
     return 'completed';
   }

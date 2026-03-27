@@ -115,26 +115,41 @@ String _itemTitle(
   String? existingTitle,
 ) {
   if (event.itemType == CodexCanonicalItemType.commandExecution) {
-    final snapshot = event.snapshot;
-    final snapshotCommand = policy._support.stringFromCandidates(<Object?>[
-      snapshot?['command'],
-      (snapshot?['result'] as Map?)?['command'],
-    ]);
-    final rawTitle =
-        existingTitle ??
-        snapshotCommand ??
-        event.title ??
-        (event.rawMethod == 'item/commandExecution/terminalInteraction'
-            ? null
-            : (event.detail?.trim().isNotEmpty == true
-                  ? event.detail!
-                  : null)) ??
-        'Command';
+    final rawTitle = _commandExecutionRawTitle(policy, event, existingTitle);
     return policy._blockFactory.normalizeCommandExecutionTitle(rawTitle);
   }
   return existingTitle ??
       event.title ??
       policy._blockFactory.defaultItemTitle(event.itemType);
+}
+
+String _commandExecutionRawTitle(
+  TranscriptItemPolicy policy,
+  CodexRuntimeItemLifecycleEvent event,
+  String? existingTitle,
+) {
+  if (existingTitle != null) {
+    return existingTitle;
+  }
+
+  final snapshot = event.snapshot;
+  final snapshotCommand = policy._support.stringFromCandidates(<Object?>[
+    snapshot?['command'],
+    (snapshot?['result'] as Map?)?['command'],
+  ]);
+  if (snapshotCommand != null) {
+    return snapshotCommand;
+  }
+  if (event.title case final title?) {
+    return title;
+  }
+
+  final detail = event.detail;
+  if (event.rawMethod != 'item/commandExecution/terminalInteraction' &&
+      detail?.trim().isNotEmpty == true) {
+    return detail!;
+  }
+  return 'Command';
 }
 
 String _itemBody(

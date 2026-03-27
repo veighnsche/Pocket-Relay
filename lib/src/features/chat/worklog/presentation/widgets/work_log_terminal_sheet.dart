@@ -7,6 +7,42 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/t
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 
+const double _terminalSheetHeightFactor = 0.93;
+const double _terminalSheetDesktopBreakpoint = 1040;
+const double _terminalSheetMaxWidth = 980;
+const double _terminalSheetCornerRadius = 32;
+const double _terminalSheetShadowBlur = 28;
+const double _terminalSheetShadowOffsetY = -12;
+const double _terminalSheetHandleSpacing = 10;
+const double _terminalSheetHeaderIconSize = 20;
+const double _terminalSheetHeaderGap = 10;
+const double _terminalSheetTitleFontSize = 18;
+const double _terminalSheetActivityFontSize = 12.5;
+const double _terminalSheetActivityLetterSpacing = 0.15;
+const double _terminalSheetActivityTopSpacing = 6;
+const double _terminalSheetBadgeTopSpacing = 10;
+const double _terminalSheetBadgeSpacing = 8;
+const double _terminalSheetCodeFontSize = 12.5;
+const double _terminalSheetCodeLineHeight = 1.45;
+const EdgeInsets _terminalSheetHeaderPadding = EdgeInsets.fromLTRB(
+  22,
+  18,
+  14,
+  14,
+);
+const EdgeInsets _terminalSheetBodyPadding = EdgeInsets.fromLTRB(18, 0, 18, 18);
+const EdgeInsets _terminalSheetInsetPadding = EdgeInsets.fromLTRB(
+  16,
+  14,
+  16,
+  14,
+);
+const String _terminalCloseTooltip = 'Close';
+const String _terminalCommandPrefix = r'$ ';
+const String _terminalInputPrefix = '> ';
+const String _waitingForOutputMessage = 'Waiting for terminal output...';
+const String _emptyOutputMessage = 'No terminal output captured.';
+
 class WorkLogTerminalSheet extends StatelessWidget {
   const WorkLogTerminalSheet({super.key, required this.terminal});
 
@@ -19,11 +55,12 @@ class WorkLogTerminalSheet extends StatelessWidget {
     final accent = _accentForTerminal(cards);
 
     return FractionallySizedBox(
-      heightFactor: 0.93,
+      heightFactor: _terminalSheetHeightFactor,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth >= 1040
-              ? 980.0
+          final maxWidth =
+              constraints.maxWidth >= _terminalSheetDesktopBreakpoint
+              ? _terminalSheetMaxWidth
               : double.infinity;
           return Align(
             alignment: Alignment.topCenter,
@@ -33,7 +70,7 @@ class WorkLogTerminalSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: pocket.sheetBackground,
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(32),
+                    top: Radius.circular(_terminalSheetCornerRadius),
                   ),
                   border: Border.all(color: cards.neutralBorder),
                   boxShadow: [
@@ -41,18 +78,18 @@ class WorkLogTerminalSheet extends StatelessWidget {
                       color: cards.shadow.withValues(
                         alpha: cards.isDark ? 0.34 : 0.14,
                       ),
-                      blurRadius: 28,
-                      offset: const Offset(0, -12),
+                      blurRadius: _terminalSheetShadowBlur,
+                      offset: const Offset(0, _terminalSheetShadowOffsetY),
                     ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 10),
+                    const SizedBox(height: _terminalSheetHandleSpacing),
                     const ModalSheetDragHandle(),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 18, 14, 14),
+                      padding: _terminalSheetHeaderPadding,
                       child: _TerminalSheetHeader(
                         terminal: terminal,
                         cards: cards,
@@ -62,9 +99,9 @@ class WorkLogTerminalSheet extends StatelessWidget {
                     ),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                        padding: _terminalSheetBodyPadding,
                         child: TranscriptCodeInset(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                          padding: _terminalSheetInsetPadding,
                           child: Scrollbar(
                             child: SingleChildScrollView(
                               padding: EdgeInsets.zero,
@@ -76,8 +113,8 @@ class WorkLogTerminalSheet extends StatelessWidget {
                                   style: PocketTypography.monospace(
                                     context,
                                     color: cards.textPrimary,
-                                    fontSize: 12.5,
-                                    height: 1.45,
+                                    fontSize: _terminalSheetCodeFontSize,
+                                    height: _terminalSheetCodeLineHeight,
                                   ),
                                 ),
                               ),
@@ -98,19 +135,12 @@ class WorkLogTerminalSheet extends StatelessWidget {
 
   Color _accentForTerminal(TranscriptPalette cards) {
     if (terminal.isWaiting) {
-      return cards.brightness == Brightness.dark
-          ? const Color(0xFF88D4C8)
-          : const Color(0xFF0F8C7B);
+      return tealAccent(cards.brightness);
     }
-    final code = terminal.exitCode;
-    if (code != null && code != 0) {
-      return cards.brightness == Brightness.dark
-          ? const Color(0xFFF28B82)
-          : const Color(0xFFC62828);
+    if (terminal.isFailed) {
+      return redAccent(cards.brightness);
     }
-    return cards.brightness == Brightness.dark
-        ? const Color(0xFF8AB4F8)
-        : const Color(0xFF1A73E8);
+    return blueAccent(cards.brightness);
   }
 }
 
@@ -134,39 +164,43 @@ class _TerminalSheetHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.terminal_rounded, size: 20, color: accent),
-            const SizedBox(width: 10),
+            Icon(
+              Icons.terminal_rounded,
+              size: _terminalSheetHeaderIconSize,
+              color: accent,
+            ),
+            const SizedBox(width: _terminalSheetHeaderGap),
             Expanded(
               child: Text(
                 'Terminal',
                 style: TextStyle(
                   color: cards.textPrimary,
-                  fontSize: 18,
+                  fontSize: _terminalSheetTitleFontSize,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
             IconButton(
-              tooltip: 'Close',
+              tooltip: _terminalCloseTooltip,
               onPressed: onClose,
               icon: const Icon(Icons.close_rounded),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: _terminalSheetActivityTopSpacing),
         Text(
           terminal.activityLabel,
           style: TextStyle(
             color: accent,
-            fontSize: 12.5,
+            fontSize: _terminalSheetActivityFontSize,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.15,
+            letterSpacing: _terminalSheetActivityLetterSpacing,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: _terminalSheetBadgeTopSpacing),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: _terminalSheetBadgeSpacing,
+          runSpacing: _terminalSheetBadgeSpacing,
           children: [
             TranscriptBadge(label: terminal.statusBadgeLabel, color: accent),
             if (terminal.processId case final processId?)
@@ -180,9 +214,13 @@ class _TerminalSheetHeader extends StatelessWidget {
 
 String _terminalTranscriptText(ChatWorkLogTerminalContract terminal) {
   final buffer = StringBuffer();
-  _writePrefixedBlock(buffer, prefix: r'$ ', value: terminal.commandText);
+  _writePrefixedBlock(
+    buffer,
+    prefix: _terminalCommandPrefix,
+    value: terminal.commandText,
+  );
   if (terminal.terminalInput case final input?) {
-    _writePrefixedBlock(buffer, prefix: '> ', value: input);
+    _writePrefixedBlock(buffer, prefix: _terminalInputPrefix, value: input);
   }
   if (terminal.terminalOutput case final output?) {
     _writeBodyBlock(buffer, output);
@@ -190,9 +228,7 @@ String _terminalTranscriptText(ChatWorkLogTerminalContract terminal) {
     buffer
       ..writeln()
       ..write(
-        terminal.isWaiting
-            ? 'Waiting for terminal output...'
-            : 'No terminal output captured.',
+        terminal.isWaiting ? _waitingForOutputMessage : _emptyOutputMessage,
       );
   }
 
