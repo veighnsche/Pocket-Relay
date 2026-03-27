@@ -180,6 +180,7 @@ extension on _ConnectionWorkspaceSavedConnectionsContentState {
   ) {
     final connectionId = row.connection.id;
     final hasPendingOperation = _hasPendingRowOperation(connectionId);
+    final isLifecycleBlocked = _isLifecycleActionBlocked(connectionId);
     return <ConnectionLifecycleButtonAction>[
       for (final actionId in row.detailActionIds)
         switch (actionId) {
@@ -207,7 +208,7 @@ extension on _ConnectionWorkspaceSavedConnectionsContentState {
                   : ConnectionWorkspaceCopy.remoteServerActionLabel(
                       ConnectionSettingsRemoteServerActionId.restart,
                     ),
-              onPressed: hasPendingOperation
+              onPressed: isLifecycleBlocked
                   ? null
                   : () => _runRemoteServerAction(
                       connectionId,
@@ -228,7 +229,7 @@ extension on _ConnectionWorkspaceSavedConnectionsContentState {
                   : ConnectionWorkspaceCopy.remoteServerActionLabel(
                       ConnectionSettingsRemoteServerActionId.stop,
                     ),
-              onPressed: hasPendingOperation
+              onPressed: isLifecycleBlocked
                   ? null
                   : () => _runRemoteServerAction(
                       connectionId,

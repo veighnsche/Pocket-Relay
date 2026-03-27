@@ -207,6 +207,7 @@ void main() {
       });
 
       await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
       var binding = controller.bindingForConnectionId('conn_primary');
       if (binding == null) {
         await controller.instantiateConnection('conn_primary');
@@ -255,10 +256,22 @@ void main() {
       final closeLaneButton = tester.widget<OutlinedButton>(
         find.byKey(const ValueKey('close_lane_conn_primary')),
       );
+      final restartServerButton = tester.widget<TextButton>(
+        find.byKey(
+          const ValueKey('saved_connection_remote_server_restart_conn_primary'),
+        ),
+      );
+      final stopServerButton = tester.widget<TextButton>(
+        find.byKey(
+          const ValueKey('saved_connection_remote_server_stop_conn_primary'),
+        ),
+      );
 
       expect(goToLaneButton.onPressed, isNotNull);
       expect(disconnectButton.onPressed, isNull);
       expect(closeLaneButton.onPressed, isNull);
+      expect(restartServerButton.onPressed, isNull);
+      expect(stopServerButton.onPressed, isNull);
     },
   );
 }

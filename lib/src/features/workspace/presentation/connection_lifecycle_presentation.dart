@@ -26,10 +26,7 @@ enum ConnectionLifecycleSecondaryActionId {
 
 @immutable
 class ConnectionLifecycleFact {
-  const ConnectionLifecycleFact({
-    required this.label,
-    required this.tone,
-  });
+  const ConnectionLifecycleFact({required this.label, required this.tone});
 
   final String label;
   final ConnectionLifecycleFactTone tone;
@@ -85,7 +82,8 @@ class ConnectionLifecycleSectionPresentation {
   final List<ConnectionLifecyclePresentation> rows;
 }
 
-List<ConnectionLifecycleSectionPresentation> connectionLifecycleSectionsFromState(
+List<ConnectionLifecycleSectionPresentation>
+connectionLifecycleSectionsFromState(
   ConnectionWorkspaceState state, {
   required bool Function(String connectionId) isTransportConnected,
 }) {
@@ -153,8 +151,7 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
   final connectionId = connection.id;
   final profile = connection.profile;
   final isLive = state.isConnectionLive(connectionId);
-  final isCurrent =
-      isLive && state.selectedConnectionId == connectionId;
+  final isCurrent = isLive && state.selectedConnectionId == connectionId;
   final reconnectRequirement = state.reconnectRequirementFor(connectionId);
   final transportRecoveryPhase = state.transportRecoveryPhaseFor(connectionId);
   final liveReattachPhase = state.liveReattachPhaseFor(connectionId);
@@ -223,7 +220,9 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
         remoteRuntime.hostCapability.status ==
             ConnectionRemoteHostCapabilityStatus.supported)
       ConnectionLifecycleFact(
-        label: ConnectionWorkspaceCopy.serverFactFor(remoteRuntime.server.status),
+        label: ConnectionWorkspaceCopy.serverFactFor(
+          remoteRuntime.server.status,
+        ),
         tone: switch (remoteRuntime.server.status) {
           ConnectionRemoteServerStatus.running =>
             ConnectionLifecycleFactTone.positive,
@@ -246,8 +245,7 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
       ),
   ];
 
-  final primaryActionId =
-      reconnectRequirement != null
+  final primaryActionId = reconnectRequirement != null
       ? ConnectionLifecyclePrimaryActionId.reconnect
       : isLive
       ? ConnectionLifecyclePrimaryActionId.goToLane
@@ -330,7 +328,7 @@ bool _rowNeedsAttention({
   }
   if (reconnectRequirement != null ||
       transportRecoveryPhase != null ||
-      liveReattachPhase != null) {
+      _liveReattachPhaseNeedsAttention(liveReattachPhase)) {
     return true;
   }
   if (!profile.isRemote || remoteRuntime == null) {
@@ -341,5 +339,14 @@ bool _rowNeedsAttention({
     ConnectionRemoteHostCapabilityStatus.probeFailed ||
     ConnectionRemoteHostCapabilityStatus.unsupported => true,
     _ => false,
+  };
+}
+
+bool _liveReattachPhaseNeedsAttention(
+  ConnectionWorkspaceLiveReattachPhase? phase,
+) {
+  return switch (phase) {
+    null || ConnectionWorkspaceLiveReattachPhase.liveReattached => false,
+    _ => true,
   };
 }
