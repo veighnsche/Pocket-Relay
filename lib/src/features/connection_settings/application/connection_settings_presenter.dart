@@ -94,14 +94,14 @@ class ConnectionSettingsPresenter {
     required bool supportsLocalConnectionMode,
   }) {
     if (!supportsLocalConnectionMode) {
-      return 'Connect to a remote developer box over SSH and keep the Codex session readable on a smaller screen.';
+      return 'Set the SSH target and workspace Pocket Relay should use for this connection.';
     }
 
     return switch (connectionMode) {
       ConnectionMode.remote =>
-        'Choose whether this desktop should reach Codex on a remote box or run it locally. Remote mode uses SSH and keeps the workspace on your developer box.',
+        'This connection runs Codex on a remote box over SSH. Switch to Local if this device should host the workspace instead.',
       ConnectionMode.local =>
-        'Choose whether this desktop should reach Codex on a remote box or run it locally. Local mode starts Codex app-server on this machine inside the selected workspace.',
+        'This connection runs Codex on this device. Switch to Remote if Codex should stay on a developer box instead.',
     };
   }
 

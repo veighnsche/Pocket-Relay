@@ -24,7 +24,7 @@ ConnectionSettingsConnectionModeSectionContract? _buildConnectionModeSection(
   }
 
   return ConnectionSettingsConnectionModeSectionContract(
-    title: 'Route',
+    title: 'Connection mode',
     selectedMode: draft.connectionMode,
     options: const <ConnectionSettingsConnectionModeOptionContract>[
       ConnectionSettingsConnectionModeOptionContract(
