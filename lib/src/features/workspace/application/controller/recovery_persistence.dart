@@ -79,7 +79,26 @@ Future<void> _drainWorkspaceRecoveryPersistenceQueue(
       try {
         await controller._recoveryStore.save(snapshot);
         controller._lastPersistedRecoveryState = snapshot;
+        if (snapshot != null) {
+          controller._updateRecoveryDiagnostics(
+            snapshot.connectionId,
+            (current) => current.copyWith(
+              clearLastRecoveryPersistenceFailureAt: true,
+              clearLastRecoveryPersistenceFailureDetail: true,
+            ),
+          );
+        }
       } catch (error, stackTrace) {
+        if (snapshot != null) {
+          controller._updateRecoveryDiagnostics(
+            snapshot.connectionId,
+            (current) => current.copyWith(
+              lastRecoveryPersistenceFailureAt: controller._now().toUtc(),
+              lastRecoveryPersistenceFailureDetail:
+                  PocketErrorDetailFormatter.normalize(error),
+            ),
+          );
+        }
         assert(() {
           debugPrint('Failed to save workspace recovery state: $error');
           debugPrintStack(stackTrace: stackTrace);

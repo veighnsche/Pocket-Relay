@@ -292,6 +292,18 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     return true;
   }
 
+  bool _applyStateWithoutRecoveryPersistence(
+    ConnectionWorkspaceState nextState,
+  ) {
+    if (_isDisposed || nextState == _state) {
+      return false;
+    }
+
+    _state = nextState;
+    notifyListeners();
+    return true;
+  }
+
   void _notifyListenersInternal() {
     notifyListeners();
   }
@@ -443,6 +455,12 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     ConnectionWorkspaceRecoveryDiagnostics Function(
       ConnectionWorkspaceRecoveryDiagnostics current,
     )
+    update, {
+    bool enqueueRecoveryPersistence = false,
+  }) => _updateWorkspaceRecoveryDiagnostics(
+    this,
+    connectionId,
     update,
-  ) => _updateWorkspaceRecoveryDiagnostics(this, connectionId, update);
+    enqueueRecoveryPersistence: enqueueRecoveryPersistence,
+  );
 }

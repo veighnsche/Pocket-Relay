@@ -59,6 +59,8 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     this.lastTransportLossAt,
     this.lastTransportLossReason,
     this.lastTransportFailureDetail,
+    this.lastRecoveryPersistenceFailureAt,
+    this.lastRecoveryPersistenceFailureDetail,
     this.lastRecoveryOutcome,
   });
 
@@ -72,6 +74,8 @@ class ConnectionWorkspaceRecoveryDiagnostics {
   final DateTime? lastTransportLossAt;
   final ConnectionWorkspaceTransportLossReason? lastTransportLossReason;
   final String? lastTransportFailureDetail;
+  final DateTime? lastRecoveryPersistenceFailureAt;
+  final String? lastRecoveryPersistenceFailureDetail;
   final ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome;
 
   ConnectionWorkspaceRecoveryDiagnostics copyWith({
@@ -84,6 +88,8 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     DateTime? lastTransportLossAt,
     ConnectionWorkspaceTransportLossReason? lastTransportLossReason,
     String? lastTransportFailureDetail,
+    DateTime? lastRecoveryPersistenceFailureAt,
+    String? lastRecoveryPersistenceFailureDetail,
     ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome,
     bool clearLastBackgroundedAt = false,
     bool clearLastBackgroundedLifecycleState = false,
@@ -94,6 +100,8 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     bool clearLastTransportLossAt = false,
     bool clearLastTransportLossReason = false,
     bool clearLastTransportFailureDetail = false,
+    bool clearLastRecoveryPersistenceFailureAt = false,
+    bool clearLastRecoveryPersistenceFailureDetail = false,
     bool clearLastRecoveryOutcome = false,
   }) {
     return ConnectionWorkspaceRecoveryDiagnostics(
@@ -125,6 +133,15 @@ class ConnectionWorkspaceRecoveryDiagnostics {
       lastTransportFailureDetail: clearLastTransportFailureDetail
           ? null
           : (lastTransportFailureDetail ?? this.lastTransportFailureDetail),
+      lastRecoveryPersistenceFailureAt: clearLastRecoveryPersistenceFailureAt
+          ? null
+          : (lastRecoveryPersistenceFailureAt ??
+                this.lastRecoveryPersistenceFailureAt),
+      lastRecoveryPersistenceFailureDetail:
+          clearLastRecoveryPersistenceFailureDetail
+          ? null
+          : (lastRecoveryPersistenceFailureDetail ??
+                this.lastRecoveryPersistenceFailureDetail),
       lastRecoveryOutcome: clearLastRecoveryOutcome
           ? null
           : (lastRecoveryOutcome ?? this.lastRecoveryOutcome),
@@ -144,6 +161,10 @@ class ConnectionWorkspaceRecoveryDiagnostics {
         other.lastTransportLossAt == lastTransportLossAt &&
         other.lastTransportLossReason == lastTransportLossReason &&
         other.lastTransportFailureDetail == lastTransportFailureDetail &&
+        other.lastRecoveryPersistenceFailureAt ==
+            lastRecoveryPersistenceFailureAt &&
+        other.lastRecoveryPersistenceFailureDetail ==
+            lastRecoveryPersistenceFailureDetail &&
         other.lastRecoveryOutcome == lastRecoveryOutcome;
   }
 
@@ -158,6 +179,8 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     lastTransportLossAt,
     lastTransportLossReason,
     lastTransportFailureDetail,
+    lastRecoveryPersistenceFailureAt,
+    lastRecoveryPersistenceFailureDetail,
     lastRecoveryOutcome,
   );
 }

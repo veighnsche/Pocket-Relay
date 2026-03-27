@@ -345,6 +345,35 @@ class RecordingConnectionWorkspaceRecoveryStore
   }
 }
 
+class ToggleableFailingConnectionWorkspaceRecoveryStore
+    implements ConnectionWorkspaceRecoveryStore {
+  ToggleableFailingConnectionWorkspaceRecoveryStore({
+    this.initialState,
+    this.saveError,
+  });
+
+  final ConnectionWorkspaceRecoveryState? initialState;
+  final List<ConnectionWorkspaceRecoveryState?> attemptedStates =
+      <ConnectionWorkspaceRecoveryState?>[];
+  ConnectionWorkspaceRecoveryState? _state;
+  Object? saveError;
+
+  @override
+  Future<ConnectionWorkspaceRecoveryState?> load() async {
+    return _state ?? initialState;
+  }
+
+  @override
+  Future<void> save(ConnectionWorkspaceRecoveryState? state) async {
+    attemptedStates.add(state);
+    final error = saveError;
+    if (error != null) {
+      throw error;
+    }
+    _state = state;
+  }
+}
+
 ConnectionProfile workspaceProfile(String label, String host) {
   return ConnectionProfile.defaults().copyWith(
     label: label,
