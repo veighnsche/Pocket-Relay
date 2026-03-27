@@ -11,6 +11,7 @@ class ChangedFileDiffSheet extends StatefulWidget {
 
 class _ChangedFileDiffSheetState extends State<ChangedFileDiffSheet> {
   bool _showFullDiff = false;
+  bool _showRawPatch = false;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +19,9 @@ class _ChangedFileDiffSheetState extends State<ChangedFileDiffSheet> {
     final cards = TranscriptPalette.of(context);
     final pocket = context.pocketPalette;
     final accent = _accentForOperation(diff.operationKind, cards.brightness);
+    final review = _showFullDiff || !diff.hasPreviewLimit
+        ? diff.review
+        : diff.previewReview;
     final visibleLines = _showFullDiff || !diff.hasPreviewLimit
         ? diff.lines
         : diff.lines.take(diff.previewLineLimit).toList(growable: false);
@@ -93,6 +97,13 @@ class _ChangedFileDiffSheetState extends State<ChangedFileDiffSheet> {
                           diff: diff,
                           cards: cards,
                           accent: accent,
+                          review: review,
+                          showRawPatch: _showRawPatch,
+                          onToggleRawPatch: () {
+                            setState(() {
+                              _showRawPatch = !_showRawPatch;
+                            });
+                          },
                           visibleLines: visibleLines,
                         ),
                       ),

@@ -321,7 +321,7 @@ void main() {
       );
       expect(
         await snackBarMessage,
-        'Stop the active turn before starting a new thread.',
+        '[${PocketErrorCatalog.chatSessionFreshConversationBlocked.code}] Fresh conversation blocked. Stop the active turn before starting a new thread.',
       );
     },
   );

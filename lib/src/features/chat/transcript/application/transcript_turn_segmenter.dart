@@ -74,6 +74,8 @@ class TranscriptTurnArtifactBuilder {
       createdAt: item.createdAt,
       entryKind: _blockFactory.workLogEntryKindFor(item.itemType),
       title: item.title ?? _blockFactory.defaultItemTitle(item.itemType),
+      itemId: item.itemId,
+      threadId: item.threadId,
       turnId: item.turnId,
       preview: _blockFactory.workLogPreview(item),
       isRunning: item.isRunning,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:pocket_relay/src/core/theme/pocket_typography.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
 MarkdownStyleSheet buildConversationMarkdownStyle({
@@ -70,9 +71,9 @@ TextStyle? _codeTextStyle(
   required TranscriptPalette cards,
   required double fontSize,
 }) {
-  return base?.copyWith(
+  return PocketTypography.monospaceStyle(
+    base: base,
     color: cards.codeText,
-    fontFamily: 'monospace',
     fontSize: fontSize,
     height: 1.45,
     letterSpacing: 0,

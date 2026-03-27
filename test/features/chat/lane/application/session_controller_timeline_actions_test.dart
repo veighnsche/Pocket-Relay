@@ -147,6 +147,79 @@ void main() {
     },
   );
 
+  test(
+    'submitUserInput reports a typed error when the request is stale',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      await controller.submitUserInput(
+        'missing_request',
+        const <String, List<String>>{
+          'q1': <String>['Vince'],
+        },
+      );
+
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionUserInputRequestUnavailable.code}] Input request unavailable. This input request is no longer pending.',
+      );
+    },
+  );
+
+  test(
+    'approveRequest reports a typed error when the request is stale',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      await controller.approveRequest('missing_request');
+
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionApprovalRequestUnavailable.code}] Approval request unavailable. This approval request is no longer pending.',
+      );
+    },
+  );
+
   test('hydrates missing child thread metadata through thread/read', () async {
     final appServerClient = FakeCodexAppServerClient()
       ..threadsById['thread_child'] = const CodexAppServerThreadSummary(
@@ -192,6 +265,59 @@ void main() {
     expect(entry?.agentRole, 'Code review');
     expect(entry?.sourceKind, 'spawned');
   });
+
+  test(
+    'surfaces a coded warning when child thread metadata hydration fails',
+    () async {
+      final appServerClient = _ThrowingReadThreadFakeCodexAppServerClient(
+        StateError('thread metadata unavailable'),
+      );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{'id': 'thread_child'},
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(appServerClient.readThreadCalls, contains('thread_child'));
+      final warning = controller.transcriptBlocks
+          .whereType<CodexStatusBlock>()
+          .firstWhere(
+            (block) =>
+                block.body.contains(
+                  PocketErrorCatalog
+                      .chatSessionThreadMetadataHydrationFailed
+                      .code,
+                ) &&
+                block.body.contains('thread_child'),
+          );
+      expect(warning.statusKind, CodexStatusBlockKind.warning);
+      expect(warning.body, contains('thread_child'));
+      expect(warning.body, contains('thread metadata unavailable'));
+    },
+  );
 
   test(
     'stopActiveTurn targets the selected timeline turn explicitly',
@@ -251,4 +377,19 @@ void main() {
       );
     },
   );
+}
+
+class _ThrowingReadThreadFakeCodexAppServerClient
+    extends FakeCodexAppServerClient {
+  _ThrowingReadThreadFakeCodexAppServerClient(this.error);
+
+  final Object error;
+
+  @override
+  Future<CodexAppServerThreadSummary> readThread({
+    required String threadId,
+  }) async {
+    readThreadCalls.add(threadId);
+    throw error;
+  }
 }

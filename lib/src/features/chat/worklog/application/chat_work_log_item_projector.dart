@@ -77,14 +77,19 @@ class ChatWorkLogItemProjector {
     }
 
     final snapshot = entry.snapshot;
+    final shellFields = _shellTerminalFields(
+      entry,
+      commandText: normalizedTitle,
+    );
     return ChatCommandWaitWorkLogEntryContract(
       id: entry.id,
       commandText: normalizedTitle,
       outputPreview: _normalizedWorkLogPreview(entry.preview, normalizedTitle),
-      processId: _firstNonEmptyString(<Object?>[
-        snapshot?['processId'],
-        snapshot?['process_id'],
-      ]),
+      itemId: entry.itemId,
+      threadId: entry.threadId,
+      processId: shellFields.processId,
+      terminalInput: shellFields.terminalInput,
+      terminalOutput: shellFields.terminalOutput,
       turnId: entry.turnId,
       isRunning: entry.isRunning,
       exitCode: entry.exitCode,
@@ -100,10 +105,19 @@ class ChatWorkLogItemProjector {
       return null;
     }
 
+    final shellFields = _shellTerminalFields(
+      entry,
+      commandText: normalizedTitle,
+    );
     return ChatCommandExecutionWorkLogEntryContract(
       id: entry.id,
       commandText: normalizedTitle,
       outputPreview: _normalizedWorkLogPreview(entry.preview, normalizedTitle),
+      itemId: entry.itemId,
+      threadId: entry.threadId,
+      processId: shellFields.processId,
+      terminalInput: shellFields.terminalInput,
+      terminalOutput: shellFields.terminalOutput,
       turnId: entry.turnId,
       isRunning: entry.isRunning,
       exitCode: entry.exitCode,
@@ -206,6 +220,10 @@ class ChatWorkLogItemProjector {
     required String normalizedTitle,
   }) {
     final fileName = _fileNameForPath(readCommand.path);
+    final shellFields = _shellTerminalFields(
+      entry,
+      commandText: normalizedTitle,
+    );
     return switch (readCommand) {
       final _ParsedSedReadCommand sedRead => ChatSedReadWorkLogEntryContract(
         id: entry.id,
@@ -214,6 +232,11 @@ class ChatWorkLogItemProjector {
         filePath: sedRead.path,
         lineStart: sedRead.lineStart,
         lineEnd: sedRead.lineEnd,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -223,6 +246,11 @@ class ChatWorkLogItemProjector {
         commandText: normalizedTitle,
         fileName: fileName,
         filePath: catRead.path,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -232,6 +260,11 @@ class ChatWorkLogItemProjector {
         commandText: normalizedTitle,
         fileName: fileName,
         filePath: typeRead.path,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -241,6 +274,11 @@ class ChatWorkLogItemProjector {
         commandText: normalizedTitle,
         fileName: fileName,
         filePath: moreRead.path,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -251,6 +289,11 @@ class ChatWorkLogItemProjector {
         fileName: fileName,
         filePath: headRead.path,
         lineCount: headRead.lineCount,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -261,6 +304,11 @@ class ChatWorkLogItemProjector {
         fileName: fileName,
         filePath: tailRead.path,
         lineCount: tailRead.lineCount,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -272,6 +320,11 @@ class ChatWorkLogItemProjector {
         filePath: awkRead.path,
         lineStart: awkRead.lineStart,
         lineEnd: awkRead.lineEnd,
+        itemId: entry.itemId,
+        threadId: entry.threadId,
+        processId: shellFields.processId,
+        terminalInput: shellFields.terminalInput,
+        terminalOutput: shellFields.terminalOutput,
         turnId: entry.turnId,
         isRunning: entry.isRunning,
         exitCode: entry.exitCode,
@@ -286,6 +339,11 @@ class ChatWorkLogItemProjector {
           lineCount: getContentRead.lineCount,
           lineStart: getContentRead.lineStart,
           lineEnd: getContentRead.lineEnd,
+          itemId: entry.itemId,
+          threadId: entry.threadId,
+          processId: shellFields.processId,
+          terminalInput: shellFields.terminalInput,
+          terminalOutput: shellFields.terminalOutput,
           turnId: entry.turnId,
           isRunning: entry.isRunning,
           exitCode: entry.exitCode,
@@ -298,6 +356,10 @@ class ChatWorkLogItemProjector {
     required CodexWorkLogEntry entry,
     required String normalizedTitle,
   }) {
+    final shellFields = _shellTerminalFields(
+      entry,
+      commandText: normalizedTitle,
+    );
     return ChatGitWorkLogEntryContract(
       id: entry.id,
       commandText: normalizedTitle,
@@ -305,6 +367,11 @@ class ChatWorkLogItemProjector {
       summaryLabel: gitCommand.summaryLabel,
       primaryLabel: gitCommand.primaryLabel,
       secondaryLabel: gitCommand.secondaryLabel,
+      itemId: entry.itemId,
+      threadId: entry.threadId,
+      processId: shellFields.processId,
+      terminalInput: shellFields.terminalInput,
+      terminalOutput: shellFields.terminalOutput,
       turnId: entry.turnId,
       isRunning: entry.isRunning,
       exitCode: entry.exitCode,
@@ -317,6 +384,10 @@ class ChatWorkLogItemProjector {
     required String normalizedTitle,
   }) {
     final scopeTargets = List<String>.unmodifiable(searchCommand.scopeTargets);
+    final shellFields = _shellTerminalFields(
+      entry,
+      commandText: normalizedTitle,
+    );
     return switch (searchCommand) {
       final _ParsedRipgrepSearchCommand rgSearch =>
         ChatRipgrepSearchWorkLogEntryContract(
@@ -324,6 +395,11 @@ class ChatWorkLogItemProjector {
           commandText: normalizedTitle,
           queryText: rgSearch.query,
           scopeTargets: scopeTargets,
+          itemId: entry.itemId,
+          threadId: entry.threadId,
+          processId: shellFields.processId,
+          terminalInput: shellFields.terminalInput,
+          terminalOutput: shellFields.terminalOutput,
           turnId: entry.turnId,
           isRunning: entry.isRunning,
           exitCode: entry.exitCode,
@@ -334,6 +410,11 @@ class ChatWorkLogItemProjector {
           commandText: normalizedTitle,
           queryText: grepSearch.query,
           scopeTargets: scopeTargets,
+          itemId: entry.itemId,
+          threadId: entry.threadId,
+          processId: shellFields.processId,
+          terminalInput: shellFields.terminalInput,
+          terminalOutput: shellFields.terminalOutput,
           turnId: entry.turnId,
           isRunning: entry.isRunning,
           exitCode: entry.exitCode,
@@ -344,6 +425,11 @@ class ChatWorkLogItemProjector {
           commandText: normalizedTitle,
           queryText: selectStringSearch.query,
           scopeTargets: scopeTargets,
+          itemId: entry.itemId,
+          threadId: entry.threadId,
+          processId: shellFields.processId,
+          terminalInput: shellFields.terminalInput,
+          terminalOutput: shellFields.terminalOutput,
           turnId: entry.turnId,
           isRunning: entry.isRunning,
           exitCode: entry.exitCode,
@@ -354,6 +440,11 @@ class ChatWorkLogItemProjector {
           commandText: normalizedTitle,
           queryText: findStrSearch.query,
           scopeTargets: scopeTargets,
+          itemId: entry.itemId,
+          threadId: entry.threadId,
+          processId: shellFields.processId,
+          terminalInput: shellFields.terminalInput,
+          terminalOutput: shellFields.terminalOutput,
           turnId: entry.turnId,
           isRunning: entry.isRunning,
           exitCode: entry.exitCode,

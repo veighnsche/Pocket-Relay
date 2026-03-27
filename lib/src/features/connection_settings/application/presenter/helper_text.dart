@@ -16,11 +16,7 @@ String _refreshActionHelperText(_ConnectionSettingsPresentationState state) {
     state.availableModelCatalogSource,
     state.availableModelCatalog?.fetchedAt,
   );
-  final refreshFailureStatus = state.didModelCatalogRefreshFail
-      ? state.availableModelCatalog == null
-            ? 'Refresh failed. Could not load models from the backend.'
-            : 'Refresh failed. Showing the previous model list.'
-      : null;
+  final refreshFailureStatus = state.modelCatalogRefreshError?.bodyWithCode;
   final leadingStatus = _joinHelperText(<String?>[
     refreshFailureStatus,
     cachedCatalogStatus,
@@ -43,7 +39,7 @@ String _refreshActionHelperText(_ConnectionSettingsPresentationState state) {
 
   return _joinHelperText(<String?>[
     leadingStatus,
-    state.didModelCatalogRefreshFail
+    state.modelCatalogRefreshError != null
         ? 'Use Refresh models to try again.'
         : 'Use Refresh models to update from the backend.',
   ]);
@@ -67,5 +63,17 @@ String? _catalogRefreshTimestamp(
 }
 
 String _joinHelperText(Iterable<String?> parts) {
-  return parts.whereType<String>().where((part) => part.isNotEmpty).join(' ');
+  return parts
+      .whereType<String>()
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .map(_normalizeHelperSentence)
+      .join(' ');
+}
+
+String _normalizeHelperSentence(String part) {
+  if (part.endsWith('.') || part.endsWith('!') || part.endsWith('?')) {
+    return part;
+  }
+  return '$part.';
 }

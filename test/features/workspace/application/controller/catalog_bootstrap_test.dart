@@ -64,6 +64,38 @@ void main() {
   );
 
   test(
+    'refreshRemoteRuntime stores a typed probe failure when host verification throws',
+    () async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const ThrowingRemoteHostProbe(
+          'ssh probe failed',
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      final runtime = await controller.refreshRemoteRuntime(
+        connectionId: 'conn_primary',
+      );
+
+      expect(
+        runtime.hostCapability.status,
+        ConnectionRemoteHostCapabilityStatus.probeFailed,
+      );
+      expect(
+        runtime.hostCapability.detail,
+        contains('[${PocketErrorCatalog.connectionRuntimeProbeFailed.code}]'),
+      );
+      expect(runtime.hostCapability.detail, contains('ssh probe failed'));
+      expect(controller.state.remoteRuntimeFor('conn_primary'), runtime);
+    },
+  );
+
+  test(
     'saveSavedConnection clears cached remote runtime when the connection becomes local',
     () async {
       final clientsById = buildClientsById('conn_primary', 'conn_secondary');

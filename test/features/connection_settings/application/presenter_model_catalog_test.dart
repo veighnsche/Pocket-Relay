@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_errors.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_presenter.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
@@ -200,13 +202,16 @@ void main() {
       ),
       availableModelCatalogSource:
           ConnectionSettingsModelCatalogSource.lastKnownCache,
-      didModelCatalogRefreshFail: true,
+      modelCatalogRefreshError:
+          ConnectionSettingsErrors.modelCatalogRefreshFailed(
+            error: StateError('backend unavailable'),
+          ),
       supportsModelCatalogRefresh: true,
     );
 
     expect(
       contract.modelSection.refreshActionHelperText,
-      'Refresh failed. Showing the previous model list. Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes. Last refreshed 2026-03-22 15:45 UTC. Use Refresh models to try again.',
+      '[${PocketErrorCatalog.connectionSettingsModelCatalogRefreshFailed.code}] Could not load models from the backend. Underlying error: backend unavailable. Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes. Last refreshed 2026-03-22 15:45 UTC. Use Refresh models to try again.',
     );
   });
 

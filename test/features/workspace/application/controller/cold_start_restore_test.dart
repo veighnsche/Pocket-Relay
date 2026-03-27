@@ -113,6 +113,43 @@ void main() {
   );
 
   test(
+    'initialization keeps booting when local recovery load fails and records a typed warning',
+    () async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        recoveryStore: const ThrowingConnectionWorkspaceRecoveryStore(
+          ConnectionWorkspaceRecoveryStoreCorruptedException(
+            'Persisted workspace recovery metadata is malformed JSON.',
+          ),
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+
+      expect(controller.state.selectedConnectionId, 'conn_primary');
+      expect(controller.selectedLaneBinding, isNotNull);
+      expect(
+        controller.state.recoveryLoadWarning?.definition,
+        PocketErrorCatalog.appBootstrapRecoveryStateLoadFailed,
+      );
+      expect(
+        controller.state.recoveryLoadWarning?.inlineMessage,
+        contains('malformed JSON'),
+      );
+      expect(
+        controller.selectedLaneBinding!.composerDraftHost.draft.text,
+        isEmpty,
+      );
+      expect(clientsById['conn_primary']!.connectCalls, 0);
+    },
+  );
+
+  test(
     'initialization keeps live reattach as the default when cold-start resume replays pending requests',
     () async {
       const replayedRequest = CodexAppServerRequestEvent(
@@ -328,6 +365,10 @@ void main() {
       expect(
         unavailableDiagnostics.lastTransportLossReason,
         ConnectionWorkspaceTransportLossReason.connectFailed,
+      );
+      expect(
+        unavailableDiagnostics.lastTransportFailureDetail,
+        'connect failed',
       );
       expect(
         unavailableDiagnostics.lastRecoveryOutcome,

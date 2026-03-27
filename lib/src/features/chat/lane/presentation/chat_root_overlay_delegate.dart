@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/changed_files_surface.dart';
+import 'package:pocket_relay/src/features/chat/worklog/presentation/widgets/work_log_terminal_sheet.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
@@ -18,6 +20,11 @@ abstract interface class ChatRootOverlayDelegate {
   Future<void> openChangedFileDiff({
     required BuildContext context,
     required ChatChangedFileDiffContract diff,
+  });
+
+  Future<void> openWorkLogTerminal({
+    required BuildContext context,
+    required ChatWorkLogTerminalContract terminal,
   });
 
   void showTransientFeedback({
@@ -71,6 +78,22 @@ class FlutterChatRootOverlayDelegate implements ChatRootOverlayDelegate {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return ChangedFileDiffSheet(diff: diff);
+      },
+    );
+  }
+
+  @override
+  Future<void> openWorkLogTerminal({
+    required BuildContext context,
+    required ChatWorkLogTerminalContract terminal,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return WorkLogTerminalSheet(terminal: terminal);
       },
     );
   }

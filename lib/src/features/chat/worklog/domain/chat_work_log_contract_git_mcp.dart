@@ -1,19 +1,23 @@
 part of 'chat_work_log_contract.dart';
 
-final class ChatGitWorkLogEntryContract extends ChatWorkLogEntryContract {
+final class ChatGitWorkLogEntryContract extends ChatShellWorkLogEntryContract {
   const ChatGitWorkLogEntryContract({
     required super.id,
-    required this.commandText,
+    required super.commandText,
     required this.subcommandLabel,
     required this.summaryLabel,
     required this.primaryLabel,
     this.secondaryLabel,
+    super.itemId,
+    super.threadId,
+    super.processId,
+    super.terminalInput,
+    super.terminalOutput,
     super.turnId,
     super.isRunning = false,
     super.exitCode,
-  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+  });
 
-  final String commandText;
   final String subcommandLabel;
   final String summaryLabel;
   final String primaryLabel;

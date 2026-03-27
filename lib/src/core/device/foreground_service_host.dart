@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 
 bool supportsActiveTurnForegroundService([TargetPlatform? platform]) {
@@ -78,6 +80,7 @@ class ForegroundServiceHost extends StatefulWidget {
     this.notificationPermissionController =
         const MethodChannelNotificationPermissionController(),
     this.supportsForegroundService,
+    this.onWarningChanged,
   });
 
   final Widget child;
@@ -85,6 +88,7 @@ class ForegroundServiceHost extends StatefulWidget {
   final ForegroundServiceController foregroundServiceController;
   final NotificationPermissionController notificationPermissionController;
   final bool? supportsForegroundService;
+  final ValueChanged<PocketUserFacingError?>? onWarningChanged;
 
   @override
   State<ForegroundServiceHost> createState() => _ForegroundServiceHostState();
@@ -136,6 +140,7 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _setWarning(null);
     if (_requestedForegroundServiceEnabled) {
       _requestedForegroundServiceEnabled = false;
       unawaited(_setEnabledSafely(widget.foregroundServiceController, false));
@@ -164,6 +169,7 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
       _isRequestingNotificationPermission = false;
       _notificationPermissionDeniedForCurrentRequest = false;
       if (!_requestedForegroundServiceEnabled) {
+        _setWarning(null);
         return;
       }
 
@@ -185,17 +191,23 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
 
   Future<void> _requestNotificationPermissionAndEnable(int requestEpoch) async {
     try {
-      var notificationPermissionGranted =
+      var notificationPermission =
           await _isNotificationPermissionGrantedSafely();
-      if (!notificationPermissionGranted) {
-        notificationPermissionGranted =
-            await _requestNotificationPermissionSafely();
+      if (!notificationPermission.granted) {
+        final shouldClearWarning = notificationPermission.warning != null;
+        notificationPermission = await _requestNotificationPermissionSafely();
+        if (shouldClearWarning && notificationPermission.warning == null) {
+          _setWarning(null);
+        }
       }
 
       if (!mounted || requestEpoch != _notificationPermissionRequestEpoch) {
         return;
       }
-      if (!notificationPermissionGranted) {
+      if (!notificationPermission.granted) {
+        if (notificationPermission.warning == null) {
+          _setWarning(null);
+        }
         _notificationPermissionDeniedForCurrentRequest = true;
         return;
       }
@@ -205,7 +217,11 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
       }
 
       _requestedForegroundServiceEnabled = true;
-      await _setEnabledSafely(widget.foregroundServiceController, true);
+      await _setEnabledSafely(
+        widget.foregroundServiceController,
+        true,
+        clearWarningOnSuccess: notificationPermission.warning == null,
+      );
     } finally {
       if (mounted && requestEpoch == _notificationPermissionRequestEpoch) {
         _isRequestingNotificationPermission = false;
@@ -213,30 +229,61 @@ class _ForegroundServiceHostState extends State<ForegroundServiceHost>
     }
   }
 
-  Future<bool> _isNotificationPermissionGrantedSafely() async {
+  Future<({bool granted, PocketUserFacingError? warning})>
+  _isNotificationPermissionGrantedSafely() async {
     try {
-      return await widget.notificationPermissionController.isGranted();
-    } catch (_) {
-      return true;
+      return (
+        granted: await widget.notificationPermissionController.isGranted(),
+        warning: null,
+      );
+    } catch (error) {
+      final warning =
+          DeviceCapabilityErrors.foregroundServicePermissionQueryFailed(
+            error: error,
+          );
+      _setWarning(warning);
+      return (granted: true, warning: warning);
     }
   }
 
-  Future<bool> _requestNotificationPermissionSafely() async {
+  Future<({bool granted, PocketUserFacingError? warning})>
+  _requestNotificationPermissionSafely() async {
     try {
-      return await widget.notificationPermissionController.requestPermission();
-    } catch (_) {
-      return true;
+      return (
+        granted: await widget.notificationPermissionController
+            .requestPermission(),
+        warning: null,
+      );
+    } catch (error) {
+      final warning =
+          DeviceCapabilityErrors.foregroundServicePermissionRequestFailed(
+            error: error,
+          );
+      _setWarning(warning);
+      return (granted: true, warning: warning);
     }
   }
 
-  Future<void> _setEnabledSafely(
+  Future<bool> _setEnabledSafely(
     ForegroundServiceController controller,
-    bool enabled,
-  ) async {
+    bool enabled, {
+    bool clearWarningOnSuccess = true,
+  }) async {
     try {
       await controller.setEnabled(enabled);
-    } catch (_) {
-      // Ignore foreground-service failures so the app remains usable.
+      if (clearWarningOnSuccess) {
+        _setWarning(null);
+      }
+      return true;
+    } catch (error) {
+      _setWarning(
+        DeviceCapabilityErrors.foregroundServiceEnableFailed(error: error),
+      );
+      return false;
     }
+  }
+
+  void _setWarning(PocketUserFacingError? warning) {
+    widget.onWarningChanged?.call(warning);
   }
 }

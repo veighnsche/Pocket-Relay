@@ -4,7 +4,14 @@ Future<void> _initializeWorkspaceController(
   ConnectionWorkspaceController controller,
 ) async {
   final catalog = await controller._connectionRepository.loadCatalog();
-  final recoveryState = await controller._recoveryStore.load();
+  ConnectionWorkspaceRecoveryState? recoveryState;
+  PocketUserFacingError? recoveryLoadWarning;
+  try {
+    recoveryState = await controller._recoveryStore.load();
+  } catch (error) {
+    recoveryLoadWarning =
+        ConnectionWorkspaceRecoveryErrors.recoveryStateLoadFailed(error: error);
+  }
   controller._lastPersistedRecoveryState = recoveryState;
   if (catalog.isEmpty) {
     controller._applyState(
@@ -14,6 +21,8 @@ Future<void> _initializeWorkspaceController(
         liveConnectionIds: <String>[],
         selectedConnectionId: null,
         viewport: ConnectionWorkspaceViewport.savedConnections,
+        recoveryLoadWarning: null,
+        deviceContinuityWarnings: ConnectionWorkspaceDeviceContinuityWarnings(),
         savedSettingsReconnectRequiredConnectionIds: <String>{},
         transportReconnectRequiredConnectionIds: <String>{},
         transportRecoveryPhasesByConnectionId:
@@ -23,7 +32,7 @@ Future<void> _initializeWorkspaceController(
         recoveryDiagnosticsByConnectionId:
             <String, ConnectionWorkspaceRecoveryDiagnostics>{},
         remoteRuntimeByConnectionId: <String, ConnectionRemoteRuntimeState>{},
-      ),
+      ).copyWith(recoveryLoadWarning: recoveryLoadWarning),
     );
     return;
   }
@@ -55,6 +64,9 @@ Future<void> _initializeWorkspaceController(
       liveConnectionIds: <String>[firstConnectionId],
       selectedConnectionId: firstConnectionId,
       viewport: ConnectionWorkspaceViewport.liveLane,
+      recoveryLoadWarning: recoveryLoadWarning,
+      deviceContinuityWarnings:
+          const ConnectionWorkspaceDeviceContinuityWarnings(),
       savedSettingsReconnectRequiredConnectionIds: const <String>{},
       transportReconnectRequiredConnectionIds: const <String>{},
       transportRecoveryPhasesByConnectionId:
@@ -133,6 +145,7 @@ Future<void> _initializeWorkspaceController(
       controller._recordFallbackTransportConnectFailure(
         firstConnectionId,
         occurredAt: controller._now(),
+        error: error,
       );
       controller._setLiveReattachPhase(
         firstConnectionId,
@@ -156,11 +169,12 @@ Future<void> _initializeWorkspaceController(
       );
     }
     return;
-  } catch (_) {
+  } catch (error) {
     if (!controller._isDisposed) {
       controller._recordFallbackTransportConnectFailure(
         firstConnectionId,
         occurredAt: controller._now(),
+        error: error,
       );
       controller._clearLiveReattachPhase(firstConnectionId);
       controller._setTransportRecoveryPhase(

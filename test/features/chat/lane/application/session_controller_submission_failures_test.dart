@@ -27,7 +27,10 @@ void main() {
     final sent = await controller.sendPrompt('Needs credentials');
 
     expect(sent, isFalse);
-    expect(await snackBarMessage, 'This profile needs an SSH password.');
+    expect(
+      await snackBarMessage,
+      '[${PocketErrorCatalog.chatSessionSshPasswordRequired.code}] Password required. This profile needs an SSH password.',
+    );
     expect(appServerClient.sentMessages, isEmpty);
   });
 
@@ -67,7 +70,7 @@ void main() {
       expect(sent, isFalse);
       expect(
         await snackBarMessage,
-        'Local Codex is only available on desktop.',
+        '[${PocketErrorCatalog.chatSessionLocalModeUnsupported.code}] Local mode unavailable. Local Codex is only available on desktop.',
       );
       expect(appServerClient.connectCalls, 0);
     },

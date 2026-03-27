@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
@@ -72,6 +73,12 @@ void main() {
       expect(
         remoteRuntimeStates.last!.hostCapability.status,
         ConnectionRemoteHostCapabilityStatus.probeFailed,
+      );
+      expect(
+        remoteRuntimeStates.last!.hostCapability.detail,
+        contains(
+          '[${PocketErrorCatalog.connectionSettingsRemoteRuntimeProbeFailed.code}]',
+        ),
       );
       expect(
         remoteRuntimeStates.last!.hostCapability.detail,

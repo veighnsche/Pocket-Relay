@@ -16,6 +16,8 @@ void _handleChatScreenEffect(
       unawaited(state._requestConnectionSettings(payload));
     case ChatOpenChangedFileDiffEffect(:final payload):
       unawaited(state._openChangedFileDiff(payload));
+    case ChatOpenWorkLogTerminalEffect(:final payload):
+      unawaited(state._openWorkLogTerminal(payload));
   }
 }
 

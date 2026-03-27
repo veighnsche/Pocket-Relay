@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error_snackbar.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
@@ -11,6 +13,7 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
+import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_errors.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
@@ -163,6 +166,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final liveReattachPhase = workspaceState.liveReattachPhaseFor(
       widget.laneBinding.connectionId,
     );
+    final recoveryDiagnostics = workspaceState.recoveryDiagnosticsFor(
+      widget.laneBinding.connectionId,
+    );
+    final recoveryLoadWarning = workspaceState.recoveryLoadWarning;
+    final deviceContinuityWarnings = workspaceState.deviceContinuityWarnings;
     final remoteRuntime = workspaceState.remoteRuntimeFor(
       widget.laneBinding.connectionId,
     );
@@ -181,7 +189,21 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final recoveryNotice = _transportRecoveryNoticeFor(
       liveReattachPhase: liveReattachPhase,
       phase: transportRecoveryPhase,
+      diagnostics: recoveryDiagnostics,
       remoteRuntime: remoteRuntime,
+    );
+    final startupWarningNotice = _recoveryLoadWarningNoticeFor(
+      recoveryLoadWarning,
+    );
+    final deviceContinuityNotice = _deviceContinuityWarningNoticeFor(
+      deviceContinuityWarnings,
+    );
+    final laneNotice = _composedLaneNotice(
+      notices: <Widget?>[
+        recoveryNotice,
+        startupWarningNotice,
+        deviceContinuityNotice,
+      ],
     );
     final emptyStateContent = _buildLaneEmptyStateContent(
       profile: profile,
@@ -191,7 +213,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       remoteRuntime: remoteRuntime,
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
-      recoveryNotice: recoveryNotice,
+      recoveryNotice: laneNotice,
     );
     final chatRoot = ChatRootAdapter(
       laneBinding: widget.laneBinding,
@@ -212,7 +234,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
               remoteRuntime: remoteRuntime,
               isLaneBusy: isLaneBusy,
               isRestartInProgress: isRestartInProgress,
-              recoveryNotice: recoveryNotice,
+              recoveryNotice: laneNotice,
             ),
       supplementalEmptyStateContent: emptyStateContent,
     );
@@ -264,11 +286,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       }
 
       if (!_didRemoteServerActionSucceed(actionId, remoteRuntime)) {
-        _showTransientMessage(
+        _showTransientError(
           ConnectionLifecycleErrors.remoteServerActionFailure(
             actionId,
             remoteRuntime: remoteRuntime,
-          ).inlineMessage,
+          ),
         );
       }
     } catch (error) {
@@ -276,14 +298,14 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         return;
       }
 
-      _showTransientMessage(
+      _showTransientError(
         ConnectionLifecycleErrors.remoteServerActionFailure(
           actionId,
           remoteRuntime: widget.workspaceController.state.remoteRuntimeFor(
             connectionId,
           ),
           error: error,
-        ).inlineMessage,
+        ),
       );
     } finally {
       if (mounted &&
@@ -323,11 +345,11 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       if (!mounted) {
         return;
       }
-      _showTransientMessage(
+      _showTransientError(
         ConnectionLifecycleErrors.connectLaneFailure(
           remoteRuntime: remoteRuntime,
           error: error,
-        ).inlineMessage,
+        ),
       );
     } finally {
       if (mounted &&
@@ -364,10 +386,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     }
     if (!remoteRuntime.hostCapability.isSupported ||
         !remoteRuntime.server.isConnectable) {
-      _showTransientMessage(
+      _showTransientError(
         ConnectionLifecycleErrors.connectLaneFailure(
           remoteRuntime: remoteRuntime,
-        ).inlineMessage,
+        ),
       );
       return;
     }
@@ -469,11 +491,8 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       if (!mounted) {
         return;
       }
-      final detail = error.toString().trim();
-      _showTransientMessage(
-        detail.isEmpty
-            ? 'Could not disconnect lane.'
-            : 'Could not disconnect lane. $detail',
+      _showTransientError(
+        ConnectionLifecycleErrors.disconnectLaneFailure(error: error),
       );
     } finally {
       if (mounted &&
@@ -502,16 +521,14 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     };
   }
 
-  void _showTransientMessage(String message) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+  void _showTransientError(PocketUserFacingError error) {
+    showPocketErrorSnackBar(context, error);
   }
 
   Widget? _transportRecoveryNoticeFor({
     required ConnectionWorkspaceLiveReattachPhase? liveReattachPhase,
     required ConnectionWorkspaceTransportRecoveryPhase? phase,
+    required ConnectionWorkspaceRecoveryDiagnostics? diagnostics,
     required ConnectionRemoteRuntimeState? remoteRuntime,
   }) {
     final sessionController = widget.laneBinding.sessionController;
@@ -528,16 +545,23 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
     if (liveReattachPhase ==
         ConnectionWorkspaceLiveReattachPhase.fallbackRestore) {
-      return const _WorkspaceLaneTransportNotice(
-        title: ConnectionWorkspaceCopy.restoringConversationNoticeTitle,
-        message: ConnectionWorkspaceCopy.restoringConversationNoticeMessage,
+      final fallbackError =
+          ConnectionLifecycleErrors.liveReattachFallbackNotice(
+            reattachFailureDetail: diagnostics?.lastLiveReattachFailureDetail,
+          );
+      return _WorkspaceLaneTransportNotice(
+        title: fallbackError.title,
+        message: fallbackError.bodyWithCode,
         isLoading: true,
       );
     }
 
     final transportLostError = ConnectionLifecycleErrors.transportLostNotice();
     final unavailableError =
-        ConnectionLifecycleErrors.transportUnavailableNotice(remoteRuntime);
+        ConnectionLifecycleErrors.transportUnavailableNotice(
+          remoteRuntime,
+          recoveryFailureDetail: diagnostics?.lastTransportFailureDetail,
+        );
     final unavailableNotice = (
       unavailableError.title,
       unavailableError.bodyWithCode,
@@ -577,6 +601,70 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     );
   }
 
+  Widget? _recoveryLoadWarningNoticeFor(PocketUserFacingError? warning) {
+    if (warning == null) {
+      return null;
+    }
+
+    return _warningNoticeFor(warning, icon: Icons.history_toggle_off_rounded);
+  }
+
+  Widget? _deviceContinuityWarningNoticeFor(
+    ConnectionWorkspaceDeviceContinuityWarnings warnings,
+  ) {
+    final activeWarnings = warnings.activeWarnings;
+    if (activeWarnings.isEmpty) {
+      return null;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < activeWarnings.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          _warningNoticeFor(
+            activeWarnings[index],
+            icon: Icons.phone_android_rounded,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _warningNoticeFor(
+    PocketUserFacingError warning, {
+    required IconData icon,
+  }) {
+    return _WorkspaceLaneTransportNotice(
+      title: warning.title,
+      message: warning.bodyWithCode,
+      isLoading: false,
+      icon: icon,
+    );
+  }
+
+  Widget? _composedLaneNotice({required List<Widget?> notices}) {
+    final activeNotices = notices.whereType<Widget>().toList(growable: false);
+    if (activeNotices.isEmpty) {
+      return null;
+    }
+    if (activeNotices.length == 1) {
+      return activeNotices.single;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < activeNotices.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          activeNotices[index],
+        ],
+      ],
+    );
+  }
+
   Widget? _buildLaneConnectionStrip(
     BuildContext context, {
     required ConnectionProfile profile,
@@ -589,13 +677,15 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     required Widget? recoveryNotice,
   }) {
     final appServerConnected = widget.laneBinding.appServerClient.isConnected;
+    final secondaryActions = _laneSecondaryActionsFor(isLaneBusy: isLaneBusy);
     final showSteadyStateStrip =
         !appServerConnected ||
         reconnectRequirement != null ||
         transportRecoveryPhase != null ||
         liveReattachPhase != null ||
         recoveryNotice != null ||
-        _isConnectingLaneTransport;
+        _isConnectingLaneTransport ||
+        secondaryActions.isNotEmpty;
     if (!showSteadyStateStrip) {
       return null;
     }
@@ -607,11 +697,14 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
     );
-    if (primaryAction == null && recoveryNotice == null) {
+    if (primaryAction == null &&
+        secondaryActions.isEmpty &&
+        recoveryNotice == null) {
       return null;
     }
     return _WorkspaceLaneConnectionStrip(
       primaryAction: primaryAction,
+      secondaryActions: secondaryActions,
       notice: recoveryNotice,
     );
   }
@@ -638,8 +731,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
       isLaneBusy: isLaneBusy,
       isRestartInProgress: isRestartInProgress,
     );
+    final secondaryActions = _laneSecondaryActionsFor(isLaneBusy: isLaneBusy);
     if (workspacePath.isEmpty &&
         primaryAction == null &&
+        secondaryActions.isEmpty &&
         recoveryNotice == null) {
       return null;
     }
@@ -647,11 +742,12 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     return _WorkspaceLaneEmptyStateContent(
       workspacePath: workspacePath.isEmpty ? null : workspacePath,
       primaryAction: primaryAction,
+      secondaryActions: secondaryActions,
       notice: recoveryNotice,
     );
   }
 
-  _WorkspaceLaneStatusActionContract? _lanePrimaryActionFor({
+  _WorkspaceLaneActionContract? _lanePrimaryActionFor({
     required ConnectionProfile profile,
     required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
     required ConnectionRemoteRuntimeState? remoteRuntime,
@@ -674,10 +770,14 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
         _activeLaneRemoteServerAction != null ||
         isRestartInProgress;
     if (reconnectRequirement case final requirement?) {
-      return _WorkspaceLaneStatusActionContract(
+      return _WorkspaceLaneActionContract(
         key: const ValueKey<String>('lane_connection_action_reconnect'),
         label: ConnectionWorkspaceCopy.reconnectActionFor(requirement),
-        onPressed: isBusy ? null : _restartLane,
+        onPressed: isBusy
+            ? null
+            : () {
+                unawaited(_restartLane());
+              },
       );
     }
     final isCheckingRuntime =
@@ -686,41 +786,91 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
             ConnectionRemoteHostCapabilityStatus.checking ||
         remoteRuntime?.server.status == ConnectionRemoteServerStatus.checking;
 
-    return _WorkspaceLaneStatusActionContract(
+    return _WorkspaceLaneActionContract(
       key: const ValueKey<String>('lane_connection_action_connect'),
       label: ConnectionWorkspaceCopy.connectAction,
-      onPressed: isBusy || isCheckingRuntime ? null : _connectLane,
+      onPressed: isBusy || isCheckingRuntime
+          ? null
+          : () {
+              unawaited(_connectLane());
+            },
     );
+  }
+
+  List<_WorkspaceLaneActionContract> _laneSecondaryActionsFor({
+    required bool isLaneBusy,
+  }) {
+    final actions = <_WorkspaceLaneActionContract>[];
+    final isTransportConnected = widget.laneBinding.appServerClient.isConnected;
+    final canDisconnect = !isLaneBusy && !_isDisconnectingLaneTransport;
+    if (widget.laneBinding.sessionController.profile.isRemote &&
+        isTransportConnected) {
+      actions.add(
+        _WorkspaceLaneActionContract(
+          key: const ValueKey<String>('lane_connection_action_disconnect'),
+          label: _isDisconnectingLaneTransport
+              ? ConnectionWorkspaceCopy.disconnectProgress
+              : ConnectionWorkspaceCopy.disconnectAction,
+          onPressed: canDisconnect
+              ? () {
+                  unawaited(_disconnectLaneTransport());
+                }
+              : null,
+        ),
+      );
+    }
+
+    actions.add(
+      _WorkspaceLaneActionContract(
+        key: const ValueKey<String>('lane_connection_action_close'),
+        label: ConnectionWorkspaceCopy.closeLaneAction,
+        isDestructive: true,
+        onPressed: !isLaneBusy && !_isDisconnectingLaneTransport
+            ? () {
+                widget.workspaceController.terminateConnection(
+                  widget.laneBinding.connectionId,
+                );
+              }
+            : null,
+      ),
+    );
+
+    return actions;
   }
 }
 
-class _WorkspaceLaneStatusActionContract {
-  const _WorkspaceLaneStatusActionContract({
+class _WorkspaceLaneActionContract {
+  const _WorkspaceLaneActionContract({
     required this.key,
     required this.label,
     required this.onPressed,
+    this.isDestructive = false,
   });
 
   final Key key;
   final String label;
-  final Future<void> Function()? onPressed;
+  final VoidCallback? onPressed;
+  final bool isDestructive;
 }
 
 class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
   const _WorkspaceLaneEmptyStateContent({
     this.workspacePath,
     this.primaryAction,
+    this.secondaryActions = const <_WorkspaceLaneActionContract>[],
     this.notice,
   });
 
   final String? workspacePath;
-  final _WorkspaceLaneStatusActionContract? primaryAction;
+  final _WorkspaceLaneActionContract? primaryAction;
+  final List<_WorkspaceLaneActionContract> secondaryActions;
   final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryAction = this.primaryAction;
+    final secondaryActions = this.secondaryActions;
     final workspacePath = this.workspacePath?.trim();
     final hasWorkspacePath = workspacePath != null && workspacePath.isNotEmpty;
 
@@ -744,12 +894,34 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
             if (hasWorkspacePath) const SizedBox(height: 14),
             FilledButton.tonal(
               key: primaryAction.key,
-              onPressed: primaryAction.onPressed == null
-                  ? null
-                  : () {
-                      unawaited(primaryAction.onPressed!());
-                    },
+              onPressed: primaryAction.onPressed,
               child: Text(primaryAction.label),
+            ),
+          ],
+          if (secondaryActions.isNotEmpty) ...[
+            if (hasWorkspacePath || primaryAction != null)
+              const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final action in secondaryActions)
+                  action.isDestructive
+                      ? TextButton(
+                          key: action.key,
+                          onPressed: action.onPressed,
+                          style: TextButton.styleFrom(
+                            foregroundColor: theme.colorScheme.error,
+                          ),
+                          child: Text(action.label),
+                        )
+                      : OutlinedButton(
+                          key: action.key,
+                          onPressed: action.onPressed,
+                          child: Text(action.label),
+                        ),
+              ],
             ),
           ],
           if (notice != null) ...[const SizedBox(height: 14), notice!],
@@ -760,14 +932,20 @@ class _WorkspaceLaneEmptyStateContent extends StatelessWidget {
 }
 
 class _WorkspaceLaneConnectionStrip extends StatelessWidget {
-  const _WorkspaceLaneConnectionStrip({this.primaryAction, this.notice});
+  const _WorkspaceLaneConnectionStrip({
+    this.primaryAction,
+    this.secondaryActions = const <_WorkspaceLaneActionContract>[],
+    this.notice,
+  });
 
-  final _WorkspaceLaneStatusActionContract? primaryAction;
+  final _WorkspaceLaneActionContract? primaryAction;
+  final List<_WorkspaceLaneActionContract> secondaryActions;
   final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
     final primaryAction = this.primaryAction;
+    final secondaryActions = this.secondaryActions;
     final theme = Theme.of(context);
 
     return DecoratedBox(
@@ -785,21 +963,33 @@ class _WorkspaceLaneConnectionStrip extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (primaryAction != null)
+            if (primaryAction != null || secondaryActions.isNotEmpty)
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  FilledButton.tonal(
-                    key: primaryAction.key,
-                    onPressed: primaryAction.onPressed == null
-                        ? null
-                        : () {
-                            unawaited(primaryAction.onPressed!());
-                          },
-                    child: Text(primaryAction.label),
-                  ),
+                  if (primaryAction != null)
+                    FilledButton.tonal(
+                      key: primaryAction.key,
+                      onPressed: primaryAction.onPressed,
+                      child: Text(primaryAction.label),
+                    ),
+                  for (final action in secondaryActions)
+                    action.isDestructive
+                        ? TextButton(
+                            key: action.key,
+                            onPressed: action.onPressed,
+                            style: TextButton.styleFrom(
+                              foregroundColor: theme.colorScheme.error,
+                            ),
+                            child: Text(action.label),
+                          )
+                        : OutlinedButton(
+                            key: action.key,
+                            onPressed: action.onPressed,
+                            child: Text(action.label),
+                          ),
                 ],
               ),
             if (notice != null) ...[const SizedBox(height: 12), notice!],
@@ -815,11 +1005,13 @@ class _WorkspaceLaneTransportNotice extends StatelessWidget {
     required this.title,
     required this.message,
     required this.isLoading,
+    this.icon = Icons.portable_wifi_off_rounded,
   });
 
   final String title;
   final String message;
   final bool isLoading;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -849,7 +1041,7 @@ class _WorkspaceLaneTransportNotice extends StatelessWidget {
                 ),
               )
             else
-              Icon(Icons.portable_wifi_off_rounded, color: foregroundColor),
+              Icon(icon, color: foregroundColor),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

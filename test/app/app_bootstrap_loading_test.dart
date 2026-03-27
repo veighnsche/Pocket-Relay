@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 
 import '../support/builders/app_test_harness.dart';
@@ -47,9 +48,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Pocket Relay could not finish loading your workspace.'),
+        find.textContaining(
+          '[${PocketErrorCatalog.appBootstrapWorkspaceInitializationFailed.code}]',
+        ),
         findsOneWidget,
       );
+      expect(find.textContaining('Workspace load failed'), findsOneWidget);
+      expect(find.textContaining('catalog load failed'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('retry_workspace_bootstrap')),
         findsOneWidget,

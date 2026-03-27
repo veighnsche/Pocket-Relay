@@ -94,6 +94,35 @@ void main() {
   );
 
   test(
+    'transport unavailable notice keeps preserved generic reconnect detail',
+    () {
+      final error = ConnectionLifecycleErrors.transportUnavailableNotice(
+        null,
+        recoveryFailureDetail: 'connect failed',
+      );
+
+      expect(
+        error.definition,
+        PocketErrorCatalog.connectionTransportUnavailable,
+      );
+      expect(error.inlineMessage, contains('connect failed'));
+    },
+  );
+
+  test('live reattach fallback notice keeps a stable code and detail', () {
+    final error = ConnectionLifecycleErrors.liveReattachFallbackNotice(
+      reattachFailureDetail: 'resume failed',
+    );
+
+    expect(
+      error.definition,
+      PocketErrorCatalog.connectionLiveReattachFallbackRestore,
+    );
+    expect(error.title, 'Restoring conversation from history');
+    expect(error.inlineMessage, contains('resume failed'));
+  });
+
+  test(
     'conversation history failure maps unpinned host keys to a stable code',
     () {
       final error = ConnectionLifecycleErrors.conversationHistoryFailure(
@@ -113,6 +142,24 @@ void main() {
       expect(error.bodyWithCode, contains('7a:9f:d7:dc:2e:f2'));
     },
   );
+
+  test('remote runtime probe failures keep a stable code and detail', () {
+    final error = ConnectionLifecycleErrors.remoteRuntimeProbeFailure(
+      error: StateError('ssh probe failed'),
+    );
+
+    expect(error.definition, PocketErrorCatalog.connectionRuntimeProbeFailed);
+    expect(error.inlineMessage, contains('ssh probe failed'));
+  });
+
+  test('disconnect lane failures keep a stable code and detail', () {
+    final error = ConnectionLifecycleErrors.disconnectLaneFailure(
+      error: StateError('disconnect refused'),
+    );
+
+    expect(error.definition, PocketErrorCatalog.connectionDisconnectLaneFailed);
+    expect(error.inlineMessage, contains('disconnect refused'));
+  });
 }
 
 ConnectionProfile _remoteProfile() {

@@ -11,6 +11,7 @@ import 'package:pocket_relay/src/features/chat/composer/presentation/chat_compos
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/transcript_list.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 
 part 'flutter_chat_screen_renderer_composer.dart';
 part 'flutter_chat_screen_renderer_timeline.dart';
@@ -115,6 +116,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
     required this.onAutoFollowEligibilityChanged,
     this.surfaceChangeToken,
     this.onOpenChangedFileDiff,
+    this.onOpenWorkLogTerminal,
     this.onApproveRequest,
     this.onDenyRequest,
     this.onSubmitUserInput,
@@ -131,6 +133,8 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
   final ValueChanged<bool> onAutoFollowEligibilityChanged;
   final Object? surfaceChangeToken;
   final void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff;
+  final void Function(ChatWorkLogTerminalContract terminal)?
+  onOpenWorkLogTerminal;
   final Future<void> Function(String requestId)? onApproveRequest;
   final Future<void> Function(String requestId)? onDenyRequest;
   final Future<void> Function(
@@ -157,6 +161,7 @@ class FlutterChatTranscriptRegion extends StatelessWidget {
       onApproveRequest: onApproveRequest,
       onDenyRequest: onDenyRequest,
       onOpenChangedFileDiff: onOpenChangedFileDiff,
+      onOpenWorkLogTerminal: onOpenWorkLogTerminal,
       onSubmitUserInput: onSubmitUserInput,
       onSaveHostFingerprint: onSaveHostFingerprint,
       onContinueFromUserMessage: onContinueFromUserMessage,

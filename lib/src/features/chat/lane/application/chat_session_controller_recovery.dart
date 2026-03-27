@@ -3,7 +3,9 @@ part of 'chat_session_controller.dart';
 extension _ChatSessionControllerRecovery on ChatSessionController {
   void startFreshConversation() {
     if (_sessionState.activeTurn != null || _sessionState.isBusy) {
-      _emitSnackBar('Stop the active turn before starting a new thread.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.freshConversationBlockedByActiveTurn(),
+      );
       return;
     }
     _resetConversationState(
@@ -16,7 +18,9 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
 
   void clearTranscript() {
     if (_sessionState.activeTurn != null || _sessionState.isBusy) {
-      _emitSnackBar('Stop the active turn before clearing the transcript.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.clearTranscriptBlockedByActiveTurn(),
+      );
       return;
     }
     _resetConversationState(
@@ -33,7 +37,9 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
 
     final timeline = _sessionState.timelineForThread(alternateThreadId);
     if (timeline == null) {
-      _emitSnackBar('That active session is no longer available locally.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.alternateSessionUnavailable(),
+      );
       return;
     }
 
@@ -170,17 +176,23 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
       return null;
     }
     if (_historicalConversationRestoreState != null) {
-      _emitSnackBar('Wait for transcript restore before continuing from here.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.continueBlockedByTranscriptRestore(),
+      );
       return null;
     }
     if (_sessionState.activeTurn != null || _sessionState.isBusy) {
-      _emitSnackBar('Stop the active turn before continuing from here.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.continueBlockedByActiveTurn(),
+      );
       return null;
     }
 
     final targetThreadId = _activeConversationThreadId();
     if (targetThreadId == null) {
-      _emitSnackBar('This conversation cannot continue from that prompt yet.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.continueTargetUnavailable(),
+      );
       return null;
     }
 
@@ -194,7 +206,9 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
       (block) => block.id == normalizedBlockId,
     );
     if (targetIndex < 0) {
-      _emitSnackBar('That prompt is no longer available for continuation.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.continuePromptUnavailable(),
+      );
       return null;
     }
 
@@ -224,17 +238,23 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
 
   Future<bool> branchSelectedConversation() async {
     if (_historicalConversationRestoreState != null) {
-      _emitSnackBar('Wait for transcript restore before branching.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.branchBlockedByTranscriptRestore(),
+      );
       return false;
     }
     if (_sessionState.activeTurn != null || _sessionState.isBusy) {
-      _emitSnackBar('Stop the active turn before branching this conversation.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.branchBlockedByActiveTurn(),
+      );
       return false;
     }
 
     final targetThreadId = _selectedConversationThreadId();
     if (targetThreadId == null) {
-      _emitSnackBar('This conversation cannot be branched yet.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.branchTargetUnavailable(),
+      );
       return false;
     }
 

@@ -31,7 +31,13 @@ Future<void> _hydrateChatSessionThreadMetadataIfNeeded(
         agentRole: thread.agentRole,
       ),
     );
-  } catch (_) {
-    // Thread metadata hydration is best-effort only.
+  } catch (error) {
+    controller._emitDiagnosticWarning(
+      ChatSessionErrors.threadMetadataHydrationFailed(
+        threadId: threadId,
+        error: error,
+      ),
+      rawMethod: 'local/thread-metadata-hydration',
+    );
   }
 }

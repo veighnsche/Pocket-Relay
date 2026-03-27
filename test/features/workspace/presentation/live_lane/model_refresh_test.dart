@@ -186,17 +186,25 @@ void main() {
 
       final refreshCallback =
           settingsOverlayDelegate.launchedRefreshCallbacks.single;
-      final refreshedCatalog = await refreshCallback!(
-        ConnectionSettingsDraft.fromConnection(
-          profile: settingsOverlayDelegate.launchedSettings.single.$1,
-          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+      await expectLater(
+        refreshCallback!(
+          ConnectionSettingsDraft.fromConnection(
+            profile: settingsOverlayDelegate.launchedSettings.single.$1,
+            secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => '$error',
+            'message',
+            contains('repeated pagination cursor'),
+          ),
         ),
       );
 
       expect(client.listModelCalls, hasLength(2));
       expect(client.listModelCalls.first.cursor, isNull);
       expect(client.listModelCalls.last.cursor, 'repeat-cursor');
-      expect(refreshedCatalog, isNull);
       expect(
         await controller.loadConnectionModelCatalog('conn_primary'),
         staleConnectionCatalog,
@@ -294,33 +302,11 @@ void main() {
   );
 
   testWidgets(
-    'live lane refresh treats model page-cap exhaustion as a failed refresh and preserves cached catalogs',
+    'live lane refresh preserves backend failure detail when model listing throws',
     (tester) async {
       final clientsById = buildClientsById('conn_primary');
-      final client = clientsById['conn_primary']!;
-      client.listedModelPages.addAll(
-        List<CodexAppServerModelListPage>.generate(
-          101,
-          (index) => CodexAppServerModelListPage(
-            models: <CodexAppServerModel>[
-              CodexAppServerModel(
-                id: 'preset_page_${index + 1}',
-                model: 'gpt-page-${index + 1}',
-                displayName: 'GPT Page ${index + 1}',
-                description: 'Paginated model ${index + 1}.',
-                hidden: false,
-                supportedReasoningEfforts:
-                    const <CodexAppServerReasoningEffortOption>[],
-                defaultReasoningEffort: CodexReasoningEffort.medium,
-                inputModalities: const <String>['text'],
-                supportsPersonality: false,
-                isDefault: index == 0,
-              ),
-            ],
-            nextCursor: 'cursor-${index + 1}',
-          ),
-        ),
-      );
+      final client = clientsById['conn_primary']!
+        ..listModelsError = StateError('backend unavailable');
       await client.connect(
         profile: workspaceProfile('Primary Box', 'primary.local'),
         secrets: const ConnectionSecrets(password: 'secret-1'),
@@ -372,15 +358,23 @@ void main() {
 
       final refreshCallback =
           settingsOverlayDelegate.launchedRefreshCallbacks.single;
-      final refreshedCatalog = await refreshCallback!(
-        ConnectionSettingsDraft.fromConnection(
-          profile: settingsOverlayDelegate.launchedSettings.single.$1,
-          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+      await expectLater(
+        refreshCallback!(
+          ConnectionSettingsDraft.fromConnection(
+            profile: settingsOverlayDelegate.launchedSettings.single.$1,
+            secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => '$error',
+            'message',
+            contains('backend unavailable'),
+          ),
         ),
       );
 
-      expect(client.listModelCalls, hasLength(100));
-      expect(refreshedCatalog, isNull);
+      expect(client.listModelCalls, isEmpty);
       expect(
         await controller.loadConnectionModelCatalog('conn_primary'),
         staleConnectionCatalog,
@@ -389,7 +383,6 @@ void main() {
         await controller.loadLastKnownConnectionModelCatalog(),
         staleLastKnownCatalog,
       );
-      expect(client.listedModelPages, hasLength(1));
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();

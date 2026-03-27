@@ -168,6 +168,7 @@ void _recordWorkspaceLifecycleBackgroundSnapshot(
       lastBackgroundedAt: occurredAt,
       lastBackgroundedLifecycleState: lifecycleState,
     ),
+    enqueueRecoveryPersistence: true,
   );
 }
 
@@ -183,6 +184,7 @@ void _recordWorkspaceLifecycleResume(
       clearLastBackgroundedAt: true,
       clearLastBackgroundedLifecycleState: true,
     ),
+    enqueueRecoveryPersistence: true,
   );
 }
 
@@ -205,6 +207,7 @@ void _recordWorkspaceFallbackTransportConnectFailure(
   ConnectionWorkspaceController controller,
   String connectionId, {
   required DateTime occurredAt,
+  required Object? error,
 }) {
   final diagnostics = controller._state.recoveryDiagnosticsFor(connectionId);
   final lastRecoveryStartedAt = diagnostics?.lastRecoveryStartedAt;
@@ -220,6 +223,27 @@ void _recordWorkspaceFallbackTransportConnectFailure(
     occurredAt: occurredAt,
     reason: ConnectionWorkspaceTransportLossReason.connectFailed,
   );
+  controller._updateRecoveryDiagnostics(
+    connectionId,
+    (current) => current.copyWith(
+      lastTransportFailureDetail: PocketErrorDetailFormatter.normalize(error),
+    ),
+  );
+}
+
+void _recordWorkspaceLiveReattachFailure(
+  ConnectionWorkspaceController controller,
+  String connectionId, {
+  required Object? error,
+}) {
+  controller._updateRecoveryDiagnostics(
+    connectionId,
+    (current) => current.copyWith(
+      lastLiveReattachFailureDetail: PocketErrorDetailFormatter.normalize(
+        error,
+      ),
+    ),
+  );
 }
 
 void _beginWorkspaceRecoveryAttempt(
@@ -233,6 +257,8 @@ void _beginWorkspaceRecoveryAttempt(
     (current) => current.copyWith(
       lastRecoveryOrigin: origin,
       lastRecoveryStartedAt: startedAt,
+      clearLastTransportFailureDetail: true,
+      clearLastLiveReattachFailureDetail: true,
       clearLastRecoveryCompletedAt: true,
       clearLastRecoveryOutcome: true,
     ),
@@ -294,8 +320,9 @@ void _updateWorkspaceRecoveryDiagnostics(
   ConnectionWorkspaceRecoveryDiagnostics Function(
     ConnectionWorkspaceRecoveryDiagnostics current,
   )
-  update,
-) {
+  update, {
+  required bool enqueueRecoveryPersistence,
+}) {
   if (controller._isDisposed ||
       !controller._state.isConnectionLive(connectionId)) {
     return;
@@ -309,17 +336,20 @@ void _updateWorkspaceRecoveryDiagnostics(
     return;
   }
 
-  controller._applyState(
-    controller._state.copyWith(
-      recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
-        catalog: controller._state.catalog,
-        liveConnectionIds: controller._state.liveConnectionIds,
-        recoveryDiagnosticsByConnectionId:
-            <String, ConnectionWorkspaceRecoveryDiagnostics>{
-              ...controller._state.recoveryDiagnosticsByConnectionId,
-              connectionId: nextDiagnostics,
-            },
-      ),
+  final nextState = controller._state.copyWith(
+    recoveryDiagnosticsByConnectionId: _sanitizeWorkspaceRecoveryDiagnostics(
+      catalog: controller._state.catalog,
+      liveConnectionIds: controller._state.liveConnectionIds,
+      recoveryDiagnosticsByConnectionId:
+          <String, ConnectionWorkspaceRecoveryDiagnostics>{
+            ...controller._state.recoveryDiagnosticsByConnectionId,
+            connectionId: nextDiagnostics,
+          },
     ),
   );
+  if (enqueueRecoveryPersistence) {
+    controller._applyState(nextState);
+    return;
+  }
+  controller._applyStateWithoutRecoveryPersistence(nextState);
 }

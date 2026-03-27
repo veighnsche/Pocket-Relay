@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/core/theme/pocket_typography.dart';
 import 'ui_block_surface_test_support.dart';
 
 void main() {
@@ -51,7 +52,7 @@ void main() {
 
     expect(codeStyle, isNotNull);
     expect(codeStyle?.color, const Color(0xFFE7F3F4));
-    expect(codeStyle?.fontFamily, 'monospace');
+    expect(codeStyle?.fontFamily, PocketFontFamilies.monospace);
     expect(
       findDecoratedContainerColorForText(tester, 'final answer = 42;'),
       const Color(0xFF0A1314),
@@ -76,9 +77,41 @@ void main() {
     final inlineCodeStyle = findStyleForText(tester, 'dart test');
 
     expect(inlineCodeStyle, isNotNull);
-    expect(inlineCodeStyle?.fontFamily, 'monospace');
+    expect(inlineCodeStyle?.fontFamily, PocketFontFamilies.monospace);
     expect(inlineCodeStyle?.backgroundColor, const Color(0xFFE8E0CF));
   });
+
+  testWidgets(
+    'renders proposed plan code fences and inline code with monospace styling',
+    (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          child: entrySurface(
+            block: CodexProposedPlanBlock(
+              id: 'plan_code_1',
+              createdAt: DateTime(2026, 3, 14, 12),
+              title: 'Proposed plan',
+              markdown:
+                  '# Validate plan\n\n'
+                  'Run `dart test` before shipping.\n\n'
+                  '```dart\n'
+                  'final answer = 42;\n'
+                  '```',
+            ),
+          ),
+        ),
+      );
+
+      final inlineCodeStyle = findStyleForText(tester, 'dart test');
+      final fencedCodeStyle = findStyleForText(tester, 'final answer = 42;');
+
+      expect(inlineCodeStyle, isNotNull);
+      expect(inlineCodeStyle?.fontFamily, PocketFontFamilies.monospace);
+      expect(inlineCodeStyle?.backgroundColor, const Color(0xFFE8E0CF));
+      expect(fencedCodeStyle, isNotNull);
+      expect(fencedCodeStyle?.fontFamily, PocketFontFamilies.monospace);
+    },
+  );
 
   testWidgets(
     'renders context-compaction blocks as dedicated transcript surfaces',

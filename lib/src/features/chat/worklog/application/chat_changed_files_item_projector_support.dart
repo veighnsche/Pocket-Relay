@@ -29,17 +29,9 @@ ChatChangedFileRowContract _projectChangedFileRow({
     ),
     diff: patch == null
         ? null
-        : ChatChangedFileDiffContract(
-            id: rowId,
-            file: presentation,
-            operationKind: operationKind,
-            operationLabel: operationLabel,
-            stats: ChatChangedFileStatsContract(
-              additions: stats.additions,
-              deletions: stats.deletions,
-            ),
-            statusLabel: patch.statusLabel,
-            lines: patch.lines
+        : () {
+            const previewLineLimit = 320;
+            final diffLines = patch.lines
                 .map(
                   (line) => ChatChangedFileDiffLineContract(
                     text: line.text,
@@ -50,8 +42,36 @@ ChatChangedFileRowContract _projectChangedFileRow({
                     newLineNumber: line.newLineNumber,
                   ),
                 )
-                .toList(growable: false),
-          ),
+                .toList(growable: false);
+            final review = _buildDiffReview(
+              lines: diffLines,
+              isBinary: patch.isBinary,
+            );
+            final previewReview = diffLines.length <= previewLineLimit
+                ? review
+                : _buildDiffReview(
+                    lines: diffLines
+                        .take(previewLineLimit)
+                        .toList(growable: false),
+                    isBinary: patch.isBinary,
+                  );
+
+            return ChatChangedFileDiffContract(
+              id: rowId,
+              file: presentation,
+              operationKind: operationKind,
+              operationLabel: operationLabel,
+              stats: ChatChangedFileStatsContract(
+                additions: stats.additions,
+                deletions: stats.deletions,
+              ),
+              lines: diffLines,
+              review: review,
+              previewReview: previewReview,
+              statusLabel: patch.statusLabel,
+              previewLineLimit: previewLineLimit,
+            );
+          }(),
   );
 }
 

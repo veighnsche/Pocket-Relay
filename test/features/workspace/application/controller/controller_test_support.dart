@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
@@ -24,6 +25,7 @@ export 'dart:async';
 export 'package:flutter_secure_storage/flutter_secure_storage.dart';
 export 'package:flutter/widgets.dart';
 export 'package:flutter_test/flutter_test.dart';
+export 'package:pocket_relay/src/core/errors/pocket_error.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 export 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
@@ -40,6 +42,20 @@ export 'package:pocket_relay/src/features/workspace/infrastructure/connection_wo
 export 'package:shared_preferences/shared_preferences.dart';
 export 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 export 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+final class ThrowingRemoteHostProbe implements CodexRemoteAppServerHostProbe {
+  const ThrowingRemoteHostProbe(this.message);
+
+  final String message;
+
+  @override
+  Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    throw StateError(message);
+  }
+}
 
 ConnectionWorkspaceController buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
@@ -327,6 +343,50 @@ class RecordingConnectionWorkspaceRecoveryStore
     _state = state;
     savedStates.add(state);
   }
+}
+
+class ToggleableFailingConnectionWorkspaceRecoveryStore
+    implements ConnectionWorkspaceRecoveryStore {
+  ToggleableFailingConnectionWorkspaceRecoveryStore({
+    this.initialState,
+    this.saveError,
+  });
+
+  final ConnectionWorkspaceRecoveryState? initialState;
+  final List<ConnectionWorkspaceRecoveryState?> attemptedStates =
+      <ConnectionWorkspaceRecoveryState?>[];
+  ConnectionWorkspaceRecoveryState? _state;
+  Object? saveError;
+
+  @override
+  Future<ConnectionWorkspaceRecoveryState?> load() async {
+    return _state ?? initialState;
+  }
+
+  @override
+  Future<void> save(ConnectionWorkspaceRecoveryState? state) async {
+    attemptedStates.add(state);
+    final error = saveError;
+    if (error != null) {
+      throw error;
+    }
+    _state = state;
+  }
+}
+
+class ThrowingConnectionWorkspaceRecoveryStore
+    implements ConnectionWorkspaceRecoveryStore {
+  const ThrowingConnectionWorkspaceRecoveryStore(this.error);
+
+  final Object error;
+
+  @override
+  Future<ConnectionWorkspaceRecoveryState?> load() async {
+    throw error;
+  }
+
+  @override
+  Future<void> save(ConnectionWorkspaceRecoveryState? state) async {}
 }
 
 ConnectionProfile workspaceProfile(String label, String host) {

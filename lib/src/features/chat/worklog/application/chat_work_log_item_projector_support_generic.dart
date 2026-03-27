@@ -51,11 +51,60 @@ bool _hasBackgroundTerminalMetadata(Map<String, dynamic>? snapshot) {
     return false;
   }
 
+  return _processIdFromSnapshot(snapshot) != null;
+}
+
+String? _processIdFromSnapshot(Map<String, dynamic>? snapshot) {
+  if (snapshot == null) {
+    return null;
+  }
+
   return _firstNonEmptyString(<Object?>[
-        snapshot['processId'],
-        snapshot['process_id'],
-      ]) !=
-      null;
+    snapshot['processId'],
+    snapshot['process_id'],
+  ]);
+}
+
+String? _nonBlankTextPreservingWhitespace(Object? value) {
+  if (value is! String || value.trim().isEmpty) {
+    return null;
+  }
+  return value;
+}
+
+String? _terminalInputText(Map<String, dynamic>? snapshot) {
+  return _nonBlankTextPreservingWhitespace(snapshot?['stdin']);
+}
+
+String? _terminalOutputText(
+  CodexWorkLogEntry entry, {
+  required String commandText,
+  String? terminalInput,
+}) {
+  final body = _nonBlankTextPreservingWhitespace(entry.body);
+  if (body == null) {
+    return null;
+  }
+  if (body.trim() == commandText.trim() || body == terminalInput) {
+    return null;
+  }
+  return body;
+}
+
+({String? processId, String? terminalInput, String? terminalOutput})
+_shellTerminalFields(CodexWorkLogEntry entry, {required String commandText}) {
+  final processId = _processIdFromSnapshot(entry.snapshot);
+  final terminalInput = _terminalInputText(entry.snapshot);
+  final terminalOutput = _terminalOutputText(
+    entry,
+    commandText: commandText,
+    terminalInput: terminalInput,
+  );
+  return (
+    processId: processId,
+    terminalInput: terminalInput,
+    terminalOutput: terminalOutput,
+  );
 }
 
 Map<String, dynamic>? _asObjectValue(Object? value) {

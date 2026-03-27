@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 
 void main() {
@@ -53,6 +54,27 @@ void main() {
 
     expect(controller.enabledStates, isEmpty);
   });
+
+  testWidgets('wake-lock failures surface a typed warning', (tester) async {
+    final controller = _ThrowingDisplayWakeLockController();
+    PocketUserFacingError? warning;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DisplayWakeLockHost(
+          displayWakeLockController: controller,
+          supportsWakeLock: true,
+          onWarningChanged: (value) => warning = value,
+          child: const SizedBox(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(controller.enabledStates, <bool>[true]);
+    expect(warning?.definition, PocketErrorCatalog.deviceWakeLockEnableFailed);
+    expect(warning?.bodyWithCode, contains('wake lock failed'));
+  });
 }
 
 class _FakeDisplayWakeLockController implements DisplayWakeLockController {
@@ -61,5 +83,15 @@ class _FakeDisplayWakeLockController implements DisplayWakeLockController {
   @override
   Future<void> setEnabled(bool enabled) async {
     enabledStates.add(enabled);
+  }
+}
+
+class _ThrowingDisplayWakeLockController implements DisplayWakeLockController {
+  final List<bool> enabledStates = <bool>[];
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    enabledStates.add(enabled);
+    throw StateError('wake lock failed');
   }
 }

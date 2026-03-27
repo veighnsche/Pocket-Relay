@@ -265,7 +265,11 @@ Future<void> _ensureChatSessionAppServerConnected(
 
   try {
     await controller._refreshModelCatalogAfterConnect();
-  } catch (_) {
+  } catch (error) {
+    controller._emitDiagnosticWarning(
+      ChatSessionErrors.modelCatalogHydrationFailed(error: error),
+      rawMethod: 'local/model-catalog-hydration',
+    );
     // Fail open when model metadata is unavailable; send/attach paths will
     // re-check the cached capability state if a later hydration succeeds.
   }
@@ -306,7 +310,9 @@ Future<void> _resolveChatSessionApproval(
 }) async {
   final pendingRequest = controller._findPendingApprovalRequest(requestId);
   if (pendingRequest == null) {
-    controller._emitSnackBar('This approval request is no longer pending.');
+    controller._emitUserFacingError(
+      ChatSessionGuardrailErrors.approvalRequestUnavailable(),
+    );
     return;
   }
 

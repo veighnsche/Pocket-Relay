@@ -73,9 +73,9 @@ class _ChangedFileRow extends StatelessWidget {
                             row.fileName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: PocketTypography.monospaceStyle(
+                              base: const TextStyle(),
                               fontSize: 11.75,
-                              fontFamily: 'monospace',
                               fontWeight: FontWeight.w700,
                               color: cards.textPrimary,
                               height: 1.2,
@@ -86,9 +86,9 @@ class _ChangedFileRow extends StatelessWidget {
                               secondaryLabel,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: PocketTypography.monospaceStyle(
+                                base: const TextStyle(),
                                 fontSize: 10.75,
-                                fontFamily: 'monospace',
                                 color: cards.textMuted,
                                 height: 1.2,
                               ),

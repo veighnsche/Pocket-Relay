@@ -318,7 +318,7 @@ void main() {
     );
     expect(
       await snackBarMessage,
-      'Stop the active turn before clearing the transcript.',
+      '[${PocketErrorCatalog.chatSessionClearTranscriptBlocked.code}] Clear transcript blocked. Stop the active turn before clearing the transcript.',
     );
   });
 }

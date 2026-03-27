@@ -12,7 +12,7 @@ ConnectionSettingsContract _buildConnectionSettingsHostContract(
     availableModelCatalog: state._availableModelCatalog,
     availableModelCatalogSource: state._availableModelCatalogSource,
     availableSystemTemplates: state._availableSystemTemplates,
-    didModelCatalogRefreshFail: state._didModelCatalogRefreshFail,
+    modelCatalogRefreshError: state._modelCatalogRefreshError,
     supportsModelCatalogRefresh: state.widget.onRefreshModelCatalog != null,
     isRefreshingModelCatalog: state._isRefreshingModelCatalog,
     isTestingSystem: state._isTestingSystem,

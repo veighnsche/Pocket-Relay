@@ -4,7 +4,9 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
   Future<void> saveObservedHostFingerprint(String blockId) async {
     final block = _findUnpinnedHostKeyBlock(blockId);
     if (block == null) {
-      _emitSnackBar('This host fingerprint prompt is no longer available.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.hostFingerprintPromptUnavailable(),
+      );
       return;
     }
     if (block.isSaved) {
@@ -24,8 +26,8 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
         return;
       }
 
-      _emitSnackBar(
-        'This profile already has a different pinned host fingerprint. Review the connection settings before replacing it.',
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.hostFingerprintConflict(),
       );
       return;
     }
@@ -34,8 +36,10 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
 
     try {
       await profileStore.save(nextProfile, _secrets);
-    } catch (_) {
-      _emitSnackBar('Could not save the host fingerprint to this profile.');
+    } catch (error) {
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.hostFingerprintSaveFailed(error: error),
+      );
       return;
     }
     if (_isDisposed) {
@@ -56,9 +60,9 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
       return false;
     }
 
-    final validationMessage = _validateProfileForSend();
-    if (validationMessage != null) {
-      _emitSnackBar(validationMessage);
+    final validationError = _validateProfileForSend();
+    if (validationError != null) {
+      _emitUserFacingError(validationError);
       return false;
     }
 
@@ -91,9 +95,9 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
       return false;
     }
 
-    final validationMessage = _validateProfileForSend();
-    if (validationMessage != null) {
-      _emitSnackBar(validationMessage);
+    final validationError = _validateProfileForSend();
+    if (validationError != null) {
+      _emitUserFacingError(validationError);
       return false;
     }
     if (!await _ensureImageInputsSupportedForDraft(normalizedDraft)) {
@@ -135,7 +139,9 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
   ) async {
     final pendingRequest = _findPendingUserInputRequest(requestId);
     if (pendingRequest == null) {
-      _emitSnackBar('This input request is no longer pending.');
+      _emitUserFacingError(
+        ChatSessionGuardrailErrors.userInputRequestUnavailable(),
+      );
       return;
     }
 
@@ -165,24 +171,26 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
     }
   }
 
-  String? _validateProfileForSend() {
+  PocketUserFacingError? _validateProfileForSend() {
     if (!_profile.isReady) {
       return switch (_profile.connectionMode) {
-        ConnectionMode.remote => 'Fill in the remote connection details first.',
-        ConnectionMode.local => 'Fill in the local Codex settings first.',
+        ConnectionMode.remote =>
+          ChatSessionGuardrailErrors.remoteConnectionDetailsRequired(),
+        ConnectionMode.local =>
+          ChatSessionGuardrailErrors.localConfigurationRequired(),
       };
     }
     if (_profile.connectionMode == ConnectionMode.local) {
       if (!_supportsLocalConnectionMode) {
-        return 'Local Codex is only available on desktop.';
+        return ChatSessionGuardrailErrors.localModeUnsupported();
       }
       return null;
     }
     if (_profile.authMode == AuthMode.password && !_secrets.hasPassword) {
-      return 'This profile needs an SSH password.';
+      return ChatSessionGuardrailErrors.sshPasswordRequired();
     }
     if (_profile.authMode == AuthMode.privateKey && !_secrets.hasPrivateKey) {
-      return 'This profile needs a private key.';
+      return ChatSessionGuardrailErrors.privateKeyRequired();
     }
     return null;
   }

@@ -63,6 +63,16 @@ abstract interface class ConnectionWorkspaceRecoveryStore {
   Future<void> save(ConnectionWorkspaceRecoveryState? state);
 }
 
+final class ConnectionWorkspaceRecoveryStoreCorruptedException
+    implements Exception {
+  const ConnectionWorkspaceRecoveryStoreCorruptedException(this.detail);
+
+  final String detail;
+
+  @override
+  String toString() => detail;
+}
+
 class NoopConnectionWorkspaceRecoveryStore
     implements ConnectionWorkspaceRecoveryStore {
   const NoopConnectionWorkspaceRecoveryStore();
@@ -120,16 +130,30 @@ class SecureConnectionWorkspaceRecoveryStore
       return null;
     }
 
-    final decoded = jsonDecode(rawState);
+    final Object decoded;
+    try {
+      decoded = jsonDecode(rawState);
+    } catch (_) {
+      await _clearCorruptedRecoveryMetadata();
+      throw const ConnectionWorkspaceRecoveryStoreCorruptedException(
+        'Persisted workspace recovery metadata is malformed JSON.',
+      );
+    }
     if (decoded is! Map<String, dynamic>) {
-      return null;
+      await _clearCorruptedRecoveryMetadata();
+      throw const ConnectionWorkspaceRecoveryStoreCorruptedException(
+        'Persisted workspace recovery metadata is not a JSON object.',
+      );
     }
 
     final sanitizedMap = Map<String, dynamic>.from(decoded)
       ..remove(_legacyDraftTextKey);
     final state = ConnectionWorkspaceRecoveryState.fromJson(sanitizedMap);
     if (state.connectionId.isEmpty) {
-      return null;
+      await _clearCorruptedRecoveryMetadata();
+      throw const ConnectionWorkspaceRecoveryStoreCorruptedException(
+        'Persisted workspace recovery metadata is missing a valid connection id.',
+      );
     }
 
     final hasLegacyDraftText = decoded.containsKey(_legacyDraftTextKey);
@@ -241,13 +265,16 @@ class SecureConnectionWorkspaceRecoveryStore
   Future<void> _deleteLegacyDraftText() {
     return _secureStorage.delete(key: _legacyDraftTextStorageKey);
   }
+
+  Future<void> _clearCorruptedRecoveryMetadata() async {
+    await _preferences.remove(_recoveryStateKey);
+    await _deleteLegacyDraftText();
+  }
 }
 
 String _draftTextStorageKeyForConnection(String connectionId) {
   final normalizedConnectionId = _normalizedRecoveryString(connectionId) ?? '';
-  return '${
-      SecureConnectionWorkspaceRecoveryStore._draftTextStorageKeyPrefix
-    }$normalizedConnectionId';
+  return '${SecureConnectionWorkspaceRecoveryStore._draftTextStorageKeyPrefix}$normalizedConnectionId';
 }
 
 Map<String, Object?> _persistableStateJson(Map<String, dynamic> json) {

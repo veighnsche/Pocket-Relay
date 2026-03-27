@@ -43,11 +43,13 @@ class _CommandWaitWorkLogEntryRow extends StatelessWidget {
     required this.entry,
     required this.accent,
     required this.icon,
+    this.onTap,
   });
 
   final ChatCommandWaitWorkLogEntryContract entry;
   final Color accent;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class _CommandWaitWorkLogEntryRow extends StatelessWidget {
       label: entry.activityLabel,
       title: entry.commandText,
       statusBadge: TranscriptBadge(label: 'waiting', color: accent),
+      onTap: onTap,
       details: entry.outputPreview == null
           ? const <Widget>[]
           : <Widget>[
@@ -82,11 +85,13 @@ class _CommandExecutionWorkLogEntryRow extends StatelessWidget {
     required this.entry,
     required this.accent,
     required this.icon,
+    this.onTap,
   });
 
   final ChatCommandExecutionWorkLogEntryContract entry;
   final Color accent;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +102,7 @@ class _CommandExecutionWorkLogEntryRow extends StatelessWidget {
       accent: accent,
       label: entry.activityLabel,
       title: entry.commandText,
+      onTap: onTap,
       statusBadge: _specialCommandStatusBadge(
         theme: Theme.of(context),
         isRunning: entry.isRunning,
@@ -125,11 +131,13 @@ class _GitWorkLogEntryRow extends StatelessWidget {
     required this.entry,
     required this.accent,
     required this.icon,
+    this.onTap,
   });
 
   final ChatGitWorkLogEntryContract entry;
   final Color accent;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +148,7 @@ class _GitWorkLogEntryRow extends StatelessWidget {
       accent: accent,
       label: entry.summaryLabel,
       title: entry.primaryLabel,
+      onTap: onTap,
       statusBadge: _specialCommandStatusBadge(
         theme: Theme.of(context),
         isRunning: entry.isRunning,
@@ -168,11 +177,13 @@ class _ReadWorkLogEntryRow extends StatelessWidget {
     required this.entry,
     required this.accent,
     required this.icon,
+    this.onTap,
   });
 
   final ChatFileReadWorkLogEntryContract entry;
   final Color accent;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +194,7 @@ class _ReadWorkLogEntryRow extends StatelessWidget {
       accent: accent,
       label: entry.summaryLabel,
       title: entry.fileName,
+      onTap: onTap,
       statusBadge: _specialCommandStatusBadge(
         theme: Theme.of(context),
         isRunning: entry.isRunning,

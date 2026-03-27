@@ -171,6 +171,98 @@ void main() {
     },
   );
 
+  test('command lifecycle updates replace stale terminal snapshot fields', () {
+    final reducer = TranscriptReducer();
+    final now = DateTime(2026, 3, 14, 12);
+    var state = reducer.reduceRuntimeEvent(
+      CodexSessionState.initial(),
+      CodexRuntimeItemStartedEvent(
+        createdAt: now,
+        itemType: CodexCanonicalItemType.commandExecution,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'command_snapshot_1',
+        status: CodexRuntimeItemStatus.inProgress,
+        snapshot: const <String, Object?>{'command': 'git status'},
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemUpdatedEvent(
+        createdAt: now.add(const Duration(milliseconds: 10)),
+        itemType: CodexCanonicalItemType.commandExecution,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'command_snapshot_1',
+        status: CodexRuntimeItemStatus.inProgress,
+        rawMethod: 'item/commandExecution/terminalInteraction',
+        snapshot: const <String, Object?>{
+          'processId': 'proc_1',
+          'stdin': 'y\n',
+        },
+      ),
+    );
+
+    state = reducer.reduceRuntimeEvent(
+      state,
+      CodexRuntimeItemUpdatedEvent(
+        createdAt: now.add(const Duration(milliseconds: 20)),
+        itemType: CodexCanonicalItemType.commandExecution,
+        threadId: 'thread_123',
+        turnId: 'turn_123',
+        itemId: 'command_snapshot_1',
+        status: CodexRuntimeItemStatus.inProgress,
+        snapshot: const <String, Object?>{
+          'command': 'git status',
+          'processId': 'proc_1',
+        },
+      ),
+    );
+
+    final activeItem = state.activeTurn?.itemsById['command_snapshot_1'];
+    expect(activeItem, isNotNull);
+    expect(activeItem?.snapshot?['stdin'], isNull);
+    expect(activeItem?.snapshot?['processId'], 'proc_1');
+    expect(activeItem?.snapshot?['command'], 'git status');
+  });
+
+  test(
+    'command titles upgrade when later lifecycle events include the command',
+    () {
+      final reducer = TranscriptReducer();
+      final now = DateTime(2026, 3, 14, 12);
+      var state = reducer.reduceRuntimeEvent(
+        CodexSessionState.initial(),
+        CodexRuntimeItemStartedEvent(
+          createdAt: now,
+          itemType: CodexCanonicalItemType.commandExecution,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'command_title_1',
+          status: CodexRuntimeItemStatus.inProgress,
+        ),
+      );
+
+      expect(state.activeTurn?.itemsById['command_title_1']?.title, 'Command');
+
+      state = reducer.reduceRuntimeEvent(
+        state,
+        CodexRuntimeItemUpdatedEvent(
+          createdAt: now.add(const Duration(milliseconds: 10)),
+          itemType: CodexCanonicalItemType.commandExecution,
+          threadId: 'thread_123',
+          turnId: 'turn_123',
+          itemId: 'command_title_1',
+          status: CodexRuntimeItemStatus.inProgress,
+          snapshot: const <String, Object?>{'command': 'pwd'},
+        ),
+      );
+
+      expect(state.activeTurn?.itemsById['command_title_1']?.title, 'pwd');
+    },
+  );
+
   test(
     'keeps assistant and work artifacts in chronological order when they interleave',
     () {

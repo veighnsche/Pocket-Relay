@@ -1,4 +1,13 @@
-enum PocketErrorDomain { connectionLifecycle, chatSession }
+import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
+
+enum PocketErrorDomain {
+  connectionLifecycle,
+  chatSession,
+  chatComposer,
+  connectionSettings,
+  appBootstrap,
+  deviceCapability,
+}
 
 final class PocketErrorDefinition {
   const PocketErrorDefinition({
@@ -17,15 +26,22 @@ final class PocketUserFacingError {
     required this.definition,
     required this.title,
     required this.message,
+    this.underlyingDetail,
   });
 
   final PocketErrorDefinition definition;
   final String title;
   final String message;
+  final String? underlyingDetail;
+
+  String get formattedMessage => PocketErrorDetailFormatter.composeMessage(
+    message: message,
+    underlyingDetail: underlyingDetail,
+  );
 
   String get inlineMessage {
     final normalizedTitle = title.trim();
-    final normalizedMessage = message.trim();
+    final normalizedMessage = formattedMessage.trim();
     if (normalizedTitle.isEmpty) {
       return '[${definition.code}] $normalizedMessage';
     }
@@ -35,7 +51,39 @@ final class PocketUserFacingError {
     return '[${definition.code}] $normalizedTitle. $normalizedMessage';
   }
 
-  String get bodyWithCode => '[${definition.code}] ${message.trim()}';
+  String get bodyWithCode => '[${definition.code}] ${formattedMessage.trim()}';
+
+  PocketUserFacingError withUnderlyingDetail(String? detail) {
+    final normalizedDetail = detail?.trim();
+    if ((underlyingDetail ?? '') == (normalizedDetail ?? '')) {
+      return this;
+    }
+    return PocketUserFacingError(
+      definition: definition,
+      title: title,
+      message: message,
+      underlyingDetail: normalizedDetail,
+    );
+  }
+
+  PocketUserFacingError withNormalizedUnderlyingError(
+    Object? error, {
+    bool stripRemoteOwnerControlFailure = false,
+  }) {
+    final detail = PocketErrorDetailFormatter.uniqueUnderlyingDetail(
+      existingText: inlineMessage,
+      error: error,
+      stripRemoteOwnerControlFailure: stripRemoteOwnerControlFailure,
+    );
+    if (detail == null) {
+      return this;
+    }
+    return withUnderlyingDetail(detail);
+  }
+
+  String inlineMessageWithDetail(Object? error) {
+    return withNormalizedUnderlyingError(error).inlineMessage;
+  }
 }
 
 abstract final class PocketErrorCatalog {
@@ -244,6 +292,31 @@ abstract final class PocketErrorCatalog {
     meaning:
         'Reconnecting the lane failed because the managed remote app-server was present but unhealthy.',
   );
+  static const PocketErrorDefinition
+  connectionLiveReattachFallbackRestore = PocketErrorDefinition(
+    code: 'PR-CONN-2107',
+    domain: PocketErrorDomain.connectionLifecycle,
+    meaning:
+        'Pocket Relay restored a lane from Codex history after transport reconnect because direct live-session reattach failed.',
+  );
+
+  // Connection lifecycle: passive runtime probing (22xx).
+  static const PocketErrorDefinition
+  connectionRuntimeProbeFailed = PocketErrorDefinition(
+    code: 'PR-CONN-2201',
+    domain: PocketErrorDomain.connectionLifecycle,
+    meaning:
+        'Refreshing passive remote runtime state failed because Pocket Relay could not verify the remote host for the saved connection.',
+  );
+
+  // Connection lifecycle: explicit lane disconnect (23xx).
+  static const PocketErrorDefinition
+  connectionDisconnectLaneFailed = PocketErrorDefinition(
+    code: 'PR-CONN-2301',
+    domain: PocketErrorDomain.connectionLifecycle,
+    meaning:
+        'Disconnecting a live lane failed because Pocket Relay could not close the current app-server transport cleanly.',
+  );
 
   // Connection lifecycle: conversation history (31xx).
   static const PocketErrorDefinition
@@ -371,6 +444,316 @@ abstract final class PocketErrorCatalog {
     meaning:
         'Rejecting an unsupported app-server request from the active live session failed.',
   );
+  static const PocketErrorDefinition
+  chatSessionUserInputRequestUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1405',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Submitting user input was blocked because the target request was no longer pending in the active chat session.',
+  );
+  static const PocketErrorDefinition
+  chatSessionApprovalRequestUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1406',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Resolving an approval request was blocked because the target request was no longer pending in the active chat session.',
+  );
+
+  // Chat session: send guardrails and prerequisites (15xx).
+  static const PocketErrorDefinition
+  chatSessionHostFingerprintPromptUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1501',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Saving an observed host fingerprint was blocked because the referenced host-key prompt was no longer available in the transcript.',
+  );
+  static const PocketErrorDefinition
+  chatSessionHostFingerprintConflict = PocketErrorDefinition(
+    code: 'PR-CHAT-1502',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Saving an observed host fingerprint was blocked because the profile already stores a different pinned fingerprint.',
+  );
+  static const PocketErrorDefinition
+  chatSessionHostFingerprintSaveFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1503',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Saving an observed host fingerprint failed because Pocket Relay could not persist the updated profile.',
+  );
+  static const PocketErrorDefinition
+  chatSessionRemoteConfigurationRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1504',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the remote connection profile is incomplete.',
+  );
+  static const PocketErrorDefinition
+  chatSessionLocalConfigurationRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1505',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the local Codex profile is incomplete.',
+  );
+  static const PocketErrorDefinition
+  chatSessionLocalModeUnsupported = PocketErrorDefinition(
+    code: 'PR-CHAT-1506',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because local Codex mode is unavailable on the current platform.',
+  );
+  static const PocketErrorDefinition
+  chatSessionSshPasswordRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1507',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the selected remote profile requires an SSH password that is not present.',
+  );
+  static const PocketErrorDefinition
+  chatSessionPrivateKeyRequired = PocketErrorDefinition(
+    code: 'PR-CHAT-1508',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending was blocked because the selected remote profile requires a private key that is not present.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageInputUnsupported = PocketErrorDefinition(
+    code: 'PR-CHAT-1509',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Sending a draft was blocked because the effective model does not support image inputs.',
+  );
+
+  // Chat session: recovery guardrails (16xx).
+  static const PocketErrorDefinition
+  chatSessionFreshConversationBlocked = PocketErrorDefinition(
+    code: 'PR-CHAT-1601',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Starting a fresh conversation was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionClearTranscriptBlocked = PocketErrorDefinition(
+    code: 'PR-CHAT-1602',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Clearing the transcript was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionAlternateSessionUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1603',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Switching to the alternate recovered session was blocked because that local session is no longer available.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinueBlockedByTranscriptRestore = PocketErrorDefinition(
+    code: 'PR-CHAT-1604',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because transcript restoration is still in progress.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinueBlockedByActiveTurn = PocketErrorDefinition(
+    code: 'PR-CHAT-1605',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinueTargetUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1606',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because there is no resumable active conversation target yet.',
+  );
+  static const PocketErrorDefinition
+  chatSessionContinuePromptUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1607',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Continuing from an earlier prompt was blocked because the selected user prompt is no longer available in the transcript.',
+  );
+  static const PocketErrorDefinition
+  chatSessionBranchBlockedByTranscriptRestore = PocketErrorDefinition(
+    code: 'PR-CHAT-1608',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Branching the selected conversation was blocked because transcript restoration is still in progress.',
+  );
+  static const PocketErrorDefinition
+  chatSessionBranchBlockedByActiveTurn = PocketErrorDefinition(
+    code: 'PR-CHAT-1609',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Branching the selected conversation was blocked because the lane still has an active turn or busy state.',
+  );
+  static const PocketErrorDefinition
+  chatSessionBranchTargetUnavailable = PocketErrorDefinition(
+    code: 'PR-CHAT-1610',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Branching the selected conversation was blocked because there is no selectable conversation target yet.',
+  );
+
+  // Chat session: best-effort diagnostics (18xx).
+  static const PocketErrorDefinition
+  chatSessionModelCatalogHydrationFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1801',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Refreshing the best-effort live model catalog after transport connection failed, so capability checks may remain incomplete until a later retry succeeds.',
+  );
+  static const PocketErrorDefinition
+  chatSessionThreadMetadataHydrationFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1802',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Reading best-effort child-thread metadata failed, so timeline labels may remain incomplete until later runtime data fills them in.',
+  );
+
+  // Connection settings: model refresh (11xx).
+  static const PocketErrorDefinition
+  connectionSettingsModelCatalogUnavailable = PocketErrorDefinition(
+    code: 'PR-CONNSET-1101',
+    domain: PocketErrorDomain.connectionSettings,
+    meaning:
+        'Refreshing models in the connection settings sheet did not produce a backend model catalog.',
+  );
+  static const PocketErrorDefinition
+  connectionSettingsModelCatalogRefreshFailed = PocketErrorDefinition(
+    code: 'PR-CONNSET-1102',
+    domain: PocketErrorDomain.connectionSettings,
+    meaning:
+        'Refreshing models in the connection settings sheet failed because the backend refresh call threw an error.',
+  );
+  static const PocketErrorDefinition
+  connectionSettingsModelCatalogConnectionCacheSaveFailed = PocketErrorDefinition(
+    code: 'PR-CONNSET-1103',
+    domain: PocketErrorDomain.connectionSettings,
+    meaning:
+        'Refreshing models in the connection settings sheet succeeded, but Pocket Relay could not save the connection-scoped cached model catalog.',
+  );
+  static const PocketErrorDefinition
+  connectionSettingsModelCatalogLastKnownCacheSaveFailed = PocketErrorDefinition(
+    code: 'PR-CONNSET-1104',
+    domain: PocketErrorDomain.connectionSettings,
+    meaning:
+        'Refreshing models in the connection settings sheet succeeded, but Pocket Relay could not save the shared last-known cached model catalog.',
+  );
+  static const PocketErrorDefinition
+  connectionSettingsModelCatalogCachePersistenceFailed = PocketErrorDefinition(
+    code: 'PR-CONNSET-1105',
+    domain: PocketErrorDomain.connectionSettings,
+    meaning:
+        'Refreshing models in the connection settings sheet succeeded, but Pocket Relay could not save either local model catalog cache.',
+  );
+
+  // Connection settings: remote runtime probing (12xx).
+  static const PocketErrorDefinition
+  connectionSettingsRemoteRuntimeProbeFailed = PocketErrorDefinition(
+    code: 'PR-CONNSET-1201',
+    domain: PocketErrorDomain.connectionSettings,
+    meaning:
+        'Probing the remote target from the connection settings sheet failed before Pocket Relay could determine continuity support.',
+  );
+
+  // App bootstrap: workspace initialization (11xx).
+  static const PocketErrorDefinition
+  appBootstrapWorkspaceInitializationFailed = PocketErrorDefinition(
+    code: 'PR-BOOT-1101',
+    domain: PocketErrorDomain.appBootstrap,
+    meaning:
+        'Pocket Relay failed to initialize the workspace shell during app bootstrap.',
+  );
+  static const PocketErrorDefinition
+  appBootstrapRecoveryStateLoadFailed = PocketErrorDefinition(
+    code: 'PR-BOOT-1102',
+    domain: PocketErrorDomain.appBootstrap,
+    meaning:
+        'Pocket Relay could not restore the previously persisted local workspace recovery state during app bootstrap, so startup continued without that recovery snapshot.',
+  );
+
+  // Device capability: active-turn continuity hosts (11xx).
+  static const PocketErrorDefinition
+  deviceForegroundServicePermissionQueryFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1101',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not verify notification permission before trying to enable the Android foreground service used for active-turn continuity.',
+  );
+  static const PocketErrorDefinition
+  deviceForegroundServicePermissionRequestFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1102',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not request notification permission before trying to enable the Android foreground service used for active-turn continuity.',
+  );
+  static const PocketErrorDefinition
+  deviceForegroundServiceEnableFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1103',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not enable or disable the Android foreground service used for active-turn continuity.',
+  );
+  static const PocketErrorDefinition
+  deviceBackgroundGraceEnableFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1104',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not enable or disable the finite background-grace host used to preserve an active turn while the app is backgrounded.',
+  );
+  static const PocketErrorDefinition
+  deviceWakeLockEnableFailed = PocketErrorDefinition(
+    code: 'PR-DEVICE-1105',
+    domain: PocketErrorDomain.deviceCapability,
+    meaning:
+        'Pocket Relay could not enable or disable the display wake lock used to preserve an active turn while the app remains in the foreground.',
+  );
+
+  // Chat session: image attachment (15xx).
+  static const PocketErrorDefinition chatSessionImageAttachmentEmpty =
+      PocketErrorDefinition(
+        code: 'PR-CHAT-1501',
+        domain: PocketErrorDomain.chatSession,
+        meaning:
+            'Attaching an image failed because the selected file was empty.',
+      );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentTooLarge = PocketErrorDefinition(
+    code: 'PR-CHAT-1502',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because the selected file exceeded Pocket Relay attachment limits.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentUnsupportedType = PocketErrorDefinition(
+    code: 'PR-CHAT-1503',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because the selected file was not a supported image type.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentDecodeFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1504',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because Pocket Relay could not decode the selected file as an image payload.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentTooLargeForRemote = PocketErrorDefinition(
+    code: 'PR-CHAT-1505',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed because Pocket Relay could not shrink the selected image enough for remote sending.',
+  );
+  static const PocketErrorDefinition
+  chatSessionImageAttachmentUnexpectedFailure = PocketErrorDefinition(
+    code: 'PR-CHAT-1506',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Attaching an image failed for an unexpected local picker or preprocessing reason outside the known attachment-validation states.',
+  );
 
   static const List<PocketErrorDefinition> connectionLifecycleDefinitions =
       <PocketErrorDefinition>[
@@ -402,6 +785,9 @@ abstract final class PocketErrorCatalog {
         connectionReconnectHostProbeFailed,
         connectionReconnectServerStopped,
         connectionReconnectServerUnhealthy,
+        connectionLiveReattachFallbackRestore,
+        connectionRuntimeProbeFailed,
+        connectionDisconnectLaneFailed,
         connectionHistoryLoadFailed,
         connectionHistoryHostKeyUnpinned,
         connectionHistoryServerStopped,
@@ -423,12 +809,69 @@ abstract final class PocketErrorCatalog {
         chatSessionApproveRequestFailed,
         chatSessionDenyRequestFailed,
         chatSessionRejectUnsupportedRequestFailed,
+        chatSessionUserInputRequestUnavailable,
+        chatSessionApprovalRequestUnavailable,
+        chatSessionHostFingerprintPromptUnavailable,
+        chatSessionHostFingerprintConflict,
+        chatSessionHostFingerprintSaveFailed,
+        chatSessionRemoteConfigurationRequired,
+        chatSessionLocalConfigurationRequired,
+        chatSessionLocalModeUnsupported,
+        chatSessionSshPasswordRequired,
+        chatSessionPrivateKeyRequired,
+        chatSessionImageInputUnsupported,
+        chatSessionFreshConversationBlocked,
+        chatSessionClearTranscriptBlocked,
+        chatSessionAlternateSessionUnavailable,
+        chatSessionContinueBlockedByTranscriptRestore,
+        chatSessionContinueBlockedByActiveTurn,
+        chatSessionContinueTargetUnavailable,
+        chatSessionContinuePromptUnavailable,
+        chatSessionBranchBlockedByTranscriptRestore,
+        chatSessionBranchBlockedByActiveTurn,
+        chatSessionBranchTargetUnavailable,
+        chatSessionModelCatalogHydrationFailed,
+        chatSessionThreadMetadataHydrationFailed,
+        chatSessionImageAttachmentEmpty,
+        chatSessionImageAttachmentTooLarge,
+        chatSessionImageAttachmentUnsupportedType,
+        chatSessionImageAttachmentDecodeFailed,
+        chatSessionImageAttachmentTooLargeForRemote,
+        chatSessionImageAttachmentUnexpectedFailure,
+      ];
+
+  static const List<PocketErrorDefinition> connectionSettingsDefinitions =
+      <PocketErrorDefinition>[
+        connectionSettingsModelCatalogUnavailable,
+        connectionSettingsModelCatalogRefreshFailed,
+        connectionSettingsModelCatalogConnectionCacheSaveFailed,
+        connectionSettingsModelCatalogLastKnownCacheSaveFailed,
+        connectionSettingsModelCatalogCachePersistenceFailed,
+        connectionSettingsRemoteRuntimeProbeFailed,
+      ];
+
+  static const List<PocketErrorDefinition> appBootstrapDefinitions =
+      <PocketErrorDefinition>[
+        appBootstrapWorkspaceInitializationFailed,
+        appBootstrapRecoveryStateLoadFailed,
+      ];
+
+  static const List<PocketErrorDefinition> deviceCapabilityDefinitions =
+      <PocketErrorDefinition>[
+        deviceForegroundServicePermissionQueryFailed,
+        deviceForegroundServicePermissionRequestFailed,
+        deviceForegroundServiceEnableFailed,
+        deviceBackgroundGraceEnableFailed,
+        deviceWakeLockEnableFailed,
       ];
 
   static const List<PocketErrorDefinition> allDefinitions =
       <PocketErrorDefinition>[
         ...connectionLifecycleDefinitions,
         ...chatSessionDefinitions,
+        ...connectionSettingsDefinitions,
+        ...appBootstrapDefinitions,
+        ...deviceCapabilityDefinitions,
       ];
 
   static PocketErrorDefinition? lookup(String code) {

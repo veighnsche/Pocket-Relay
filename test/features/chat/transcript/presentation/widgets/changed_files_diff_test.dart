@@ -57,6 +57,22 @@ void main() {
       ),
       findsWidgets,
     );
+    expect(find.text('Additions'), findsOneWidget);
+    expect(find.text('Deletions'), findsOneWidget);
+    expect(find.text('Dart'), findsWidgets);
+    expect(find.textContaining('new card', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining(
+        'diff --git a/lib/src/features/chat/transcript/presentation/widgets/transcript/conversation_entry_renderer.dart',
+        findRichText: true,
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Raw patch'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Readable view'), findsOneWidget);
     expect(
       find.textContaining(
         'diff --git a/lib/src/features/chat/transcript/presentation/widgets/transcript/conversation_entry_renderer.dart',
@@ -64,10 +80,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Additions'), findsOneWidget);
-    expect(find.text('Deletions'), findsOneWidget);
-    expect(find.text('Dart'), findsWidgets);
-    expect(find.textContaining('new card', findRichText: true), findsOneWidget);
   });
 
   testWidgets('does not attach a single patch to unrelated file rows', (

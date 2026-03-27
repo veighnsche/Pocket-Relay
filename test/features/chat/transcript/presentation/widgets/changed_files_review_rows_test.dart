@@ -41,6 +41,18 @@ void main() {
         'diff --git a/lib/old_name.dart b/lib/new_name.dart',
         findRichText: true,
       ),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Raw patch'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Readable view'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'diff --git a/lib/old_name.dart b/lib/new_name.dart',
+        findRichText: true,
+      ),
       findsOneWidget,
     );
   });

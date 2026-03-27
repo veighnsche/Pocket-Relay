@@ -7,7 +7,7 @@ class _ConnectionSettingsPresentationState {
     required this.availableModelCatalogSource,
     required this.availableSystemTemplates,
     required this.selectedSystemTemplateId,
-    required this.didModelCatalogRefreshFail,
+    required this.modelCatalogRefreshError,
     required this.supportsModelCatalogRefresh,
     required this.isRefreshingModelCatalog,
     required this.isTestingSystem,
@@ -36,7 +36,7 @@ class _ConnectionSettingsPresentationState {
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
     List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
         const <ConnectionSettingsSystemTemplate>[],
-    bool didModelCatalogRefreshFail = false,
+    PocketUserFacingError? modelCatalogRefreshError,
     bool supportsModelCatalogRefresh = false,
     bool isRefreshingModelCatalog = false,
     bool isTestingSystem = false,
@@ -137,7 +137,7 @@ class _ConnectionSettingsPresentationState {
         draft: draft,
         templates: availableSystemTemplates,
       ),
-      didModelCatalogRefreshFail: didModelCatalogRefreshFail,
+      modelCatalogRefreshError: modelCatalogRefreshError,
       supportsModelCatalogRefresh: supportsModelCatalogRefresh,
       isRefreshingModelCatalog: isRefreshingModelCatalog,
       isTestingSystem: isTestingSystem,
@@ -164,7 +164,7 @@ class _ConnectionSettingsPresentationState {
   final ConnectionSettingsModelCatalogSource? availableModelCatalogSource;
   final List<ConnectionSettingsSystemTemplate> availableSystemTemplates;
   final String? selectedSystemTemplateId;
-  final bool didModelCatalogRefreshFail;
+  final PocketUserFacingError? modelCatalogRefreshError;
   final bool supportsModelCatalogRefresh;
   final bool isRefreshingModelCatalog;
   final bool isTestingSystem;

@@ -38,6 +38,27 @@ void main() {
     );
   }
 
+  CodexSessionActiveItem commandItem({
+    required String entryId,
+    required String itemId,
+    required String body,
+    bool isRunning = false,
+  }) {
+    return CodexSessionActiveItem(
+      itemId: itemId,
+      threadId: 'thread-1',
+      turnId: 'turn-1',
+      itemType: CodexCanonicalItemType.commandExecution,
+      entryId: entryId,
+      blockKind: CodexUiBlockKind.workLogEntry,
+      createdAt: startedAt,
+      title: 'pwd',
+      body: body,
+      isRunning: isRunning,
+      snapshot: const <String, Object?>{'processId': 'proc-1'},
+    );
+  }
+
   String changedFilesBody({
     required String fileName,
     required int lineCount,
@@ -95,6 +116,24 @@ $diffLines
       expect(artifact.unifiedDiff, isNot(contains('@@ -0,0 +1 @@')));
     },
   );
+
+  test('does not persist full command output inside work-log artifacts', () {
+    final turn = builder.upsertItem(
+      initialTurn(),
+      commandItem(
+        itemId: 'command-1',
+        entryId: 'entry-1',
+        body: '/workspace\n',
+      ),
+    );
+    final artifact = turn.artifacts.single as CodexTurnWorkArtifact;
+    final entry = artifact.entries.single;
+
+    expect(entry.itemId, 'command-1');
+    expect(entry.threadId, 'thread-1');
+    expect(entry.preview, '/workspace');
+    expect(entry.body, isNull);
+  });
 
   test('caps retained changed-file diffs in the segmenter', () {
     final largeDiff = List<String>.generate(

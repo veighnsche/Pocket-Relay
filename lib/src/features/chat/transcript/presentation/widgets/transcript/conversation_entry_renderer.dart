@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
+import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/alert_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/approval_decision_surface.dart';
@@ -30,6 +31,7 @@ class ConversationEntryRenderer extends StatelessWidget {
     this.onApproveRequest,
     this.onDenyRequest,
     this.onOpenChangedFileDiff,
+    this.onOpenWorkLogTerminal,
     this.onSubmitUserInput,
     this.onSaveHostFingerprint,
     this.onConfigure,
@@ -41,6 +43,8 @@ class ConversationEntryRenderer extends StatelessWidget {
   final Future<void> Function(String requestId)? onApproveRequest;
   final Future<void> Function(String requestId)? onDenyRequest;
   final void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff;
+  final void Function(ChatWorkLogTerminalContract terminal)?
+  onOpenWorkLogTerminal;
   final Future<void> Function(
     String requestId,
     Map<String, List<String>> answers,
@@ -70,12 +74,17 @@ class ConversationEntryRenderer extends StatelessWidget {
       final ChatProposedPlanItemContract proposedPlanItem =>
         ProposedPlanSurface(block: proposedPlanItem.block),
       final ChatWorkLogGroupItemContract workLogGroupItem =>
-        WorkLogGroupSurface(item: workLogGroupItem),
+        WorkLogGroupSurface(
+          item: workLogGroupItem,
+          onOpenTerminal: onOpenWorkLogTerminal,
+        ),
       final ChatExecCommandItemContract execCommandItem => ExecCommandSurface(
         entry: execCommandItem.entry,
+        onOpenTerminal: onOpenWorkLogTerminal,
       ),
       final ChatExecWaitItemContract execWaitItem => ExecWaitSurface(
         entry: execWaitItem.entry,
+        onOpenTerminal: onOpenWorkLogTerminal,
       ),
       final ChatWebSearchItemContract webSearchItem => WebSearchActivitySurface(
         entry: webSearchItem.entry,

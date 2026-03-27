@@ -174,6 +174,9 @@ void main() {
       await controller.initialize();
       await controller.selectConversationForResume('thread_saved');
       expect(await controller.sendPrompt('Keep running'), isTrue);
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
 
       final selectedBlock = controller.transcriptBlocks
           .whereType<CodexUserMessageBlock>()
@@ -183,6 +186,10 @@ void main() {
 
       expect(draft, isNull);
       expect(appServerClient.rollbackThreadCalls, isEmpty);
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionContinueBlockedByActiveTurn.code}] Continue blocked. Stop the active turn before continuing from here.',
+      );
     },
   );
 

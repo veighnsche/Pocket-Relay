@@ -2,6 +2,10 @@ enum ChatChangedFileDiffLineKind { meta, hunk, addition, deletion, context }
 
 enum ChatChangedFileOperationKind { created, modified, renamed, deleted }
 
+enum ChatChangedFileDiffReviewSectionKind { hunk, collapsedGap, binaryMessage }
+
+enum ChatChangedFileDiffReviewRowKind { context, addition, deletion }
+
 class ChatChangedFilePresentationContract {
   const ChatChangedFilePresentationContract({
     required this.currentPath,
@@ -79,6 +83,52 @@ class ChatChangedFileDiffLineContract {
   final int? newLineNumber;
 }
 
+class ChatChangedFileDiffReviewRowContract {
+  const ChatChangedFileDiffReviewRowContract({
+    required this.kind,
+    required this.content,
+    required this.lineToken,
+    this.oldLineNumber,
+    this.newLineNumber,
+  });
+
+  final ChatChangedFileDiffReviewRowKind kind;
+  final String content;
+  final String lineToken;
+  final int? oldLineNumber;
+  final int? newLineNumber;
+}
+
+class ChatChangedFileDiffReviewSectionContract {
+  const ChatChangedFileDiffReviewSectionContract({
+    required this.kind,
+    this.label,
+    this.rows = const <ChatChangedFileDiffReviewRowContract>[],
+    this.message,
+    this.hiddenLineCount,
+  });
+
+  final ChatChangedFileDiffReviewSectionKind kind;
+  final String? label;
+  final List<ChatChangedFileDiffReviewRowContract> rows;
+  final String? message;
+  final int? hiddenLineCount;
+}
+
+class ChatChangedFileDiffReviewContract {
+  const ChatChangedFileDiffReviewContract({
+    this.metadataLines = const <String>[],
+    this.sections = const <ChatChangedFileDiffReviewSectionContract>[],
+  });
+
+  final List<String> metadataLines;
+  final List<ChatChangedFileDiffReviewSectionContract> sections;
+
+  bool get hasMetadata => metadataLines.isNotEmpty;
+  bool get hasSections => sections.isNotEmpty;
+  bool get isEmpty => metadataLines.isEmpty && sections.isEmpty;
+}
+
 class ChatChangedFileDiffContract {
   const ChatChangedFileDiffContract({
     required this.id,
@@ -87,9 +137,11 @@ class ChatChangedFileDiffContract {
     required this.operationLabel,
     required this.stats,
     required this.lines,
+    this.review = const ChatChangedFileDiffReviewContract(),
+    ChatChangedFileDiffReviewContract? previewReview,
     this.statusLabel,
     this.previewLineLimit = 320,
-  });
+  }) : previewReview = previewReview ?? review;
 
   final String id;
   final ChatChangedFilePresentationContract file;
@@ -97,6 +149,8 @@ class ChatChangedFileDiffContract {
   final String operationLabel;
   final ChatChangedFileStatsContract stats;
   final List<ChatChangedFileDiffLineContract> lines;
+  final ChatChangedFileDiffReviewContract review;
+  final ChatChangedFileDiffReviewContract previewReview;
   final String? statusLabel;
   final int previewLineLimit;
 

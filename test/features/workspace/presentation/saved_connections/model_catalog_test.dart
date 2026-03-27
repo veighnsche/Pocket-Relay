@@ -51,6 +51,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('edit_conn_secondary')),
+        200,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('edit_conn_secondary')));
       await tester.pump();
 
@@ -188,6 +193,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('edit_conn_secondary')),
+        200,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('edit_conn_secondary')));
       await tester.pump();
 
@@ -232,6 +242,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('edit_conn_secondary')),
+        200,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('edit_conn_secondary')));
       await tester.pump();
 

@@ -94,6 +94,27 @@ abstract final class ChatSessionErrors {
     );
   }
 
+  static PocketUserFacingError modelCatalogHydrationFailed({Object? error}) {
+    return const PocketUserFacingError(
+      definition: PocketErrorCatalog.chatSessionModelCatalogHydrationFailed,
+      title: 'Model capabilities unavailable',
+      message:
+          'Pocket Relay could not refresh the live model catalog after connecting. Capability checks such as image-input support may stay incomplete until a later retry succeeds.',
+    ).withNormalizedUnderlyingError(error);
+  }
+
+  static PocketUserFacingError threadMetadataHydrationFailed({
+    required String threadId,
+    Object? error,
+  }) {
+    return PocketUserFacingError(
+      definition: PocketErrorCatalog.chatSessionThreadMetadataHydrationFailed,
+      title: 'Thread labels unavailable',
+      message:
+          'Pocket Relay could not load metadata for thread "$threadId". Timeline labels may stay incomplete until a later restore provides that metadata.',
+    ).withNormalizedUnderlyingError(error);
+  }
+
   static PocketUserFacingError rejectUnsupportedRequestFailed() {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.chatSessionRejectUnsupportedRequestFailed,
@@ -106,43 +127,6 @@ abstract final class ChatSessionErrors {
     PocketUserFacingError userFacingError, {
     Object? error,
   }) {
-    final detail = _normalizedErrorDetail(error);
-    if (detail == null || userFacingError.inlineMessage.contains(detail)) {
-      return userFacingError.inlineMessage;
-    }
-    return '${userFacingError.inlineMessage} Underlying error: $detail';
-  }
-
-  static String? _normalizedErrorDetail(Object? error) {
-    if (error == null) {
-      return null;
-    }
-
-    final detail = '$error'.trim();
-    if (detail.isEmpty) {
-      return null;
-    }
-
-    return switch (detail) {
-      final value when value.startsWith('Exception: ') => value.substring(
-        'Exception: '.length,
-      ),
-      final value when value.startsWith('Bad state: ') => value.substring(
-        'Bad state: '.length,
-      ),
-      final value when value.startsWith('CodexAppServerException: ') =>
-        value.substring('CodexAppServerException: '.length),
-      final value
-          when value.startsWith('CodexAppServerException(') &&
-              value.contains('): ') =>
-        value.substring(value.indexOf('): ') + 3),
-      final value when value.startsWith('CodexJsonRpcRemoteException: ') =>
-        value.substring('CodexJsonRpcRemoteException: '.length),
-      final value
-          when value.startsWith('CodexJsonRpcRemoteException(') &&
-              value.contains('): ') =>
-        value.substring(value.indexOf('): ') + 3),
-      _ => detail,
-    };
+    return userFacingError.withNormalizedUnderlyingError(error).inlineMessage;
   }
 }

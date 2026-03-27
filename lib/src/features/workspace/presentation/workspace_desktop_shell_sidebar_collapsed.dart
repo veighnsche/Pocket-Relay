@@ -2,7 +2,7 @@ part of 'workspace_desktop_shell.dart';
 
 extension on _MaterialDesktopSidebar {
   List<Widget> _buildCollapsedChildren(BuildContext context) {
-    final inventoryEntries = connectionWorkspaceInventoryEntriesFromState(state);
+    final sections = _lifecycleSections();
 
     return <Widget>[
       if (onToggleCollapsed case final onPressed?)
@@ -13,35 +13,37 @@ extension on _MaterialDesktopSidebar {
           ),
         ),
       if (onToggleCollapsed != null) const SizedBox(height: 14),
-      ...inventoryEntries.indexed.map((entry) {
-        final index = entry.$1;
-        final inventoryEntry = entry.$2;
-        final connectionId = inventoryEntry.connection.id;
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: index == inventoryEntries.length - 1 ? 0 : 10,
-          ),
-          child: _MaterialCollapsedSidebarButton(
-            buttonKey: ValueKey<String>('desktop_connection_$connectionId'),
-            label: _monogramFor(inventoryEntry.connection.profile.label),
-            isSelected: inventoryEntry.isCurrent,
-            showsActivityDot: state.requiresReconnect(connectionId),
-            onTap: () {
-              if (inventoryEntry.isLive) {
-                workspaceController.selectConnection(connectionId);
-                return;
-              }
-              unawaited(onOpenConnection(connectionId));
-            },
-          ),
-        );
+      ...sections.indexed.expand((entry) {
+        final sectionIndex = entry.$1;
+        final section = entry.$2;
+        return <Widget>[
+          ...section.rows.indexed.map((rowEntry) {
+            final rowIndex = rowEntry.$1;
+            final row = rowEntry.$2;
+            final connectionId = row.connection.id;
+            final needsSectionGap =
+                rowIndex == section.rows.length - 1 &&
+                sectionIndex != sections.length - 1;
+            return Padding(
+              padding: EdgeInsets.only(bottom: needsSectionGap ? 14 : 10),
+              child: _MaterialCollapsedSidebarButton(
+                buttonKey: ValueKey<String>('desktop_connection_$connectionId'),
+                label: _monogramFor(row.connection.profile.label),
+                isSelected: row.isCurrent,
+                showsActivityDot: row.sectionId ==
+                    ConnectionLifecycleSectionId.needsAttention,
+                onTap: () {
+                  if (row.isLive) {
+                    workspaceController.selectConnection(connectionId);
+                    return;
+                  }
+                  unawaited(onOpenConnection(connectionId));
+                },
+              ),
+            );
+          }),
+        ];
       }),
-      const SizedBox(height: 14),
-      _MaterialSavedConnectionsSidebarRow(
-        isSelected: state.isShowingSavedConnections,
-        isCollapsed: true,
-        onTap: workspaceController.showSavedConnections,
-      ),
     ];
   }
 

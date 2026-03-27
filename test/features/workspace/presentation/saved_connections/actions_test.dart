@@ -79,6 +79,10 @@ void main() {
       final initialLoadCount =
           repository.loadConnectionCallsById['conn_secondary'] ?? 0;
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('edit_conn_secondary')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('edit_conn_secondary')));
       await tester.pump();
 
@@ -184,6 +188,95 @@ void main() {
         ),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'saved connections disables busy lane lifecycle actions without blocking go to lane',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector:
+            MapRemoteOwnerInspector(<String, CodexRemoteAppServerOwnerSnapshot>{
+              'conn_primary': runningOwnerSnapshot('conn_primary'),
+              'conn_secondary': notRunningOwnerSnapshot('conn_secondary'),
+            }),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      var binding = controller.bindingForConnectionId('conn_primary');
+      if (binding == null) {
+        await controller.instantiateConnection('conn_primary');
+        binding = controller.bindingForConnectionId('conn_primary');
+      }
+      expect(binding, isNotNull);
+      final liveBinding = binding!;
+      await clientsById['conn_primary']!.connect(
+        profile: liveBinding.sessionController.profile,
+        secrets: liveBinding.sessionController.secrets,
+      );
+      clientsById['conn_primary']!.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{'id': 'thread_123'},
+          },
+        ),
+      );
+      clientsById['conn_primary']!.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'turn/started',
+          params: <String, Object?>{
+            'threadId': 'thread_123',
+            'turn': <String, Object?>{
+              'id': 'turn_running',
+              'status': 'running',
+              'model': 'gpt-5.4',
+              'effort': 'high',
+            },
+          },
+        ),
+      );
+      await tester.pump();
+      expect(liveBinding.sessionController.sessionState.isBusy, isTrue);
+
+      await tester.pumpWidget(buildDormantRosterApp(controller));
+      await tester.pump();
+
+      final goToLaneButton = tester.widget<FilledButton>(
+        find.byKey(const ValueKey('open_connection_conn_primary')),
+      );
+      final disconnectButton = tester.widget<OutlinedButton>(
+        find.byKey(const ValueKey('disconnect_conn_primary')),
+      );
+      final closeLaneButton = tester.widget<OutlinedButton>(
+        find.byKey(const ValueKey('close_lane_conn_primary')),
+      );
+      final restartServerButton = tester.widget<TextButton>(
+        find.byKey(
+          const ValueKey('saved_connection_remote_server_restart_conn_primary'),
+        ),
+      );
+      final stopServerButton = tester.widget<TextButton>(
+        find.byKey(
+          const ValueKey('saved_connection_remote_server_stop_conn_primary'),
+        ),
+      );
+
+      expect(goToLaneButton.onPressed, isNotNull);
+      expect(disconnectButton.onPressed, isNull);
+      expect(closeLaneButton.onPressed, isNull);
+      expect(restartServerButton.onPressed, isNull);
+      expect(stopServerButton.onPressed, isNull);
     },
   );
 }

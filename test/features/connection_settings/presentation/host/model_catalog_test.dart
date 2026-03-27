@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 
 import 'host_test_support.dart';
@@ -256,7 +257,7 @@ void main() {
           availableModelCatalogSource:
               ConnectionSettingsModelCatalogSource.lastKnownCache,
           onRefreshModelCatalog: (draft) async {
-            throw StateError('refresh failed');
+            throw StateError('backend unavailable');
           },
         ),
       );
@@ -275,11 +276,42 @@ void main() {
 
       expect(
         find.text(
-          'Refresh failed. Showing the previous model list. Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes. Last refreshed 2026-03-22 00:00 UTC. Use Refresh models to try again.',
+          '[${PocketErrorCatalog.connectionSettingsModelCatalogRefreshFailed.code}] Could not load models from the backend. Underlying error: backend unavailable. Showing last-known models from a previous backend refresh. They may not match this connection until it refreshes. Last refreshed 2026-03-22 00:00 UTC. Use Refresh models to try again.',
         ),
         findsOneWidget,
       );
       expect(find.text('GPT Live Default'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'shared host shows a typed refresh failure when the backend returns no catalog',
+    (tester) async {
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          onRefreshModelCatalog: (draft) async => null,
+        ),
+      );
+
+      await tester.ensureVisible(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('connection_settings_refresh_models'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '[${PocketErrorCatalog.connectionSettingsModelCatalogUnavailable.code}] Could not load models from the backend. Use Refresh models to try again.',
+        ),
+        findsOneWidget,
+      );
     },
   );
 

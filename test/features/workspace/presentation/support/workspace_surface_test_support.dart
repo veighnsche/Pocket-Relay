@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
@@ -22,12 +23,14 @@ import 'package:pocket_relay/src/features/connection_settings/presentation/conne
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_saved_connections_content.dart';
 
 export 'dart:async';
 export 'package:flutter/material.dart';
 export 'package:flutter_test/flutter_test.dart';
+export 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
 export 'package:pocket_relay/src/core/errors/pocket_error.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
@@ -45,6 +48,7 @@ export 'package:pocket_relay/src/features/connection_settings/domain/connection_
 export 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_host.dart';
 export 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 export 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
+export 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 
 Widget buildDormantRosterApp(
   ConnectionWorkspaceController controller, {
@@ -124,6 +128,7 @@ ConnectionWorkspaceController buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   CodexConnectionRepository? repository,
   ConnectionModelCatalogStore? modelCatalogStore,
+  ConnectionWorkspaceRecoveryStore? recoveryStore,
   CodexRemoteAppServerHostProbe remoteAppServerHostProbe =
       const FakeRemoteHostProbe(CodexRemoteAppServerHostCapabilities()),
   CodexRemoteAppServerOwnerInspector remoteAppServerOwnerInspector =
@@ -150,6 +155,7 @@ ConnectionWorkspaceController buildWorkspaceController({
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
     modelCatalogStore: modelCatalogStore,
+    recoveryStore: recoveryStore,
     remoteAppServerHostProbe: remoteAppServerHostProbe,
     remoteAppServerOwnerInspector: remoteAppServerOwnerInspector,
     remoteAppServerOwnerControl: remoteAppServerOwnerControl,
@@ -169,6 +175,21 @@ ConnectionWorkspaceController buildWorkspaceController({
       );
     },
   );
+}
+
+class ThrowingConnectionWorkspaceRecoveryStore
+    implements ConnectionWorkspaceRecoveryStore {
+  const ThrowingConnectionWorkspaceRecoveryStore(this.error);
+
+  final Object error;
+
+  @override
+  Future<ConnectionWorkspaceRecoveryState?> load() async {
+    throw error;
+  }
+
+  @override
+  Future<void> save(ConnectionWorkspaceRecoveryState? state) async {}
 }
 
 final class FakeRemoteHostProbe implements CodexRemoteAppServerHostProbe {

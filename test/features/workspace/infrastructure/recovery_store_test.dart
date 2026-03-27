@@ -202,6 +202,44 @@ void main() {
       );
     },
   );
+
+  test(
+    'secure store clears corrupted recovery metadata and throws a typed corruption exception',
+    () async {
+      final secureStorage = _FakeFlutterSecureStorage(<String, String>{
+        'pocket_relay.workspace.recovery_state.draft_text': 'legacy global',
+      });
+      final preferences = SharedPreferencesAsync();
+      await preferences.setString(
+        'pocket_relay.workspace.recovery_state',
+        '{not valid json',
+      );
+      final store = SecureConnectionWorkspaceRecoveryStore(
+        secureStorage: secureStorage,
+        preferences: preferences,
+      );
+
+      await expectLater(
+        store.load(),
+        throwsA(
+          isA<ConnectionWorkspaceRecoveryStoreCorruptedException>().having(
+            (error) => error.detail,
+            'detail',
+            contains('malformed JSON'),
+          ),
+        ),
+      );
+
+      expect(
+        await preferences.getString('pocket_relay.workspace.recovery_state'),
+        isNull,
+      );
+      expect(
+        secureStorage.data['pocket_relay.workspace.recovery_state.draft_text'],
+        isNull,
+      );
+    },
+  );
 }
 
 class _FakeFlutterSecureStorage extends FlutterSecureStorage {

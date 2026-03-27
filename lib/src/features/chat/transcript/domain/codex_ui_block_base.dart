@@ -78,8 +78,11 @@ class CodexWorkLogEntry {
     required this.createdAt,
     required this.entryKind,
     required this.title,
+    this.itemId,
+    this.threadId,
     this.turnId,
     this.preview,
+    this.body,
     this.isRunning = false,
     this.exitCode,
     this.snapshot,
@@ -89,8 +92,11 @@ class CodexWorkLogEntry {
   final DateTime createdAt;
   final CodexWorkLogEntryKind entryKind;
   final String title;
+  final String? itemId;
+  final String? threadId;
   final String? turnId;
   final String? preview;
+  final String? body;
   final bool isRunning;
   final int? exitCode;
   final Map<String, dynamic>? snapshot;
@@ -99,8 +105,11 @@ class CodexWorkLogEntry {
     DateTime? createdAt,
     CodexWorkLogEntryKind? entryKind,
     String? title,
+    String? itemId,
+    String? threadId,
     String? turnId,
     String? preview,
+    String? body,
     bool? isRunning,
     int? exitCode,
     Map<String, dynamic>? snapshot,
@@ -110,8 +119,11 @@ class CodexWorkLogEntry {
       createdAt: createdAt ?? this.createdAt,
       entryKind: entryKind ?? this.entryKind,
       title: title ?? this.title,
+      itemId: itemId ?? this.itemId,
+      threadId: threadId ?? this.threadId,
       turnId: turnId ?? this.turnId,
       preview: preview ?? this.preview,
+      body: body ?? this.body,
       isRunning: isRunning ?? this.isRunning,
       exitCode: exitCode ?? this.exitCode,
       snapshot: snapshot ?? this.snapshot,

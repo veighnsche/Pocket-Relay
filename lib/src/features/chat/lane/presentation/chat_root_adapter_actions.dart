@@ -21,11 +21,39 @@ Future<void> _openChatChangedFileDiff(
   );
 }
 
+Future<void> _openChatWorkLogTerminal(
+  _ChatRootAdapterState state,
+  ChatWorkLogTerminalContract terminal,
+) async {
+  if (!state.mounted) {
+    return;
+  }
+
+  final laneBinding = state.widget.laneBinding;
+  final hydratedTerminal = await laneBinding.sessionController
+      .hydrateWorkLogTerminal(terminal);
+  if (!state.mounted || laneBinding != state.widget.laneBinding) {
+    return;
+  }
+
+  await state.widget.overlayDelegate.openWorkLogTerminal(
+    context: state.context,
+    terminal: hydratedTerminal,
+  );
+}
+
 void _requestChatChangedFileDiff(
   _ChatRootAdapterState state,
   ChatChangedFileDiffContract diff,
 ) {
   state._handleScreenEffect(ChatOpenChangedFileDiffEffect(payload: diff));
+}
+
+void _requestChatWorkLogTerminal(
+  _ChatRootAdapterState state,
+  ChatWorkLogTerminalContract terminal,
+) {
+  state._handleScreenEffect(ChatOpenWorkLogTerminalEffect(payload: terminal));
 }
 
 void _handleChatScreenAction(

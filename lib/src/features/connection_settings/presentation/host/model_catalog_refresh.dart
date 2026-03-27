@@ -10,17 +10,20 @@ Future<void> _refreshConnectionSettingsModelCatalog(
 
   state._setStateInternal(() {
     state._isRefreshingModelCatalog = true;
-    state._didModelCatalogRefreshFail = false;
+    state._modelCatalogRefreshError = null;
   });
 
   try {
-    final refreshedCatalog = await onRefreshModelCatalog(state._formState.draft);
+    final refreshedCatalog = await onRefreshModelCatalog(
+      state._formState.draft,
+    );
     if (!state.mounted) {
       return;
     }
     if (refreshedCatalog == null) {
       state._setStateInternal(() {
-        state._didModelCatalogRefreshFail = true;
+        state._modelCatalogRefreshError =
+            ConnectionSettingsErrors.modelCatalogUnavailable();
       });
       return;
     }
@@ -37,15 +40,16 @@ Future<void> _refreshConnectionSettingsModelCatalog(
       state._availableModelCatalog = refreshedCatalog;
       state._availableModelCatalogSource =
           ConnectionSettingsModelCatalogSource.connectionCache;
-      state._didModelCatalogRefreshFail = false;
+      state._modelCatalogRefreshError = null;
       state._formState = state._formState.copyWith(
         draft: state._formState.draft.copyWith(reasoningEffort: nextEffort),
       );
     });
-  } catch (_) {
+  } catch (error) {
     if (state.mounted) {
       state._setStateInternal(() {
-        state._didModelCatalogRefreshFail = true;
+        state._modelCatalogRefreshError =
+            ConnectionSettingsErrors.modelCatalogRefreshFailed(error: error);
       });
     }
   } finally {

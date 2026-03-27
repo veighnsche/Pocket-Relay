@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -34,12 +36,14 @@ class DisplayWakeLockHost extends StatefulWidget {
     this.displayWakeLockController =
         const WakelockPlusDisplayWakeLockController(),
     this.supportsWakeLock,
+    this.onWarningChanged,
   });
 
   final Widget child;
   final bool keepDisplayAwake;
   final DisplayWakeLockController displayWakeLockController;
   final bool? supportsWakeLock;
+  final ValueChanged<PocketUserFacingError?>? onWarningChanged;
 
   @override
   State<DisplayWakeLockHost> createState() => _DisplayWakeLockHostState();
@@ -90,6 +94,7 @@ class _DisplayWakeLockHostState extends State<DisplayWakeLockHost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _setWarning(null);
     if (_requestedWakeLockEnabled) {
       _requestedWakeLockEnabled = false;
       unawaited(_setEnabledSafely(widget.displayWakeLockController, false));
@@ -103,6 +108,9 @@ class _DisplayWakeLockHostState extends State<DisplayWakeLockHost>
   void _syncWakeLock() {
     final shouldEnableWakeLock = _shouldEnableWakeLock;
     if (shouldEnableWakeLock == _requestedWakeLockEnabled) {
+      if (!shouldEnableWakeLock) {
+        _setWarning(null);
+      }
       return;
     }
 
@@ -118,8 +126,13 @@ class _DisplayWakeLockHostState extends State<DisplayWakeLockHost>
   ) async {
     try {
       await controller.setEnabled(enabled);
-    } catch (_) {
-      // Ignore wake lock failures so the chat surface remains usable.
+      _setWarning(null);
+    } catch (error) {
+      _setWarning(DeviceCapabilityErrors.wakeLockEnableFailed(error: error));
     }
+  }
+
+  void _setWarning(PocketUserFacingError? warning) {
+    widget.onWarningChanged?.call(warning);
   }
 }

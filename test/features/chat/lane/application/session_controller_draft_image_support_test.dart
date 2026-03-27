@@ -147,7 +147,7 @@ void main() {
       expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
         await snackBarMessage,
-        'Model gpt-text-only does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-text-only does not support image inputs. Remove images or switch models.',
       );
     },
   );
@@ -219,7 +219,7 @@ void main() {
       expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
         await snackBarMessage,
-        'Model gpt-default-text-only does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-default-text-only does not support image inputs. Remove images or switch models.',
       );
     },
   );
@@ -247,6 +247,17 @@ void main() {
       addTearDown(controller.dispose);
 
       expect(await controller.sendPrompt('Warm up the lane'), isTrue);
+      final hydrationWarning = controller.transcriptBlocks
+          .whereType<CodexStatusBlock>()
+          .single;
+      expect(hydrationWarning.statusKind, CodexStatusBlockKind.warning);
+      expect(
+        hydrationWarning.body,
+        contains(
+          '[${PocketErrorCatalog.chatSessionModelCatalogHydrationFailed.code}]',
+        ),
+      );
+      expect(hydrationWarning.body, contains('temporary model list failure'));
       expect(appServerClient.listModelCalls, isEmpty);
 
       appServerClient.listModelsError = null;
@@ -295,7 +306,7 @@ void main() {
       expect(controller.currentModelSupportsImageInput, isFalse);
       expect(
         await snackBarMessage,
-        'Model gpt-5.3-codex does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-5.3-codex does not support image inputs. Remove images or switch models.',
       );
     },
   );
@@ -383,7 +394,7 @@ void main() {
       expect(appServerClient.sentTurns.single.model, 'gpt-text-only');
       expect(
         await snackBarMessage,
-        'Model gpt-text-only does not support image inputs. Remove images or switch models.',
+        '[${PocketErrorCatalog.chatSessionImageInputUnsupported.code}] Image input unsupported. Model gpt-text-only does not support image inputs. Remove images or switch models.',
       );
     },
   );

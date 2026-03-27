@@ -99,6 +99,7 @@ void main() {
               entryKind: CodexWorkLogEntryKind.commandExecution,
               title: 'pwd',
               preview: '/repo',
+              body: '/repo\n',
               isRunning: true,
             ),
           ],
@@ -110,6 +111,7 @@ void main() {
 
         expect(entry.commandText, 'pwd');
         expect(entry.outputPreview, '/repo');
+        expect(entry.terminalOutput, '/repo\n');
         expect(entry.activityLabel, 'Running command');
       },
     );
@@ -142,6 +144,37 @@ void main() {
         expect(entry.outputPreview, 'still running');
         expect(entry.processId, 'proc_1');
         expect(entry.activityLabel, 'Waiting for background terminal');
+      },
+    );
+
+    test(
+      'projects shell-derived work-log entries with full terminal payload',
+      () {
+        final groupBlock = CodexWorkLogGroupBlock(
+          id: 'worklog_shell_payload',
+          createdAt: DateTime(2026, 3, 15, 12),
+          entries: <CodexWorkLogEntry>[
+            CodexWorkLogEntry(
+              id: 'entry_shell_payload',
+              createdAt: DateTime(2026, 3, 15, 12),
+              entryKind: CodexWorkLogEntryKind.commandExecution,
+              title: 'git status --short',
+              body: ' M lib/main.dart\n',
+              snapshot: const <String, Object?>{
+                'processId': 'proc_9',
+                'stdin': 'status\n',
+              },
+            ),
+          ],
+        );
+
+        final item =
+            projector.project(groupBlock) as ChatWorkLogGroupItemContract;
+        final entry = item.entries.single as ChatGitWorkLogEntryContract;
+
+        expect(entry.processId, 'proc_9');
+        expect(entry.terminalInput, 'status\n');
+        expect(entry.terminalOutput, ' M lib/main.dart\n');
       },
     );
 

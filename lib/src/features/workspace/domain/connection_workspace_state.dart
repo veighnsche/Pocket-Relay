@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 
 enum ConnectionWorkspaceViewport { liveLane, savedConnections }
@@ -58,6 +59,10 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     this.lastRecoveryCompletedAt,
     this.lastTransportLossAt,
     this.lastTransportLossReason,
+    this.lastTransportFailureDetail,
+    this.lastLiveReattachFailureDetail,
+    this.lastRecoveryPersistenceFailureAt,
+    this.lastRecoveryPersistenceFailureDetail,
     this.lastRecoveryOutcome,
   });
 
@@ -70,6 +75,10 @@ class ConnectionWorkspaceRecoveryDiagnostics {
   final DateTime? lastRecoveryCompletedAt;
   final DateTime? lastTransportLossAt;
   final ConnectionWorkspaceTransportLossReason? lastTransportLossReason;
+  final String? lastTransportFailureDetail;
+  final String? lastLiveReattachFailureDetail;
+  final DateTime? lastRecoveryPersistenceFailureAt;
+  final String? lastRecoveryPersistenceFailureDetail;
   final ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome;
 
   ConnectionWorkspaceRecoveryDiagnostics copyWith({
@@ -81,6 +90,10 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     DateTime? lastRecoveryCompletedAt,
     DateTime? lastTransportLossAt,
     ConnectionWorkspaceTransportLossReason? lastTransportLossReason,
+    String? lastTransportFailureDetail,
+    String? lastLiveReattachFailureDetail,
+    DateTime? lastRecoveryPersistenceFailureAt,
+    String? lastRecoveryPersistenceFailureDetail,
     ConnectionWorkspaceRecoveryOutcome? lastRecoveryOutcome,
     bool clearLastBackgroundedAt = false,
     bool clearLastBackgroundedLifecycleState = false,
@@ -90,6 +103,10 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     bool clearLastRecoveryCompletedAt = false,
     bool clearLastTransportLossAt = false,
     bool clearLastTransportLossReason = false,
+    bool clearLastTransportFailureDetail = false,
+    bool clearLastLiveReattachFailureDetail = false,
+    bool clearLastRecoveryPersistenceFailureAt = false,
+    bool clearLastRecoveryPersistenceFailureDetail = false,
     bool clearLastRecoveryOutcome = false,
   }) {
     return ConnectionWorkspaceRecoveryDiagnostics(
@@ -118,6 +135,22 @@ class ConnectionWorkspaceRecoveryDiagnostics {
       lastTransportLossReason: clearLastTransportLossReason
           ? null
           : (lastTransportLossReason ?? this.lastTransportLossReason),
+      lastTransportFailureDetail: clearLastTransportFailureDetail
+          ? null
+          : (lastTransportFailureDetail ?? this.lastTransportFailureDetail),
+      lastLiveReattachFailureDetail: clearLastLiveReattachFailureDetail
+          ? null
+          : (lastLiveReattachFailureDetail ??
+                this.lastLiveReattachFailureDetail),
+      lastRecoveryPersistenceFailureAt: clearLastRecoveryPersistenceFailureAt
+          ? null
+          : (lastRecoveryPersistenceFailureAt ??
+                this.lastRecoveryPersistenceFailureAt),
+      lastRecoveryPersistenceFailureDetail:
+          clearLastRecoveryPersistenceFailureDetail
+          ? null
+          : (lastRecoveryPersistenceFailureDetail ??
+                this.lastRecoveryPersistenceFailureDetail),
       lastRecoveryOutcome: clearLastRecoveryOutcome
           ? null
           : (lastRecoveryOutcome ?? this.lastRecoveryOutcome),
@@ -136,6 +169,12 @@ class ConnectionWorkspaceRecoveryDiagnostics {
         other.lastRecoveryCompletedAt == lastRecoveryCompletedAt &&
         other.lastTransportLossAt == lastTransportLossAt &&
         other.lastTransportLossReason == lastTransportLossReason &&
+        other.lastTransportFailureDetail == lastTransportFailureDetail &&
+        other.lastLiveReattachFailureDetail == lastLiveReattachFailureDetail &&
+        other.lastRecoveryPersistenceFailureAt ==
+            lastRecoveryPersistenceFailureAt &&
+        other.lastRecoveryPersistenceFailureDetail ==
+            lastRecoveryPersistenceFailureDetail &&
         other.lastRecoveryOutcome == lastRecoveryOutcome;
   }
 
@@ -149,7 +188,71 @@ class ConnectionWorkspaceRecoveryDiagnostics {
     lastRecoveryCompletedAt,
     lastTransportLossAt,
     lastTransportLossReason,
+    lastTransportFailureDetail,
+    lastLiveReattachFailureDetail,
+    lastRecoveryPersistenceFailureAt,
+    lastRecoveryPersistenceFailureDetail,
     lastRecoveryOutcome,
+  );
+}
+
+@immutable
+class ConnectionWorkspaceDeviceContinuityWarnings {
+  const ConnectionWorkspaceDeviceContinuityWarnings({
+    this.foregroundServiceWarning,
+    this.backgroundGraceWarning,
+    this.wakeLockWarning,
+  });
+
+  final PocketUserFacingError? foregroundServiceWarning;
+  final PocketUserFacingError? backgroundGraceWarning;
+  final PocketUserFacingError? wakeLockWarning;
+
+  bool get isEmpty =>
+      foregroundServiceWarning == null &&
+      backgroundGraceWarning == null &&
+      wakeLockWarning == null;
+
+  List<PocketUserFacingError> get activeWarnings => <PocketUserFacingError>[
+    if (foregroundServiceWarning case final warning?) warning,
+    if (backgroundGraceWarning case final warning?) warning,
+    if (wakeLockWarning case final warning?) warning,
+  ];
+
+  ConnectionWorkspaceDeviceContinuityWarnings copyWith({
+    PocketUserFacingError? foregroundServiceWarning,
+    PocketUserFacingError? backgroundGraceWarning,
+    PocketUserFacingError? wakeLockWarning,
+    bool clearForegroundServiceWarning = false,
+    bool clearBackgroundGraceWarning = false,
+    bool clearWakeLockWarning = false,
+  }) {
+    return ConnectionWorkspaceDeviceContinuityWarnings(
+      foregroundServiceWarning: clearForegroundServiceWarning
+          ? null
+          : (foregroundServiceWarning ?? this.foregroundServiceWarning),
+      backgroundGraceWarning: clearBackgroundGraceWarning
+          ? null
+          : (backgroundGraceWarning ?? this.backgroundGraceWarning),
+      wakeLockWarning: clearWakeLockWarning
+          ? null
+          : (wakeLockWarning ?? this.wakeLockWarning),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ConnectionWorkspaceDeviceContinuityWarnings &&
+        other.foregroundServiceWarning == foregroundServiceWarning &&
+        other.backgroundGraceWarning == backgroundGraceWarning &&
+        other.wakeLockWarning == wakeLockWarning;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    foregroundServiceWarning,
+    backgroundGraceWarning,
+    wakeLockWarning,
   );
 }
 
@@ -160,6 +263,8 @@ class ConnectionWorkspaceState {
     required this.liveConnectionIds,
     required this.selectedConnectionId,
     required this.viewport,
+    required this.recoveryLoadWarning,
+    required this.deviceContinuityWarnings,
     required this.savedSettingsReconnectRequiredConnectionIds,
     required this.transportReconnectRequiredConnectionIds,
     required this.transportRecoveryPhasesByConnectionId,
@@ -174,6 +279,9 @@ class ConnectionWorkspaceState {
       liveConnectionIds = const <String>[],
       selectedConnectionId = null,
       viewport = ConnectionWorkspaceViewport.liveLane,
+      recoveryLoadWarning = null,
+      deviceContinuityWarnings =
+          const ConnectionWorkspaceDeviceContinuityWarnings(),
       savedSettingsReconnectRequiredConnectionIds = const <String>{},
       transportReconnectRequiredConnectionIds = const <String>{},
       transportRecoveryPhasesByConnectionId =
@@ -190,6 +298,8 @@ class ConnectionWorkspaceState {
   final List<String> liveConnectionIds;
   final String? selectedConnectionId;
   final ConnectionWorkspaceViewport viewport;
+  final PocketUserFacingError? recoveryLoadWarning;
+  final ConnectionWorkspaceDeviceContinuityWarnings deviceContinuityWarnings;
   final Set<String> savedSettingsReconnectRequiredConnectionIds;
   final Set<String> transportReconnectRequiredConnectionIds;
   final Map<String, ConnectionWorkspaceTransportRecoveryPhase>
@@ -283,6 +393,8 @@ class ConnectionWorkspaceState {
     List<String>? liveConnectionIds,
     String? selectedConnectionId,
     ConnectionWorkspaceViewport? viewport,
+    PocketUserFacingError? recoveryLoadWarning,
+    ConnectionWorkspaceDeviceContinuityWarnings? deviceContinuityWarnings,
     Set<String>? savedSettingsReconnectRequiredConnectionIds,
     Set<String>? transportReconnectRequiredConnectionIds,
     Map<String, ConnectionWorkspaceTransportRecoveryPhase>?
@@ -293,6 +405,7 @@ class ConnectionWorkspaceState {
     recoveryDiagnosticsByConnectionId,
     Map<String, ConnectionRemoteRuntimeState>? remoteRuntimeByConnectionId,
     bool clearSelectedConnectionId = false,
+    bool clearRecoveryLoadWarning = false,
   }) {
     return ConnectionWorkspaceState(
       isLoading: isLoading ?? this.isLoading,
@@ -302,6 +415,11 @@ class ConnectionWorkspaceState {
           ? null
           : (selectedConnectionId ?? this.selectedConnectionId),
       viewport: viewport ?? this.viewport,
+      recoveryLoadWarning: clearRecoveryLoadWarning
+          ? null
+          : (recoveryLoadWarning ?? this.recoveryLoadWarning),
+      deviceContinuityWarnings:
+          deviceContinuityWarnings ?? this.deviceContinuityWarnings,
       savedSettingsReconnectRequiredConnectionIds:
           savedSettingsReconnectRequiredConnectionIds ??
           this.savedSettingsReconnectRequiredConnectionIds,
@@ -330,6 +448,8 @@ class ConnectionWorkspaceState {
         listEquals(other.liveConnectionIds, liveConnectionIds) &&
         other.selectedConnectionId == selectedConnectionId &&
         other.viewport == viewport &&
+        other.recoveryLoadWarning == recoveryLoadWarning &&
+        other.deviceContinuityWarnings == deviceContinuityWarnings &&
         setEquals(
           other.savedSettingsReconnectRequiredConnectionIds,
           savedSettingsReconnectRequiredConnectionIds,
@@ -363,6 +483,8 @@ class ConnectionWorkspaceState {
     Object.hashAll(liveConnectionIds),
     selectedConnectionId,
     viewport,
+    recoveryLoadWarning,
+    deviceContinuityWarnings,
     Object.hashAllUnordered(savedSettingsReconnectRequiredConnectionIds),
     Object.hashAllUnordered(transportReconnectRequiredConnectionIds),
     Object.hashAllUnordered(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
@@ -132,6 +133,59 @@ void main() {
       expect(backgroundGraceController.enabledStates, <bool>[true, false]);
     },
   );
+
+  testWidgets(
+    'workspace host records a typed background-grace warning when enabling fails',
+    (tester) async {
+      final clientsById = _buildClientsById(firstConnectionId: 'conn_primary');
+      final workspaceController = _buildWorkspaceController(
+        clientsById: clientsById,
+      );
+      final backgroundGraceController = _ThrowingBackgroundGraceController();
+      addTearDown(() async {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        workspaceController.dispose();
+        await _closeClients(clientsById);
+      });
+
+      await workspaceController.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceTurnBackgroundGraceHost(
+            workspaceController: workspaceController,
+            backgroundGraceController: backgroundGraceController,
+            supportsBackgroundGrace: true,
+            child: const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final laneBinding = workspaceController.selectedLaneBinding!;
+      expect(
+        await laneBinding.sessionController.sendPrompt('Keep running'),
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+
+      final warning = workspaceController
+          .state
+          .deviceContinuityWarnings
+          .backgroundGraceWarning;
+      expect(
+        warning?.definition,
+        PocketErrorCatalog.deviceBackgroundGraceEnableFailed,
+      );
+      expect(warning?.bodyWithCode, contains('background grace unavailable'));
+      await workspaceController.flushRecoveryPersistence();
+    },
+  );
 }
 
 ConnectionWorkspaceController _buildWorkspaceController({
@@ -198,5 +252,15 @@ class _FakeBackgroundGraceController implements BackgroundGraceController {
   @override
   Future<void> setEnabled(bool enabled) async {
     enabledStates.add(enabled);
+  }
+}
+
+class _ThrowingBackgroundGraceController implements BackgroundGraceController {
+  final List<bool> enabledStates = <bool>[];
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    enabledStates.add(enabled);
+    throw StateError('background grace unavailable');
   }
 }

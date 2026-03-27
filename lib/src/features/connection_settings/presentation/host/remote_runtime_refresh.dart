@@ -82,10 +82,13 @@ void _scheduleConnectionSettingsRemoteRuntimeRefresh(
       if (!state.mounted || refreshToken != state._remoteRuntimeRefreshToken) {
         return;
       }
+      final userFacingError = ConnectionSettingsErrors.remoteRuntimeProbeFailed(
+        error: error,
+      );
       state._setStateInternal(() {
         state._remoteRuntime = ConnectionRemoteRuntimeState(
           hostCapability: ConnectionRemoteHostCapabilityState.probeFailed(
-            detail: '$error',
+            detail: userFacingError.bodyWithCode,
           ),
           server: const ConnectionRemoteServerState.unknown(),
         );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/theme/pocket_typography.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
@@ -155,9 +156,9 @@ class SshDetailPanel extends StatelessWidget {
           SelectableText(
             value,
             key: valueKey,
-            style: TextStyle(
+            style: PocketTypography.monospaceStyle(
+              base: const TextStyle(),
               color: cards.codeText,
-              fontFamily: 'monospace',
               fontSize: 13.2,
               height: 1.3,
             ),

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/core/errors/device_capability_errors.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 
 bool supportsFiniteBackgroundGrace([TargetPlatform? platform]) {
@@ -43,12 +45,14 @@ class BackgroundGraceHost extends StatefulWidget {
     this.backgroundGraceController =
         const MethodChannelBackgroundGraceController(),
     this.supportsBackgroundGrace,
+    this.onWarningChanged,
   });
 
   final Widget child;
   final bool keepBackgroundGraceAlive;
   final BackgroundGraceController backgroundGraceController;
   final bool? supportsBackgroundGrace;
+  final ValueChanged<PocketUserFacingError?>? onWarningChanged;
 
   @override
   State<BackgroundGraceHost> createState() => _BackgroundGraceHostState();
@@ -99,6 +103,7 @@ class _BackgroundGraceHostState extends State<BackgroundGraceHost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _setWarning(null);
     if (_requestedBackgroundGraceEnabled) {
       _requestedBackgroundGraceEnabled = false;
       unawaited(_setEnabledSafely(widget.backgroundGraceController, false));
@@ -112,6 +117,9 @@ class _BackgroundGraceHostState extends State<BackgroundGraceHost>
   void _syncBackgroundGrace() {
     final shouldEnableBackgroundGrace = _shouldEnableBackgroundGrace;
     if (shouldEnableBackgroundGrace == _requestedBackgroundGraceEnabled) {
+      if (!shouldEnableBackgroundGrace) {
+        _setWarning(null);
+      }
       return;
     }
 
@@ -130,8 +138,15 @@ class _BackgroundGraceHostState extends State<BackgroundGraceHost>
   ) async {
     try {
       await controller.setEnabled(enabled);
-    } catch (_) {
-      // Ignore background-grace failures so the app remains usable.
+      _setWarning(null);
+    } catch (error) {
+      _setWarning(
+        DeviceCapabilityErrors.backgroundGraceEnableFailed(error: error),
+      );
     }
+  }
+
+  void _setWarning(PocketUserFacingError? warning) {
+    widget.onWarningChanged?.call(warning);
   }
 }

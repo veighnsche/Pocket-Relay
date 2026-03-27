@@ -197,6 +197,10 @@ void main() {
         ConnectionWorkspaceTransportLossReason.connectFailed,
       );
       expect(
+        unavailableDiagnostics.lastTransportFailureDetail,
+        'connect failed',
+      );
+      expect(
         unavailableDiagnostics.lastRecoveryOutcome,
         ConnectionWorkspaceRecoveryOutcome.transportUnavailable,
       );

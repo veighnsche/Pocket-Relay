@@ -54,7 +54,7 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
       return true;
     }
 
-    _emitSnackBar(_imageInputsNotSupportedMessage());
+    _emitUserFacingError(_imageInputsNotSupportedError());
     return false;
   }
 
@@ -112,12 +112,10 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
     _notifyListenersIfMounted();
   }
 
-  String _imageInputsNotSupportedMessage() {
-    final effectiveModel = _effectiveModelForCapabilities(_modelCatalog);
-    if (effectiveModel == null) {
-      return 'This model does not support image inputs. Remove images or switch models.';
-    }
-    return 'Model $effectiveModel does not support image inputs. Remove images or switch models.';
+  PocketUserFacingError _imageInputsNotSupportedError() {
+    return ChatSessionGuardrailErrors.imageInputUnsupported(
+      model: _effectiveModelForCapabilities(_modelCatalog),
+    );
   }
 
   String? _effectiveModelForCapabilities([List<CodexAppServerModel>? catalog]) {

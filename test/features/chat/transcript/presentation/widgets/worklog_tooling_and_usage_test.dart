@@ -101,6 +101,42 @@ void main() {
     expect(find.text('git grep -n "relay_git_probe" lib test'), findsNothing);
   });
 
+  testWidgets('opens terminal payloads from grouped shell work-log rows', (
+    tester,
+  ) async {
+    ChatWorkLogTerminalContract? openedTerminal;
+
+    await tester.pumpWidget(
+      buildTestApp(
+        child: entrySurface(
+          block: CodexWorkLogGroupBlock(
+            id: 'worklog_git_terminal',
+            createdAt: DateTime(2026, 3, 14, 12),
+            entries: <CodexWorkLogEntry>[
+              CodexWorkLogEntry(
+                id: 'entry_git_status_terminal',
+                createdAt: DateTime(2026, 3, 14, 12),
+                entryKind: CodexWorkLogEntryKind.commandExecution,
+                title: 'git status',
+                body: ' M lib/main.dart\n',
+              ),
+            ],
+          ),
+          onOpenWorkLogTerminal: (terminal) {
+            openedTerminal = terminal;
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Current repository'));
+    await tester.pump();
+
+    expect(openedTerminal, isNotNull);
+    expect(openedTerminal?.commandText, 'git status');
+    expect(openedTerminal?.terminalOutput, ' M lib/main.dart\n');
+  });
+
   testWidgets('renders MCP tool calls as MCP-specific work-log rows', (
     tester,
   ) async {

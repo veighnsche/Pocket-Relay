@@ -3,6 +3,7 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_tran
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 
 part 'chat_changed_files_item_projector_diff.dart';
+part 'chat_changed_files_item_projector_review.dart';
 part 'chat_changed_files_item_projector_support.dart';
 
 class ChatChangedFilesItemProjector {

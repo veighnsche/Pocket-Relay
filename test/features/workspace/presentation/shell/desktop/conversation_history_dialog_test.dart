@@ -141,12 +141,6 @@ void main() {
           matching: find.byType(PopupMenuItem<int>),
         ),
       );
-      final closeLaneItem = tester.widget<PopupMenuItem<int>>(
-        find.ancestor(
-          of: find.text('Close lane'),
-          matching: find.byType(PopupMenuItem<int>),
-        ),
-      );
       final savedConnectionsItem = tester.widget<PopupMenuItem<int>>(
         find.ancestor(
           of: find.text('Saved workspaces'),
@@ -160,8 +154,18 @@ void main() {
         find.byKey(const ValueKey('lane_connection_action_history')),
         findsNothing,
       );
-      expect(closeLaneItem.enabled, isTrue);
+      expect(
+        find.byKey(const ValueKey('lane_connection_action_close')),
+        findsOneWidget,
+      );
       expect(savedConnectionsItem.enabled, isTrue);
+      expect(
+        find.ancestor(
+          of: find.text('Close lane'),
+          matching: find.byType(PopupMenuItem<int>),
+        ),
+        findsNothing,
+      );
       expect(
         find.ancestor(
           of: find.text('Conversation history'),

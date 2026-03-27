@@ -58,6 +58,98 @@ void main() {
   );
 
   test(
+    'saveObservedHostFingerprint reports feedback when the prompt is no longer available',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      await controller.saveObservedHostFingerprint('missing_block');
+
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionHostFingerprintPromptUnavailable.code}] Host fingerprint unavailable. This host fingerprint prompt is no longer available.',
+      );
+      expect(controller.profile.hostFingerprint, isEmpty);
+    },
+  );
+
+  test(
+    'saveObservedHostFingerprint reports feedback when persisting the prompt fails',
+    () async {
+      final appServerClient = FakeCodexAppServerClient();
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: _FailingCodexProfileStore(
+          SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('Hello controller'), isTrue);
+
+      appServerClient.emit(
+        const CodexAppServerUnpinnedHostKeyEvent(
+          host: 'example.com',
+          port: 22,
+          keyType: 'ssh-ed25519',
+          fingerprint: '7a:9f:d7:dc:2e:f2',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final block = controller.transcriptBlocks
+          .whereType<CodexSshUnpinnedHostKeyBlock>()
+          .single;
+      final snackBarMessage = controller.snackBarMessages.first.timeout(
+        const Duration(seconds: 1),
+      );
+
+      await controller.saveObservedHostFingerprint(block.id);
+
+      expect(
+        await snackBarMessage,
+        '[${PocketErrorCatalog.chatSessionHostFingerprintSaveFailed.code}] Host fingerprint save failed. Could not save the host fingerprint to this profile. Underlying error: profile save failed',
+      );
+      expect(controller.profile.hostFingerprint, isEmpty);
+      expect(
+        controller.transcriptBlocks
+            .whereType<CodexSshUnpinnedHostKeyBlock>()
+            .single
+            .isSaved,
+        isFalse,
+      );
+    },
+  );
+
+  test(
     'sendPrompt suppresses duplicate generic failures when an unpinned host key prompt already surfaced',
     () async {
       final appServerClient = FakeCodexAppServerClient()
@@ -265,4 +357,21 @@ void main() {
       );
     },
   );
+}
+
+final class _FailingCodexProfileStore implements CodexProfileStore {
+  _FailingCodexProfileStore(this.initialValue);
+
+  final SavedProfile initialValue;
+
+  @override
+  Future<SavedProfile> load() async => initialValue;
+
+  @override
+  Future<void> save(
+    ConnectionProfile profile,
+    ConnectionSecrets secrets,
+  ) async {
+    throw StateError('profile save failed');
+  }
 }
