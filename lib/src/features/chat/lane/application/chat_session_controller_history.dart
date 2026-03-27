@@ -265,7 +265,11 @@ Future<void> _ensureChatSessionAppServerConnected(
 
   try {
     await controller._refreshModelCatalogAfterConnect();
-  } catch (_) {
+  } catch (error) {
+    controller._emitDiagnosticWarning(
+      ChatSessionErrors.modelCatalogHydrationFailed(error: error),
+      rawMethod: 'local/model-catalog-hydration',
+    );
     // Fail open when model metadata is unavailable; send/attach paths will
     // re-check the cached capability state if a later hydration succeeds.
   }

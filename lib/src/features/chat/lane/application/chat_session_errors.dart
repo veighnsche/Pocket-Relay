@@ -94,6 +94,27 @@ abstract final class ChatSessionErrors {
     );
   }
 
+  static PocketUserFacingError modelCatalogHydrationFailed({Object? error}) {
+    return const PocketUserFacingError(
+      definition: PocketErrorCatalog.chatSessionModelCatalogHydrationFailed,
+      title: 'Model capabilities unavailable',
+      message:
+          'Pocket Relay could not refresh the live model catalog after connecting. Capability checks such as image-input support may stay incomplete until a later retry succeeds.',
+    ).withNormalizedUnderlyingError(error);
+  }
+
+  static PocketUserFacingError threadMetadataHydrationFailed({
+    required String threadId,
+    Object? error,
+  }) {
+    return PocketUserFacingError(
+      definition: PocketErrorCatalog.chatSessionThreadMetadataHydrationFailed,
+      title: 'Thread labels unavailable',
+      message:
+          'Pocket Relay could not load metadata for thread "$threadId". Timeline labels may stay incomplete until a later restore provides that metadata.',
+    ).withNormalizedUnderlyingError(error);
+  }
+
   static PocketUserFacingError rejectUnsupportedRequestFailed() {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.chatSessionRejectUnsupportedRequestFailed,

@@ -267,6 +267,59 @@ void main() {
   });
 
   test(
+    'surfaces a coded warning when child thread metadata hydration fails',
+    () async {
+      final appServerClient = _ThrowingReadThreadFakeCodexAppServerClient(
+        StateError('thread metadata unavailable'),
+      );
+      addTearDown(appServerClient.close);
+
+      final controller = ChatSessionController(
+        profileStore: MemoryCodexProfileStore(
+          initialValue: SavedProfile(
+            profile: configuredProfile(),
+            secrets: const ConnectionSecrets(password: 'secret'),
+          ),
+        ),
+        appServerClient: appServerClient,
+        initialSavedProfile: SavedProfile(
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      expect(await controller.sendPrompt('First prompt'), isTrue);
+      appServerClient.emit(
+        const CodexAppServerNotificationEvent(
+          method: 'thread/started',
+          params: <String, Object?>{
+            'thread': <String, Object?>{'id': 'thread_child'},
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(appServerClient.readThreadCalls, contains('thread_child'));
+      final warning = controller.transcriptBlocks
+          .whereType<CodexStatusBlock>()
+          .firstWhere(
+            (block) =>
+                block.body.contains(
+                  PocketErrorCatalog
+                      .chatSessionThreadMetadataHydrationFailed
+                      .code,
+                ) &&
+                block.body.contains('thread_child'),
+          );
+      expect(warning.statusKind, CodexStatusBlockKind.warning);
+      expect(warning.body, contains('thread_child'));
+      expect(warning.body, contains('thread metadata unavailable'));
+    },
+  );
+
+  test(
     'stopActiveTurn targets the selected timeline turn explicitly',
     () async {
       final appServerClient = FakeCodexAppServerClient();
@@ -324,4 +377,19 @@ void main() {
       );
     },
   );
+}
+
+class _ThrowingReadThreadFakeCodexAppServerClient
+    extends FakeCodexAppServerClient {
+  _ThrowingReadThreadFakeCodexAppServerClient(this.error);
+
+  final Object error;
+
+  @override
+  Future<CodexAppServerThreadSummary> readThread({
+    required String threadId,
+  }) async {
+    readThreadCalls.add(threadId);
+    throw error;
+  }
 }

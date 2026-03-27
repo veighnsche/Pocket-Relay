@@ -585,6 +585,22 @@ abstract final class PocketErrorCatalog {
         'Branching the selected conversation was blocked because there is no selectable conversation target yet.',
   );
 
+  // Chat session: best-effort diagnostics (18xx).
+  static const PocketErrorDefinition
+  chatSessionModelCatalogHydrationFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1801',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Refreshing the best-effort live model catalog after transport connection failed, so capability checks may remain incomplete until a later retry succeeds.',
+  );
+  static const PocketErrorDefinition
+  chatSessionThreadMetadataHydrationFailed = PocketErrorDefinition(
+    code: 'PR-CHAT-1802',
+    domain: PocketErrorDomain.chatSession,
+    meaning:
+        'Reading best-effort child-thread metadata failed, so timeline labels may remain incomplete until later runtime data fills them in.',
+  );
+
   // Chat composer: image attachment failures (17xx).
   static const PocketErrorDefinition
   chatComposerImageAttachmentEmpty = PocketErrorDefinition(
@@ -781,6 +797,8 @@ abstract final class PocketErrorCatalog {
         chatSessionBranchBlockedByTranscriptRestore,
         chatSessionBranchBlockedByActiveTurn,
         chatSessionBranchTargetUnavailable,
+        chatSessionModelCatalogHydrationFailed,
+        chatSessionThreadMetadataHydrationFailed,
       ];
 
   static const List<PocketErrorDefinition> chatComposerDefinitions =

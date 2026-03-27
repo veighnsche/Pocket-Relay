@@ -134,6 +134,20 @@ extension on ChatSessionController {
     _emitSnackBar(error.inlineMessage);
   }
 
+  void _emitDiagnosticWarning(
+    PocketUserFacingError warning, {
+    required String rawMethod,
+  }) {
+    _applyChatSessionRuntimeEvent(
+      this,
+      CodexRuntimeWarningEvent(
+        createdAt: DateTime.now(),
+        rawMethod: rawMethod,
+        summary: warning.bodyWithCode,
+      ),
+    );
+  }
+
   String _sessionLabel() {
     return switch (_profile.connectionMode) {
       ConnectionMode.remote => 'remote Codex',

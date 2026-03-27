@@ -247,6 +247,17 @@ void main() {
       addTearDown(controller.dispose);
 
       expect(await controller.sendPrompt('Warm up the lane'), isTrue);
+      final hydrationWarning = controller.transcriptBlocks
+          .whereType<CodexStatusBlock>()
+          .single;
+      expect(hydrationWarning.statusKind, CodexStatusBlockKind.warning);
+      expect(
+        hydrationWarning.body,
+        contains(
+          '[${PocketErrorCatalog.chatSessionModelCatalogHydrationFailed.code}]',
+        ),
+      );
+      expect(hydrationWarning.body, contains('temporary model list failure'));
       expect(appServerClient.listModelCalls, isEmpty);
 
       appServerClient.listModelsError = null;
