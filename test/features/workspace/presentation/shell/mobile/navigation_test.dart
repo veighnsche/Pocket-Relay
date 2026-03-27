@@ -21,7 +21,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Saved workspaces'), findsWidgets);
+    expect(find.text('Workspaces'), findsWidgets);
     expect(
       find.byKey(const ValueKey('saved_connection_conn_secondary')),
       findsOneWidget,
@@ -44,7 +44,7 @@ void main() {
 
     await tester.tap(find.byTooltip('More actions'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Saved workspaces'));
+    await tester.tap(find.text('Workspaces'));
     await tester.pumpAndSettle();
 
     expect(controller.state.isShowingSavedConnections, isTrue);
@@ -52,5 +52,37 @@ void main() {
       find.byKey(const ValueKey('saved_connections_page')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('swiping again after workspaces reveals the systems page', (
+    tester,
+  ) async {
+    final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+    final controller = buildWorkspaceController(clientsById: clientsById);
+    addTearDown(() async {
+      controller.dispose();
+      await closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await tester.pumpWidget(buildShell(controller));
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byKey(const ValueKey('workspace_page_view')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('workspace_page_view')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.state.isShowingSavedSystems, isTrue);
+    expect(controller.state.selectedConnectionId, 'conn_primary');
+    expect(find.byKey(const ValueKey('saved_systems_page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add_system')), findsOneWidget);
+    expect(find.text('Systems'), findsWidgets);
   });
 }

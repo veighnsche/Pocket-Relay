@@ -15,9 +15,10 @@ void main() {
     await tester.pumpWidget(buildShell(controller));
     await tester.pumpAndSettle();
 
-    expect(find.text('Workspaces'), findsOneWidget);
+    expect(find.text('Workspaces'), findsNWidgets(2));
+    expect(find.text('Systems'), findsOneWidget);
     expect(find.text('Current lane'), findsNothing);
-    expect(find.text('Saved workspaces'), findsOneWidget);
+    expect(find.text('Saved workspaces'), findsNothing);
     expect(find.text('Open lanes'), findsOneWidget);
     expect(find.text('Needs attention'), findsNothing);
     expect(
@@ -32,6 +33,7 @@ void main() {
       find.byKey(const ValueKey('desktop_saved_connections')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('desktop_saved_systems')), findsOneWidget);
     expect(find.text('Manage workspaces'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('desktop_sidebar_toggle')),
@@ -213,6 +215,6 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Add workspace'), findsOneWidget);
+    expect(find.text('New workspace'), findsOneWidget);
   });
 }
