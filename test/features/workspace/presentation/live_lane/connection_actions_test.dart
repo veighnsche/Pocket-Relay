@@ -109,6 +109,68 @@ void main() {
   );
 
   testWidgets(
+    'live connected lane disconnect stays distinct from close lane and preserves the lane',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!;
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(),
+        ),
+        remoteAppServerOwnerInspector: MapRemoteOwnerInspector(
+          <String, CodexRemoteAppServerOwnerSnapshot>{
+            'conn_primary': runningOwnerSnapshot('conn_primary'),
+          },
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await client.dispose();
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      final laneBinding = controller.selectedLaneBinding!;
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: DeferredConnectionSettingsOverlayDelegate()
+            ..complete(null),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text('Close lane'), findsOneWidget);
+
+      await tester.tap(find.text('Disconnect'));
+      await tester.pumpAndSettle();
+
+      expect(client.disconnectCalls, 1);
+      expect(controller.state.liveConnectionIds, <String>['conn_primary']);
+      expect(controller.state.selectedConnectionId, 'conn_primary');
+      expect(controller.state.isShowingLiveLane, isTrue);
+      expect(controller.selectedLaneBinding, isNotNull);
+      expect(
+        find.byKey(const ValueKey<String>('lane_connection_action_connect')),
+        findsOneWidget,
+      );
+
+      await controller.flushRecoveryPersistence();
+    },
+  );
+
+  testWidgets(
     'live empty lane connect action can start the remote server and attach in one click',
     (tester) async {
       final clientsById = buildClientsById('conn_primary');
