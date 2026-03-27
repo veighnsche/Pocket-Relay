@@ -141,6 +141,14 @@ final class FailingLoadConnectionRepository
   Future<ConnectionCatalogState> loadCatalog() => delegate.loadCatalog();
 
   @override
+  Future<WorkspaceCatalogState> loadWorkspaceCatalog() =>
+      delegate.loadWorkspaceCatalog();
+
+  @override
+  Future<SystemCatalogState> loadSystemCatalog() =>
+      delegate.loadSystemCatalog();
+
+  @override
   Future<SavedConnection> loadConnection(String connectionId) {
     if (connectionId == failingConnectionId) {
       throw error;
@@ -149,18 +157,50 @@ final class FailingLoadConnectionRepository
   }
 
   @override
+  Future<SavedWorkspace> loadWorkspace(String workspaceId) =>
+      delegate.loadWorkspace(workspaceId);
+
+  @override
+  Future<SavedSystem> loadSystem(String systemId) =>
+      delegate.loadSystem(systemId);
+
+  @override
   Future<SavedConnection> createConnection({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
   }) => delegate.createConnection(profile: profile, secrets: secrets);
 
   @override
+  Future<SavedWorkspace> createWorkspace({required WorkspaceProfile profile}) =>
+      delegate.createWorkspace(profile: profile);
+
+  @override
+  Future<SavedSystem> createSystem({
+    required SystemProfile profile,
+    required ConnectionSecrets secrets,
+  }) => delegate.createSystem(profile: profile, secrets: secrets);
+
+  @override
   Future<void> saveConnection(SavedConnection connection) =>
       delegate.saveConnection(connection);
 
   @override
+  Future<void> saveWorkspace(SavedWorkspace workspace) =>
+      delegate.saveWorkspace(workspace);
+
+  @override
+  Future<void> saveSystem(SavedSystem system) => delegate.saveSystem(system);
+
+  @override
   Future<void> deleteConnection(String connectionId) =>
       delegate.deleteConnection(connectionId);
+
+  @override
+  Future<void> deleteWorkspace(String workspaceId) =>
+      delegate.deleteWorkspace(workspaceId);
+
+  @override
+  Future<void> deleteSystem(String systemId) => delegate.deleteSystem(systemId);
 }
 
 final class FakeRemoteHostProbe implements CodexRemoteAppServerHostProbe {

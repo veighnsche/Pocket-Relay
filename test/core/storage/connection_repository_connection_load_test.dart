@@ -106,6 +106,8 @@ void main() {
 
       final catalog = await repository.loadCatalog();
       final connection = await repository.loadConnection('conn_b');
+      final systemCatalog = await repository.loadSystemCatalog();
+      final systemId = systemCatalog.orderedSystemIds.single;
 
       expect(
         catalog.connectionForId('conn_b')?.profile.hostFingerprint,
@@ -113,16 +115,15 @@ void main() {
       );
       expect(connection.profile.hostFingerprint, 'SHA256:shared');
       expect(
-        await preferences.getString('pocket_relay.connection.conn_b.profile'),
+        await preferences.getString(systemProfileKey(systemId)),
         jsonEncode(
-          ConnectionProfile.defaults()
-              .copyWith(
-                host: '192.168.178.164',
-                username: 'vince',
-                workspaceDir: '/workspace/b',
-                hostFingerprint: 'SHA256:shared',
-              )
-              .toJson(),
+          systemProfileFromConnectionProfile(
+            ConnectionProfile.defaults().copyWith(
+              host: '192.168.178.164',
+              username: 'vince',
+              hostFingerprint: 'SHA256:shared',
+            ),
+          ).toJson(),
         ),
       );
     },

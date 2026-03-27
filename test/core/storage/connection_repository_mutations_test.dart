@@ -155,9 +155,7 @@ void main() {
 
     expect(catalog.orderedConnectionIds, <String>['conn_seed']);
     expect(
-      await preferences.getString(
-        'pocket_relay.connection.conn_second.profile',
-      ),
+      await preferences.getString(workspaceProfileKey('conn_second')),
       isNull,
     );
     expect(
@@ -167,7 +165,7 @@ void main() {
       isEmpty,
     );
     expect(
-      await preferences.getString('pocket_relay.connection.conn_seed.profile'),
+      await preferences.getString(workspaceProfileKey('conn_seed')),
       isNotNull,
     );
   });

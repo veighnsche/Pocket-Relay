@@ -40,17 +40,27 @@ void main() {
         ),
       );
       expect(
-        await preferences.getString('pocket_relay.connections.index'),
+        await preferences.getString(workspaceIndexKey()),
         jsonEncode(<String, Object?>{
           'schemaVersion': 1,
-          'orderedConnectionIds': <String>['conn_seed'],
+          'orderedIds': <String>['conn_seed'],
         }),
       );
       expect(
-        await preferences.getString(
-          'pocket_relay.connection.conn_seed.profile',
+        await preferences.getString(workspaceProfileKey('conn_seed')),
+        jsonEncode(
+          workspaceProfileFromConnectionProfile(
+            ConnectionProfile.defaults(),
+            systemId: null,
+          ).toJson(),
         ),
-        jsonEncode(ConnectionProfile.defaults().toJson()),
+      );
+      expect(
+        await preferences.getString(systemIndexKey()),
+        jsonEncode(<String, Object?>{
+          'schemaVersion': 1,
+          'orderedIds': const <String>[],
+        }),
       );
       expect(secureStorage.data, isEmpty);
     },
@@ -93,21 +103,21 @@ void main() {
         ),
       );
       expect(
-        await preferences.getString(
-          'pocket_relay.connection.conn_seed.profile',
+        await preferences.getString(workspaceProfileKey('conn_seed')),
+        jsonEncode(
+          workspaceProfileFromConnectionProfile(
+            ConnectionProfile.defaults(),
+            systemId: null,
+          ).toJson(),
         ),
-        jsonEncode(ConnectionProfile.defaults().toJson()),
       );
-      expect(
-        secureStorage.data['pocket_relay.connection.conn_seed.secret.password'],
-        isNull,
-      );
+      expect(secureStorage.data[systemPasswordKey('conn_seed')], isNull);
       expect(secureStorage.data['codex_pocket.secret.password'], 'secret');
       expect(
-        await preferences.getString('pocket_relay.connections.index'),
+        await preferences.getString(workspaceIndexKey()),
         jsonEncode(<String, Object?>{
           'schemaVersion': 1,
-          'orderedConnectionIds': <String>['conn_seed'],
+          'orderedIds': <String>['conn_seed'],
         }),
       );
     },
@@ -137,6 +147,8 @@ void main() {
 
       final catalog = await repository.loadCatalog();
       final connection = await repository.loadConnection('conn_seed');
+      final systemCatalog = await repository.loadSystemCatalog();
+      final systemId = systemCatalog.orderedSystemIds.single;
 
       expect(catalog.orderedConnectionIds, <String>['conn_seed']);
       expect(
@@ -148,15 +160,19 @@ void main() {
         ),
       );
       expect(
-        await preferences.getString(
-          'pocket_relay.connection.conn_seed.profile',
+        await preferences.getString(workspaceProfileKey('conn_seed')),
+        jsonEncode(
+          workspaceProfileFromConnectionProfile(
+            legacyProfile,
+            systemId: systemId,
+          ).toJson(),
         ),
-        jsonEncode(legacyProfile.toJson()),
       );
       expect(
-        secureStorage.data['pocket_relay.connection.conn_seed.secret.password'],
-        'secret',
+        await preferences.getString(systemProfileKey(systemId)),
+        jsonEncode(systemProfileFromConnectionProfile(legacyProfile).toJson()),
       );
+      expect(secureStorage.data[systemPasswordKey(systemId)], 'secret');
       expect(await preferences.getString('pocket_relay.profile'), isNull);
       expect(secureStorage.data['pocket_relay.secret.password'], isNull);
     },
@@ -193,6 +209,8 @@ void main() {
 
       final catalog = await repository.loadCatalog();
       final connection = await repository.loadConnection('conn_seed');
+      final systemCatalog = await repository.loadSystemCatalog();
+      final systemId = systemCatalog.orderedSystemIds.single;
 
       expect(catalog.orderedConnectionIds, <String>['conn_seed']);
       expect(
@@ -204,15 +222,19 @@ void main() {
         ),
       );
       expect(
-        await preferences.getString(
-          'pocket_relay.connection.conn_seed.profile',
+        await preferences.getString(workspaceProfileKey('conn_seed')),
+        jsonEncode(
+          workspaceProfileFromConnectionProfile(
+            legacyProfile,
+            systemId: systemId,
+          ).toJson(),
         ),
-        jsonEncode(legacyProfile.toJson()),
       );
       expect(
-        secureStorage.data['pocket_relay.connection.conn_seed.secret.password'],
-        'secret',
+        await preferences.getString(systemProfileKey(systemId)),
+        jsonEncode(systemProfileFromConnectionProfile(legacyProfile).toJson()),
       );
+      expect(secureStorage.data[systemPasswordKey(systemId)], 'secret');
       expect(await preferences.getString('pocket_relay.profile'), isNull);
       expect(secureStorage.data['pocket_relay.secret.password'], isNull);
     },
@@ -243,10 +265,7 @@ void main() {
           secrets: const ConnectionSecrets(),
         ),
       );
-      expect(
-        secureStorage.data['pocket_relay.connection.conn_seed.secret.password'],
-        isNull,
-      );
+      expect(secureStorage.data[systemPasswordKey('conn_seed')], isNull);
       expect(secureStorage.data['pocket_relay.secret.password'], 'secret');
     },
   );
@@ -277,10 +296,7 @@ void main() {
           secrets: const ConnectionSecrets(),
         ),
       );
-      expect(
-        secureStorage.data['pocket_relay.connection.conn_seed.secret.password'],
-        isNull,
-      );
+      expect(secureStorage.data[systemPasswordKey('conn_seed')], isNull);
       expect(secureStorage.data['pocket_relay.secret.password'], 'secret');
       expect(await preferences.getString('pocket_relay.profile'), '{not json');
     },
@@ -324,10 +340,10 @@ void main() {
 
       expect(catalog.orderedConnectionIds, <String>['conn_a', 'conn_b']);
       expect(
-        await preferences.getString('pocket_relay.connections.index'),
+        await preferences.getString(workspaceIndexKey()),
         jsonEncode(<String, Object?>{
           'schemaVersion': 1,
-          'orderedConnectionIds': <String>['conn_a', 'conn_b'],
+          'orderedIds': <String>['conn_a', 'conn_b'],
         }),
       );
     },

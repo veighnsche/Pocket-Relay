@@ -6,6 +6,8 @@ part 'connection_models_model_catalog.dart';
 part 'connection_models_profile.dart';
 part 'connection_models_remote_runtime.dart';
 part 'connection_models_saved_connection.dart';
+part 'connection_models_system.dart';
+part 'connection_models_workspace.dart';
 
 enum AuthMode { password, privateKey }
 
@@ -49,4 +51,8 @@ ConnectionMode _connectionModeFromName(
   }
 
   return fallback;
+}
+
+bool connectionSecretsEqual(ConnectionSecrets first, ConnectionSecrets second) {
+  return first == second;
 }
