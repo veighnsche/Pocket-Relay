@@ -35,6 +35,30 @@ void main() {
     },
   );
 
+  test('runtime message strips known exception wrappers', () {
+    final error = ChatSessionErrors.sendFailed(sessionLabel: 'remote Codex');
+    final runtimeMessage = ChatSessionErrors.runtimeMessage(
+      error,
+      error: const _StringLikeError('CodexAppServerException: transport broke'),
+    );
+
+    expect(runtimeMessage, contains('Underlying error: transport broke'));
+    expect(runtimeMessage, isNot(contains('CodexAppServerException:')));
+  });
+
+  test('runtime message does not repeat detail already present inline', () {
+    final error = ChatSessionErrors.sendFailed(sessionLabel: 'remote Codex');
+    final runtimeMessage = ChatSessionErrors.runtimeMessage(
+      error,
+      error: const _StringLikeError(
+        'Could not send the prompt to the remote Codex session.',
+      ),
+    );
+
+    expect(runtimeMessage, error.inlineMessage);
+    expect(runtimeMessage, isNot(contains('Underlying error:')));
+  });
+
   test('conversation load failure maps to a stable chat-session code', () {
     final error = ChatSessionErrors.conversationLoadFailed();
 
@@ -55,4 +79,13 @@ void main() {
       PocketErrorCatalog.chatSessionDenyRequestFailed,
     );
   });
+}
+
+final class _StringLikeError {
+  const _StringLikeError(this.value);
+
+  final String value;
+
+  @override
+  String toString() => value;
 }
