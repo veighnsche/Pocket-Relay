@@ -3,7 +3,7 @@ part of 'workspace_desktop_shell.dart';
 extension on _MaterialDesktopSidebar {
   List<Widget> _buildExpandedChildren(BuildContext context) {
     final theme = Theme.of(context);
-    final inventoryEntries = connectionWorkspaceInventoryEntriesFromState(state);
+    final sections = _lifecycleSections();
 
     return <Widget>[
       Row(
@@ -23,52 +23,50 @@ extension on _MaterialDesktopSidebar {
             ),
         ],
       ),
-      const SizedBox(height: 8),
-      Text(
-        ConnectionWorkspaceCopy.desktopSidebarDescription,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-      const SizedBox(height: 22),
-      _MaterialSidebarSectionTitle(
-        title: ConnectionWorkspaceCopy.connectionInventorySectionTitle,
-        trailingCount: inventoryEntries.length,
-      ),
-      const SizedBox(height: 10),
-      ...inventoryEntries.indexed.map((entry) {
-        final index = entry.$1;
-        final inventoryEntry = entry.$2;
-        final connectionId = inventoryEntry.connection.id;
-        final laneBinding = workspaceController.bindingForConnectionId(connectionId);
-        final isBusy = laneBinding?.sessionController.sessionState.isBusy ?? false;
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: index == inventoryEntries.length - 1 ? 0 : 10,
+      if (sections.isNotEmpty) const SizedBox(height: 16),
+      ...sections.indexed.expand((entry) {
+        final sectionIndex = entry.$1;
+        final section = entry.$2;
+        return <Widget>[
+          _MaterialSidebarSectionTitle(
+            title: section.title,
+            trailingCount: section.rows.length,
           ),
-          child: _MaterialSidebarConnectionRow(
-            entry: inventoryEntry,
-            isSelected: inventoryEntry.isCurrent,
-            isOpening: openingConnectionIds.contains(connectionId),
-            onTap: () {
-              if (inventoryEntry.isLive) {
-                workspaceController.selectConnection(connectionId);
-                return;
-              }
-              unawaited(onOpenConnection(connectionId));
-            },
-            onClose:
-                inventoryEntry.isLive && !isBusy
-                ? () => workspaceController.terminateConnection(connectionId)
-                : null,
-          ),
-        );
+          const SizedBox(height: 10),
+          ...section.rows.indexed.map((rowEntry) {
+            final rowIndex = rowEntry.$1;
+            final row = rowEntry.$2;
+            final connectionId = row.connection.id;
+            final laneBinding = workspaceController.bindingForConnectionId(
+              connectionId,
+            );
+            final isBusy =
+                laneBinding?.sessionController.sessionState.isBusy ?? false;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: rowIndex == section.rows.length - 1 ? 0 : 10,
+              ),
+              child: _MaterialSidebarConnectionRow(
+                row: row,
+                facts: _sidebarFactsForRow(row),
+                isSelected: row.isCurrent,
+                isOpening: openingConnectionIds.contains(connectionId),
+                onTap: () {
+                  if (row.isLive) {
+                    workspaceController.selectConnection(connectionId);
+                    return;
+                  }
+                  unawaited(onOpenConnection(connectionId));
+                },
+                onClose: row.isLive && !isBusy
+                    ? () => workspaceController.terminateConnection(connectionId)
+                    : null,
+              ),
+            );
+          }),
+          if (sectionIndex != sections.length - 1) const SizedBox(height: 14),
+        ];
       }),
-      const SizedBox(height: 22),
-      _MaterialSavedConnectionsSidebarRow(
-        isSelected: state.isShowingSavedConnections,
-        onTap: workspaceController.showSavedConnections,
-      ),
     ];
   }
 }

@@ -1,7 +1,7 @@
 import 'desktop_shell_test_support.dart';
 
 void main() {
-  testWidgets('renders a unified connection inventory in the desktop sidebar', (
+  testWidgets('renders lifecycle sections in the desktop sidebar', (
     tester,
   ) async {
     final clientsById = buildClientsById('conn_primary', 'conn_secondary');
@@ -16,7 +16,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Connections'), findsOneWidget);
-    expect(find.text('Inventory'), findsOneWidget);
+    expect(find.text('Current lane'), findsOneWidget);
+    expect(find.text('Saved connections'), findsOneWidget);
+    expect(find.text('Open lanes'), findsNothing);
+    expect(find.text('Needs attention'), findsNothing);
     expect(
       find.byKey(const ValueKey('desktop_connection_conn_primary')),
       findsOneWidget,
@@ -29,7 +32,7 @@ void main() {
       find.byKey(const ValueKey('desktop_saved_connections')),
       findsOneWidget,
     );
-    expect(find.text('Manage connections'), findsOneWidget);
+    expect(find.text('All connections'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('desktop_sidebar_toggle')),
       findsOneWidget,
@@ -82,6 +85,51 @@ void main() {
       expect(find.text('Transcript history unavailable'), findsNothing);
       expect(find.text('Retry load'), findsNothing);
       expect(clientsById['conn_primary']?.readThreadCalls, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'desktop sidebar promotes unconfigured saved connections into Needs attention',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final repository = MemoryCodexConnectionRepository(
+        initialConnections: <SavedConnection>[
+          SavedConnection(
+            id: 'conn_primary',
+            profile: workspaceProfile('Primary Box', 'primary.local'),
+            secrets: const ConnectionSecrets(password: 'secret-1'),
+          ),
+          SavedConnection(
+            id: 'conn_secondary',
+            profile: workspaceProfile(
+              'Secondary Box',
+              'secondary.local',
+            ).copyWith(workspaceDir: ''),
+            secrets: const ConnectionSecrets(password: 'secret-2'),
+          ),
+        ],
+      );
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        repository: repository,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await tester.pumpWidget(buildShell(controller));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Needs attention'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('desktop_connection_conn_secondary')),
+          matching: find.text('Connection not configured'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -142,7 +190,7 @@ void main() {
     },
   );
 
-  testWidgets('manage connections action shows the roster in the main pane', (
+  testWidgets('all connections action shows the full view in the main pane', (
     tester,
   ) async {
     final clientsById = buildClientsById('conn_primary', 'conn_secondary');
@@ -160,15 +208,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.state.isShowingSavedConnections, isTrue);
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const ValueKey('saved_connection_conn_secondary'),
+        skipOffstage: false,
+      ),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey('saved_connection_conn_secondary')),
+      find.byKey(
+        const ValueKey('saved_connection_conn_secondary'),
+        skipOffstage: false,
+      ),
       findsOneWidget,
     );
     expect(clientsById['conn_primary']?.disconnectCalls, 0);
   });
 
   testWidgets(
-    'dormant inventory rows open a lane directly from the desktop sidebar',
+    'dormant sidebar rows open a lane directly from the desktop sidebar',
     (tester) async {
       final clientsById = buildClientsById('conn_primary', 'conn_secondary');
       final controller = buildWorkspaceController(clientsById: clientsById);
