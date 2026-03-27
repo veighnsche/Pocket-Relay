@@ -207,50 +207,54 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
       return null;
     }
     if (!laneBinding.appServerClient.isConnected) {
-      return null;
-    }
-
-    try {
-      String? cursor;
-      var pageCount = 0;
-      final seenCursors = <String>{};
-      final models = <ConnectionAvailableModel>[];
-      while (true) {
-        final page = await laneBinding.appServerClient.listModels(
-          cursor: cursor,
-          limit: _liveModelCatalogPageSize,
-          includeHidden: true,
-        );
-        pageCount += 1;
-        models.addAll(
-          page.models.map(_connectionAvailableModelFromAppServerModel),
-        );
-        final nextCursor = page.nextCursor?.trim();
-        if (nextCursor == null || nextCursor.isEmpty) {
-          break;
-        }
-        if (pageCount >= _maxLiveModelCatalogPages ||
-            !seenCursors.add(nextCursor)) {
-          return null;
-        }
-        cursor = nextCursor;
-      }
-
-      final catalog = ConnectionModelCatalog(
-        connectionId: connectionId,
-        fetchedAt: DateTime.now().toUtc(),
-        models: models,
+      throw StateError(
+        'Live backend connection is no longer available for model refresh.',
       );
-      try {
-        await workspaceController.saveConnectionModelCatalog(catalog);
-      } catch (_) {}
-      try {
-        await workspaceController.saveLastKnownConnectionModelCatalog(catalog);
-      } catch (_) {}
-      return catalog;
-    } catch (_) {
-      return null;
     }
+
+    String? cursor;
+    var pageCount = 0;
+    final seenCursors = <String>{};
+    final models = <ConnectionAvailableModel>[];
+    while (true) {
+      final page = await laneBinding.appServerClient.listModels(
+        cursor: cursor,
+        limit: _liveModelCatalogPageSize,
+        includeHidden: true,
+      );
+      pageCount += 1;
+      models.addAll(
+        page.models.map(_connectionAvailableModelFromAppServerModel),
+      );
+      final nextCursor = page.nextCursor?.trim();
+      if (nextCursor == null || nextCursor.isEmpty) {
+        break;
+      }
+      if (pageCount >= _maxLiveModelCatalogPages) {
+        throw StateError(
+          'Backend model catalog refresh exceeded $_maxLiveModelCatalogPages pages.',
+        );
+      }
+      if (!seenCursors.add(nextCursor)) {
+        throw StateError(
+          'Backend model catalog refresh returned a repeated pagination cursor.',
+        );
+      }
+      cursor = nextCursor;
+    }
+
+    final catalog = ConnectionModelCatalog(
+      connectionId: connectionId,
+      fetchedAt: DateTime.now().toUtc(),
+      models: models,
+    );
+    try {
+      await workspaceController.saveConnectionModelCatalog(catalog);
+    } catch (_) {}
+    try {
+      await workspaceController.saveLastKnownConnectionModelCatalog(catalog);
+    } catch (_) {}
+    return catalog;
   }
 
   ConnectionAvailableModel _connectionAvailableModelFromAppServerModel(

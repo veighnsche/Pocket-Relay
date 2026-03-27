@@ -186,17 +186,25 @@ void main() {
 
       final refreshCallback =
           settingsOverlayDelegate.launchedRefreshCallbacks.single;
-      final refreshedCatalog = await refreshCallback!(
-        ConnectionSettingsDraft.fromConnection(
-          profile: settingsOverlayDelegate.launchedSettings.single.$1,
-          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+      await expectLater(
+        refreshCallback!(
+          ConnectionSettingsDraft.fromConnection(
+            profile: settingsOverlayDelegate.launchedSettings.single.$1,
+            secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => '$error',
+            'message',
+            contains('repeated pagination cursor'),
+          ),
         ),
       );
 
       expect(client.listModelCalls, hasLength(2));
       expect(client.listModelCalls.first.cursor, isNull);
       expect(client.listModelCalls.last.cursor, 'repeat-cursor');
-      expect(refreshedCatalog, isNull);
       expect(
         await controller.loadConnectionModelCatalog('conn_primary'),
         staleConnectionCatalog,
@@ -294,6 +302,94 @@ void main() {
   );
 
   testWidgets(
+    'live lane refresh preserves backend failure detail when model listing throws',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!
+        ..listModelsError = StateError('backend unavailable');
+      await client.connect(
+        profile: workspaceProfile('Primary Box', 'primary.local'),
+        secrets: const ConnectionSecrets(password: 'secret-1'),
+      );
+
+      final staleConnectionCatalog = connectionModelCatalog(
+        connectionId: 'conn_primary',
+        fetchedAt: DateTime.utc(2026, 3, 22, 8),
+        model: 'gpt-cached-connection',
+        displayName: 'GPT Cached Connection',
+        description: 'Connection-scoped cached catalog.',
+      );
+      final staleLastKnownCatalog = connectionModelCatalog(
+        connectionId: 'conn_primary',
+        fetchedAt: DateTime.utc(2026, 3, 22, 7),
+        model: 'gpt-cached-last-known',
+        displayName: 'GPT Cached Last Known',
+        description: 'Last-known cached catalog.',
+      );
+      final modelCatalogStore = MemoryConnectionModelCatalogStore(
+        initialLastKnownCatalog: staleLastKnownCatalog,
+      );
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      final settingsOverlayDelegate =
+          DeferredConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await controller.saveConnectionModelCatalog(staleConnectionCatalog);
+      final laneBinding = controller.selectedLaneBinding!;
+
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Connection settings'));
+      await tester.pump();
+
+      final refreshCallback =
+          settingsOverlayDelegate.launchedRefreshCallbacks.single;
+      await expectLater(
+        refreshCallback!(
+          ConnectionSettingsDraft.fromConnection(
+            profile: settingsOverlayDelegate.launchedSettings.single.$1,
+            secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => '$error',
+            'message',
+            contains('backend unavailable'),
+          ),
+        ),
+      );
+
+      expect(client.listModelCalls, isEmpty);
+      expect(
+        await controller.loadConnectionModelCatalog('conn_primary'),
+        staleConnectionCatalog,
+      );
+      expect(
+        await controller.loadLastKnownConnectionModelCatalog(),
+        staleLastKnownCatalog,
+      );
+
+      settingsOverlayDelegate.complete(null);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
     'live lane refresh treats model page-cap exhaustion as a failed refresh and preserves cached catalogs',
     (tester) async {
       final clientsById = buildClientsById('conn_primary');
@@ -372,15 +468,23 @@ void main() {
 
       final refreshCallback =
           settingsOverlayDelegate.launchedRefreshCallbacks.single;
-      final refreshedCatalog = await refreshCallback!(
-        ConnectionSettingsDraft.fromConnection(
-          profile: settingsOverlayDelegate.launchedSettings.single.$1,
-          secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+      await expectLater(
+        refreshCallback!(
+          ConnectionSettingsDraft.fromConnection(
+            profile: settingsOverlayDelegate.launchedSettings.single.$1,
+            secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => '$error',
+            'message',
+            contains('exceeded 100 pages'),
+          ),
         ),
       );
 
       expect(client.listModelCalls, hasLength(100));
-      expect(refreshedCatalog, isNull);
       expect(
         await controller.loadConnectionModelCatalog('conn_primary'),
         staleConnectionCatalog,
@@ -390,6 +494,94 @@ void main() {
         staleLastKnownCatalog,
       );
       expect(client.listedModelPages, hasLength(1));
+
+      settingsOverlayDelegate.complete(null);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'live lane refresh throws a typed failure when the live backend disconnects before refresh',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary');
+      final client = clientsById['conn_primary']!;
+      final staleConnectionCatalog = connectionModelCatalog(
+        connectionId: 'conn_primary',
+        fetchedAt: DateTime.utc(2026, 3, 22, 8),
+        model: 'gpt-cached-connection',
+        displayName: 'GPT Cached Connection',
+        description: 'Connection-scoped cached catalog.',
+      );
+      final staleLastKnownCatalog = connectionModelCatalog(
+        connectionId: 'conn_primary',
+        fetchedAt: DateTime.utc(2026, 3, 22, 7),
+        model: 'gpt-cached-last-known',
+        displayName: 'GPT Cached Last Known',
+        description: 'Last-known cached catalog.',
+      );
+      final modelCatalogStore = MemoryConnectionModelCatalogStore(
+        initialLastKnownCatalog: staleLastKnownCatalog,
+      );
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        modelCatalogStore: modelCatalogStore,
+      );
+      final settingsOverlayDelegate =
+          DeferredConnectionSettingsOverlayDelegate();
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await client.connect(
+        profile: workspaceProfile('Primary Box', 'primary.local'),
+        secrets: const ConnectionSecrets(password: 'secret-1'),
+      );
+      await controller.initialize();
+      await controller.saveConnectionModelCatalog(staleConnectionCatalog);
+      final laneBinding = controller.selectedLaneBinding!;
+
+      await tester.pumpWidget(
+        buildLiveLaneApp(
+          controller,
+          laneBinding,
+          settingsOverlayDelegate: settingsOverlayDelegate,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Connection settings'));
+      await tester.pump();
+
+      await client.disconnect();
+
+      final refreshCallback =
+          settingsOverlayDelegate.launchedRefreshCallbacks.single;
+      await expectLater(
+        refreshCallback!(
+          ConnectionSettingsDraft.fromConnection(
+            profile: settingsOverlayDelegate.launchedSettings.single.$1,
+            secrets: settingsOverlayDelegate.launchedSettings.single.$2,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => '$error',
+            'message',
+            contains('no longer available for model refresh'),
+          ),
+        ),
+      );
+
+      expect(client.listModelCalls, isEmpty);
+      expect(
+        await controller.loadConnectionModelCatalog('conn_primary'),
+        staleConnectionCatalog,
+      );
+      expect(
+        await controller.loadLastKnownConnectionModelCatalog(),
+        staleLastKnownCatalog,
+      );
 
       settingsOverlayDelegate.complete(null);
       await tester.pumpAndSettle();
