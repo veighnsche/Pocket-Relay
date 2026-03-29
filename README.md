@@ -204,7 +204,7 @@ POCKET_ALLOW_PROTECTED_BRANCH_COMMIT=1 git commit ...
 
 GitHub-side protection is still required for real remote enforcement. The
 recommended baseline for this repo is documented in
-[`docs/081_repository_protection_baseline.md`](/Users/vince/Projects/Pocket-Relay/docs/081_repository_protection_baseline.md).
+[`docs/081_repository_protection_baseline.md`](docs/081_repository_protection_baseline.md).
 
 ## Project Layout
 
