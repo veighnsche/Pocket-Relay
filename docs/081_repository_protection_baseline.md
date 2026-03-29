@@ -27,13 +27,19 @@ Configure a branch protection rule or ruleset for:
 Recommended required settings:
 
 - require a pull request before merging
-- require at least 1 approval
-- dismiss stale approvals when new commits are pushed
 - require conversation resolution before merge
 - require branches to be up to date before merging
-- require the status check `Repo Guardrails / validate`
 - disallow force pushes
 - disallow branch deletion
+
+Recommended once this workflow is merged to the default branch and reporting:
+
+- require the status check `Repo Guardrails / validate`
+
+Optional only when the repo actually has an independent reviewer available:
+
+- require at least 1 approval
+- dismiss stale approvals when new commits are pushed
 
 Recommended bypass policy:
 
