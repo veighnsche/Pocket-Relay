@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
@@ -233,7 +234,12 @@ class _ConnectionWorkspaceSavedSystemsContentState
       if (!mounted) {
         return;
       }
-      _showTransientMessage('$error');
+      final detail = PocketErrorDetailFormatter.normalize(error);
+      _showTransientMessage(
+        detail == null || detail.isEmpty
+            ? 'Could not delete system.'
+            : 'Could not delete system. $detail',
+      );
     } finally {
       if (mounted) {
         setState(() {

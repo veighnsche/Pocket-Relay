@@ -85,4 +85,43 @@ void main() {
     expect(find.byKey(const ValueKey('add_system')), findsOneWidget);
     expect(find.text('Systems'), findsWidgets);
   });
+
+  testWidgets(
+    'system deletion failures show a friendly message on the systems page',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final controller = buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      final systemId = controller.state.systemCatalog.orderedSystemIds.first;
+      await tester.pumpWidget(buildShell(controller));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('workspace_page_view')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('workspace_page_view')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ValueKey<String>('delete_system_$systemId')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Could not delete system. Cannot delete a system that is still used by a workspace.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Bad state:'), findsNothing);
+    },
+  );
 }
