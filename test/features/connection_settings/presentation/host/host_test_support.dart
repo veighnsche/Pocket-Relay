@@ -37,6 +37,7 @@ Widget buildMaterialSettingsApp({
       body: buildSettingsHost(
         onSubmit: onSubmit,
         platformBehavior: platformBehavior,
+        surfaceMode: surfaceMode,
         initialRemoteRuntime: initialRemoteRuntime,
         availableModelCatalog: availableModelCatalog,
         availableModelCatalogSource: availableModelCatalogSource,
@@ -64,6 +65,8 @@ Widget buildSettingsHost({
   required ValueChanged<ConnectionSettingsSubmitPayload> onSubmit,
   required ConnectionSettingsHostBuilder builder,
   PocketPlatformBehavior platformBehavior = mobileSettingsBehavior,
+  ConnectionSettingsSurfaceMode surfaceMode =
+      ConnectionSettingsSurfaceMode.workspace,
   ConnectionRemoteRuntimeState? initialRemoteRuntime,
   ConnectionModelCatalog? availableModelCatalog,
   ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
@@ -78,6 +81,7 @@ Widget buildSettingsHost({
   return ConnectionSettingsHost(
     initialProfile: initialProfile ?? configuredConnectionProfile(),
     initialSecrets: const ConnectionSecrets(password: 'secret'),
+    isSystemSettings: surfaceMode == ConnectionSettingsSurfaceMode.system,
     initialRemoteRuntime: initialRemoteRuntime,
     availableModelCatalog: availableModelCatalog,
     availableModelCatalogSource: availableModelCatalogSource,

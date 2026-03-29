@@ -40,6 +40,7 @@ class ConnectionSettingsHost extends StatefulWidget {
     super.key,
     required this.initialProfile,
     required this.initialSecrets,
+    this.isSystemSettings = false,
     this.initialRemoteRuntime,
     this.availableModelCatalog,
     this.availableModelCatalogSource,
@@ -55,6 +56,7 @@ class ConnectionSettingsHost extends StatefulWidget {
 
   final ConnectionProfile initialProfile;
   final ConnectionSecrets initialSecrets;
+  final bool isSystemSettings;
   final ConnectionRemoteRuntimeState? initialRemoteRuntime;
   final ConnectionModelCatalog? availableModelCatalog;
   final ConnectionSettingsModelCatalogSource? availableModelCatalogSource;

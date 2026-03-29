@@ -5,7 +5,6 @@ import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';
-import 'package:pocket_relay/src/features/connection_settings/presentation/connection_sheet.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_sheet_surface.dart';
 
 import 'host_test_support.dart';
@@ -223,6 +222,37 @@ void main() {
     expect(payload!.profile.port, 22);
     expect(payload!.profile.hostFingerprint, 'aa:bb:cc:dd');
   });
+
+  testWidgets(
+    'system settings can submit when hidden workspace fields start empty',
+    (tester) async {
+      ConnectionSettingsSubmitPayload? payload;
+
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (nextPayload) {
+            payload = nextPayload;
+          },
+          initialProfile: configuredConnectionProfile().copyWith(
+            workspaceDir: '',
+            codexPath: '',
+          ),
+          surfaceMode: ConnectionSettingsSurfaceMode.system,
+        ),
+      );
+
+      await tester.enterText(materialTextField('Username'), 'vincent');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('connection_settings_save_top')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(payload, isNotNull);
+      expect(payload!.profile.username, 'vincent');
+      expect(payload!.profile.workspaceDir, isEmpty);
+      expect(payload!.profile.codexPath, isEmpty);
+    },
+  );
 
   testWidgets('workspace settings can reuse a saved system template', (
     tester,

@@ -273,6 +273,7 @@ class _ConnectionWorkspaceSavedSystemsContentState
           return ConnectionSettingsHost(
             initialProfile: initialProfile,
             initialSecrets: initialSecrets,
+            isSystemSettings: true,
             platformBehavior: widget.platformBehavior,
             onCancel: () => Navigator.of(dialogContext).pop(),
             onSubmit: (payload) => Navigator.of(dialogContext).pop(payload),
@@ -304,6 +305,7 @@ class _ConnectionWorkspaceSavedSystemsContentState
         return ConnectionSettingsHost(
           initialProfile: initialProfile,
           initialSecrets: initialSecrets,
+          isSystemSettings: true,
           platformBehavior: widget.platformBehavior,
           onCancel: () => Navigator.of(sheetContext).pop(),
           onSubmit: (payload) => Navigator.of(sheetContext).pop(payload),
