@@ -8,6 +8,7 @@ ConnectionSettingsContract _buildConnectionSettingsHostContract(
     initialProfile: state.widget.initialProfile,
     initialSecrets: state.widget.initialSecrets,
     formState: formState ?? state._formState,
+    isSystemSettings: state.widget.isSystemSettings,
     remoteRuntime: state._remoteRuntime,
     availableModelCatalog: state._availableModelCatalog,
     availableModelCatalogSource: state._availableModelCatalogSource,

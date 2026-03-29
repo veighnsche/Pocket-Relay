@@ -32,6 +32,7 @@ class _ConnectionSettingsPresentationState {
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
+    bool isSystemSettings = false,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
     List<ConnectionSettingsSystemTemplate> availableSystemTemplates =
@@ -49,6 +50,7 @@ class _ConnectionSettingsPresentationState {
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       draft: draft,
+      isSystemSettings: isSystemSettings,
     );
     final shouldShowValidationErrors =
         formState.showValidationErrors && hasChanges;
@@ -58,8 +60,10 @@ class _ConnectionSettingsPresentationState {
     final hasUsernameError = isRemote && draft.username.trim().isEmpty;
     final hasHostFingerprintError =
         isRemote && draft.hostFingerprint.trim().isEmpty;
-    final hasWorkspaceDirError = draft.workspaceDir.trim().isEmpty;
-    final hasCodexPathError = draft.codexPath.trim().isEmpty;
+    final hasWorkspaceDirError =
+        !isSystemSettings && draft.workspaceDir.trim().isEmpty;
+    final hasCodexPathError =
+        !isSystemSettings && draft.codexPath.trim().isEmpty;
     final hasPasswordError =
         isRemote &&
         draft.authMode == AuthMode.password &&
@@ -91,12 +95,12 @@ class _ConnectionSettingsPresentationState {
     final workspaceDirError = _requiredError(
       value: draft.workspaceDir,
       message: 'Workspace directory is required',
-      show: shouldShowValidationErrors,
+      show: shouldShowValidationErrors && !isSystemSettings,
     );
     final codexPathError = _requiredError(
       value: draft.codexPath,
       message: 'Codex launch command is required',
-      show: shouldShowValidationErrors,
+      show: shouldShowValidationErrors && !isSystemSettings,
     );
     final passwordError = shouldShowValidationErrors && hasPasswordError
         ? 'Password is required'
@@ -189,7 +193,19 @@ bool _hasChanges({
   required ConnectionProfile initialProfile,
   required ConnectionSecrets initialSecrets,
   required ConnectionSettingsDraft draft,
+  bool isSystemSettings = false,
 }) {
+  if (isSystemSettings) {
+    return draft.host.trim() != initialProfile.host ||
+        draft.port.trim() != initialProfile.port.toString() ||
+        draft.username.trim() != initialProfile.username ||
+        draft.hostFingerprint.trim() != initialProfile.hostFingerprint ||
+        draft.password != initialSecrets.password ||
+        draft.privateKeyPem != initialSecrets.privateKeyPem ||
+        draft.privateKeyPassphrase != initialSecrets.privateKeyPassphrase ||
+        draft.authMode != initialProfile.authMode;
+  }
+
   return draft.label.trim() != initialProfile.label ||
       draft.connectionMode != initialProfile.connectionMode ||
       draft.host.trim() != initialProfile.host ||
