@@ -110,10 +110,14 @@ class ConnectionAvailableModel {
   }
 
   factory ConnectionAvailableModel.fromJson(Map<String, dynamic> json) {
+    final supportedReasoningEfforts = _catalogReasoningEffortOptions(
+      json['supportedReasoningEfforts'],
+    );
     final defaultReasoningEffort =
         agentAdapterReasoningEffortFromWireValue(
           _catalogString(json['defaultReasoningEffort']),
         ) ??
+        supportedReasoningEfforts.firstOrNull?.reasoningEffort ??
         AgentAdapterReasoningEffort.medium;
     return ConnectionAvailableModel(
       id: _catalogString(json['id']) ?? '',
@@ -121,9 +125,7 @@ class ConnectionAvailableModel {
       displayName: _catalogString(json['displayName']) ?? '',
       description: json['description'] as String? ?? '',
       hidden: json['hidden'] as bool? ?? false,
-      supportedReasoningEfforts: _catalogReasoningEffortOptions(
-        json['supportedReasoningEfforts'],
-      ),
+      supportedReasoningEfforts: supportedReasoningEfforts,
       defaultReasoningEffort: defaultReasoningEffort,
       inputModalities: _catalogStringList(json['inputModalities']),
       supportsPersonality: json['supportsPersonality'] as bool? ?? false,
