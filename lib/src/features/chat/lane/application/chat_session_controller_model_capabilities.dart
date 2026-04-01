@@ -2,7 +2,7 @@ part of 'chat_session_controller.dart';
 
 extension _ChatSessionControllerModelCapabilities on ChatSessionController {
   Future<void> _refreshModelCatalogAfterConnect() async {
-    if (!appServerClient.isConnected) {
+    if (!agentAdapterClient.isConnected) {
       return;
     }
     if (_didAttemptModelCatalogHydration) {
@@ -91,7 +91,7 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
     String? cursor;
     final models = <CodexAppServerModel>[];
     do {
-      final page = await appServerClient.listModels(
+      final page = await agentAdapterClient.listModels(
         cursor: cursor,
         includeHidden: true,
       );

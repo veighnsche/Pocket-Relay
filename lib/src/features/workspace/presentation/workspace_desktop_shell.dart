@@ -8,7 +8,7 @@ import 'package:pocket_relay/src/core/ui/layout/pocket_radii.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/agent_adapter_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
@@ -34,8 +34,7 @@ class ConnectionWorkspaceDesktopShell extends StatefulWidget {
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository?
-  conversationHistoryRepository;
+  final WorkspaceConversationHistoryRepository? conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override

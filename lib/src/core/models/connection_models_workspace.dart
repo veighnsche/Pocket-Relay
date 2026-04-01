@@ -5,19 +5,31 @@ class WorkspaceProfile {
     required this.label,
     required this.connectionMode,
     required this.workspaceDir,
-    required this.codexPath,
+    AgentAdapterKind agentAdapter = AgentAdapterKind.codex,
+    @Deprecated('Use agentAdapter instead.') HostKind? hostKind,
+    String? agentCommand,
+    @Deprecated('Use agentCommand instead.') String? hostCommand,
+    @Deprecated('Use hostCommand instead.') String? codexPath,
     required this.dangerouslyBypassSandbox,
     required this.ephemeralSession,
     this.systemId,
     this.model = '',
     this.reasoningEffort,
-  });
+  }) : agentAdapter = hostKind ?? agentAdapter,
+       agentCommand =
+           agentCommand ??
+           hostCommand ??
+           codexPath ??
+           switch (hostKind ?? agentAdapter) {
+             AgentAdapterKind.codex => 'codex',
+           };
 
   final String label;
   final ConnectionMode connectionMode;
   final String? systemId;
   final String workspaceDir;
-  final String codexPath;
+  final AgentAdapterKind agentAdapter;
+  final String agentCommand;
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
   final String model;
@@ -29,7 +41,8 @@ class WorkspaceProfile {
       connectionMode: ConnectionMode.remote,
       systemId: null,
       workspaceDir: '',
-      codexPath: 'codex',
+      agentAdapter: AgentAdapterKind.codex,
+      agentCommand: 'codex',
       dangerouslyBypassSandbox: false,
       ephemeralSession: false,
       model: '',
@@ -39,14 +52,20 @@ class WorkspaceProfile {
 
   bool get isRemote => connectionMode == ConnectionMode.remote;
   bool get isLocal => connectionMode == ConnectionMode.local;
+  @Deprecated('Use agentAdapter instead.')
+  HostKind get hostKind => agentAdapter;
+  @Deprecated('Use agentCommand instead.')
+  String get hostCommand => agentCommand;
+  @Deprecated('Use hostCommand instead.')
+  String get codexPath => agentCommand;
 
   bool get isReady => switch (connectionMode) {
     ConnectionMode.remote =>
       (systemId?.trim().isNotEmpty ?? false) &&
           workspaceDir.trim().isNotEmpty &&
-          codexPath.trim().isNotEmpty,
+          agentCommand.trim().isNotEmpty,
     ConnectionMode.local =>
-      workspaceDir.trim().isNotEmpty && codexPath.trim().isNotEmpty,
+      workspaceDir.trim().isNotEmpty && agentCommand.trim().isNotEmpty,
   };
 
   WorkspaceProfile copyWith({
@@ -54,7 +73,11 @@ class WorkspaceProfile {
     ConnectionMode? connectionMode,
     Object? systemId = _workspaceSentinel,
     String? workspaceDir,
-    String? codexPath,
+    AgentAdapterKind? agentAdapter,
+    @Deprecated('Use agentAdapter instead.') HostKind? hostKind,
+    String? agentCommand,
+    @Deprecated('Use agentCommand instead.') String? hostCommand,
+    @Deprecated('Use hostCommand instead.') String? codexPath,
     bool? dangerouslyBypassSandbox,
     bool? ephemeralSession,
     String? model,
@@ -67,7 +90,9 @@ class WorkspaceProfile {
           ? this.systemId
           : systemId as String?,
       workspaceDir: workspaceDir ?? this.workspaceDir,
-      codexPath: codexPath ?? this.codexPath,
+      agentAdapter: agentAdapter ?? hostKind ?? this.agentAdapter,
+      agentCommand:
+          agentCommand ?? hostCommand ?? codexPath ?? this.agentCommand,
       dangerouslyBypassSandbox:
           dangerouslyBypassSandbox ?? this.dangerouslyBypassSandbox,
       ephemeralSession: ephemeralSession ?? this.ephemeralSession,
@@ -92,7 +117,15 @@ class WorkspaceProfile {
           ? null
           : normalizedSystemId,
       workspaceDir: json['workspaceDir'] as String? ?? defaults.workspaceDir,
-      codexPath: json['codexPath'] as String? ?? defaults.codexPath,
+      agentAdapter: _agentAdapterKindFromName(
+        json['agentAdapter'] as String? ?? json['hostKind'] as String?,
+        fallback: defaults.agentAdapter,
+      ),
+      agentCommand:
+          json['agentCommand'] as String? ??
+          json['hostCommand'] as String? ??
+          json['codexPath'] as String? ??
+          defaults.agentCommand,
       dangerouslyBypassSandbox:
           json['dangerouslyBypassSandbox'] as bool? ??
           defaults.dangerouslyBypassSandbox,
@@ -111,7 +144,11 @@ class WorkspaceProfile {
       'connectionMode': connectionMode.name,
       'systemId': systemId,
       'workspaceDir': workspaceDir,
-      'codexPath': codexPath,
+      'agentAdapter': agentAdapter.name,
+      'hostKind': agentAdapter.name,
+      'agentCommand': agentCommand,
+      'hostCommand': agentCommand,
+      'codexPath': agentCommand,
       'dangerouslyBypassSandbox': dangerouslyBypassSandbox,
       'ephemeralSession': ephemeralSession,
       'model': model,
@@ -126,7 +163,8 @@ class WorkspaceProfile {
         other.connectionMode == connectionMode &&
         other.systemId == systemId &&
         other.workspaceDir == workspaceDir &&
-        other.codexPath == codexPath &&
+        other.agentAdapter == agentAdapter &&
+        other.agentCommand == agentCommand &&
         other.dangerouslyBypassSandbox == dangerouslyBypassSandbox &&
         other.ephemeralSession == ephemeralSession &&
         other.model == model &&
@@ -139,7 +177,8 @@ class WorkspaceProfile {
     connectionMode,
     systemId,
     workspaceDir,
-    codexPath,
+    agentAdapter,
+    agentCommand,
     dangerouslyBypassSandbox,
     ephemeralSession,
     model,
@@ -266,7 +305,8 @@ WorkspaceProfile workspaceProfileFromConnectionProfile(
         ? null
         : normalizedSystemId,
     workspaceDir: profile.workspaceDir,
-    codexPath: profile.codexPath,
+    agentAdapter: profile.agentAdapter,
+    agentCommand: profile.agentCommand,
     dangerouslyBypassSandbox: profile.dangerouslyBypassSandbox,
     ephemeralSession: profile.ephemeralSession,
     model: profile.model,
@@ -295,7 +335,8 @@ ConnectionProfile connectionProfileFromWorkspace({
     port: workspace.isRemote ? systemProfile.port : 22,
     username: workspace.isRemote ? systemProfile.username : '',
     workspaceDir: workspace.workspaceDir,
-    codexPath: workspace.codexPath,
+    agentAdapter: workspace.agentAdapter,
+    agentCommand: workspace.agentCommand,
     authMode: workspace.isRemote ? systemProfile.authMode : AuthMode.password,
     hostFingerprint: workspace.isRemote ? systemProfile.hostFingerprint : '',
     dangerouslyBypassSandbox: workspace.dangerouslyBypassSandbox,

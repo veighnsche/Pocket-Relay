@@ -111,8 +111,10 @@ ConnectionSettingsFieldId settingsFieldIdForLabel(String label) {
     'Port' || 'SSH port' => ConnectionSettingsFieldId.port,
     'Username' || 'SSH username' => ConnectionSettingsFieldId.username,
     'Workspace directory' => ConnectionSettingsFieldId.workspaceDir,
+    'Agent command' ||
+    'Host command' ||
     'Codex launch command' ||
-    'Codex command' => ConnectionSettingsFieldId.codexPath,
+    'Codex command' => ConnectionSettingsFieldId.hostCommand,
     'Host fingerprint' => ConnectionSettingsFieldId.hostFingerprint,
     'SSH password' || 'Password' => ConnectionSettingsFieldId.password,
     'Private key PEM' ||

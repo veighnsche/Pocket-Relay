@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -22,7 +23,7 @@ class ChatLaneHeaderProjector {
   String _title(ConnectionProfile profile) {
     final normalizedLabel = profile.label.trim();
     if (normalizedLabel.isEmpty) {
-      return 'Codex';
+      return agentAdapterLabel(profile.agentAdapter);
     }
     return normalizedLabel;
   }
@@ -33,7 +34,7 @@ class ChatLaneHeaderProjector {
     required bool isConfigured,
   }) {
     if (!isConfigured) {
-      return 'Configure Codex';
+      return 'Configure ${agentAdapterLabel(profile.agentAdapter)}';
     }
 
     final segments = <String>[
@@ -41,7 +42,7 @@ class ChatLaneHeaderProjector {
       ..._runtimeDescriptor(metadata),
     ];
     if (segments.isEmpty) {
-      return 'Waiting for Codex session';
+      return 'Waiting for ${agentAdapterLabel(profile.agentAdapter)} session';
     }
     return segments.join(' · ');
   }
@@ -52,7 +53,9 @@ class ChatLaneHeaderProjector {
         final host when host.isNotEmpty => <String>[host],
         _ => const <String>[],
       },
-      ConnectionMode.local => const <String>['local Codex'],
+      ConnectionMode.local => <String>[
+        localConnectionLabelForAgentAdapter(profile.agentAdapter),
+      ],
     };
   }
 

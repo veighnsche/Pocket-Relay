@@ -39,7 +39,7 @@ abstract final class ChatSessionGuardrailErrors {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.chatSessionLocalConfigurationRequired,
       title: 'Local settings required',
-      message: 'Fill in the local Codex settings first.',
+      message: 'Fill in the local agent adapter settings first.',
     );
   }
 
@@ -47,7 +47,7 @@ abstract final class ChatSessionGuardrailErrors {
     return PocketUserFacingError(
       definition: PocketErrorCatalog.chatSessionLocalModeUnsupported,
       title: 'Local mode unavailable',
-      message: 'Local Codex is only available on desktop.',
+      message: 'Local agent adapters are only available on desktop.',
     );
   }
 

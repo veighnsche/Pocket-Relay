@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 
 export 'codex_app_server_models.dart';
 
@@ -9,7 +10,7 @@ import 'codex_app_server_request_api.dart';
 import 'codex_app_server_stdio_transport.dart';
 import 'codex_json_rpc_codec.dart';
 
-class CodexAppServerClient {
+class CodexAppServerClient implements AgentAdapterClient {
   CodexAppServerClient({
     CodexAppServerTransportOpener? transportOpener,
     CodexAppServerProcessLauncher? processLauncher,
@@ -53,11 +54,16 @@ class CodexAppServerClient {
   final CodexAppServerRequestApi _requestApi = const CodexAppServerRequestApi();
   bool _isDisposed = false;
 
+  @override
   Stream<CodexAppServerEvent> get events => _connection.events;
+  @override
   bool get isConnected => _connection.isConnected;
+  @override
   String? get threadId => _connection.threadId;
+  @override
   String? get activeTurnId => _connection.activeTurnId;
 
+  @override
   Future<void> connect({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
@@ -66,6 +72,7 @@ class CodexAppServerClient {
     await _connection.connect(profile: profile, secrets: secrets);
   }
 
+  @override
   Future<CodexAppServerSession> startSession({
     String? cwd,
     String? model,
@@ -82,6 +89,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<CodexAppServerSession> resumeThread({
     required String threadId,
     String? cwd,
@@ -98,6 +106,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<CodexAppServerThreadSummary> readThread({
     required String threadId,
   }) async {
@@ -105,6 +114,7 @@ class CodexAppServerClient {
     return _requestApi.readThread(_connection, threadId: threadId);
   }
 
+  @override
   Future<CodexAppServerThreadHistory> readThreadWithTurns({
     required String threadId,
   }) async {
@@ -112,6 +122,7 @@ class CodexAppServerClient {
     return _requestApi.readThreadWithTurns(_connection, threadId: threadId);
   }
 
+  @override
   Future<CodexAppServerThreadHistory> rollbackThread({
     required String threadId,
     required int numTurns,
@@ -124,6 +135,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<CodexAppServerSession> forkThread({
     required String threadId,
     String? path,
@@ -146,6 +158,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<CodexAppServerThreadListPage> listThreads({
     String? cursor,
     int? limit,
@@ -154,6 +167,7 @@ class CodexAppServerClient {
     return _requestApi.listThreads(_connection, cursor: cursor, limit: limit);
   }
 
+  @override
   Future<CodexAppServerModelListPage> listModels({
     String? cursor,
     int? limit,
@@ -168,6 +182,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<CodexAppServerTurn> sendUserMessage({
     required String threadId,
     String? text,
@@ -186,6 +201,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> answerUserInput({
     required String requestId,
     required Map<String, List<String>> answers,
@@ -198,6 +214,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> respondDynamicToolCall({
     required String requestId,
     required bool success,
@@ -212,6 +229,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> resolveApproval({
     required String requestId,
     required bool approved,
@@ -224,6 +242,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> rejectServerRequest({
     required String requestId,
     required String message,
@@ -239,6 +258,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> respondToElicitation({
     required String requestId,
     required CodexAppServerElicitationAction action,
@@ -255,6 +275,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> abortTurn({String? threadId, String? turnId}) async {
     _ensureNotDisposed();
     await _requestApi.abortTurn(
@@ -264,6 +285,7 @@ class CodexAppServerClient {
     );
   }
 
+  @override
   Future<void> disconnect() async {
     if (_isDisposed) {
       return;
@@ -271,6 +293,7 @@ class CodexAppServerClient {
     await _connection.disconnect();
   }
 
+  @override
   Future<void> dispose() async {
     if (_isDisposed) {
       return;

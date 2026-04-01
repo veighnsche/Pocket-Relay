@@ -11,11 +11,12 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
     profile: initialProfile.copyWith(
       label: presenter._normalizedLabel(draft.label),
       connectionMode: draft.connectionMode,
+      agentAdapter: draft.agentAdapter,
       host: draft.host.trim(),
       port: state.port ?? initialProfile.port,
       username: draft.username.trim(),
       workspaceDir: draft.workspaceDir.trim(),
-      codexPath: draft.codexPath.trim(),
+      agentCommand: draft.agentCommand.trim(),
       model: _selectedModelIdForDraft(draft) ?? '',
       reasoningEffort: codexNormalizedReasoningEffortForModel(
         _selectedModelIdForDraft(draft),

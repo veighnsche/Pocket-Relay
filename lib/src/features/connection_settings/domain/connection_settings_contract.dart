@@ -6,7 +6,7 @@ enum ConnectionSettingsFieldId {
   port,
   username,
   workspaceDir,
-  codexPath,
+  hostCommand,
   model,
   hostFingerprint,
   password,
@@ -300,7 +300,7 @@ class ConnectionSettingsContract {
   const ConnectionSettingsContract({
     required this.title,
     required this.profileSection,
-    required this.codexSection,
+    required this.agentAdapterSection,
     required this.modelSection,
     required this.runModeSection,
     required this.saveAction,
@@ -314,7 +314,7 @@ class ConnectionSettingsContract {
 
   final String title;
   final ConnectionSettingsSectionContract profileSection;
-  final ConnectionSettingsSectionContract codexSection;
+  final ConnectionSettingsSectionContract agentAdapterSection;
   final ConnectionSettingsModelSectionContract modelSection;
   final ConnectionSettingsConnectionModeSectionContract? connectionModeSection;
   final ConnectionSettingsSystemPickerContract? systemPicker;
@@ -324,4 +324,9 @@ class ConnectionSettingsContract {
   final ConnectionSettingsRunModeSectionContract runModeSection;
   final ConnectionSettingsSaveActionContract saveAction;
   final ConnectionRemoteRuntimeState? remoteRuntime;
+
+  @Deprecated('Use agentAdapterSection instead.')
+  ConnectionSettingsSectionContract get hostSection => agentAdapterSection;
+  @Deprecated('Use agentAdapterSection instead.')
+  ConnectionSettingsSectionContract get codexSection => agentAdapterSection;
 }

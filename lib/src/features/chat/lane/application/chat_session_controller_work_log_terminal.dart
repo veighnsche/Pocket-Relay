@@ -29,7 +29,7 @@ Future<ChatWorkLogTerminalContract> _hydrateChatWorkLogTerminal(
   }
 
   try {
-    final thread = await controller.appServerClient.readThreadWithTurns(
+    final thread = await controller.agentAdapterClient.readThreadWithTurns(
       threadId: threadId,
     );
     final historyItem = _findWorkLogHistoryItem(thread, itemId, turnId: turnId);

@@ -32,7 +32,9 @@ void _registerWorkspaceLiveBinding(
   controller._bindingRecoveryRegistrationsByConnectionId[connectionId] = (
     binding: binding,
     listener: listener,
-    appServerEventSubscription: binding.appServerClient.events.listen((event) {
+    appServerEventSubscription: binding.agentAdapterClient.events.listen((
+      event,
+    ) {
       switch (event) {
         case CodexAppServerDisconnectedEvent(:final exitCode):
           if (controller._intentionalTransportDisconnectConnectionIds.remove(

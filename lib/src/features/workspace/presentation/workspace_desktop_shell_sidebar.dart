@@ -505,7 +505,7 @@ extension on _MaterialDesktopSidebar {
   bool _isTransportConnected(String connectionId) {
     return workspaceController
             .bindingForConnectionId(connectionId)
-            ?.appServerClient
+            ?.agentAdapterClient
             .isConnected ==
         true;
   }

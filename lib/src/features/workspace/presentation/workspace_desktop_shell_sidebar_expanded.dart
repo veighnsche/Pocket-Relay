@@ -59,7 +59,8 @@ extension on _MaterialDesktopSidebar {
                   unawaited(onOpenConnection(connectionId));
                 },
                 onClose: row.isLive && !isBusy
-                    ? () => workspaceController.terminateConnection(connectionId)
+                    ? () =>
+                          workspaceController.terminateConnection(connectionId)
                     : null,
               ),
             );

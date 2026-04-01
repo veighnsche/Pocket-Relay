@@ -71,7 +71,7 @@ Future<void> _handleUnsupportedChatSessionHostRequest(
 
   try {
     if (event.method == 'item/tool/call') {
-      await controller.appServerClient.respondDynamicToolCall(
+      await controller.agentAdapterClient.respondDynamicToolCall(
         requestId: event.requestId,
         success: false,
         contentItems: <Map<String, Object?>>[
@@ -81,7 +81,7 @@ Future<void> _handleUnsupportedChatSessionHostRequest(
       return;
     }
 
-    await controller.appServerClient.rejectServerRequest(
+    await controller.agentAdapterClient.rejectServerRequest(
       requestId: event.requestId,
       message: message,
     );

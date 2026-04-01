@@ -21,7 +21,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
           },
           isEnabled: !isLaneBusy,
         ),
-      if (profile.isRemote && widget.laneBinding.appServerClient.isConnected)
+      if (profile.isRemote && widget.laneBinding.agentAdapterClient.isConnected)
         ChatChromeMenuAction(
           label: _isDisconnectingLaneTransport
               ? ConnectionWorkspaceCopy.disconnectProgress
@@ -47,7 +47,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   Future<void> _showConversationHistory() {
     final repository =
         widget.conversationHistoryRepository ??
-        const CodexAppServerConversationHistoryRepository();
+        const AgentAdapterConversationHistoryRepository();
     if (widget.platformPolicy.behavior.isDesktopExperience) {
       return showDialog<void>(
         context: context,
@@ -98,7 +98,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   }
 
   Future<List<CodexWorkspaceConversationSummary>> _loadConversationHistory(
-    CodexWorkspaceConversationHistoryRepository repository,
+    WorkspaceConversationHistoryRepository repository,
   ) async {
     final connection = await _resolveConversationHistoryConnection();
     return repository.loadWorkspaceConversations(

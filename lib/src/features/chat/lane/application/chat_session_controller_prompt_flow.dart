@@ -148,13 +148,13 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
     try {
       if (pendingRequest.requestType ==
           CodexCanonicalRequestType.mcpServerElicitation) {
-        await appServerClient.respondToElicitation(
+        await agentAdapterClient.respondToElicitation(
           requestId: requestId,
           action: CodexAppServerElicitationAction.accept,
           content: _elicitationContentFromAnswers(answers),
         );
       } else {
-        await appServerClient.answerUserInput(
+        await agentAdapterClient.answerUserInput(
           requestId: requestId,
           answers: answers,
         );

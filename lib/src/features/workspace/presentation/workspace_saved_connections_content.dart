@@ -99,7 +99,7 @@ class _ConnectionWorkspaceSavedConnectionsContentState
   bool _isTransportConnected(String connectionId) {
     return widget.workspaceController
             .bindingForConnectionId(connectionId)
-            ?.appServerClient
+            ?.agentAdapterClient
             .isConnected ==
         true;
   }

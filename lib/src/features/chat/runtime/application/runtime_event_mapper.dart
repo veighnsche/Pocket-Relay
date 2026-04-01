@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/codex_runtime_payload_support.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_json_rpc_codec.dart';
@@ -11,9 +12,10 @@ part 'runtime_event_mapper_notification_mapper_request_error.dart';
 part 'runtime_event_mapper_request_mapper.dart';
 part 'runtime_event_mapper_support.dart';
 
-class CodexRuntimeEventMapper {
+class CodexRuntimeEventMapper implements AgentAdapterRuntimeEventMapper {
   final _pendingRequests = <String, _PendingRequestInfo>{};
 
+  @override
   List<CodexRuntimeEvent> mapEvent(CodexAppServerEvent event) {
     final now = DateTime.now();
 

@@ -99,7 +99,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
 
   Future<void> _resumeConversationThread(String threadId) async {
     await _ensureChatSessionAppServerConnected(this);
-    final session = await appServerClient.resumeThread(
+    final session = await agentAdapterClient.resumeThread(
       threadId: threadId,
       model: _selectedModelOverride(),
       reasoningEffort: _profile.reasoningEffort,
@@ -133,7 +133,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
       await _resumeConversationThread(threadId);
       resumedHeaderMetadata = _sessionState.headerMetadata;
       try {
-        final thread = await appServerClient.readThreadWithTurns(
+        final thread = await agentAdapterClient.readThreadWithTurns(
           threadId: threadId,
         );
         restoredState = _restoredChatSessionStateFromHistory(this, thread);
@@ -228,7 +228,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     }
 
     final nextState = await _performHistoryRestoringThreadTransition(
-      operation: () => appServerClient.rollbackThread(
+      operation: () => agentAdapterClient.rollbackThread(
         threadId: targetThreadId,
         numTurns: numTurns,
       ),
@@ -269,11 +269,11 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
 
     final nextState = await _performHistoryRestoringThreadTransition(
       operation: () async {
-        final forkedSession = await appServerClient.forkThread(
+        final forkedSession = await agentAdapterClient.forkThread(
           threadId: targetThreadId,
           persistExtendedHistory: true,
         );
-        return appServerClient.readThreadWithTurns(
+        return agentAdapterClient.readThreadWithTurns(
           threadId: forkedSession.threadId,
         );
       },
@@ -371,7 +371,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
       return null;
     }
 
-    return _normalizedThreadId(appServerClient.threadId);
+    return _normalizedThreadId(agentAdapterClient.threadId);
   }
 
   String? _normalizedThreadId(String? value) {

@@ -16,7 +16,8 @@ typedef CodexRemoteContinuityTransportOpener =
       required void Function(CodexAppServerEvent event) emitEvent,
     });
 
-CodexAppServerTransportOpener buildConnectionScopedCodexAppServerTransportOpener({
+CodexAppServerTransportOpener
+buildConnectionScopedCodexAppServerTransportOpener({
   required String ownerId,
   CodexRemoteAppServerOwnerInspector remoteOwnerInspector =
       const CodexSshRemoteAppServerOwnerInspector(),

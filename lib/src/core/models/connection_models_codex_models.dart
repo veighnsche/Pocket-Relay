@@ -103,8 +103,7 @@ ConnectionModelCatalog codexReferenceModelCatalog({
 }) {
   return ConnectionModelCatalog(
     connectionId: connectionId,
-    fetchedAt:
-        fetchedAt ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    fetchedAt: fetchedAt ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
     models: <ConnectionAvailableModel>[
       for (final model in codexReferenceVisibleModels)
         ConnectionAvailableModel(
@@ -113,15 +112,14 @@ ConnectionModelCatalog codexReferenceModelCatalog({
           displayName: model.label,
           description: model.description,
           hidden: false,
-          supportedReasoningEfforts:
-              model.supportedReasoningEfforts
-                  .map(
-                    (effort) => ConnectionAvailableModelReasoningEffortOption(
-                      reasoningEffort: effort,
-                      description: '',
-                    ),
-                  )
-                  .toList(growable: false),
+          supportedReasoningEfforts: model.supportedReasoningEfforts
+              .map(
+                (effort) => ConnectionAvailableModelReasoningEffortOption(
+                  reasoningEffort: effort,
+                  description: '',
+                ),
+              )
+              .toList(growable: false),
           defaultReasoningEffort: model.defaultReasoningEffort,
           inputModalities: const <String>[],
           supportsPersonality: false,

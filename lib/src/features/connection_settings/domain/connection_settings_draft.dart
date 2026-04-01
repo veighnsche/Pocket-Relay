@@ -5,11 +5,15 @@ class ConnectionSettingsDraft {
   const ConnectionSettingsDraft({
     required this.label,
     required this.connectionMode,
+    AgentAdapterKind agentAdapter = AgentAdapterKind.codex,
+    @Deprecated('Use agentAdapter instead.') HostKind? hostKind,
     required this.host,
     required this.port,
     required this.username,
     required this.workspaceDir,
-    required this.codexPath,
+    String? agentCommand,
+    @Deprecated('Use agentCommand instead.') String? hostCommand,
+    @Deprecated('Use hostCommand instead.') String? codexPath,
     required this.model,
     required this.reasoningEffort,
     required this.hostFingerprint,
@@ -19,7 +23,14 @@ class ConnectionSettingsDraft {
     required this.authMode,
     required this.dangerouslyBypassSandbox,
     required this.ephemeralSession,
-  });
+  }) : agentAdapter = hostKind ?? agentAdapter,
+       agentCommand =
+           agentCommand ??
+           hostCommand ??
+           codexPath ??
+           switch (hostKind ?? agentAdapter) {
+             AgentAdapterKind.codex => 'codex',
+           };
 
   factory ConnectionSettingsDraft.fromConnection({
     required ConnectionProfile profile,
@@ -28,11 +39,12 @@ class ConnectionSettingsDraft {
     return ConnectionSettingsDraft(
       label: profile.label,
       connectionMode: profile.connectionMode,
+      agentAdapter: profile.agentAdapter,
       host: profile.host,
       port: profile.port.toString(),
       username: profile.username,
       workspaceDir: profile.workspaceDir,
-      codexPath: profile.codexPath,
+      agentCommand: profile.agentCommand,
       model: profile.model,
       reasoningEffort: profile.reasoningEffort,
       hostFingerprint: profile.hostFingerprint,
@@ -47,11 +59,12 @@ class ConnectionSettingsDraft {
 
   final String label;
   final ConnectionMode connectionMode;
+  final AgentAdapterKind agentAdapter;
   final String host;
   final String port;
   final String username;
   final String workspaceDir;
-  final String codexPath;
+  final String agentCommand;
   final String model;
   final CodexReasoningEffort? reasoningEffort;
   final String hostFingerprint;
@@ -61,15 +74,25 @@ class ConnectionSettingsDraft {
   final AuthMode authMode;
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
+  @Deprecated('Use agentAdapter instead.')
+  HostKind get hostKind => agentAdapter;
+  @Deprecated('Use agentCommand instead.')
+  String get hostCommand => agentCommand;
+  @Deprecated('Use hostCommand instead.')
+  String get codexPath => agentCommand;
 
   ConnectionSettingsDraft copyWith({
     String? label,
     ConnectionMode? connectionMode,
+    AgentAdapterKind? agentAdapter,
+    @Deprecated('Use agentAdapter instead.') HostKind? hostKind,
     String? host,
     String? port,
     String? username,
     String? workspaceDir,
-    String? codexPath,
+    String? agentCommand,
+    @Deprecated('Use agentCommand instead.') String? hostCommand,
+    @Deprecated('Use hostCommand instead.') String? codexPath,
     String? model,
     Object? reasoningEffort = _draftSentinel,
     String? hostFingerprint,
@@ -83,11 +106,13 @@ class ConnectionSettingsDraft {
     return ConnectionSettingsDraft(
       label: label ?? this.label,
       connectionMode: connectionMode ?? this.connectionMode,
+      agentAdapter: agentAdapter ?? hostKind ?? this.agentAdapter,
       host: host ?? this.host,
       port: port ?? this.port,
       username: username ?? this.username,
       workspaceDir: workspaceDir ?? this.workspaceDir,
-      codexPath: codexPath ?? this.codexPath,
+      agentCommand:
+          agentCommand ?? hostCommand ?? codexPath ?? this.agentCommand,
       model: model ?? this.model,
       reasoningEffort: identical(reasoningEffort, _draftSentinel)
           ? this.reasoningEffort
@@ -110,7 +135,7 @@ class ConnectionSettingsDraft {
       ConnectionSettingsFieldId.port => port,
       ConnectionSettingsFieldId.username => username,
       ConnectionSettingsFieldId.workspaceDir => workspaceDir,
-      ConnectionSettingsFieldId.codexPath => codexPath,
+      ConnectionSettingsFieldId.hostCommand => agentCommand,
       ConnectionSettingsFieldId.model => model,
       ConnectionSettingsFieldId.hostFingerprint => hostFingerprint,
       ConnectionSettingsFieldId.password => password,
@@ -135,7 +160,7 @@ class ConnectionSettingsDraft {
       ConnectionSettingsFieldId.port => copyWith(port: value),
       ConnectionSettingsFieldId.username => copyWith(username: value),
       ConnectionSettingsFieldId.workspaceDir => copyWith(workspaceDir: value),
-      ConnectionSettingsFieldId.codexPath => copyWith(codexPath: value),
+      ConnectionSettingsFieldId.hostCommand => copyWith(agentCommand: value),
       ConnectionSettingsFieldId.model => copyWith(model: value),
       ConnectionSettingsFieldId.hostFingerprint => copyWith(
         hostFingerprint: value,

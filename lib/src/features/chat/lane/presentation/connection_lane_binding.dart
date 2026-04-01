@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_session_controller.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft_host.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_host.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 
 import 'chat_screen_effect.dart';
 import 'chat_screen_effect_mapper.dart';
@@ -14,15 +15,24 @@ class ConnectionLaneBinding {
   ConnectionLaneBinding({
     required this.connectionId,
     required CodexProfileStore profileStore,
-    required this.appServerClient,
+    AgentAdapterClient? agentAdapterClient,
+    @Deprecated('Use agentAdapterClient instead.')
+    AgentAdapterClient? appServerClient,
+    AgentAdapterRuntimeEventMapper? runtimeEventMapper,
     SavedProfile? initialSavedProfile,
     ChatScreenEffectMapper effectMapper = const ChatScreenEffectMapper(),
     bool? supportsLocalConnectionMode,
     bool ownsAppServerClient = false,
-  }) : _ownsAppServerClient = ownsAppServerClient,
+  }) : assert(
+         agentAdapterClient != null || appServerClient != null,
+         'An agent adapter client is required.',
+       ),
+       _ownsAppServerClient = ownsAppServerClient,
+       agentAdapterClient = agentAdapterClient ?? appServerClient!,
        sessionController = ChatSessionController(
          profileStore: profileStore,
-         appServerClient: appServerClient,
+         injectedAgentAdapterClient: agentAdapterClient ?? appServerClient!,
+         runtimeEventMapper: runtimeEventMapper,
          initialSavedProfile: initialSavedProfile,
          supportsLocalConnectionMode: supportsLocalConnectionMode,
        ) {
@@ -32,7 +42,9 @@ class ConnectionLaneBinding {
   }
 
   final String connectionId;
-  final CodexAppServerClient appServerClient;
+  final AgentAdapterClient agentAdapterClient;
+  @Deprecated('Use agentAdapterClient instead.')
+  AgentAdapterClient get appServerClient => agentAdapterClient;
   final ChatSessionController sessionController;
   final ChatComposerDraftHost composerDraftHost = ChatComposerDraftHost();
   final ChatTranscriptFollowHost transcriptFollowHost =
@@ -61,7 +73,7 @@ class ConnectionLaneBinding {
     composerDraftHost.dispose();
     unawaited(_screenEffectsController.close());
     if (_ownsAppServerClient) {
-      unawaited(appServerClient.dispose());
+      unawaited(agentAdapterClient.dispose());
     }
   }
 }

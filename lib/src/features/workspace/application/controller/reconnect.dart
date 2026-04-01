@@ -314,11 +314,11 @@ Future<void> _reconnectWorkspaceConnection(
 }
 
 Future<void> _connectWorkspaceBindingTransport(ConnectionLaneBinding binding) {
-  if (binding.appServerClient.isConnected) {
+  if (binding.agentAdapterClient.isConnected) {
     return Future<void>.value();
   }
 
-  return binding.appServerClient.connect(
+  return binding.agentAdapterClient.connect(
     profile: binding.sessionController.profile,
     secrets: binding.sessionController.secrets,
   );

@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
@@ -7,14 +8,14 @@ import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
 import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_connection_scoped_transport.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/agent_adapter_conversation_history_repository.dart';
 
 class PocketRelayAppDependencies {
   const PocketRelayAppDependencies({
@@ -22,7 +23,8 @@ class PocketRelayAppDependencies {
     this.modelCatalogStore,
     this.conversationHistoryRepository,
     this.recoveryStore,
-    this.appServerClient,
+    this.agentAdapterClient,
+    @Deprecated('Use agentAdapterClient instead.') this.appServerClient,
     this.remoteAppServerHostProbe,
     this.remoteAppServerOwnerInspector,
     this.backgroundGraceController,
@@ -35,10 +37,11 @@ class PocketRelayAppDependencies {
 
   final CodexConnectionRepository? connectionRepository;
   final ConnectionModelCatalogStore? modelCatalogStore;
-  final CodexWorkspaceConversationHistoryRepository?
-  conversationHistoryRepository;
+  final WorkspaceConversationHistoryRepository? conversationHistoryRepository;
   final ConnectionWorkspaceRecoveryStore? recoveryStore;
-  final CodexAppServerClient? appServerClient;
+  final AgentAdapterClient? agentAdapterClient;
+  @Deprecated('Use agentAdapterClient instead.')
+  final AgentAdapterClient? appServerClient;
   final CodexRemoteAppServerHostProbe? remoteAppServerHostProbe;
   final CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector;
   final BackgroundGraceController? backgroundGraceController;
@@ -77,9 +80,11 @@ class PocketRelayAppDependencies {
             required String connectionId,
             required SavedConnection connection,
           }) {
-            final injectedAppServerClient = appServerClient;
+            final injectedAgentAdapterClient =
+                agentAdapterClient ?? appServerClient;
             final usingInjectedClient =
-                !usedInjectedAppServerClient && injectedAppServerClient != null;
+                !usedInjectedAppServerClient &&
+                injectedAgentAdapterClient != null;
             if (usingInjectedClient) {
               usedInjectedAppServerClient = true;
             }
@@ -90,15 +95,16 @@ class PocketRelayAppDependencies {
                 connectionId: connectionId,
                 connectionRepository: resolvedConnectionRepository,
               ),
-              appServerClient: usingInjectedClient
-                  ? injectedAppServerClient
-                  : CodexAppServerClient(
-                      transportOpener:
-                          buildConnectionScopedCodexAppServerTransportOpener(
-                            ownerId: connectionId,
-                            remoteOwnerInspector: resolvedRemoteOwnerInspector,
-                          ),
+              agentAdapterClient: usingInjectedClient
+                  ? injectedAgentAdapterClient
+                  : createDefaultAgentAdapterClient(
+                      profile: connection.profile,
+                      ownerId: connectionId,
+                      remoteOwnerInspector: resolvedRemoteOwnerInspector,
                     ),
+              runtimeEventMapper: createAgentAdapterRuntimeEventMapper(
+                connection.profile.agentAdapter,
+              ),
               initialSavedProfile: SavedProfile(
                 profile: connection.profile,
                 secrets: connection.secrets,

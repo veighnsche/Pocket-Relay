@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_templates.dart';
@@ -8,7 +9,7 @@ import 'package:pocket_relay/src/features/connection_settings/domain/connection_
 part 'connection_settings_presenter_state.dart';
 part 'presenter/helper_text.dart';
 part 'presenter/section_authentication.dart';
-part 'presenter/section_codex.dart';
+part 'presenter/section_host.dart';
 part 'presenter/section_model.dart';
 part 'presenter/section_profile.dart';
 part 'presenter/section_system.dart';
@@ -50,6 +51,9 @@ class ConnectionSettingsPresenter {
       systemTestFailure: systemTestFailure,
       supportsSystemTesting: supportsSystemTesting,
     );
+    final adapterLabel = agentAdapterLabel(
+      presentationState.draft.agentAdapter,
+    );
 
     return ConnectionSettingsContract(
       title: 'Workspace',
@@ -65,7 +69,7 @@ class ConnectionSettingsPresenter {
       ),
       authenticationSection: _buildAuthenticationSection(presentationState),
       systemTrust: _buildSystemTrust(presentationState),
-      codexSection: _buildCodexSection(presentationState),
+      agentAdapterSection: _buildHostSection(presentationState),
       modelSection: _buildModelSection(presentationState),
       runModeSection: ConnectionSettingsRunModeSectionContract(
         title: 'Run mode',
@@ -74,13 +78,14 @@ class ConnectionSettingsPresenter {
             id: ConnectionSettingsToggleId.dangerouslyBypassSandbox,
             title: 'Dangerous full access',
             subtitle:
-                'Turns off the safer auto sandbox and gives Codex direct unsandboxed execution for this workspace.',
+                'Turns off the safer auto sandbox and gives $adapterLabel direct unsandboxed execution for this workspace.',
             value: presentationState.draft.dangerouslyBypassSandbox,
           ),
           ConnectionSettingsToggleContract(
             id: ConnectionSettingsToggleId.ephemeralSession,
             title: 'Ephemeral workspace',
-            subtitle: 'Do not keep Codex session history between prompts.',
+            subtitle:
+                'Do not keep $adapterLabel session history between prompts.',
             value: presentationState.draft.ephemeralSession,
           ),
         ],

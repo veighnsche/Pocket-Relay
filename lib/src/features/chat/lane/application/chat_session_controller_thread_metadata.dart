@@ -11,7 +11,7 @@ Future<void> _hydrateChatSessionThreadMetadataIfNeeded(
 
   controller._threadMetadataHydrationAttempts.add(threadId);
   try {
-    final thread = await controller.appServerClient.readThread(
+    final thread = await controller.agentAdapterClient.readThread(
       threadId: threadId,
     );
     if (controller._isDisposed || !controller._hasThreadMetadata(thread)) {

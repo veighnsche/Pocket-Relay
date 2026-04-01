@@ -457,7 +457,7 @@ void main() {
         find.byKey(const ValueKey<String>('connection_settings_system_picker')),
         findsOneWidget,
       );
-      expect(find.text('Host'), findsNothing);
+      expect(find.text('Agent adapter'), findsOneWidget);
 
       await tester.ensureVisible(connectionModePicker);
       await tester.pumpAndSettle();
@@ -473,6 +473,7 @@ void main() {
         find.byKey(const ValueKey<String>('connection_settings_system_picker')),
         findsNothing,
       );
+      expect(find.text('Agent adapter'), findsOneWidget);
       expect(find.text('Workspace directory'), findsOneWidget);
     },
   );

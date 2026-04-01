@@ -493,14 +493,14 @@ abstract final class PocketErrorCatalog {
     code: 'PR-CHAT-1505',
     domain: PocketErrorDomain.chatSession,
     meaning:
-        'Sending was blocked because the local Codex profile is incomplete.',
+        'Sending was blocked because the selected local agent-adapter profile is incomplete.',
   );
   static const PocketErrorDefinition
   chatSessionLocalModeUnsupported = PocketErrorDefinition(
     code: 'PR-CHAT-1506',
     domain: PocketErrorDomain.chatSession,
     meaning:
-        'Sending was blocked because local Codex mode is unavailable on the current platform.',
+        'Sending was blocked because local agent-adapter mode is unavailable on the current platform.',
   );
   static const PocketErrorDefinition
   chatSessionSshPasswordRequired = PocketErrorDefinition(

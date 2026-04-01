@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,7 @@ import 'package:pocket_relay/src/features/chat/lane/application/chat_session_err
 import 'package:pocket_relay/src/features/chat/lane/application/chat_session_guardrail_errors.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/chat_historical_conversation_restorer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/host_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
@@ -19,7 +21,9 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 
 part 'chat_session_controller_events.dart';
@@ -35,38 +39,53 @@ part 'chat_session_controller_work_log_terminal.dart';
 class ChatSessionController extends ChangeNotifier {
   ChatSessionController({
     required this.profileStore,
-    required this.appServerClient,
+    AgentAdapterClient? injectedAgentAdapterClient,
+    @Deprecated('Use agentAdapterClient instead.')
+    AgentAdapterClient? appServerClient,
     SavedProfile? initialSavedProfile,
     TranscriptReducer reducer = const TranscriptReducer(),
-    CodexRuntimeEventMapper? runtimeEventMapper,
+    AgentAdapterRuntimeEventMapper? runtimeEventMapper,
     CodexHistoricalConversationNormalizer historicalConversationNormalizer =
         const CodexHistoricalConversationNormalizer(),
     ChatHistoricalConversationRestorer? historicalConversationRestorer,
     bool? supportsLocalConnectionMode,
-  }) : _sessionReducer = reducer,
-       _runtimeEventMapper = runtimeEventMapper ?? CodexRuntimeEventMapper(),
+  }) : assert(
+         injectedAgentAdapterClient != null || appServerClient != null,
+         'An agent adapter client is required.',
+       ),
+       agentAdapterClient = injectedAgentAdapterClient ?? appServerClient!,
+       _sessionReducer = reducer,
+       _runtimeEventMapper =
+           runtimeEventMapper ??
+           createAgentAdapterRuntimeEventMapper(
+             initialSavedProfile?.profile.agentAdapter ??
+                 ConnectionProfile.defaults().agentAdapter,
+           ),
        _historicalConversationNormalizer = historicalConversationNormalizer,
        _historicalConversationRestorer =
            historicalConversationRestorer ??
            ChatHistoricalConversationRestorer(reducer: reducer),
        _supportsLocalConnectionMode =
-           supportsLocalConnectionMode ?? supportsLocalCodexConnection() {
+           supportsLocalConnectionMode ??
+           supportsLocalAgentAdapterConnection() {
     final initial = initialSavedProfile;
     if (initial != null) {
       _profile = initial.profile;
       _secrets = initial.secrets;
       _isLoading = false;
     }
-    _appServerEventSubscription = appServerClient.events.listen(
+    _appServerEventSubscription = this.agentAdapterClient.events.listen(
       _handleAppServerEvent,
     );
   }
 
   final CodexProfileStore profileStore;
-  final CodexAppServerClient appServerClient;
+  final AgentAdapterClient agentAdapterClient;
+  @Deprecated('Use agentAdapterClient instead.')
+  AgentAdapterClient get appServerClient => agentAdapterClient;
 
   final TranscriptReducer _sessionReducer;
-  final CodexRuntimeEventMapper _runtimeEventMapper;
+  final AgentAdapterRuntimeEventMapper _runtimeEventMapper;
   final CodexHistoricalConversationNormalizer _historicalConversationNormalizer;
   final ChatHistoricalConversationRestorer _historicalConversationRestorer;
   final ChatConversationRecoveryPolicy _conversationRecoveryPolicy =
@@ -228,7 +247,7 @@ class ChatSessionController extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     _appServerEventSubscription?.cancel();
-    unawaited(appServerClient.disconnect());
+    unawaited(agentAdapterClient.disconnect());
     unawaited(_snackBarMessagesController.close());
     super.dispose();
   }

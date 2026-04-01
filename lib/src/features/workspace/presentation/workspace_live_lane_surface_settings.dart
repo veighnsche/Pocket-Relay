@@ -49,7 +49,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         return;
       }
 
-      final onRefreshModelCatalog = laneBinding.appServerClient.isConnected
+      final onRefreshModelCatalog = laneBinding.agentAdapterClient.isConnected
           ? (ConnectionSettingsDraft draft) {
               return _refreshAvailableModelCatalog(
                 workspaceController: workspaceController,
@@ -216,7 +216,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     if (draft.workspaceDir.trim().isEmpty) {
       return null;
     }
-    if (!laneBinding.appServerClient.isConnected) {
+    if (!laneBinding.agentAdapterClient.isConnected) {
       throw StateError(
         'Live backend connection is no longer available for model refresh.',
       );
@@ -227,7 +227,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     final seenCursors = <String>{};
     final models = <ConnectionAvailableModel>[];
     while (true) {
-      final page = await laneBinding.appServerClient.listModels(
+      final page = await laneBinding.agentAdapterClient.listModels(
         cursor: cursor,
         limit: _liveModelCatalogPageSize,
         includeHidden: true,

@@ -149,9 +149,12 @@ extension on ChatSessionController {
   }
 
   String _sessionLabel() {
+    final adapterLabel = agentAdapterLabel(_profile.agentAdapter);
     return switch (_profile.connectionMode) {
-      ConnectionMode.remote => 'remote Codex',
-      ConnectionMode.local => 'local Codex',
+      ConnectionMode.remote => 'remote $adapterLabel',
+      ConnectionMode.local => localConnectionLabelForAgentAdapter(
+        _profile.agentAdapter,
+      ),
     };
   }
 }

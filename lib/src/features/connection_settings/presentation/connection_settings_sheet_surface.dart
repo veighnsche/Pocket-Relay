@@ -331,9 +331,11 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
         _buildSectionDivider(),
         _buildSection(
           context,
-          key: const ValueKey<String>('connection_settings_section_codex'),
-          title: 'Codex',
-          child: _buildCodexSection(context, contract),
+          key: const ValueKey<String>(
+            'connection_settings_section_agent_adapter',
+          ),
+          title: contract.agentAdapterSection.title,
+          child: _buildHostSection(context, contract),
         ),
         _buildSectionDivider(),
         _buildSection(
@@ -409,7 +411,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     final routeSection = contract.connectionModeSection;
     final workspaceFields = <ConnectionSettingsTextFieldContract>[
       ...contract.profileSection.fields,
-      for (final field in contract.codexSection.fields)
+      for (final field in contract.agentAdapterSection.fields)
         if (field.id == ConnectionSettingsFieldId.workspaceDir) field,
     ];
     return Column(
@@ -487,20 +489,20 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
-  Widget _buildCodexSection(
+  Widget _buildHostSection(
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
-    final codexFields = <ConnectionSettingsTextFieldContract>[
-      for (final field in contract.codexSection.fields)
+    final hostFields = <ConnectionSettingsTextFieldContract>[
+      for (final field in contract.agentAdapterSection.fields)
         if (field.id != ConnectionSettingsFieldId.workspaceDir) field,
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (codexFields.isNotEmpty) _buildFieldColumn(context, codexFields),
-        if (codexFields.isNotEmpty) const SizedBox(height: _sectionSpacing),
+        if (hostFields.isNotEmpty) _buildFieldColumn(context, hostFields),
+        if (hostFields.isNotEmpty) const SizedBox(height: _sectionSpacing),
         _buildSubsectionLabel(context, contract.modelSection.title),
         const SizedBox(height: 12),
         _buildModelDefaultsSection(context, contract.modelSection),
@@ -1069,7 +1071,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       ConnectionSettingsFieldId.label,
     );
     final workspaceDir = _fieldValueFor(
-      contract.codexSection.fields,
+      contract.agentAdapterSection.fields,
       ConnectionSettingsFieldId.workspaceDir,
     );
     final host = _fieldValueFor(

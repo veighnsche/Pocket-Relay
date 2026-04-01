@@ -9,13 +9,13 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_men
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_errors.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/agent_adapter_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
@@ -41,8 +41,7 @@ class ConnectionWorkspaceLiveLaneSurface extends StatefulWidget {
   final ConnectionWorkspaceController workspaceController;
   final ConnectionLaneBinding laneBinding;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository?
-  conversationHistoryRepository;
+  final WorkspaceConversationHistoryRepository? conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -58,7 +57,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   bool _isConnectingLaneTransport = false;
   bool _isDisconnectingLaneTransport = false;
   ConnectionSettingsRemoteServerActionId? _activeLaneRemoteServerAction;
-  StreamSubscription<CodexAppServerEvent>? _laneAppServerEventSubscription;
+  StreamSubscription<CodexAppServerEvent>? _laneAgentAdapterEventSubscription;
 
   @override
   void initState() {
@@ -91,22 +90,21 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
   void _attachLaneBindingListeners(ConnectionLaneBinding laneBinding) {
     laneBinding.sessionController.addListener(_handleLaneBindingChange);
-    _laneAppServerEventSubscription = laneBinding.appServerClient.events.listen(
-      (_) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {});
-      },
-    );
+    _laneAgentAdapterEventSubscription = laneBinding.agentAdapterClient.events
+        .listen((_) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {});
+        });
   }
 
   void _detachLaneBindingListeners(ConnectionLaneBinding laneBinding) {
     laneBinding.sessionController.removeListener(_handleLaneBindingChange);
     unawaited(
-      _laneAppServerEventSubscription?.cancel() ?? Future<void>.value(),
+      _laneAgentAdapterEventSubscription?.cancel() ?? Future<void>.value(),
     );
-    _laneAppServerEventSubscription = null;
+    _laneAgentAdapterEventSubscription = null;
   }
 
   void _handleLaneBindingChange() {
@@ -318,7 +316,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
   Future<void> _connectLaneTransport() async {
     if (_isConnectingLaneTransport ||
-        widget.laneBinding.appServerClient.isConnected) {
+        widget.laneBinding.agentAdapterClient.isConnected) {
       return;
     }
 
@@ -327,7 +325,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     final connectionId = laneBinding.connectionId;
     _setConnectingLaneTransport(true);
     try {
-      await laneBinding.appServerClient.connect(
+      await laneBinding.agentAdapterClient.connect(
         profile: laneBinding.sessionController.profile,
         secrets: laneBinding.sessionController.secrets,
       );
@@ -478,7 +476,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
 
   Future<void> _disconnectLaneTransport() async {
     if (_isDisconnectingLaneTransport ||
-        !widget.laneBinding.appServerClient.isConnected) {
+        !widget.laneBinding.agentAdapterClient.isConnected) {
       return;
     }
 
@@ -676,9 +674,10 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     required bool isRestartInProgress,
     required Widget? recoveryNotice,
   }) {
-    final appServerConnected = widget.laneBinding.appServerClient.isConnected;
+    final agentAdapterConnected =
+        widget.laneBinding.agentAdapterClient.isConnected;
     final showSteadyStateStrip =
-        !appServerConnected ||
+        !agentAdapterConnected ||
         reconnectRequirement != null ||
         transportRecoveryPhase != null ||
         liveReattachPhase != null ||
@@ -749,7 +748,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
     if (!profile.isRemote || !profile.isReady) {
       return null;
     }
-    if (widget.laneBinding.appServerClient.isConnected &&
+    if (widget.laneBinding.agentAdapterClient.isConnected &&
         reconnectRequirement == null) {
       return null;
     }

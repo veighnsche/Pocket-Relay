@@ -7,7 +7,7 @@ Future<void> _restoreConversationTranscriptForController(
   await _performHistoryRestoringThreadTransitionForController(
     controller,
     operation: () =>
-        controller.appServerClient.readThreadWithTurns(threadId: threadId),
+        controller.agentAdapterClient.readThreadWithTurns(threadId: threadId),
     userFacingError: ChatSessionErrors.conversationLoadFailed(),
     loadingRestoreState: ChatHistoricalConversationRestoreState(
       threadId: threadId,
@@ -137,7 +137,7 @@ Future<bool> _sendTurnInputWithAppServerForController(
         connectionStatus: CodexRuntimeSessionState.running,
       ),
     );
-    final turn = await controller.appServerClient.sendUserMessage(
+    final turn = await controller.agentAdapterClient.sendUserMessage(
       threadId: threadId,
       text: text,
       input: input,
@@ -161,7 +161,7 @@ Future<bool> _sendTurnInputWithAppServerForController(
           error: error,
           sessionState: controller._sessionState,
           sessionLabel: controller._sessionLabel(),
-          preferredAlternateThreadId: controller.appServerClient.threadId,
+          preferredAlternateThreadId: controller.agentAdapterClient.threadId,
         );
     if (recoveryAssessment.recoveryState != null) {
       controller._setConversationRecovery(recoveryAssessment.recoveryState!);
@@ -199,14 +199,14 @@ Future<String> _ensureChatSessionAppServerThread(
 
   final activeThreadId = controller._activeConversationThreadId();
   final trackedThreadId = controller._normalizedThreadId(
-    controller.appServerClient.threadId,
+    controller.agentAdapterClient.threadId,
   );
   if (activeThreadId != null && trackedThreadId == activeThreadId) {
     controller._suppressTrackedThreadReuse = false;
     return activeThreadId;
   }
 
-  final session = await controller.appServerClient.startSession(
+  final session = await controller.agentAdapterClient.startSession(
     model: controller._selectedModelOverride(),
     reasoningEffort: controller._profile.reasoningEffort,
     resumeThreadId: activeThreadId,
@@ -255,9 +255,9 @@ void _rememberChatSessionHeaderMetadata(
 Future<void> _ensureChatSessionAppServerConnected(
   ChatSessionController controller,
 ) async {
-  final wasConnected = controller.appServerClient.isConnected;
+  final wasConnected = controller.agentAdapterClient.isConnected;
   if (!wasConnected) {
-    await controller.appServerClient.connect(
+    await controller.agentAdapterClient.connect(
       profile: controller._profile,
       secrets: controller._secrets,
     );
@@ -286,7 +286,7 @@ Future<void> _stopChatSessionAppServerTurn(
     if (targetTimeline == null || turnId == null) {
       return;
     }
-    await controller.appServerClient.abortTurn(
+    await controller.agentAdapterClient.abortTurn(
       threadId: targetTimeline.threadId,
       turnId: turnId,
     );
@@ -317,7 +317,7 @@ Future<void> _resolveChatSessionApproval(
   }
 
   try {
-    await controller.appServerClient.resolveApproval(
+    await controller.agentAdapterClient.resolveApproval(
       requestId: requestId,
       approved: approved,
     );

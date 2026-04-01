@@ -24,7 +24,7 @@ Future<void> _disconnectWorkspaceConnection(
       controller._liveBindingsByConnectionId[normalizedConnectionId];
   if (binding == null ||
       binding.sessionController.sessionState.isBusy ||
-      !binding.appServerClient.isConnected) {
+      !binding.agentAdapterClient.isConnected) {
     return;
   }
 
@@ -32,7 +32,7 @@ Future<void> _disconnectWorkspaceConnection(
     normalizedConnectionId,
   );
   try {
-    await binding.appServerClient.disconnect();
+    await binding.agentAdapterClient.disconnect();
   } catch (_) {
     controller._intentionalTransportDisconnectConnectionIds.remove(
       normalizedConnectionId,
@@ -42,7 +42,7 @@ Future<void> _disconnectWorkspaceConnection(
     controller._intentionalTransportDisconnectConnectionIds.remove(
       normalizedConnectionId,
     );
-    if (!binding.appServerClient.isConnected) {
+    if (!binding.agentAdapterClient.isConnected) {
       controller._clearTransportReconnectRequired(normalizedConnectionId);
       controller._clearLiveReattachPhase(normalizedConnectionId);
     }

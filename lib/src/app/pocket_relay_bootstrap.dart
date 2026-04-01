@@ -43,8 +43,8 @@ class _PocketRelayBootstrapState extends State<PocketRelayBootstrap> {
     final workspaceDependenciesChanged =
         oldWidget.dependencies.connectionRepository !=
             widget.dependencies.connectionRepository ||
-        oldWidget.dependencies.appServerClient !=
-            widget.dependencies.appServerClient ||
+        oldWidget.dependencies.agentAdapterClient !=
+            widget.dependencies.agentAdapterClient ||
         oldWidget.dependencies.platformPolicy !=
             widget.dependencies.platformPolicy;
     if (!workspaceDependenciesChanged) {

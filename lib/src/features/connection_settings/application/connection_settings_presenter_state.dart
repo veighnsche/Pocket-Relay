@@ -23,7 +23,7 @@ class _ConnectionSettingsPresentationState {
     required this.usernameError,
     required this.hostFingerprintError,
     required this.workspaceDirError,
-    required this.codexPathError,
+    required this.hostCommandError,
     required this.passwordError,
     required this.privateKeyError,
   });
@@ -62,8 +62,8 @@ class _ConnectionSettingsPresentationState {
         isRemote && draft.hostFingerprint.trim().isEmpty;
     final hasWorkspaceDirError =
         !isSystemSettings && draft.workspaceDir.trim().isEmpty;
-    final hasCodexPathError =
-        !isSystemSettings && draft.codexPath.trim().isEmpty;
+    final hasHostCommandError =
+        !isSystemSettings && draft.agentCommand.trim().isEmpty;
     final hasPasswordError =
         isRemote &&
         draft.authMode == AuthMode.password &&
@@ -97,9 +97,9 @@ class _ConnectionSettingsPresentationState {
       message: 'Workspace directory is required',
       show: shouldShowValidationErrors && !isSystemSettings,
     );
-    final codexPathError = _requiredError(
-      value: draft.codexPath,
-      message: 'Codex launch command is required',
+    final hostCommandError = _requiredError(
+      value: draft.agentCommand,
+      message: 'Agent command is required',
       show: shouldShowValidationErrors && !isSystemSettings,
     );
     final passwordError = shouldShowValidationErrors && hasPasswordError
@@ -119,7 +119,7 @@ class _ConnectionSettingsPresentationState {
         hasUsernameError ||
         hasHostFingerprintError ||
         hasWorkspaceDirError ||
-        hasCodexPathError ||
+        hasHostCommandError ||
         hasPasswordError ||
         hasPrivateKeyError;
     final canTestSystem =
@@ -157,7 +157,7 @@ class _ConnectionSettingsPresentationState {
       usernameError: usernameError,
       hostFingerprintError: hostFingerprintError,
       workspaceDirError: workspaceDirError,
-      codexPathError: codexPathError,
+      hostCommandError: hostCommandError,
       passwordError: passwordError,
       privateKeyError: privateKeyError,
     );
@@ -184,7 +184,7 @@ class _ConnectionSettingsPresentationState {
   final String? usernameError;
   final String? hostFingerprintError;
   final String? workspaceDirError;
-  final String? codexPathError;
+  final String? hostCommandError;
   final String? passwordError;
   final String? privateKeyError;
 }
@@ -208,11 +208,12 @@ bool _hasChanges({
 
   return draft.label.trim() != initialProfile.label ||
       draft.connectionMode != initialProfile.connectionMode ||
+      draft.agentAdapter != initialProfile.agentAdapter ||
       draft.host.trim() != initialProfile.host ||
       draft.port.trim() != initialProfile.port.toString() ||
       draft.username.trim() != initialProfile.username ||
       draft.workspaceDir.trim() != initialProfile.workspaceDir ||
-      draft.codexPath.trim() != initialProfile.codexPath ||
+      draft.agentCommand.trim() != initialProfile.agentCommand ||
       draft.model.trim() != initialProfile.model ||
       draft.reasoningEffort != initialProfile.reasoningEffort ||
       draft.hostFingerprint.trim() != initialProfile.hostFingerprint ||

@@ -30,7 +30,8 @@ extension on _MaterialDesktopSidebar {
                 buttonKey: ValueKey<String>('desktop_connection_$connectionId'),
                 label: _monogramFor(row.connection.profile.label),
                 isSelected: row.isCurrent,
-                showsActivityDot: row.sectionId ==
+                showsActivityDot:
+                    row.sectionId ==
                     ConnectionLifecycleSectionId.needsAttention,
                 onTap: () {
                   if (row.isLive) {

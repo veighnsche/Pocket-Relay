@@ -249,7 +249,7 @@ bool _shouldRefreshConnectionSettingsRemoteRuntimeForField(
     ConnectionSettingsFieldId.port ||
     ConnectionSettingsFieldId.username ||
     ConnectionSettingsFieldId.workspaceDir ||
-    ConnectionSettingsFieldId.codexPath ||
+    ConnectionSettingsFieldId.hostCommand ||
     ConnectionSettingsFieldId.hostFingerprint ||
     ConnectionSettingsFieldId.password ||
     ConnectionSettingsFieldId.privateKeyPem ||

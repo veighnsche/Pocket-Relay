@@ -7,7 +7,11 @@ class ConnectionProfile {
     required this.port,
     required this.username,
     required this.workspaceDir,
-    required this.codexPath,
+    AgentAdapterKind agentAdapter = AgentAdapterKind.codex,
+    @Deprecated('Use agentAdapter instead.') HostKind? hostKind,
+    String? agentCommand,
+    @Deprecated('Use agentCommand instead.') String? hostCommand,
+    @Deprecated('Use hostCommand instead.') String? codexPath,
     required this.authMode,
     required this.hostFingerprint,
     required this.dangerouslyBypassSandbox,
@@ -15,14 +19,22 @@ class ConnectionProfile {
     this.model = '',
     this.reasoningEffort,
     this.connectionMode = ConnectionMode.remote,
-  });
+  }) : agentAdapter = hostKind ?? agentAdapter,
+       agentCommand =
+           agentCommand ??
+           hostCommand ??
+           codexPath ??
+           switch (hostKind ?? agentAdapter) {
+             AgentAdapterKind.codex => 'codex',
+           };
 
   final String label;
   final String host;
   final int port;
   final String username;
   final String workspaceDir;
-  final String codexPath;
+  final AgentAdapterKind agentAdapter;
+  final String agentCommand;
   final AuthMode authMode;
   final String hostFingerprint;
   final bool dangerouslyBypassSandbox;
@@ -38,7 +50,8 @@ class ConnectionProfile {
       port: 22,
       username: '',
       workspaceDir: '',
-      codexPath: 'codex',
+      agentAdapter: AgentAdapterKind.codex,
+      agentCommand: 'codex',
       authMode: AuthMode.password,
       hostFingerprint: '',
       dangerouslyBypassSandbox: false,
@@ -51,6 +64,12 @@ class ConnectionProfile {
 
   bool get isRemote => connectionMode == ConnectionMode.remote;
   bool get isLocal => connectionMode == ConnectionMode.local;
+  @Deprecated('Use agentAdapter instead.')
+  HostKind get hostKind => agentAdapter;
+  @Deprecated('Use agentCommand instead.')
+  String get hostCommand => agentCommand;
+  @Deprecated('Use hostCommand instead.')
+  String get codexPath => agentCommand;
   String? get remoteHostIdentityKey {
     if (!isRemote) {
       return null;
@@ -69,9 +88,9 @@ class ConnectionProfile {
       host.trim().isNotEmpty &&
           username.trim().isNotEmpty &&
           workspaceDir.trim().isNotEmpty &&
-          codexPath.trim().isNotEmpty,
+          agentCommand.trim().isNotEmpty,
     ConnectionMode.local =>
-      workspaceDir.trim().isNotEmpty && codexPath.trim().isNotEmpty,
+      workspaceDir.trim().isNotEmpty && agentCommand.trim().isNotEmpty,
   };
 
   ConnectionProfile copyWith({
@@ -80,7 +99,11 @@ class ConnectionProfile {
     int? port,
     String? username,
     String? workspaceDir,
-    String? codexPath,
+    AgentAdapterKind? agentAdapter,
+    @Deprecated('Use agentAdapter instead.') HostKind? hostKind,
+    String? agentCommand,
+    @Deprecated('Use agentCommand instead.') String? hostCommand,
+    @Deprecated('Use hostCommand instead.') String? codexPath,
     AuthMode? authMode,
     String? hostFingerprint,
     bool? dangerouslyBypassSandbox,
@@ -95,7 +118,9 @@ class ConnectionProfile {
       port: port ?? this.port,
       username: username ?? this.username,
       workspaceDir: workspaceDir ?? this.workspaceDir,
-      codexPath: codexPath ?? this.codexPath,
+      agentAdapter: agentAdapter ?? hostKind ?? this.agentAdapter,
+      agentCommand:
+          agentCommand ?? hostCommand ?? codexPath ?? this.agentCommand,
       authMode: authMode ?? this.authMode,
       hostFingerprint: hostFingerprint ?? this.hostFingerprint,
       dangerouslyBypassSandbox:
@@ -118,7 +143,15 @@ class ConnectionProfile {
       port: (json['port'] as num?)?.toInt() ?? 22,
       username: json['username'] as String? ?? '',
       workspaceDir: json['workspaceDir'] as String? ?? defaults.workspaceDir,
-      codexPath: json['codexPath'] as String? ?? defaults.codexPath,
+      agentAdapter: _agentAdapterKindFromName(
+        json['agentAdapter'] as String? ?? json['hostKind'] as String?,
+        fallback: defaults.agentAdapter,
+      ),
+      agentCommand:
+          json['agentCommand'] as String? ??
+          json['hostCommand'] as String? ??
+          json['codexPath'] as String? ??
+          defaults.agentCommand,
       authMode: _authModeFromName(
         json['authMode'] as String?,
         fallback: defaults.authMode,
@@ -145,7 +178,11 @@ class ConnectionProfile {
       'port': port,
       'username': username,
       'workspaceDir': workspaceDir,
-      'codexPath': codexPath,
+      'agentAdapter': agentAdapter.name,
+      'hostKind': agentAdapter.name,
+      'agentCommand': agentCommand,
+      'hostCommand': agentCommand,
+      'codexPath': agentCommand,
       'authMode': authMode.name,
       'hostFingerprint': hostFingerprint,
       'dangerouslyBypassSandbox': dangerouslyBypassSandbox,
@@ -164,7 +201,8 @@ class ConnectionProfile {
         other.port == port &&
         other.username == username &&
         other.workspaceDir == workspaceDir &&
-        other.codexPath == codexPath &&
+        other.agentAdapter == agentAdapter &&
+        other.agentCommand == agentCommand &&
         other.authMode == authMode &&
         other.hostFingerprint == hostFingerprint &&
         other.dangerouslyBypassSandbox == dangerouslyBypassSandbox &&
@@ -181,7 +219,8 @@ class ConnectionProfile {
     port,
     username,
     workspaceDir,
-    codexPath,
+    agentAdapter,
+    agentCommand,
     authMode,
     hostFingerprint,
     dangerouslyBypassSandbox,

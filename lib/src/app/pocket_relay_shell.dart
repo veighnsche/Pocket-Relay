@@ -3,7 +3,7 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
-import 'package:pocket_relay/src/features/workspace/infrastructure/codex_workspace_conversation_history_repository.dart';
+import 'package:pocket_relay/src/features/workspace/infrastructure/agent_adapter_conversation_history_repository.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_desktop_shell.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_live_lane_surface.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
@@ -19,8 +19,7 @@ class PocketRelayShell extends StatelessWidget {
 
   final ConnectionWorkspaceController workspaceController;
   final PocketPlatformPolicy platformPolicy;
-  final CodexWorkspaceConversationHistoryRepository?
-  conversationHistoryRepository;
+  final WorkspaceConversationHistoryRepository? conversationHistoryRepository;
   final ConnectionSettingsOverlayDelegate settingsOverlayDelegate;
 
   @override
@@ -190,11 +189,7 @@ class _BootstrapSplash extends StatelessWidget {
                   style: titleStyle,
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: bodyStyle,
-                ),
+                Text(message, textAlign: TextAlign.center, style: bodyStyle),
                 if (progressIndicator != null) ...[
                   const SizedBox(height: 26),
                   progressIndicator!,
