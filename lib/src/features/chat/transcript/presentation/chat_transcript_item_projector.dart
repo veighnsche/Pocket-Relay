@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_projector.dart';
@@ -21,48 +21,49 @@ class ChatTranscriptItemProjector {
   final ChatWorkLogItemProjector _workLogItemProjector;
 
   ChatTranscriptItemContract project(
-    CodexUiBlock block, {
+    TranscriptUiBlock block, {
     bool canContinueFromHere = false,
   }) {
     return switch (block) {
-      final CodexUserMessageBlock userBlock => ChatUserMessageItemContract(
+      final TranscriptUserMessageBlock userBlock => ChatUserMessageItemContract(
         block: userBlock,
         canContinueFromHere:
             canContinueFromHere &&
-            userBlock.deliveryState == CodexUserMessageDeliveryState.sent,
+            userBlock.deliveryState == TranscriptUserMessageDeliveryState.sent,
       ),
-      final CodexTextBlock textBlock
-          when textBlock.kind == CodexUiBlockKind.reasoning =>
+      final TranscriptTextBlock textBlock
+          when textBlock.kind == TranscriptUiBlockKind.reasoning =>
         ChatReasoningItemContract(block: textBlock),
-      final CodexTextBlock textBlock => ChatAssistantMessageItemContract(
+      final TranscriptTextBlock textBlock => ChatAssistantMessageItemContract(
         block: textBlock,
       ),
-      final CodexPlanUpdateBlock planUpdateBlock => ChatPlanUpdateItemContract(
-        block: planUpdateBlock,
-      ),
-      final CodexProposedPlanBlock proposedPlanBlock =>
+      final TranscriptPlanUpdateBlock planUpdateBlock =>
+        ChatPlanUpdateItemContract(block: planUpdateBlock),
+      final TranscriptProposedPlanBlock proposedPlanBlock =>
         ChatProposedPlanItemContract(block: proposedPlanBlock),
-      final CodexWorkLogGroupBlock workLogGroupBlock =>
+      final TranscriptWorkLogGroupBlock workLogGroupBlock =>
         _workLogItemProjector.projectTranscriptItem(workLogGroupBlock),
-      final CodexChangedFilesBlock changedFilesBlock =>
+      final TranscriptChangedFilesBlock changedFilesBlock =>
         _changedFilesItemProjector.project(changedFilesBlock),
-      final CodexApprovalRequestBlock approvalBlock =>
+      final TranscriptApprovalRequestBlock approvalBlock =>
         ChatApprovalRequestItemContract(
           request: _requestProjector.projectApprovalBlock(approvalBlock),
         ),
-      final CodexUserInputRequestBlock userInputBlock =>
+      final TranscriptUserInputRequestBlock userInputBlock =>
         ChatUserInputRequestItemContract(
           request: _requestProjector.projectUserInputBlock(userInputBlock),
         ),
-      final CodexSshTranscriptBlock sshBlock => ChatSshItemContract(
+      final TranscriptSshTranscriptBlock sshBlock => ChatSshItemContract(
         block: sshBlock,
       ),
-      final CodexStatusBlock statusBlock => _projectStatusItem(statusBlock),
-      final CodexErrorBlock errorBlock => _projectErrorItem(errorBlock),
-      final CodexUsageBlock usageBlock => ChatUsageItemContract(
+      final TranscriptStatusBlock statusBlock => _projectStatusItem(
+        statusBlock,
+      ),
+      final TranscriptErrorBlock errorBlock => _projectErrorItem(errorBlock),
+      final TranscriptUsageBlock usageBlock => ChatUsageItemContract(
         block: usageBlock,
       ),
-      final CodexTurnBoundaryBlock boundaryBlock =>
+      final TranscriptTurnBoundaryBlock boundaryBlock =>
         ChatTurnBoundaryItemContract(block: boundaryBlock),
     };
   }
@@ -76,31 +77,35 @@ class ChatTranscriptItemProjector {
     };
   }
 
-  ChatTranscriptItemContract _projectStatusItem(CodexStatusBlock block) {
+  ChatTranscriptItemContract _projectStatusItem(TranscriptStatusBlock block) {
     return switch (block.statusKind) {
-      CodexStatusBlockKind.review => ChatReviewStatusItemContract(block: block),
-      CodexStatusBlockKind.compaction => ChatContextCompactedItemContract(
+      TranscriptStatusBlockKind.review => ChatReviewStatusItemContract(
         block: block,
       ),
-      CodexStatusBlockKind.info => ChatSessionInfoItemContract(block: block),
-      CodexStatusBlockKind.warning =>
+      TranscriptStatusBlockKind.compaction => ChatContextCompactedItemContract(
+        block: block,
+      ),
+      TranscriptStatusBlockKind.info => ChatSessionInfoItemContract(
+        block: block,
+      ),
+      TranscriptStatusBlockKind.warning =>
         _isDeprecationNotice(block)
             ? ChatDeprecationNoticeItemContract(block: block)
             : ChatWarningItemContract(block: block),
-      CodexStatusBlockKind.auth => ChatStatusItemContract(block: block),
+      TranscriptStatusBlockKind.auth => ChatStatusItemContract(block: block),
     };
   }
 
-  ChatTranscriptItemContract _projectErrorItem(CodexErrorBlock block) {
+  ChatTranscriptItemContract _projectErrorItem(TranscriptErrorBlock block) {
     if (_isPatchApplyFailure(block)) {
       return ChatPatchApplyFailureItemContract(block: block);
     }
     return ChatErrorItemContract(block: block);
   }
 
-  bool _isDeprecationNotice(CodexStatusBlock block) =>
+  bool _isDeprecationNotice(TranscriptStatusBlock block) =>
       block.title.trim().toLowerCase() == 'deprecation notice';
 
-  bool _isPatchApplyFailure(CodexErrorBlock block) =>
+  bool _isPatchApplyFailure(TranscriptErrorBlock block) =>
       block.title.trim().toLowerCase() == 'patch apply failed';
 }

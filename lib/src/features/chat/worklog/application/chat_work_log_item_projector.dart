@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/domain/chat_work_log_contract.dart';
 
@@ -19,7 +19,7 @@ part 'chat_work_log_item_projector_support_shell.dart';
 class ChatWorkLogItemProjector {
   const ChatWorkLogItemProjector();
 
-  ChatWorkLogGroupItemContract project(CodexWorkLogGroupBlock block) {
+  ChatWorkLogGroupItemContract project(TranscriptWorkLogGroupBlock block) {
     return ChatWorkLogGroupItemContract(
       id: block.id,
       entries: block.entries.map(_projectEntry).toList(growable: false),
@@ -27,7 +27,7 @@ class ChatWorkLogItemProjector {
   }
 
   ChatTranscriptItemContract projectTranscriptItem(
-    CodexWorkLogGroupBlock block,
+    TranscriptWorkLogGroupBlock block,
   ) {
     final projected = project(block);
     if (projected.entries.length != 1) {
@@ -45,7 +45,7 @@ class ChatWorkLogItemProjector {
     };
   }
 
-  ChatWorkLogEntryContract _projectEntry(CodexWorkLogEntry entry) {
+  ChatWorkLogEntryContract _projectEntry(TranscriptWorkLogEntry entry) {
     final normalizedTitle = _normalizeCompactToolLabel(entry.title);
     for (final classifier in _entryClassifiers) {
       final projected = classifier(this, entry, normalizedTitle);
@@ -66,7 +66,7 @@ class ChatWorkLogItemProjector {
   }
 
   ChatCommandWaitWorkLogEntryContract? _projectCommandWait(
-    CodexWorkLogEntry entry, {
+    TranscriptWorkLogEntry entry, {
     required String normalizedTitle,
   }) {
     if (!_isBackgroundTerminalWait(
@@ -97,7 +97,7 @@ class ChatWorkLogItemProjector {
   }
 
   ChatCommandExecutionWorkLogEntryContract? _projectCommandExecution(
-    CodexWorkLogEntry entry, {
+    TranscriptWorkLogEntry entry, {
     required String normalizedTitle,
   }) {
     if (!_looksLikeCommandExecution(normalizedTitle) &&
@@ -125,7 +125,7 @@ class ChatWorkLogItemProjector {
   }
 
   ChatMcpToolCallWorkLogEntryContract? _projectMcpToolCall(
-    CodexWorkLogEntry entry,
+    TranscriptWorkLogEntry entry,
   ) {
     final snapshot = entry.snapshot;
     if (snapshot == null) {
@@ -181,7 +181,7 @@ class ChatWorkLogItemProjector {
   }
 
   ChatWebSearchWorkLogEntryContract? _projectWebSearch(
-    CodexWorkLogEntry entry,
+    TranscriptWorkLogEntry entry,
   ) {
     final snapshot = entry.snapshot;
     final queries = _webSearchQueries(snapshot);
@@ -216,7 +216,7 @@ class ChatWorkLogItemProjector {
 
   ChatFileReadWorkLogEntryContract _projectReadCommand({
     required _ParsedReadCommand readCommand,
-    required CodexWorkLogEntry entry,
+    required TranscriptWorkLogEntry entry,
     required String normalizedTitle,
   }) {
     final fileName = _fileNameForPath(readCommand.path);
@@ -353,7 +353,7 @@ class ChatWorkLogItemProjector {
 
   ChatGitWorkLogEntryContract _projectGitCommand({
     required _ParsedGitCommand gitCommand,
-    required CodexWorkLogEntry entry,
+    required TranscriptWorkLogEntry entry,
     required String normalizedTitle,
   }) {
     final shellFields = _shellTerminalFields(
@@ -380,7 +380,7 @@ class ChatWorkLogItemProjector {
 
   ChatContentSearchWorkLogEntryContract _projectSearchCommand({
     required _ParsedContentSearchCommand searchCommand,
-    required CodexWorkLogEntry entry,
+    required TranscriptWorkLogEntry entry,
     required String normalizedTitle,
   }) {
     final scopeTargets = List<String>.unmodifiable(searchCommand.scopeTargets);

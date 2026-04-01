@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy_support.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 class TranscriptItemSupport {
   const TranscriptItemSupport({
@@ -12,21 +12,22 @@ class TranscriptItemSupport {
   final TranscriptPolicySupport _support;
   static final RegExp _imagePlaceholderPattern = RegExp(r'^\[Image #\d+\]$');
 
-  CodexCanonicalItemType itemTypeFromStreamKind(
-    CodexRuntimeContentStreamKind streamKind,
+  TranscriptCanonicalItemType itemTypeFromStreamKind(
+    TranscriptRuntimeContentStreamKind streamKind,
   ) {
     return switch (streamKind) {
-      CodexRuntimeContentStreamKind.assistantText =>
-        CodexCanonicalItemType.assistantMessage,
-      CodexRuntimeContentStreamKind.reasoningText ||
-      CodexRuntimeContentStreamKind.reasoningSummaryText =>
-        CodexCanonicalItemType.reasoning,
-      CodexRuntimeContentStreamKind.planText => CodexCanonicalItemType.plan,
-      CodexRuntimeContentStreamKind.commandOutput =>
-        CodexCanonicalItemType.commandExecution,
-      CodexRuntimeContentStreamKind.fileChangeOutput =>
-        CodexCanonicalItemType.fileChange,
-      _ => CodexCanonicalItemType.unknown,
+      TranscriptRuntimeContentStreamKind.assistantText =>
+        TranscriptCanonicalItemType.assistantMessage,
+      TranscriptRuntimeContentStreamKind.reasoningText ||
+      TranscriptRuntimeContentStreamKind.reasoningSummaryText =>
+        TranscriptCanonicalItemType.reasoning,
+      TranscriptRuntimeContentStreamKind.planText =>
+        TranscriptCanonicalItemType.plan,
+      TranscriptRuntimeContentStreamKind.commandOutput =>
+        TranscriptCanonicalItemType.commandExecution,
+      TranscriptRuntimeContentStreamKind.fileChangeOutput =>
+        TranscriptCanonicalItemType.fileChange,
+      _ => TranscriptCanonicalItemType.unknown,
     };
   }
 
@@ -107,11 +108,11 @@ class TranscriptItemSupport {
     return draft.hasStructuredDraft ? draft : null;
   }
 
-  String? defaultLifecycleBody(CodexCanonicalItemType itemType) {
+  String? defaultLifecycleBody(TranscriptCanonicalItemType itemType) {
     return switch (itemType) {
-      CodexCanonicalItemType.reviewEntered => 'Codex entered review mode.',
-      CodexCanonicalItemType.reviewExited => 'Codex exited review mode.',
-      CodexCanonicalItemType.contextCompaction =>
+      TranscriptCanonicalItemType.reviewEntered => 'Codex entered review mode.',
+      TranscriptCanonicalItemType.reviewExited => 'Codex exited review mode.',
+      TranscriptCanonicalItemType.contextCompaction =>
         'Codex compacted the current thread context.',
       _ => null,
     };

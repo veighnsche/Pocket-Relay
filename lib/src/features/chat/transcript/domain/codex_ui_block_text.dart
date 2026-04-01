@@ -1,7 +1,7 @@
-part of 'codex_ui_block.dart';
+part of 'transcript_ui_block.dart';
 
-final class CodexTextBlock extends CodexUiBlock {
-  const CodexTextBlock({
+final class TranscriptTextBlock extends TranscriptUiBlock {
+  const TranscriptTextBlock({
     required super.id,
     required super.kind,
     required super.createdAt,
@@ -16,13 +16,13 @@ final class CodexTextBlock extends CodexUiBlock {
   final String? turnId;
   final bool isRunning;
 
-  CodexTextBlock copyWith({
+  TranscriptTextBlock copyWith({
     String? title,
     String? body,
     String? turnId,
     bool? isRunning,
   }) {
-    return CodexTextBlock(
+    return TranscriptTextBlock(
       id: id,
       kind: kind,
       createdAt: createdAt,
@@ -34,22 +34,22 @@ final class CodexTextBlock extends CodexUiBlock {
   }
 }
 
-final class CodexPlanUpdateBlock extends CodexUiBlock {
-  const CodexPlanUpdateBlock({
+final class TranscriptPlanUpdateBlock extends TranscriptUiBlock {
+  const TranscriptPlanUpdateBlock({
     required super.id,
     required super.createdAt,
     this.explanation,
-    this.steps = const <CodexRuntimePlanStep>[],
-  }) : super(kind: CodexUiBlockKind.plan);
+    this.steps = const <TranscriptRuntimePlanStep>[],
+  }) : super(kind: TranscriptUiBlockKind.plan);
 
   final String? explanation;
-  final List<CodexRuntimePlanStep> steps;
+  final List<TranscriptRuntimePlanStep> steps;
 
-  CodexPlanUpdateBlock copyWith({
+  TranscriptPlanUpdateBlock copyWith({
     String? explanation,
-    List<CodexRuntimePlanStep>? steps,
+    List<TranscriptRuntimePlanStep>? steps,
   }) {
-    return CodexPlanUpdateBlock(
+    return TranscriptPlanUpdateBlock(
       id: id,
       createdAt: createdAt,
       explanation: explanation ?? this.explanation,
@@ -58,28 +58,28 @@ final class CodexPlanUpdateBlock extends CodexUiBlock {
   }
 }
 
-final class CodexProposedPlanBlock extends CodexUiBlock {
-  const CodexProposedPlanBlock({
+final class TranscriptProposedPlanBlock extends TranscriptUiBlock {
+  const TranscriptProposedPlanBlock({
     required super.id,
     required super.createdAt,
     required this.title,
     required this.markdown,
     this.turnId,
     this.isStreaming = false,
-  }) : super(kind: CodexUiBlockKind.proposedPlan);
+  }) : super(kind: TranscriptUiBlockKind.proposedPlan);
 
   final String title;
   final String markdown;
   final String? turnId;
   final bool isStreaming;
 
-  CodexProposedPlanBlock copyWith({
+  TranscriptProposedPlanBlock copyWith({
     String? title,
     String? markdown,
     String? turnId,
     bool? isStreaming,
   }) {
-    return CodexProposedPlanBlock(
+    return TranscriptProposedPlanBlock(
       id: id,
       createdAt: createdAt,
       title: title ?? this.title,

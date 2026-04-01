@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 class TranscriptMemoryBudget {
   const TranscriptMemoryBudget();
@@ -11,7 +11,7 @@ class TranscriptMemoryBudget {
   static const int maxUnifiedDiffLines = 1200;
 
   Map<String, dynamic>? retainWorkLogSnapshot(
-    CodexCanonicalItemType itemType,
+    TranscriptCanonicalItemType itemType,
     Map<String, dynamic>? snapshot,
   ) {
     if (snapshot == null || snapshot.isEmpty) {
@@ -19,15 +19,18 @@ class TranscriptMemoryBudget {
     }
 
     final scopedSnapshot = switch (itemType) {
-      CodexCanonicalItemType.commandExecution => _pickKeys(snapshot, const {
-        'command',
-        'processId',
-        'process_id',
-        'stdin',
-        'exitCode',
-        'exit_code',
-      }),
-      CodexCanonicalItemType.mcpToolCall => _pickKeys(snapshot, const {
+      TranscriptCanonicalItemType.commandExecution => _pickKeys(
+        snapshot,
+        const {
+          'command',
+          'processId',
+          'process_id',
+          'stdin',
+          'exitCode',
+          'exit_code',
+        },
+      ),
+      TranscriptCanonicalItemType.mcpToolCall => _pickKeys(snapshot, const {
         'server',
         'serverName',
         'tool',
@@ -40,7 +43,7 @@ class TranscriptMemoryBudget {
         'result',
         'error',
       }),
-      CodexCanonicalItemType.webSearch => _pickKeys(snapshot, const {
+      TranscriptCanonicalItemType.webSearch => _pickKeys(snapshot, const {
         'query',
         'title',
         'queries',

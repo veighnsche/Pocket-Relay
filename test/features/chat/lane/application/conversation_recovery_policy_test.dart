@@ -3,8 +3,8 @@ import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_conversation_recovery_policy.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 void main() {
   const policy = ChatConversationRecoveryPolicy();
@@ -13,17 +13,17 @@ void main() {
   test(
     'preflightRecoveryState returns detached transcript recovery for a tracked live thread',
     () {
-      final sessionState = CodexSessionState(
-        sessionBlocks: <CodexUiBlock>[
-          CodexUserMessageBlock(
+      final sessionState = TranscriptSessionState(
+        sessionBlocks: <TranscriptUiBlock>[
+          TranscriptUserMessageBlock(
             id: 'user_1',
             createdAt: createdAt,
             text: 'Hello',
-            deliveryState: CodexUserMessageDeliveryState.sent,
+            deliveryState: TranscriptUserMessageDeliveryState.sent,
           ),
         ],
-        timelinesByThreadId: const <String, CodexTimelineState>{
-          'thread_live': CodexTimelineState(threadId: 'thread_live'),
+        timelinesByThreadId: const <String, TranscriptTimelineState>{
+          'thread_live': TranscriptTimelineState(threadId: 'thread_live'),
         },
       );
 
@@ -48,10 +48,10 @@ void main() {
         error: const CodexAppServerException(
           'turn/start failed: thread not found',
         ),
-        sessionState: const CodexSessionState(
+        sessionState: const TranscriptSessionState(
           rootThreadId: 'thread_root',
-          timelinesByThreadId: <String, CodexTimelineState>{
-            'thread_alt': CodexTimelineState(threadId: 'thread_alt'),
+          timelinesByThreadId: <String, TranscriptTimelineState>{
+            'thread_alt': TranscriptTimelineState(threadId: 'thread_alt'),
           },
         ),
         sessionLabel: 'remote Codex',
@@ -86,10 +86,10 @@ void main() {
             'actualThreadId': 'thread_new',
           },
         ),
-        sessionState: const CodexSessionState(
+        sessionState: const TranscriptSessionState(
           rootThreadId: 'thread_old',
-          timelinesByThreadId: <String, CodexTimelineState>{
-            'thread_new': CodexTimelineState(threadId: 'thread_new'),
+          timelinesByThreadId: <String, TranscriptTimelineState>{
+            'thread_new': TranscriptTimelineState(threadId: 'thread_new'),
           },
         ),
         sessionLabel: 'remote Codex',
@@ -119,7 +119,7 @@ void main() {
     () {
       final assessment = policy.assessSendFailure(
         error: Exception('network down'),
-        sessionState: CodexSessionState.initial(),
+        sessionState: TranscriptSessionState.initial(),
         sessionLabel: 'remote Codex',
       );
 

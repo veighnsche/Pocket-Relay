@@ -1,20 +1,23 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
-String codexRequestTitle(CodexCanonicalRequestType requestType) {
+String codexRequestTitle(TranscriptCanonicalRequestType requestType) {
   return switch (requestType) {
-    CodexCanonicalRequestType.commandExecutionApproval => 'Command approval',
-    CodexCanonicalRequestType.fileChangeApproval => 'File change approval',
-    CodexCanonicalRequestType.applyPatchApproval => 'Patch approval',
-    CodexCanonicalRequestType.execCommandApproval => 'Command approval',
-    CodexCanonicalRequestType.permissionsRequestApproval =>
+    TranscriptCanonicalRequestType.commandExecutionApproval =>
+      'Command approval',
+    TranscriptCanonicalRequestType.fileChangeApproval => 'File change approval',
+    TranscriptCanonicalRequestType.applyPatchApproval => 'Patch approval',
+    TranscriptCanonicalRequestType.execCommandApproval => 'Command approval',
+    TranscriptCanonicalRequestType.permissionsRequestApproval =>
       'Permissions request',
-    CodexCanonicalRequestType.toolUserInput => 'Input required',
-    CodexCanonicalRequestType.mcpServerElicitation => 'MCP input required',
-    CodexCanonicalRequestType.unknown => 'Request',
+    TranscriptCanonicalRequestType.toolUserInput => 'Input required',
+    TranscriptCanonicalRequestType.mcpServerElicitation => 'MCP input required',
+    TranscriptCanonicalRequestType.unknown => 'Request',
   };
 }
 
-String codexQuestionsSummary(List<CodexRuntimeUserInputQuestion> questions) {
+String codexQuestionsSummary(
+  List<TranscriptRuntimeUserInputQuestion> questions,
+) {
   return questions
       .map((question) => '${question.header}: ${question.question}')
       .join('\n\n');
@@ -31,7 +34,7 @@ String codexAnswersSummary(Map<String, List<String>> answers) {
 }
 
 String codexAnswersSummaryFromQuestions({
-  required List<CodexRuntimeUserInputQuestion> questions,
+  required List<TranscriptRuntimeUserInputQuestion> questions,
   required Map<String, List<String>> answers,
 }) {
   if (answers.isEmpty) {

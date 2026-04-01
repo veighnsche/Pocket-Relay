@@ -24,7 +24,7 @@ Future<void> _restoreConversationTranscriptForController(
   );
 }
 
-Future<CodexSessionState?>
+Future<TranscriptSessionState?>
 _performHistoryRestoringThreadTransitionForController(
   ChatSessionController controller, {
   required Future<AgentAdapterThreadHistory> Function() operation,
@@ -77,7 +77,7 @@ _performHistoryRestoringThreadTransitionForController(
   }
 }
 
-CodexSessionState _restoredChatSessionStateFromHistory(
+TranscriptSessionState _restoredChatSessionStateFromHistory(
   ChatSessionController controller,
   AgentAdapterThreadHistory thread,
 ) {
@@ -132,7 +132,7 @@ Future<bool> _sendTurnInputWithAppServerForController(
     controller._clearConversationRecovery();
     controller._applySessionState(
       controller._sessionState.copyWith(
-        connectionStatus: CodexRuntimeSessionState.running,
+        connectionStatus: TranscriptRuntimeSessionState.running,
       ),
     );
     final turn = await controller.agentAdapterClient.sendUserMessage(
@@ -145,7 +145,7 @@ Future<bool> _sendTurnInputWithAppServerForController(
     controller._suppressTrackedThreadReuse = false;
     _applyChatSessionRuntimeEvent(
       controller,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: DateTime.now(),
         threadId: turn.threadId,
         turnId: turn.turnId,
@@ -213,7 +213,7 @@ Future<String> _ensureChatSessionAppServerThread(
   _rememberChatSessionHeaderMetadata(controller, session);
   _applyChatSessionRuntimeEvent(
     controller,
-    CodexRuntimeThreadStartedEvent(
+    TranscriptRuntimeThreadStartedEvent(
       createdAt: DateTime.now(),
       threadId: session.threadId,
       providerThreadId: session.threadId,
@@ -344,9 +344,9 @@ void _reportChatSessionAppServerFailure(
   final now = DateTime.now();
   _applyChatSessionRuntimeEvent(
     controller,
-    CodexRuntimeSessionStateChangedEvent(
+    TranscriptRuntimeSessionStateChangedEvent(
       createdAt: now,
-      state: CodexRuntimeSessionState.ready,
+      state: TranscriptRuntimeSessionState.ready,
       reason: userFacingError.message,
       rawMethod: 'app-server/failure',
     ),
@@ -354,10 +354,10 @@ void _reportChatSessionAppServerFailure(
   if (!suppressRuntimeError) {
     _applyChatSessionRuntimeEvent(
       controller,
-      CodexRuntimeErrorEvent(
+      TranscriptRuntimeErrorEvent(
         createdAt: now,
         message: runtimeErrorMessage ?? userFacingError.inlineMessage,
-        errorClass: CodexRuntimeErrorClass.transportError,
+        errorClass: TranscriptRuntimeErrorClass.transportError,
         rawMethod: 'app-server/failure',
       ),
     );

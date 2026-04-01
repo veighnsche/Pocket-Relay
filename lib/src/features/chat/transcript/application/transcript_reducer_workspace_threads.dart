@@ -1,14 +1,14 @@
 part of 'transcript_reducer.dart';
 
-CodexSessionState _reduceSessionExitedImpl(
+TranscriptSessionState _reduceSessionExitedImpl(
   TranscriptReducer reducer,
-  CodexSessionState state,
-  CodexRuntimeSessionExitedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeSessionExitedEvent event,
 ) {
   var nextState = state.copyWith(
-    connectionStatus: event.exitKind == CodexRuntimeSessionExitKind.error
-        ? CodexRuntimeSessionState.error
-        : CodexRuntimeSessionState.stopped,
+    connectionStatus: event.exitKind == TranscriptRuntimeSessionExitKind.error
+        ? TranscriptRuntimeSessionState.error
+        : TranscriptRuntimeSessionState.stopped,
   );
 
   final orderedThreadIds = nextState.timelinesByThreadId.keys.toList(
@@ -25,35 +25,35 @@ CodexSessionState _reduceSessionExitedImpl(
         projectedState,
         event,
       ),
-      lifecycleOverride: CodexAgentLifecycleState.closed,
+      lifecycleOverride: TranscriptAgentLifecycleState.closed,
     );
   }
 
-  final nextRegistry = <String, CodexThreadRegistryEntry>{};
+  final nextRegistry = <String, TranscriptThreadRegistryEntry>{};
   for (final entry in nextState.threadRegistry.entries) {
     nextRegistry[entry.key] = entry.value.copyWith(isClosed: true);
   }
   return nextState.copyWith(threadRegistry: nextRegistry);
 }
 
-CodexSessionState _upsertThreadStartedImpl(
-  CodexSessionState state,
-  CodexRuntimeThreadStartedEvent event,
+TranscriptSessionState _upsertThreadStartedImpl(
+  TranscriptSessionState state,
+  TranscriptRuntimeThreadStartedEvent event,
 ) {
   final threadId = event.providerThreadId;
-  final nextTimelines = <String, CodexTimelineState>{
+  final nextTimelines = <String, TranscriptTimelineState>{
     ...state.timelinesByThreadId,
   };
   final existingTimeline = nextTimelines[threadId];
   nextTimelines[threadId] =
       existingTimeline ??
-      CodexTimelineState(
+      TranscriptTimelineState(
         threadId: threadId,
         connectionStatus: state.connectionStatus,
-        lifecycleState: CodexAgentLifecycleState.idle,
+        lifecycleState: TranscriptAgentLifecycleState.idle,
       );
 
-  final nextRegistry = <String, CodexThreadRegistryEntry>{
+  final nextRegistry = <String, TranscriptThreadRegistryEntry>{
     ...state.threadRegistry,
   };
   nextRegistry[threadId] = _upsertRegistryEntryImpl(
@@ -85,17 +85,17 @@ CodexSessionState _upsertThreadStartedImpl(
   );
 }
 
-CodexSessionState _reduceThreadStateChangedImpl(
+TranscriptSessionState _reduceThreadStateChangedImpl(
   TranscriptReducer reducer,
-  CodexSessionState state,
-  CodexRuntimeThreadStateChangedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeThreadStateChangedEvent event,
 ) {
   final threadId = event.threadId;
   if (threadId == null || threadId.isEmpty) {
     return state;
   }
 
-  if (event.state == CodexRuntimeThreadState.closed) {
+  if (event.state == TranscriptRuntimeThreadState.closed) {
     final nextState = _reduceTimelineStateImpl(
       reducer,
       state,
@@ -106,9 +106,9 @@ CodexSessionState _reduceThreadStateChangedImpl(
         projectedState,
         event,
       ),
-      lifecycleOverride: CodexAgentLifecycleState.closed,
+      lifecycleOverride: TranscriptAgentLifecycleState.closed,
     );
-    final nextRegistry = <String, CodexThreadRegistryEntry>{
+    final nextRegistry = <String, TranscriptThreadRegistryEntry>{
       ...nextState.threadRegistry,
     };
     final existingEntry = nextRegistry[threadId];
@@ -118,12 +118,12 @@ CodexSessionState _reduceThreadStateChangedImpl(
     return nextState.copyWith(threadRegistry: nextRegistry);
   }
 
-  final nextTimelines = <String, CodexTimelineState>{
+  final nextTimelines = <String, TranscriptTimelineState>{
     ...state.timelinesByThreadId,
   };
   final timeline =
       nextTimelines[threadId] ??
-      CodexTimelineState(
+      TranscriptTimelineState(
         threadId: threadId,
         connectionStatus: state.connectionStatus,
       );
@@ -140,24 +140,24 @@ CodexSessionState _reduceThreadStateChangedImpl(
   );
 }
 
-CodexSessionState _promoteSessionTranscriptToWorkspaceImpl(
-  CodexSessionState state,
-  CodexRuntimeThreadStartedEvent event,
+TranscriptSessionState _promoteSessionTranscriptToWorkspaceImpl(
+  TranscriptSessionState state,
+  TranscriptRuntimeThreadStartedEvent event,
 ) {
   final rootThreadId = event.providerThreadId;
-  final rootTimeline = CodexTimelineState(
+  final rootTimeline = TranscriptTimelineState(
     threadId: rootThreadId,
     connectionStatus: state.connectionStatus,
     lifecycleState: state.activeTurn == null
-        ? CodexAgentLifecycleState.idle
-        : CodexAgentLifecycleState.running,
+        ? TranscriptAgentLifecycleState.idle
+        : TranscriptAgentLifecycleState.running,
     activeTurn: state.activeTurn?.copyWith(threadId: rootThreadId),
     blocks: state.blocks,
     pendingLocalUserMessageBlockIds: state.pendingLocalUserMessageBlockIds,
     localUserMessageProviderBindings: state.localUserMessageProviderBindings,
   );
-  final threadRegistry = <String, CodexThreadRegistryEntry>{
-    rootThreadId: CodexThreadRegistryEntry(
+  final threadRegistry = <String, TranscriptThreadRegistryEntry>{
+    rootThreadId: TranscriptThreadRegistryEntry(
       threadId: rootThreadId,
       displayOrder: 0,
       threadName: event.threadName,
@@ -167,11 +167,11 @@ CodexSessionState _promoteSessionTranscriptToWorkspaceImpl(
       isPrimary: true,
     ),
   };
-  final timelinesByThreadId = <String, CodexTimelineState>{
+  final timelinesByThreadId = <String, TranscriptTimelineState>{
     rootThreadId: rootTimeline,
   };
 
-  return CodexSessionState(
+  return TranscriptSessionState(
     connectionStatus: state.connectionStatus,
     rootThreadId: rootThreadId,
     selectedThreadId: rootThreadId,
@@ -182,23 +182,23 @@ CodexSessionState _promoteSessionTranscriptToWorkspaceImpl(
   );
 }
 
-CodexSessionState _applyCollaborationMetadataImpl(
-  CodexSessionState state,
-  CodexRuntimeEvent event, {
+TranscriptSessionState _applyCollaborationMetadataImpl(
+  TranscriptSessionState state,
+  TranscriptRuntimeEvent event, {
   required String targetThreadId,
 }) {
   final collaboration = switch (event) {
-    CodexRuntimeItemLifecycleEvent(:final collaboration) => collaboration,
+    TranscriptRuntimeItemLifecycleEvent(:final collaboration) => collaboration,
     _ => null,
   };
   if (collaboration == null) {
     return state;
   }
 
-  final nextRegistry = <String, CodexThreadRegistryEntry>{
+  final nextRegistry = <String, TranscriptThreadRegistryEntry>{
     ...state.threadRegistry,
   };
-  final nextTimelines = <String, CodexTimelineState>{
+  final nextTimelines = <String, TranscriptTimelineState>{
     ...state.timelinesByThreadId,
   };
 
@@ -247,7 +247,7 @@ CodexSessionState _applyCollaborationMetadataImpl(
     final existingTimeline = nextTimelines[receiverThreadId];
     nextTimelines[receiverThreadId] =
         existingTimeline ??
-        CodexTimelineState(
+        TranscriptTimelineState(
           threadId: receiverThreadId,
           connectionStatus: state.connectionStatus,
           lifecycleState: _lifecycleFromCollaborationImpl(
@@ -266,12 +266,12 @@ CodexSessionState _applyCollaborationMetadataImpl(
   }
 
   final targetTimeline = nextTimelines[targetThreadId];
-  if (collaboration.tool == CodexRuntimeCollabAgentTool.wait &&
+  if (collaboration.tool == TranscriptRuntimeCollabAgentTool.wait &&
       collaboration.status ==
-          CodexRuntimeCollabAgentToolCallStatus.inProgress &&
+          TranscriptRuntimeCollabAgentToolCallStatus.inProgress &&
       targetTimeline != null) {
     nextTimelines[targetThreadId] = targetTimeline.copyWith(
-      lifecycleState: CodexAgentLifecycleState.waitingOnChild,
+      lifecycleState: TranscriptAgentLifecycleState.waitingOnChild,
     );
   }
 

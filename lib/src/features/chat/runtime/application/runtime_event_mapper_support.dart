@@ -75,35 +75,36 @@ String _threadTokenUsageMessage(Map<String, dynamic>? payload) {
       '${contextWindow == null ? '' : '\nContext window: $contextWindow'}';
 }
 
-CodexCanonicalItemType _canonicalItemType(Object? raw) =>
+TranscriptCanonicalItemType _canonicalItemType(Object? raw) =>
     _payloadSupport.canonicalItemType(raw);
 
-String _itemTitle(CodexCanonicalItemType itemType) {
-  return codexItemTitle(itemType);
+String _itemTitle(TranscriptCanonicalItemType itemType) {
+  return transcriptItemTitle(itemType);
 }
 
 String? _itemDetail(Map<String, dynamic> item, Map<String, dynamic>? payload) =>
     _payloadSupport.itemDetail(item, payload: payload);
 
-CodexCanonicalRequestType _requestTypeFromMethod(String method) {
+TranscriptCanonicalRequestType _requestTypeFromMethod(String method) {
   return switch (method) {
     'item/commandExecution/requestApproval' =>
-      CodexCanonicalRequestType.commandExecutionApproval,
+      TranscriptCanonicalRequestType.commandExecutionApproval,
     'item/fileChange/requestApproval' =>
-      CodexCanonicalRequestType.fileChangeApproval,
-    'applyPatchApproval' => CodexCanonicalRequestType.applyPatchApproval,
-    'execCommandApproval' => CodexCanonicalRequestType.execCommandApproval,
+      TranscriptCanonicalRequestType.fileChangeApproval,
+    'applyPatchApproval' => TranscriptCanonicalRequestType.applyPatchApproval,
+    'execCommandApproval' => TranscriptCanonicalRequestType.execCommandApproval,
     'item/permissions/requestApproval' =>
-      CodexCanonicalRequestType.permissionsRequestApproval,
-    'tool/requestUserInput' => CodexCanonicalRequestType.toolUserInput,
-    'item/tool/requestUserInput' => CodexCanonicalRequestType.toolUserInput,
+      TranscriptCanonicalRequestType.permissionsRequestApproval,
+    'tool/requestUserInput' => TranscriptCanonicalRequestType.toolUserInput,
+    'item/tool/requestUserInput' =>
+      TranscriptCanonicalRequestType.toolUserInput,
     'mcpServer/elicitation/request' =>
-      CodexCanonicalRequestType.mcpServerElicitation,
-    _ => CodexCanonicalRequestType.unknown,
+      TranscriptCanonicalRequestType.mcpServerElicitation,
+    _ => TranscriptCanonicalRequestType.unknown,
   };
 }
 
-CodexCanonicalRequestType _requestTypeFromResolvedPayload(
+TranscriptCanonicalRequestType _requestTypeFromResolvedPayload(
   Map<String, dynamic>? payload,
 ) {
   final request = _asObject(payload?['request']);
@@ -111,7 +112,7 @@ CodexCanonicalRequestType _requestTypeFromResolvedPayload(
   if (method != null) {
     return _requestTypeFromMethod(method);
   }
-  return CodexCanonicalRequestType.unknown;
+  return TranscriptCanonicalRequestType.unknown;
 }
 
 String? _requestDetail(Map<String, dynamic>? payload) {
@@ -129,69 +130,71 @@ String? _requestDetail(Map<String, dynamic>? payload) {
 String? _threadSourceKind(Map<String, dynamic>? thread) =>
     _payloadSupport.threadSourceKind(thread);
 
-CodexRuntimeCollabAgentToolCall? _collaborationDetails(
-  CodexCanonicalItemType itemType,
+TranscriptRuntimeCollabAgentToolCall? _collaborationDetails(
+  TranscriptCanonicalItemType itemType,
   Map<String, dynamic> item,
 ) => _payloadSupport.collaborationDetails(itemType, item);
 
-CodexRuntimeThreadState _threadStateFor(
+TranscriptRuntimeThreadState _threadStateFor(
   String method,
   Map<String, dynamic>? payload,
 ) {
   if (method == 'thread/archived') {
-    return CodexRuntimeThreadState.archived;
+    return TranscriptRuntimeThreadState.archived;
   }
   if (method == 'thread/closed') {
-    return CodexRuntimeThreadState.closed;
+    return TranscriptRuntimeThreadState.closed;
   }
   if (method == 'thread/compacted') {
-    return CodexRuntimeThreadState.compacted;
+    return TranscriptRuntimeThreadState.compacted;
   }
 
   final status = _asObject(payload?['status']);
   final type = _asString(status?['type']) ?? _asString(payload?['state']);
   return switch (type) {
-    'idle' => CodexRuntimeThreadState.idle,
-    'archived' => CodexRuntimeThreadState.archived,
-    'closed' => CodexRuntimeThreadState.closed,
-    'compacted' => CodexRuntimeThreadState.compacted,
-    'systemError' || 'error' || 'failed' => CodexRuntimeThreadState.error,
-    _ => CodexRuntimeThreadState.active,
+    'idle' => TranscriptRuntimeThreadState.idle,
+    'archived' => TranscriptRuntimeThreadState.archived,
+    'closed' => TranscriptRuntimeThreadState.closed,
+    'compacted' => TranscriptRuntimeThreadState.compacted,
+    'systemError' || 'error' || 'failed' => TranscriptRuntimeThreadState.error,
+    _ => TranscriptRuntimeThreadState.active,
   };
 }
 
-CodexRuntimeTurnState _turnState(String? rawStatus) =>
+TranscriptRuntimeTurnState _turnState(String? rawStatus) =>
     _payloadSupport.turnState(rawStatus);
 
-CodexRuntimeItemStatus _itemStatus(
+TranscriptRuntimeItemStatus _itemStatus(
   Object? rawStatus,
-  CodexRuntimeItemStatus fallback,
+  TranscriptRuntimeItemStatus fallback,
 ) => _payloadSupport.itemStatus(rawStatus, fallback);
 
-CodexRuntimeContentStreamKind _streamKindFromMethod(String method) {
+TranscriptRuntimeContentStreamKind _streamKindFromMethod(String method) {
   return switch (method) {
-    'item/agentMessage/delta' => CodexRuntimeContentStreamKind.assistantText,
-    'item/reasoning/textDelta' => CodexRuntimeContentStreamKind.reasoningText,
+    'item/agentMessage/delta' =>
+      TranscriptRuntimeContentStreamKind.assistantText,
+    'item/reasoning/textDelta' =>
+      TranscriptRuntimeContentStreamKind.reasoningText,
     'item/reasoning/summaryTextDelta' =>
-      CodexRuntimeContentStreamKind.reasoningSummaryText,
-    'item/plan/delta' => CodexRuntimeContentStreamKind.planText,
+      TranscriptRuntimeContentStreamKind.reasoningSummaryText,
+    'item/plan/delta' => TranscriptRuntimeContentStreamKind.planText,
     'item/commandExecution/outputDelta' =>
-      CodexRuntimeContentStreamKind.commandOutput,
+      TranscriptRuntimeContentStreamKind.commandOutput,
     'item/fileChange/outputDelta' =>
-      CodexRuntimeContentStreamKind.fileChangeOutput,
-    _ => CodexRuntimeContentStreamKind.unknown,
+      TranscriptRuntimeContentStreamKind.fileChangeOutput,
+    _ => TranscriptRuntimeContentStreamKind.unknown,
   };
 }
 
-CodexRuntimeTurnUsage? _toTurnUsage(Map<String, dynamic>? usage) =>
+TranscriptRuntimeTurnUsage? _toTurnUsage(Map<String, dynamic>? usage) =>
     _payloadSupport.turnUsage(usage);
 
-List<CodexRuntimeUserInputQuestion> _toUserInputQuestions(
+List<TranscriptRuntimeUserInputQuestion> _toUserInputQuestions(
   Map<String, dynamic>? payload,
 ) {
   final questions = _asList(payload?['questions']);
   if (questions == null) {
-    return const <CodexRuntimeUserInputQuestion>[];
+    return const <TranscriptRuntimeUserInputQuestion>[];
   }
 
   return questions
@@ -218,16 +221,16 @@ List<CodexRuntimeUserInputQuestion> _toUserInputQuestions(
                       description.isEmpty) {
                     return null;
                   }
-                  return CodexRuntimeUserInputOption(
+                  return TranscriptRuntimeUserInputOption(
                     label: label,
                     description: description,
                   );
                 })
-                .whereType<CodexRuntimeUserInputOption>()
+                .whereType<TranscriptRuntimeUserInputOption>()
                 .toList() ??
-            const <CodexRuntimeUserInputOption>[];
+            const <TranscriptRuntimeUserInputOption>[];
 
-        return CodexRuntimeUserInputQuestion(
+        return TranscriptRuntimeUserInputQuestion(
           id: id,
           header: header,
           question: prompt,
@@ -236,13 +239,13 @@ List<CodexRuntimeUserInputQuestion> _toUserInputQuestions(
           isSecret: question['isSecret'] == true,
         );
       })
-      .whereType<CodexRuntimeUserInputQuestion>()
+      .whereType<TranscriptRuntimeUserInputQuestion>()
       .toList();
 }
 
-List<CodexRuntimePlanStep> _toPlanSteps(List<dynamic>? rawPlan) {
+List<TranscriptRuntimePlanStep> _toPlanSteps(List<dynamic>? rawPlan) {
   if (rawPlan == null) {
-    return const <CodexRuntimePlanStep>[];
+    return const <TranscriptRuntimePlanStep>[];
   }
 
   return rawPlan
@@ -255,14 +258,14 @@ List<CodexRuntimePlanStep> _toPlanSteps(List<dynamic>? rawPlan) {
         }
 
         final status = switch (_asString(step['status'])) {
-          'completed' => CodexRuntimePlanStepStatus.completed,
-          'inProgress' => CodexRuntimePlanStepStatus.inProgress,
-          _ => CodexRuntimePlanStepStatus.pending,
+          'completed' => TranscriptRuntimePlanStepStatus.completed,
+          'inProgress' => TranscriptRuntimePlanStepStatus.inProgress,
+          _ => TranscriptRuntimePlanStepStatus.pending,
         };
 
-        return CodexRuntimePlanStep(step: title, status: status);
+        return TranscriptRuntimePlanStep(step: title, status: status);
       })
-      .whereType<CodexRuntimePlanStep>()
+      .whereType<TranscriptRuntimePlanStep>()
       .toList();
 }
 

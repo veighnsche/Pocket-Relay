@@ -3,9 +3,9 @@ import 'package:pocket_relay/src/features/chat/transcript/application/transcript
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_request_policy.dart';
 import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/core/utils/duration_utils.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 part 'transcript_policy_blocks.dart';
 part 'transcript_policy_support_helpers.dart';
@@ -24,24 +24,24 @@ class TranscriptPolicy {
   final TranscriptItemPolicy _itemPolicy;
   final TranscriptRequestPolicy _requestPolicy;
 
-  CodexSessionState addUserMessage(
-    CodexSessionState state, {
+  TranscriptSessionState addUserMessage(
+    TranscriptSessionState state, {
     required String text,
     ChatComposerDraft? draft,
     DateTime? createdAt,
   }) {
     final eventTime = createdAt ?? DateTime.now();
-    final block = CodexUserMessageBlock(
+    final block = TranscriptUserMessageBlock(
       id: _support.eventEntryId('user', eventTime),
       createdAt: eventTime,
       text: draft?.text ?? text,
-      deliveryState: CodexUserMessageDeliveryState.sent,
+      deliveryState: TranscriptUserMessageDeliveryState.sent,
       structuredDraft: draft,
     );
 
     return _support.appendBlock(
       state.copyWithProjectedTranscript(
-        connectionStatus: CodexRuntimeSessionState.running,
+        connectionStatus: TranscriptRuntimeSessionState.running,
         pendingLocalUserMessageBlockIds: <String>[
           ...state.pendingLocalUserMessageBlockIds,
           block.id,
@@ -51,8 +51,8 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState startFreshThread(
-    CodexSessionState state, {
+  TranscriptSessionState startFreshThread(
+    TranscriptSessionState state, {
     String? message,
     DateTime? createdAt,
   }) {
@@ -64,33 +64,36 @@ class TranscriptPolicy {
     final eventTime = createdAt ?? DateTime.now();
     return _support.appendBlock(
       cleared,
-      CodexStatusBlock(
+      TranscriptStatusBlock(
         id: _support.eventEntryId('status', eventTime),
         createdAt: eventTime,
         title: 'New thread',
         body: message,
-        statusKind: CodexStatusBlockKind.info,
+        statusKind: TranscriptStatusBlockKind.info,
         isTranscriptSignal: true,
       ),
     );
   }
 
-  CodexSessionState clearTranscript(CodexSessionState state) {
-    return _resetTranscriptStateImpl(state, blocks: const <CodexUiBlock>[]);
+  TranscriptSessionState clearTranscript(TranscriptSessionState state) {
+    return _resetTranscriptStateImpl(
+      state,
+      blocks: const <TranscriptUiBlock>[],
+    );
   }
 
-  CodexSessionState detachThread(CodexSessionState state) {
+  TranscriptSessionState detachThread(TranscriptSessionState state) {
     return _resetTranscriptStateImpl(state);
   }
 
-  CodexSessionState clearLocalUserMessageCorrelationState(
-    CodexSessionState state,
+  TranscriptSessionState clearLocalUserMessageCorrelationState(
+    TranscriptSessionState state,
   ) {
     return _clearLocalUserMessageCorrelationStateImpl(state);
   }
 
-  CodexSessionState rolloverTurnIfNeeded(
-    CodexSessionState state, {
+  TranscriptSessionState rolloverTurnIfNeeded(
+    TranscriptSessionState state, {
     required String? turnId,
     required String? threadId,
     required DateTime createdAt,
@@ -104,42 +107,42 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applyThreadClosed(
-    CodexSessionState state,
-    CodexRuntimeThreadStateChangedEvent event,
+  TranscriptSessionState applyThreadClosed(
+    TranscriptSessionState state,
+    TranscriptRuntimeThreadStateChangedEvent event,
   ) {
     return _applyThreadClosedImpl(this, state, event);
   }
 
-  CodexSessionState applySessionExited(
-    CodexSessionState state,
-    CodexRuntimeSessionExitedEvent event,
+  TranscriptSessionState applySessionExited(
+    TranscriptSessionState state,
+    TranscriptRuntimeSessionExitedEvent event,
   ) {
     return _applySessionExitedImpl(this, state, event);
   }
 
-  CodexSessionState applyTurnCompleted(
-    CodexSessionState state,
-    CodexRuntimeTurnCompletedEvent event,
+  TranscriptSessionState applyTurnCompleted(
+    TranscriptSessionState state,
+    TranscriptRuntimeTurnCompletedEvent event,
   ) {
     return _applyTurnCompletedImpl(this, state, event);
   }
 
-  CodexSessionState applyTurnAborted(
-    CodexSessionState state,
-    CodexRuntimeTurnAbortedEvent event,
+  TranscriptSessionState applyTurnAborted(
+    TranscriptSessionState state,
+    TranscriptRuntimeTurnAbortedEvent event,
   ) {
     return _applyTurnAbortedImpl(this, state, event);
   }
 
-  CodexSessionState applyTurnPlanUpdated(
-    CodexSessionState state,
-    CodexRuntimeTurnPlanUpdatedEvent event,
+  TranscriptSessionState applyTurnPlanUpdated(
+    TranscriptSessionState state,
+    TranscriptRuntimeTurnPlanUpdatedEvent event,
   ) {
     return _stateWithAppendedTranscriptBlockImpl(
       this,
       state,
-      CodexPlanUpdateBlock(
+      TranscriptPlanUpdateBlock(
         id: _nextTranscriptEventBlockIdImpl(
           this,
           state,
@@ -155,9 +158,9 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applyItemLifecycle(
-    CodexSessionState state,
-    CodexRuntimeItemLifecycleEvent event, {
+  TranscriptSessionState applyItemLifecycle(
+    TranscriptSessionState state,
+    TranscriptRuntimeItemLifecycleEvent event, {
     required bool removeAfterUpsert,
   }) {
     return _itemPolicy.applyItemLifecycle(
@@ -167,44 +170,44 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applyContentDelta(
-    CodexSessionState state,
-    CodexRuntimeContentDeltaEvent event,
+  TranscriptSessionState applyContentDelta(
+    TranscriptSessionState state,
+    TranscriptRuntimeContentDeltaEvent event,
   ) {
     return _itemPolicy.applyContentDelta(state, event);
   }
 
-  CodexSessionState applyRequestOpened(
-    CodexSessionState state,
-    CodexRuntimeRequestOpenedEvent event,
+  TranscriptSessionState applyRequestOpened(
+    TranscriptSessionState state,
+    TranscriptRuntimeRequestOpenedEvent event,
   ) {
     return _requestPolicy.applyRequestOpened(state, event);
   }
 
-  CodexSessionState applyRequestResolved(
-    CodexSessionState state,
-    CodexRuntimeRequestResolvedEvent event,
+  TranscriptSessionState applyRequestResolved(
+    TranscriptSessionState state,
+    TranscriptRuntimeRequestResolvedEvent event,
   ) {
     return _requestPolicy.applyRequestResolved(state, event);
   }
 
-  CodexSessionState applyUserInputRequested(
-    CodexSessionState state,
-    CodexRuntimeUserInputRequestedEvent event,
+  TranscriptSessionState applyUserInputRequested(
+    TranscriptSessionState state,
+    TranscriptRuntimeUserInputRequestedEvent event,
   ) {
     return _requestPolicy.applyUserInputRequested(state, event);
   }
 
-  CodexSessionState applyUserInputResolved(
-    CodexSessionState state,
-    CodexRuntimeUserInputResolvedEvent event,
+  TranscriptSessionState applyUserInputResolved(
+    TranscriptSessionState state,
+    TranscriptRuntimeUserInputResolvedEvent event,
   ) {
     return _requestPolicy.applyUserInputResolved(state, event);
   }
 
-  CodexSessionState applyWarning(
-    CodexSessionState state,
-    CodexRuntimeWarningEvent event,
+  TranscriptSessionState applyWarning(
+    TranscriptSessionState state,
+    TranscriptRuntimeWarningEvent event,
   ) {
     return _stateWithTranscriptBlockImpl(
       this,
@@ -218,7 +221,7 @@ class TranscriptPolicy {
             ? event.summary
             : '${event.summary}\n\n${event.details}',
         createdAt: event.createdAt,
-        statusKind: CodexStatusBlockKind.warning,
+        statusKind: TranscriptStatusBlockKind.warning,
         isTranscriptSignal: true,
       ),
       turnId: event.turnId,
@@ -226,14 +229,14 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applyUnpinnedHostKey(
-    CodexSessionState state,
-    CodexRuntimeUnpinnedHostKeyEvent event,
+  TranscriptSessionState applyUnpinnedHostKey(
+    TranscriptSessionState state,
+    TranscriptRuntimeUnpinnedHostKeyEvent event,
   ) {
     return _upsertTopLevelTranscriptBlockImpl(
       this,
       state,
-      CodexSshUnpinnedHostKeyBlock(
+      TranscriptSshUnpinnedHostKeyBlock(
         id: _sshUnpinnedHostKeyBlockIdImpl(host: event.host, port: event.port),
         createdAt: event.createdAt,
         host: event.host,
@@ -244,14 +247,14 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applySshConnectFailed(
-    CodexSessionState state,
-    CodexRuntimeSshConnectFailedEvent event,
+  TranscriptSessionState applySshConnectFailed(
+    TranscriptSessionState state,
+    TranscriptRuntimeSshConnectFailedEvent event,
   ) {
     return _upsertTopLevelTranscriptBlockImpl(
       this,
       state,
-      CodexSshConnectFailedBlock(
+      TranscriptSshConnectFailedBlock(
         id: _sshConnectFailedBlockIdImpl(host: event.host, port: event.port),
         createdAt: event.createdAt,
         host: event.host,
@@ -261,14 +264,14 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applySshHostKeyMismatch(
-    CodexSessionState state,
-    CodexRuntimeSshHostKeyMismatchEvent event,
+  TranscriptSessionState applySshHostKeyMismatch(
+    TranscriptSessionState state,
+    TranscriptRuntimeSshHostKeyMismatchEvent event,
   ) {
     return _upsertTopLevelTranscriptBlockImpl(
       this,
       state,
-      CodexSshHostKeyMismatchBlock(
+      TranscriptSshHostKeyMismatchBlock(
         id: _sshHostKeyMismatchBlockIdImpl(host: event.host, port: event.port),
         createdAt: event.createdAt,
         host: event.host,
@@ -280,14 +283,14 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState applySshAuthenticationFailed(
-    CodexSessionState state,
-    CodexRuntimeSshAuthenticationFailedEvent event,
+  TranscriptSessionState applySshAuthenticationFailed(
+    TranscriptSessionState state,
+    TranscriptRuntimeSshAuthenticationFailedEvent event,
   ) {
     return _upsertTopLevelTranscriptBlockImpl(
       this,
       state,
-      CodexSshAuthenticationFailedBlock(
+      TranscriptSshAuthenticationFailedBlock(
         id: _sshAuthenticationFailedBlockIdImpl(
           host: event.host,
           port: event.port,
@@ -303,28 +306,28 @@ class TranscriptPolicy {
     );
   }
 
-  CodexSessionState markUnpinnedHostKeySaved(
-    CodexSessionState state, {
+  TranscriptSessionState markUnpinnedHostKeySaved(
+    TranscriptSessionState state, {
     required String blockId,
   }) {
     return _markUnpinnedHostKeySavedImpl(state, blockId: blockId);
   }
 
-  CodexSessionState applyStatus(
-    CodexSessionState state,
-    CodexRuntimeStatusEvent event,
+  TranscriptSessionState applyStatus(
+    TranscriptSessionState state,
+    TranscriptRuntimeStatusEvent event,
   ) {
     return _applyStatusImpl(this, state, event);
   }
 
-  CodexSessionState applyRuntimeError(
-    CodexSessionState state,
-    CodexRuntimeErrorEvent event,
+  TranscriptSessionState applyRuntimeError(
+    TranscriptSessionState state,
+    TranscriptRuntimeErrorEvent event,
   ) {
     return _stateWithTranscriptBlockImpl(
       this,
       state,
-      CodexErrorBlock(
+      TranscriptErrorBlock(
         id: _support.eventEntryId('error', event.createdAt),
         createdAt: event.createdAt,
         title: 'Runtime error',

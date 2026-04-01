@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/utils/duration_utils.dart';
 import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
 class TurnElapsedFooter extends StatefulWidget {
@@ -17,7 +17,7 @@ class TurnElapsedFooter extends StatefulWidget {
     this.onRestart,
   });
 
-  final CodexSessionTurnTimer? turnTimer;
+  final TranscriptSessionTurnTimer? turnTimer;
   final Color? accent;
   final Future<void> Function()? onStop;
   final ChatLaneRestartActionContract? laneRestartAction;

@@ -1,7 +1,7 @@
-part of 'codex_runtime_event.dart';
+part of 'transcript_runtime_event.dart';
 
-final class CodexRuntimeWarningEvent extends CodexRuntimeEvent {
-  const CodexRuntimeWarningEvent({
+final class TranscriptRuntimeWarningEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeWarningEvent({
     required super.createdAt,
     required this.summary,
     super.threadId,
@@ -17,8 +17,9 @@ final class CodexRuntimeWarningEvent extends CodexRuntimeEvent {
   final String? details;
 }
 
-final class CodexRuntimeSshConnectFailedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSshConnectFailedEvent({
+final class TranscriptRuntimeSshConnectFailedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeSshConnectFailedEvent({
     required super.createdAt,
     required this.host,
     required this.port,
@@ -38,8 +39,9 @@ final class CodexRuntimeSshConnectFailedEvent extends CodexRuntimeEvent {
   final Object? detail;
 }
 
-final class CodexRuntimeUnpinnedHostKeyEvent extends CodexRuntimeEvent {
-  const CodexRuntimeUnpinnedHostKeyEvent({
+final class TranscriptRuntimeUnpinnedHostKeyEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeUnpinnedHostKeyEvent({
     required super.createdAt,
     required this.host,
     required this.port,
@@ -59,8 +61,9 @@ final class CodexRuntimeUnpinnedHostKeyEvent extends CodexRuntimeEvent {
   final String fingerprint;
 }
 
-final class CodexRuntimeSshHostKeyMismatchEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSshHostKeyMismatchEvent({
+final class TranscriptRuntimeSshHostKeyMismatchEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeSshHostKeyMismatchEvent({
     required super.createdAt,
     required this.host,
     required this.port,
@@ -82,8 +85,9 @@ final class CodexRuntimeSshHostKeyMismatchEvent extends CodexRuntimeEvent {
   final String actualFingerprint;
 }
 
-final class CodexRuntimeSshAuthenticationFailedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSshAuthenticationFailedEvent({
+final class TranscriptRuntimeSshAuthenticationFailedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeSshAuthenticationFailedEvent({
     required super.createdAt,
     required this.host,
     required this.port,
@@ -107,8 +111,9 @@ final class CodexRuntimeSshAuthenticationFailedEvent extends CodexRuntimeEvent {
   final Object? detail;
 }
 
-final class CodexRuntimeSshAuthenticatedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSshAuthenticatedEvent({
+final class TranscriptRuntimeSshAuthenticatedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeSshAuthenticatedEvent({
     required super.createdAt,
     required this.host,
     required this.port,
@@ -128,8 +133,8 @@ final class CodexRuntimeSshAuthenticatedEvent extends CodexRuntimeEvent {
   final AuthMode authMode;
 }
 
-final class CodexRuntimeStatusEvent extends CodexRuntimeEvent {
-  const CodexRuntimeStatusEvent({
+final class TranscriptRuntimeStatusEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeStatusEvent({
     required super.createdAt,
     required this.title,
     required this.message,
@@ -145,8 +150,8 @@ final class CodexRuntimeStatusEvent extends CodexRuntimeEvent {
   final String message;
 }
 
-final class CodexRuntimeErrorEvent extends CodexRuntimeEvent {
-  const CodexRuntimeErrorEvent({
+final class TranscriptRuntimeErrorEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeErrorEvent({
     required super.createdAt,
     required this.message,
     required this.errorClass,
@@ -160,6 +165,6 @@ final class CodexRuntimeErrorEvent extends CodexRuntimeEvent {
   });
 
   final String message;
-  final CodexRuntimeErrorClass errorClass;
+  final TranscriptRuntimeErrorClass errorClass;
   final Object? detail;
 }

@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/codex_runtime_payload_support.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
@@ -16,7 +16,7 @@ class CodexRuntimeEventMapper implements AgentAdapterRuntimeEventMapper {
   final _pendingRequests = <String, _PendingRequestInfo>{};
 
   @override
-  List<CodexRuntimeEvent> mapEvent(AgentAdapterEvent event) {
+  List<TranscriptRuntimeEvent> mapEvent(AgentAdapterEvent event) {
     final now = DateTime.now();
 
     if (event is AgentAdapterConnectedEvent ||
@@ -55,7 +55,7 @@ class _PendingRequestInfo {
     this.itemId,
   });
 
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final String? threadId;
   final String? turnId;
   final String? itemId;

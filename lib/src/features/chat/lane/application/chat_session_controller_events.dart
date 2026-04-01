@@ -14,19 +14,21 @@ void _handleChatSessionAppServerEvent(
   }
 
   final runtimeEvents = controller._runtimeEventMapper.mapEvent(event);
-  final codexEvents = runtimeEvents
-      .map(codexRuntimeEventFromAgentAdapter)
+  final transcriptEvents = runtimeEvents
+      .map(transcriptRuntimeEventFromAgentAdapter)
       .toList(growable: false);
   if (controller._isTrackingSshBootstrapFailures &&
-      codexEvents.any(controller._isSshBootstrapFailureRuntimeEvent)) {
+      transcriptEvents.any(controller._isSshBootstrapFailureRuntimeEvent)) {
     controller._sawTrackedSshBootstrapFailure = true;
   }
   if (controller._isTrackingSshBootstrapFailures &&
-      codexEvents.any((event) => event is CodexRuntimeUnpinnedHostKeyEvent)) {
+      transcriptEvents.any(
+        (event) => event is TranscriptRuntimeUnpinnedHostKeyEvent,
+      )) {
     controller._sawTrackedUnpinnedHostKeyFailure = true;
   }
 
-  for (final runtimeEvent in codexEvents) {
+  for (final runtimeEvent in transcriptEvents) {
     _applyChatSessionRuntimeEvent(controller, runtimeEvent);
   }
 }
@@ -59,7 +61,7 @@ Future<void> _handleUnsupportedChatSessionHostRequest(
 
   _applyChatSessionRuntimeEvent(
     controller,
-    CodexRuntimeStatusEvent(
+    TranscriptRuntimeStatusEvent(
       createdAt: DateTime.now(),
       threadId: threadId,
       turnId: turnId,
@@ -103,7 +105,7 @@ Future<void> _handleUnsupportedChatSessionHostRequest(
 
 void _applyChatSessionRuntimeEvent(
   ChatSessionController controller,
-  CodexRuntimeEvent event,
+  TranscriptRuntimeEvent event,
 ) {
   if (controller._isBufferingRuntimeEvents) {
     controller._bufferedRuntimeEvents.add(event);
@@ -115,7 +117,7 @@ void _applyChatSessionRuntimeEvent(
       event,
     ),
   );
-  if (event is CodexRuntimeThreadStartedEvent) {
+  if (event is TranscriptRuntimeThreadStartedEvent) {
     unawaited(_hydrateChatSessionThreadMetadataIfNeeded(controller, event));
   }
 }

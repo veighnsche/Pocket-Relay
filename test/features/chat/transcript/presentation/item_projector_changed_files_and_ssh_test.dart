@@ -7,12 +7,12 @@ void main() {
     test(
       'projects changed-files blocks into structured changed-files item contracts',
       () {
-        final block = CodexChangedFilesBlock(
+        final block = TranscriptChangedFilesBlock(
           id: 'changed_files_1',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Changed files',
-          files: const <CodexChangedFile>[
-            CodexChangedFile(path: 'lib/app.dart', additions: 1),
+          files: const <TranscriptChangedFile>[
+            TranscriptChangedFile(path: 'lib/app.dart', additions: 1),
           ],
           unifiedDiff:
               'diff --git a/lib/app.dart b/lib/app.dart\n'
@@ -50,12 +50,12 @@ void main() {
     test(
       'projects renamed files with current-path metadata and rename state',
       () {
-        final block = CodexChangedFilesBlock(
+        final block = TranscriptChangedFilesBlock(
           id: 'changed_files_rename_1',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Changed files',
-          files: const <CodexChangedFile>[
-            CodexChangedFile(path: 'lib/new.dart'),
+          files: const <TranscriptChangedFile>[
+            TranscriptChangedFile(path: 'lib/new.dart'),
           ],
           unifiedDiff:
               'diff --git a/lib/old.dart b/lib/new.dart\n'
@@ -85,12 +85,12 @@ void main() {
     test(
       'keeps hunk lines that look like diff headers as real additions and deletions',
       () {
-        final block = CodexChangedFilesBlock(
+        final block = TranscriptChangedFilesBlock(
           id: 'changed_files_header_like_lines_1',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Changed files',
-          files: const <CodexChangedFile>[
-            CodexChangedFile(path: 'lib/app.dart'),
+          files: const <TranscriptChangedFile>[
+            TranscriptChangedFile(path: 'lib/app.dart'),
           ],
           unifiedDiff:
               'diff --git a/lib/app.dart b/lib/app.dart\n'
@@ -116,12 +116,12 @@ void main() {
     );
 
     test('projects binary diffs as binary review items', () {
-      final block = CodexChangedFilesBlock(
+      final block = TranscriptChangedFilesBlock(
         id: 'changed_files_binary_1',
         createdAt: DateTime(2026, 3, 15, 12),
         title: 'Changed files',
-        files: const <CodexChangedFile>[
-          CodexChangedFile(path: 'assets/logo.png'),
+        files: const <TranscriptChangedFile>[
+          TranscriptChangedFile(path: 'assets/logo.png'),
         ],
         unifiedDiff:
             'diff --git a/assets/logo.png b/assets/logo.png\n'
@@ -140,7 +140,7 @@ void main() {
     });
 
     test('projects SSH transcript blocks into SSH item contracts', () {
-      final block = CodexSshConnectFailedBlock(
+      final block = TranscriptSshConnectFailedBlock(
         id: 'ssh_connect_failed_1',
         createdAt: DateTime(2026, 3, 15, 12),
         host: 'example.com',
@@ -158,13 +158,13 @@ void main() {
     test(
       'derives changed-files header totals from resolved row stats when file payloads are partial',
       () {
-        final block = CodexChangedFilesBlock(
+        final block = TranscriptChangedFilesBlock(
           id: 'changed_files_mixed_1',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Changed files',
-          files: const <CodexChangedFile>[
-            CodexChangedFile(path: 'README.md', additions: 1),
-            CodexChangedFile(path: 'lib/app.dart'),
+          files: const <TranscriptChangedFile>[
+            TranscriptChangedFile(path: 'README.md', additions: 1),
+            TranscriptChangedFile(path: 'lib/app.dart'),
           ],
           unifiedDiff:
               'diff --git a/README.md b/README.md\n'

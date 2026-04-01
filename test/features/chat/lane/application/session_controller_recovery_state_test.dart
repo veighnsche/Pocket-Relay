@@ -96,13 +96,13 @@ void main() {
         ChatConversationRecoveryReason.missingRemoteConversation,
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         <String>['First prompt', 'Second prompt'],
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexErrorBlock>().last.body,
+        controller.transcriptBlocks.whereType<TranscriptErrorBlock>().last.body,
         '[${PocketErrorCatalog.chatSessionSendConversationUnavailable.code}] Conversation unavailable. Could not continue this conversation because the remote conversation was not found. Start a fresh conversation to continue.',
       );
     },
@@ -152,7 +152,7 @@ void main() {
         'thread_new',
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexErrorBlock>().last.body,
+        controller.transcriptBlocks.whereType<TranscriptErrorBlock>().last.body,
         '[${PocketErrorCatalog.chatSessionSendConversationChanged.code}] Conversation changed. Pocket Relay expected remote conversation "thread_old", but the remote session returned "thread_new". Sending is blocked to avoid attaching your draft to a different conversation.',
       );
     },
@@ -300,7 +300,7 @@ void main() {
     expect(await controller.sendPrompt('Keep running'), isTrue);
     final originalRootThreadId = controller.sessionState.rootThreadId;
     final originalUserTexts = controller.transcriptBlocks
-        .whereType<CodexUserMessageBlock>()
+        .whereType<TranscriptUserMessageBlock>()
         .map((block) => block.text)
         .toList(growable: false);
     final snackBarMessage = controller.snackBarMessages.first.timeout(
@@ -311,7 +311,7 @@ void main() {
 
     expect(controller.sessionState.rootThreadId, originalRootThreadId);
     expect(
-      controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+      controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
         (block) => block.text,
       ),
       originalUserTexts,

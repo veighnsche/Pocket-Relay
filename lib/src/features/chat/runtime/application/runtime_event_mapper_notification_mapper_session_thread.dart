@@ -1,6 +1,6 @@
 part of 'runtime_event_mapper.dart';
 
-List<CodexRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
+List<TranscriptRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
   AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, dynamic>? payload,
@@ -8,20 +8,20 @@ List<CodexRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
 }) {
   switch (event.method) {
     case 'session/connecting':
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSessionStateChangedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSessionStateChangedEvent(
           createdAt: now,
-          state: CodexRuntimeSessionState.starting,
+          state: TranscriptRuntimeSessionState.starting,
           reason: _eventReason(payload) ?? 'Starting app-server session.',
           rawMethod: event.method,
           rawPayload: event.params,
         ),
       ];
     case 'session/ready':
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSessionStateChangedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSessionStateChangedEvent(
           createdAt: now,
-          state: CodexRuntimeSessionState.ready,
+          state: TranscriptRuntimeSessionState.ready,
           reason: _eventReason(payload),
           rawMethod: event.method,
           rawPayload: event.params,
@@ -30,12 +30,12 @@ List<CodexRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
     case 'session/exited':
     case 'session/closed':
       pendingRequests.clear();
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSessionExitedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSessionExitedEvent(
           createdAt: now,
           exitKind: event.method == 'session/closed'
-              ? CodexRuntimeSessionExitKind.graceful
-              : CodexRuntimeSessionExitKind.error,
+              ? TranscriptRuntimeSessionExitKind.graceful
+              : TranscriptRuntimeSessionExitKind.error,
           exitCode: _asInt(payload?['exitCode']),
           reason: _eventReason(payload),
           rawMethod: event.method,
@@ -47,11 +47,11 @@ List<CodexRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
       final providerThreadId =
           _asString(thread?['id']) ?? _asString(payload?['threadId']);
       if (providerThreadId == null || providerThreadId.isEmpty) {
-        return const <CodexRuntimeEvent>[];
+        return const <TranscriptRuntimeEvent>[];
       }
 
-      return <CodexRuntimeEvent>[
-        CodexRuntimeThreadStartedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeThreadStartedEvent(
           createdAt: now,
           threadId: providerThreadId,
           providerThreadId: providerThreadId,
@@ -69,8 +69,8 @@ List<CodexRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
     case 'thread/closed':
     case 'thread/compacted':
       final threadId = _asString(payload?['threadId']);
-      return <CodexRuntimeEvent>[
-        CodexRuntimeThreadStateChangedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeThreadStateChangedEvent(
           createdAt: now,
           threadId: threadId,
           state: _threadStateFor(event.method, payload),

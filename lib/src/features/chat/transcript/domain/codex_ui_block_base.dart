@@ -1,6 +1,6 @@
-part of 'codex_ui_block.dart';
+part of 'transcript_ui_block.dart';
 
-enum CodexUiBlockKind {
+enum TranscriptUiBlockKind {
   userMessage,
   assistantMessage,
   reasoning,
@@ -17,20 +17,20 @@ enum CodexUiBlockKind {
   turnBoundary,
 }
 
-sealed class CodexUiBlock {
-  const CodexUiBlock({
+sealed class TranscriptUiBlock {
+  const TranscriptUiBlock({
     required this.id,
     required this.kind,
     required this.createdAt,
   });
 
   final String id;
-  final CodexUiBlockKind kind;
+  final TranscriptUiBlockKind kind;
   final DateTime createdAt;
 }
 
-class CodexChangedFile {
-  const CodexChangedFile({
+class TranscriptChangedFile {
+  const TranscriptChangedFile({
     required this.path,
     this.movePath,
     this.additions = 0,
@@ -42,13 +42,13 @@ class CodexChangedFile {
   final int additions;
   final int deletions;
 
-  CodexChangedFile copyWith({
+  TranscriptChangedFile copyWith({
     String? path,
     Object? movePath = _unchangedMovePath,
     int? additions,
     int? deletions,
   }) {
-    return CodexChangedFile(
+    return TranscriptChangedFile(
       path: path ?? this.path,
       movePath: identical(movePath, _unchangedMovePath)
           ? this.movePath
@@ -61,7 +61,7 @@ class CodexChangedFile {
 
 const Object _unchangedMovePath = Object();
 
-enum CodexWorkLogEntryKind {
+enum TranscriptWorkLogEntryKind {
   commandExecution,
   webSearch,
   imageView,
@@ -72,8 +72,8 @@ enum CodexWorkLogEntryKind {
   unknown,
 }
 
-class CodexWorkLogEntry {
-  const CodexWorkLogEntry({
+class TranscriptWorkLogEntry {
+  const TranscriptWorkLogEntry({
     required this.id,
     required this.createdAt,
     required this.entryKind,
@@ -90,7 +90,7 @@ class CodexWorkLogEntry {
 
   final String id;
   final DateTime createdAt;
-  final CodexWorkLogEntryKind entryKind;
+  final TranscriptWorkLogEntryKind entryKind;
   final String title;
   final String? itemId;
   final String? threadId;
@@ -101,9 +101,9 @@ class CodexWorkLogEntry {
   final int? exitCode;
   final Map<String, dynamic>? snapshot;
 
-  CodexWorkLogEntry copyWith({
+  TranscriptWorkLogEntry copyWith({
     DateTime? createdAt,
-    CodexWorkLogEntryKind? entryKind,
+    TranscriptWorkLogEntryKind? entryKind,
     String? title,
     String? itemId,
     String? threadId,
@@ -114,7 +114,7 @@ class CodexWorkLogEntry {
     int? exitCode,
     Map<String, dynamic>? snapshot,
   }) {
-    return CodexWorkLogEntry(
+    return TranscriptWorkLogEntry(
       id: id,
       createdAt: createdAt ?? this.createdAt,
       entryKind: entryKind ?? this.entryKind,
@@ -131,33 +131,33 @@ class CodexWorkLogEntry {
   }
 }
 
-final class CodexUserMessageBlock extends CodexUiBlock {
-  const CodexUserMessageBlock({
+final class TranscriptUserMessageBlock extends TranscriptUiBlock {
+  const TranscriptUserMessageBlock({
     required super.id,
     required super.createdAt,
     required this.text,
     required this.deliveryState,
     this.structuredDraft,
     this.providerItemId,
-  }) : super(kind: CodexUiBlockKind.userMessage);
+  }) : super(kind: TranscriptUiBlockKind.userMessage);
 
   final String text;
-  final CodexUserMessageDeliveryState deliveryState;
+  final TranscriptUserMessageDeliveryState deliveryState;
   final ChatComposerDraft? structuredDraft;
   final String? providerItemId;
 
   ChatComposerDraft get draft =>
       structuredDraft ?? ChatComposerDraft(text: text);
 
-  CodexUserMessageBlock copyWith({
+  TranscriptUserMessageBlock copyWith({
     String? text,
-    CodexUserMessageDeliveryState? deliveryState,
+    TranscriptUserMessageDeliveryState? deliveryState,
     ChatComposerDraft? structuredDraft,
     bool clearStructuredDraft = false,
     String? providerItemId,
     bool clearProviderItemId = false,
   }) {
-    return CodexUserMessageBlock(
+    return TranscriptUserMessageBlock(
       id: id,
       createdAt: createdAt,
       text: text ?? this.text,
@@ -172,4 +172,4 @@ final class CodexUserMessageBlock extends CodexUiBlock {
   }
 }
 
-enum CodexUserMessageDeliveryState { localEcho, sent }
+enum TranscriptUserMessageDeliveryState { localEcho, sent }

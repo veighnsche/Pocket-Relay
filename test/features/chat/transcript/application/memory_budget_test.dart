@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_memory_budget.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 void main() {
   const budget = TranscriptMemoryBudget();
 
   test('sanitizes work-log snapshots down to relevant bounded fields', () {
     final snapshot = budget.retainWorkLogSnapshot(
-      CodexCanonicalItemType.mcpToolCall,
+      TranscriptCanonicalItemType.mcpToolCall,
       <String, dynamic>{
         'server': 'filesystem',
         'tool': 'write_file',

@@ -1,7 +1,7 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_reducer.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 
 class ChatHistoricalConversationRestorer {
   const ChatHistoricalConversationRestorer({
@@ -10,17 +10,18 @@ class ChatHistoricalConversationRestorer {
 
   final TranscriptReducer _reducer;
 
-  CodexSessionState restore(
+  TranscriptSessionState restore(
     CodexHistoricalConversation conversation, {
-    CodexRuntimeSessionState connectionStatus = CodexRuntimeSessionState.ready,
+    TranscriptRuntimeSessionState connectionStatus =
+        TranscriptRuntimeSessionState.ready,
   }) {
-    var nextState = CodexSessionState.transcript(
+    var nextState = TranscriptSessionState.transcript(
       connectionStatus: connectionStatus,
     );
 
     nextState = _reducer.reduceRuntimeEvent(
       nextState,
-      CodexRuntimeThreadStartedEvent(
+      TranscriptRuntimeThreadStartedEvent(
         createdAt: conversation.createdAt,
         threadId: conversation.threadId,
         providerThreadId: conversation.threadId,
@@ -35,7 +36,7 @@ class ChatHistoricalConversationRestorer {
     for (final turn in conversation.turns) {
       nextState = _reducer.reduceRuntimeEvent(
         nextState,
-        CodexRuntimeTurnStartedEvent(
+        TranscriptRuntimeTurnStartedEvent(
           createdAt: turn.createdAt,
           threadId: turn.threadId,
           turnId: turn.id,
@@ -62,7 +63,7 @@ class ChatHistoricalConversationRestorer {
       if (turn.isCompleted) {
         nextState = _reducer.reduceRuntimeEvent(
           nextState,
-          CodexRuntimeTurnCompletedEvent(
+          TranscriptRuntimeTurnCompletedEvent(
             createdAt: turn.completedAt!,
             threadId: turn.threadId,
             turnId: turn.id,
@@ -82,12 +83,12 @@ class ChatHistoricalConversationRestorer {
     return nextState;
   }
 
-  CodexRuntimeItemLifecycleEvent _buildLifecycleEvent(
+  TranscriptRuntimeItemLifecycleEvent _buildLifecycleEvent(
     CodexHistoricalEntry entry, {
     required Object? rawPayload,
   }) {
-    if (entry.status == CodexRuntimeItemStatus.inProgress) {
-      return CodexRuntimeItemStartedEvent(
+    if (entry.status == TranscriptRuntimeItemStatus.inProgress) {
+      return TranscriptRuntimeItemStartedEvent(
         createdAt: entry.createdAt,
         itemType: entry.itemType,
         threadId: entry.threadId,
@@ -103,7 +104,7 @@ class ChatHistoricalConversationRestorer {
       );
     }
 
-    return CodexRuntimeItemCompletedEvent(
+    return TranscriptRuntimeItemCompletedEvent(
       createdAt: entry.createdAt,
       itemType: entry.itemType,
       threadId: entry.threadId,

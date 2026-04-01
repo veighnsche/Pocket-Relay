@@ -36,7 +36,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final block = controller.transcriptBlocks
-          .whereType<CodexSshUnpinnedHostKeyBlock>()
+          .whereType<TranscriptSshUnpinnedHostKeyBlock>()
           .single;
 
       await controller.saveObservedHostFingerprint(block.id);
@@ -49,7 +49,7 @@ void main() {
       );
       expect(
         controller.transcriptBlocks
-            .whereType<CodexSshUnpinnedHostKeyBlock>()
+            .whereType<TranscriptSshUnpinnedHostKeyBlock>()
             .single
             .isSaved,
         isTrue,
@@ -126,7 +126,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final block = controller.transcriptBlocks
-          .whereType<CodexSshUnpinnedHostKeyBlock>()
+          .whereType<TranscriptSshUnpinnedHostKeyBlock>()
           .single;
       final snackBarMessage = controller.snackBarMessages.first.timeout(
         const Duration(seconds: 1),
@@ -141,7 +141,7 @@ void main() {
       expect(controller.profile.hostFingerprint, isEmpty);
       expect(
         controller.transcriptBlocks
-            .whereType<CodexSshUnpinnedHostKeyBlock>()
+            .whereType<TranscriptSshUnpinnedHostKeyBlock>()
             .single
             .isSaved,
         isFalse,
@@ -187,10 +187,14 @@ void main() {
 
       expect(sent, isFalse);
       expect(
-        controller.transcriptBlocks.whereType<CodexSshUnpinnedHostKeyBlock>(),
+        controller.transcriptBlocks
+            .whereType<TranscriptSshUnpinnedHostKeyBlock>(),
         hasLength(1),
       );
-      expect(controller.transcriptBlocks.whereType<CodexErrorBlock>(), isEmpty);
+      expect(
+        controller.transcriptBlocks.whereType<TranscriptErrorBlock>(),
+        isEmpty,
+      );
       await expectLater(snackBarMessage, throwsA(isA<TimeoutException>()));
     },
   );
@@ -232,7 +236,7 @@ void main() {
 
       expect(sent, isFalse);
       final errors = controller.transcriptBlocks
-          .whereType<CodexSshConnectFailedBlock>()
+          .whereType<TranscriptSshConnectFailedBlock>()
           .toList(growable: false);
       expect(errors, hasLength(1));
       expect(errors.single.message, contains('Connection refused'));
@@ -338,7 +342,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final changedFilesBlocks = controller.transcriptBlocks
-          .whereType<CodexChangedFilesBlock>()
+          .whereType<TranscriptChangedFilesBlock>()
           .toList(growable: false);
 
       expect(changedFilesBlocks, hasLength(2));
@@ -352,7 +356,7 @@ void main() {
       expect(changedFilesBlocks.first.files.single.path, 'README.md');
       expect(changedFilesBlocks.last.files, hasLength(2));
       expect(
-        controller.transcriptBlocks.whereType<CodexApprovalRequestBlock>(),
+        controller.transcriptBlocks.whereType<TranscriptApprovalRequestBlock>(),
         isNotEmpty,
       );
     },

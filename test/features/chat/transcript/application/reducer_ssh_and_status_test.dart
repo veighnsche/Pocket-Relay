@@ -14,14 +14,14 @@ void main() {
 
   test('keeps warnings and errors non-fatal to the UI state', () {
     final reducer = TranscriptReducer();
-    var state = const CodexSessionState(
-      connectionStatus: CodexRuntimeSessionState.ready,
+    var state = const TranscriptSessionState(
+      connectionStatus: TranscriptRuntimeSessionState.ready,
     );
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeWarningEvent(
+      TranscriptRuntimeWarningEvent(
         createdAt: now,
         summary: 'Config warning',
         details: 'Bad config value',
@@ -29,30 +29,30 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeErrorEvent(
+      TranscriptRuntimeErrorEvent(
         createdAt: now,
         message: 'Command failed',
-        errorClass: CodexRuntimeErrorClass.providerError,
+        errorClass: TranscriptRuntimeErrorClass.providerError,
       ),
     );
 
-    expect(state.connectionStatus, CodexRuntimeSessionState.ready);
+    expect(state.connectionStatus, TranscriptRuntimeSessionState.ready);
     expect(state.blocks, hasLength(2));
-    expect(state.blocks.first, isA<CodexStatusBlock>());
-    expect(state.blocks.last, isA<CodexErrorBlock>());
+    expect(state.blocks.first, isA<TranscriptStatusBlock>());
+    expect(state.blocks.last, isA<TranscriptErrorBlock>());
     expect(
-      (state.blocks.first as CodexStatusBlock).statusKind,
-      CodexStatusBlockKind.warning,
+      (state.blocks.first as TranscriptStatusBlock).statusKind,
+      TranscriptStatusBlockKind.warning,
     );
   });
 
   test('deduplicates repeated unpinned host key prompts', () {
     final reducer = TranscriptReducer();
-    var state = const CodexSessionState(
-      connectionStatus: CodexRuntimeSessionState.ready,
+    var state = const TranscriptSessionState(
+      connectionStatus: TranscriptRuntimeSessionState.ready,
     );
     final now = DateTime(2026, 3, 14, 12);
-    final event = CodexRuntimeUnpinnedHostKeyEvent(
+    final event = TranscriptRuntimeUnpinnedHostKeyEvent(
       createdAt: now,
       host: '192.168.178.164',
       port: 22,
@@ -63,21 +63,21 @@ void main() {
     state = reducer.reduceRuntimeEvent(state, event);
     state = reducer.reduceRuntimeEvent(state, event);
 
-    expect(state.connectionStatus, CodexRuntimeSessionState.ready);
+    expect(state.connectionStatus, TranscriptRuntimeSessionState.ready);
     expect(state.blocks, hasLength(1));
-    expect(state.blocks.single, isA<CodexSshUnpinnedHostKeyBlock>());
+    expect(state.blocks.single, isA<TranscriptSshUnpinnedHostKeyBlock>());
   });
 
   test('projects typed SSH failures into dedicated transcript SSH blocks', () {
     final reducer = TranscriptReducer();
-    var state = const CodexSessionState(
-      connectionStatus: CodexRuntimeSessionState.ready,
+    var state = const TranscriptSessionState(
+      connectionStatus: TranscriptRuntimeSessionState.ready,
     );
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSshConnectFailedEvent(
+      TranscriptRuntimeSshConnectFailedEvent(
         createdAt: now,
         host: '192.168.178.164',
         port: 22,
@@ -86,7 +86,7 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSshHostKeyMismatchEvent(
+      TranscriptRuntimeSshHostKeyMismatchEvent(
         createdAt: now.add(const Duration(milliseconds: 1)),
         host: '192.168.178.164',
         port: 22,
@@ -97,7 +97,7 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSshAuthenticationFailedEvent(
+      TranscriptRuntimeSshAuthenticationFailedEvent(
         createdAt: now.add(const Duration(milliseconds: 2)),
         host: '192.168.178.164',
         port: 22,
@@ -108,33 +108,34 @@ void main() {
     );
 
     expect(state.blocks, hasLength(3));
-    expect(state.blocks[0], isA<CodexSshConnectFailedBlock>());
+    expect(state.blocks[0], isA<TranscriptSshConnectFailedBlock>());
     expect(
-      (state.blocks[0] as CodexSshConnectFailedBlock).message,
+      (state.blocks[0] as TranscriptSshConnectFailedBlock).message,
       'Connection refused',
     );
-    expect(state.blocks[1], isA<CodexSshHostKeyMismatchBlock>());
+    expect(state.blocks[1], isA<TranscriptSshHostKeyMismatchBlock>());
     expect(
-      (state.blocks[1] as CodexSshHostKeyMismatchBlock).expectedFingerprint,
+      (state.blocks[1] as TranscriptSshHostKeyMismatchBlock)
+          .expectedFingerprint,
       'aa:bb:cc',
     );
-    expect(state.blocks[2], isA<CodexSshAuthenticationFailedBlock>());
+    expect(state.blocks[2], isA<TranscriptSshAuthenticationFailedBlock>());
     expect(
-      (state.blocks[2] as CodexSshAuthenticationFailedBlock).authMode,
+      (state.blocks[2] as TranscriptSshAuthenticationFailedBlock).authMode,
       AuthMode.privateKey,
     );
   });
 
   test('upserts repeated identical SSH failures instead of appending them', () {
     final reducer = TranscriptReducer();
-    var state = const CodexSessionState(
-      connectionStatus: CodexRuntimeSessionState.ready,
+    var state = const TranscriptSessionState(
+      connectionStatus: TranscriptRuntimeSessionState.ready,
     );
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSshConnectFailedEvent(
+      TranscriptRuntimeSshConnectFailedEvent(
         createdAt: now,
         host: '192.168.178.164',
         port: 22,
@@ -143,7 +144,7 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSshConnectFailedEvent(
+      TranscriptRuntimeSshConnectFailedEvent(
         createdAt: now.add(const Duration(seconds: 1)),
         host: '192.168.178.164',
         port: 22,
@@ -152,23 +153,23 @@ void main() {
     );
 
     expect(state.blocks, hasLength(1));
-    expect(state.blocks.single, isA<CodexSshConnectFailedBlock>());
+    expect(state.blocks.single, isA<TranscriptSshConnectFailedBlock>());
     expect(
-      (state.blocks.single as CodexSshConnectFailedBlock).message,
+      (state.blocks.single as TranscriptSshConnectFailedBlock).message,
       'Timed out',
     );
   });
 
   test('keeps SSH authentication milestones non-visible by default', () {
     final reducer = TranscriptReducer();
-    var state = const CodexSessionState(
-      connectionStatus: CodexRuntimeSessionState.ready,
+    var state = const TranscriptSessionState(
+      connectionStatus: TranscriptRuntimeSessionState.ready,
     );
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSshAuthenticatedEvent(
+      TranscriptRuntimeSshAuthenticatedEvent(
         createdAt: now,
         host: '192.168.178.164',
         port: 22,
@@ -179,17 +180,17 @@ void main() {
 
     expect(state.blocks, isEmpty);
     expect(state.transcriptBlocks, isEmpty);
-    expect(state.connectionStatus, CodexRuntimeSessionState.ready);
+    expect(state.connectionStatus, TranscriptRuntimeSessionState.ready);
   });
 
   test('hides non-signal status events and defers thread token usage', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeStatusEvent(
+      TranscriptRuntimeStatusEvent(
         createdAt: now,
         rawMethod: 'unknown/method',
         title: 'Unknown Method',
@@ -202,7 +203,7 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: now,
         threadId: 'thread_123',
         turnId: 'turn_123',
@@ -211,7 +212,7 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeStatusEvent(
+      TranscriptRuntimeStatusEvent(
         createdAt: now.add(const Duration(seconds: 1)),
         threadId: 'thread_123',
         rawMethod: 'thread/tokenUsage/updated',
@@ -226,7 +227,7 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeStatusEvent(
+      TranscriptRuntimeStatusEvent(
         createdAt: now.add(const Duration(seconds: 2)),
         threadId: 'thread_123',
         rawMethod: 'thread/tokenUsage/updated',
@@ -243,12 +244,12 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnCompletedEvent(
+      TranscriptRuntimeTurnCompletedEvent(
         createdAt: now.add(const Duration(seconds: 3)),
         threadId: 'thread_123',
         turnId: 'turn_123',
-        state: CodexRuntimeTurnState.completed,
-        usage: const CodexRuntimeTurnUsage(
+        state: TranscriptRuntimeTurnState.completed,
+        usage: const TranscriptRuntimeTurnUsage(
           inputTokens: 12,
           cachedInputTokens: 3,
           outputTokens: 7,
@@ -258,11 +259,11 @@ void main() {
 
     expect(state.activeTurn, isNull);
     expect(state.blocks, hasLength(1));
-    final boundary = state.blocks.single as CodexTurnBoundaryBlock;
+    final boundary = state.blocks.single as TranscriptTurnBoundaryBlock;
     expect(boundary.usage, isNotNull);
     expect(boundary.usage?.title, 'Thread token usage');
     expect(boundary.usage?.body, contains('input 24'));
     expect(state.transcriptBlocks, hasLength(1));
-    expect(state.transcriptBlocks.single, isA<CodexTurnBoundaryBlock>());
+    expect(state.transcriptBlocks.single, isA<TranscriptTurnBoundaryBlock>());
   });
 }

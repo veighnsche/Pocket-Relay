@@ -61,7 +61,7 @@ void main() {
                 ChatTimelineSummaryContract(
                   threadId: 'thread_root',
                   label: 'Main',
-                  status: CodexAgentLifecycleState.running,
+                  status: TranscriptAgentLifecycleState.running,
                   isPrimary: true,
                   isSelected: true,
                   isClosed: false,
@@ -71,7 +71,7 @@ void main() {
                 ChatTimelineSummaryContract(
                   threadId: 'thread_child',
                   label: 'Reviewer',
-                  status: CodexAgentLifecycleState.blockedOnApproval,
+                  status: TranscriptAgentLifecycleState.blockedOnApproval,
                   isPrimary: false,
                   isSelected: false,
                   isClosed: false,
@@ -125,11 +125,11 @@ void main() {
               screen: screenContract(
                 mainItems: <ChatTranscriptItemContract>[
                   ChatUserMessageItemContract(
-                    block: CodexUserMessageBlock(
+                    block: TranscriptUserMessageBlock(
                       id: 'user_1',
                       createdAt: DateTime(2026, 3, 22, 12),
                       text: imageDraft.text,
-                      deliveryState: CodexUserMessageDeliveryState.sent,
+                      deliveryState: TranscriptUserMessageDeliveryState.sent,
                       structuredDraft: imageDraft,
                     ),
                   ),

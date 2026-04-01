@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_draft.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_form_scope.dart';
@@ -14,17 +14,17 @@ void main() {
         id: 'input_1',
         createdAt: DateTime(2026, 3, 15, 12),
         requestId: 'input_1',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: 'Codex needs clarification.',
         isResolved: false,
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Project',
             question: 'Which project should I use?',
-            options: <CodexRuntimeUserInputOption>[
-              CodexRuntimeUserInputOption(
+            options: <TranscriptRuntimeUserInputOption>[
+              TranscriptRuntimeUserInputOption(
                 label: 'Pocket Relay',
                 description: 'Use the mobile app project.',
               ),
@@ -66,7 +66,7 @@ void main() {
         id: 'input_2',
         createdAt: DateTime(2026, 3, 15, 12),
         requestId: 'input_2',
-        requestType: CodexCanonicalRequestType.mcpServerElicitation,
+        requestType: TranscriptCanonicalRequestType.mcpServerElicitation,
         title: 'MCP input required',
         body: 'Choose a directory.',
         isResolved: false,
@@ -101,17 +101,17 @@ void main() {
         id: 'input_3',
         createdAt: DateTime(2026, 3, 15, 12),
         requestId: 'input_3',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: 'Need both answers.',
         isResolved: false,
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Workspace',
             question: 'Which workspace should I use?',
           ),
-          CodexRuntimeUserInputQuestion(
+          TranscriptRuntimeUserInputQuestion(
             id: 'q2',
             header: 'Notes',
             question: 'Anything else?',
@@ -142,11 +142,11 @@ void main() {
         id: 'input_4',
         createdAt: DateTime(2026, 3, 15, 12),
         requestId: 'input_4',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input submitted',
         body: 'q1: Vince',
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Name',
             question: 'What is your name?',
@@ -176,12 +176,12 @@ void main() {
         id: 'input_5',
         createdAt: DateTime(2026, 3, 15, 12),
         requestId: 'input_5',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: 'Need clarification.',
         isResolved: false,
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Project',
             question: 'Which project?',
@@ -218,12 +218,12 @@ void main() {
           id: 'input_store_1',
           createdAt: DateTime(2026, 3, 15, 12),
           requestId: 'input_store_1',
-          requestType: CodexCanonicalRequestType.toolUserInput,
+          requestType: TranscriptCanonicalRequestType.toolUserInput,
           title: 'Input required',
           body: 'Need clarification.',
           isResolved: false,
-          questions: const <CodexRuntimeUserInputQuestion>[
-            CodexRuntimeUserInputQuestion(
+          questions: const <TranscriptRuntimeUserInputQuestion>[
+            TranscriptRuntimeUserInputQuestion(
               id: 'q1',
               header: 'Project',
               question: 'Which project?',

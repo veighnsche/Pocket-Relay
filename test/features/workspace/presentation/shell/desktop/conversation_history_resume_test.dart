@@ -83,7 +83,7 @@ void main() {
       expect(find.text('Restored answer'), findsOneWidget);
       expect(
         controller.selectedLaneBinding!.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
+            .whereType<TranscriptTextBlock>()
             .single
             .body,
         'Restored answer',

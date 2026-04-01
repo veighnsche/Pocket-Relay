@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 class TranscriptPalette {
   const TranscriptPalette({
@@ -91,23 +91,24 @@ class BlockPalette {
   final IconData icon;
 }
 
-BlockPalette paletteFor(CodexUiBlockKind kind, Brightness brightness) {
+BlockPalette paletteFor(TranscriptUiBlockKind kind, Brightness brightness) {
   return switch (kind) {
-    CodexUiBlockKind.reasoning => BlockPalette(
+    TranscriptUiBlockKind.reasoning => BlockPalette(
       accent: violetAccent(brightness),
       border: violetAccent(
         brightness,
       ).withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.3),
       icon: Icons.psychology_alt_outlined,
     ),
-    CodexUiBlockKind.plan || CodexUiBlockKind.proposedPlan => BlockPalette(
+    TranscriptUiBlockKind.plan ||
+    TranscriptUiBlockKind.proposedPlan => BlockPalette(
       accent: blueAccent(brightness),
       border: blueAccent(
         brightness,
       ).withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.28),
       icon: Icons.checklist_rtl,
     ),
-    CodexUiBlockKind.changedFiles => BlockPalette(
+    TranscriptUiBlockKind.changedFiles => BlockPalette(
       accent: amberAccent(brightness),
       border: amberAccent(
         brightness,
@@ -141,11 +142,11 @@ class PlanStepStatusPresentation {
 }
 
 PlanStepStatusPresentation planStepStatus(
-  CodexRuntimePlanStepStatus status,
+  TranscriptRuntimePlanStepStatus status,
   TranscriptPalette cards,
 ) {
   return switch (status) {
-    CodexRuntimePlanStepStatus.completed => PlanStepStatusPresentation(
+    TranscriptRuntimePlanStepStatus.completed => PlanStepStatusPresentation(
       label: 'done',
       accent: tealAccent(cards.brightness),
       border: cards.accentBorder(
@@ -160,7 +161,7 @@ PlanStepStatusPresentation planStepStatus(
       ),
       icon: Icons.check_circle_outline,
     ),
-    CodexRuntimePlanStepStatus.inProgress => PlanStepStatusPresentation(
+    TranscriptRuntimePlanStepStatus.inProgress => PlanStepStatusPresentation(
       label: 'active',
       accent: blueAccent(cards.brightness),
       border: cards.accentBorder(
@@ -175,7 +176,7 @@ PlanStepStatusPresentation planStepStatus(
       ),
       icon: Icons.timelapse_outlined,
     ),
-    CodexRuntimePlanStepStatus.pending => PlanStepStatusPresentation(
+    TranscriptRuntimePlanStepStatus.pending => PlanStepStatusPresentation(
       label: 'pending',
       accent: neutralAccent(cards.brightness),
       border: cards.accentBorder(
@@ -193,29 +194,29 @@ PlanStepStatusPresentation planStepStatus(
   };
 }
 
-IconData workLogIcon(CodexWorkLogEntryKind kind) {
+IconData workLogIcon(TranscriptWorkLogEntryKind kind) {
   return switch (kind) {
-    CodexWorkLogEntryKind.commandExecution => Icons.terminal,
-    CodexWorkLogEntryKind.webSearch => Icons.travel_explore,
-    CodexWorkLogEntryKind.imageView => Icons.image_outlined,
-    CodexWorkLogEntryKind.imageGeneration => Icons.auto_awesome_outlined,
-    CodexWorkLogEntryKind.mcpToolCall => Icons.extension_outlined,
-    CodexWorkLogEntryKind.dynamicToolCall => Icons.build_outlined,
-    CodexWorkLogEntryKind.collabAgentToolCall => Icons.groups_2_outlined,
-    CodexWorkLogEntryKind.unknown => Icons.auto_awesome,
+    TranscriptWorkLogEntryKind.commandExecution => Icons.terminal,
+    TranscriptWorkLogEntryKind.webSearch => Icons.travel_explore,
+    TranscriptWorkLogEntryKind.imageView => Icons.image_outlined,
+    TranscriptWorkLogEntryKind.imageGeneration => Icons.auto_awesome_outlined,
+    TranscriptWorkLogEntryKind.mcpToolCall => Icons.extension_outlined,
+    TranscriptWorkLogEntryKind.dynamicToolCall => Icons.build_outlined,
+    TranscriptWorkLogEntryKind.collabAgentToolCall => Icons.groups_2_outlined,
+    TranscriptWorkLogEntryKind.unknown => Icons.auto_awesome,
   };
 }
 
-Color workLogAccent(CodexWorkLogEntryKind kind, Brightness brightness) {
+Color workLogAccent(TranscriptWorkLogEntryKind kind, Brightness brightness) {
   return switch (kind) {
-    CodexWorkLogEntryKind.commandExecution => blueAccent(brightness),
-    CodexWorkLogEntryKind.webSearch => tealAccent(brightness),
-    CodexWorkLogEntryKind.imageView => violetAccent(brightness),
-    CodexWorkLogEntryKind.imageGeneration => pinkAccent(brightness),
-    CodexWorkLogEntryKind.mcpToolCall => amberAccent(brightness),
-    CodexWorkLogEntryKind.dynamicToolCall => redAccent(brightness),
-    CodexWorkLogEntryKind.collabAgentToolCall => purpleAccent(brightness),
-    CodexWorkLogEntryKind.unknown => tealAccent(brightness),
+    TranscriptWorkLogEntryKind.commandExecution => blueAccent(brightness),
+    TranscriptWorkLogEntryKind.webSearch => tealAccent(brightness),
+    TranscriptWorkLogEntryKind.imageView => violetAccent(brightness),
+    TranscriptWorkLogEntryKind.imageGeneration => pinkAccent(brightness),
+    TranscriptWorkLogEntryKind.mcpToolCall => amberAccent(brightness),
+    TranscriptWorkLogEntryKind.dynamicToolCall => redAccent(brightness),
+    TranscriptWorkLogEntryKind.collabAgentToolCall => purpleAccent(brightness),
+    TranscriptWorkLogEntryKind.unknown => tealAccent(brightness),
   };
 }
 

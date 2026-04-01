@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexUsageBlock(
+          block: TranscriptUsageBlock(
             id: 'usage_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Thread token usage',
@@ -45,7 +45,7 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexUsageBlock(
+            block: TranscriptUsageBlock(
               id: 'usage_2',
               createdAt: DateTime(2026, 3, 14, 12),
               title: 'Thread token usage',
@@ -76,7 +76,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexTurnBoundaryBlock(
+          block: TranscriptTurnBoundaryBlock(
             id: 'turn_end_1',
             createdAt: DateTime(2026, 3, 14, 12),
           ),
@@ -93,7 +93,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexTurnBoundaryBlock(
+          block: TranscriptTurnBoundaryBlock(
             id: 'turn_end_2',
             createdAt: DateTime(2026, 3, 14, 12),
             elapsed: const Duration(minutes: 1, seconds: 5),
@@ -111,10 +111,10 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexTurnBoundaryBlock(
+            block: TranscriptTurnBoundaryBlock(
               id: 'turn_end_usage_1',
               createdAt: DateTime(2026, 3, 14, 12),
-              usage: CodexUsageBlock(
+              usage: TranscriptUsageBlock(
                 id: 'usage_embedded_1',
                 createdAt: DateTime(2026, 3, 14, 12),
                 title: 'Thread token usage',
@@ -145,7 +145,7 @@ void main() {
           child: SizedBox(
             width: 1200,
             child: entrySurface(
-              block: CodexTurnBoundaryBlock(
+              block: TranscriptTurnBoundaryBlock(
                 id: 'turn_end_flush_1',
                 createdAt: DateTime(2026, 3, 14, 12),
               ),
@@ -169,7 +169,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: TurnElapsedFooter(
-          turnTimer: CodexSessionTurnTimer(
+          turnTimer: TranscriptSessionTurnTimer(
             turnId: 'turn_123',
             startedAt: startedAt,
           ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
 class WarningEventSurface extends StatelessWidget {
   const WarningEventSurface({super.key, required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,7 @@ class WarningEventSurface extends StatelessWidget {
 class DeprecationNoticeSurface extends StatelessWidget {
   const DeprecationNoticeSurface({super.key, required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class DeprecationNoticeSurface extends StatelessWidget {
 class PatchApplyFailureSurface extends StatelessWidget {
   const PatchApplyFailureSurface({super.key, required this.block});
 
-  final CodexErrorBlock block;
+  final TranscriptErrorBlock block;
 
   @override
   Widget build(BuildContext context) {

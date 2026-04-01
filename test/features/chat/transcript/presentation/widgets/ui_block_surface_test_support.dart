@@ -6,9 +6,9 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_form_scope.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_projector.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/conversation_entry_renderer.dart';
@@ -30,9 +30,9 @@ export 'package:pocket_relay/src/core/errors/pocket_error.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 export 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/conversation_entry_renderer.dart';
 export 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/alert_surface.dart';
 export 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/approval_decision_surface.dart';
@@ -55,8 +55,8 @@ const defaultFollowBehavior = ChatTranscriptFollowContract(
 
 ChatTranscriptSurfaceContract surfaceContract({
   bool isConfigured = true,
-  List<CodexUiBlock> mainItems = const <CodexUiBlock>[],
-  List<CodexUiBlock> pinnedItems = const <CodexUiBlock>[],
+  List<TranscriptUiBlock> mainItems = const <TranscriptUiBlock>[],
+  List<TranscriptUiBlock> pinnedItems = const <TranscriptUiBlock>[],
   Set<String>? activePendingUserInputRequestIds,
   int? totalMainItemCount,
   ChatEmptyStateContract? emptyState,
@@ -81,13 +81,13 @@ ChatTranscriptSurfaceContract surfaceContract({
 }
 
 Set<String> activePendingUserInputRequestIdsForBlocks({
-  required List<CodexUiBlock> mainItems,
-  required List<CodexUiBlock> pinnedItems,
+  required List<TranscriptUiBlock> mainItems,
+  required List<TranscriptUiBlock> pinnedItems,
 }) {
   final activeRequestIds = <String>{};
 
-  for (final block in <CodexUiBlock>[...mainItems, ...pinnedItems]) {
-    if (block case final CodexUserInputRequestBlock userInputBlock
+  for (final block in <TranscriptUiBlock>[...mainItems, ...pinnedItems]) {
+    if (block case final TranscriptUserInputRequestBlock userInputBlock
         when !userInputBlock.isResolved) {
       activeRequestIds.add(userInputBlock.requestId);
     }
@@ -113,7 +113,7 @@ ChatTranscriptFollowContract followBehavior({
 
 Widget entrySurface({
   Key? key,
-  required CodexUiBlock block,
+  required TranscriptUiBlock block,
   Future<void> Function(String requestId)? onApproveRequest,
   Future<void> Function(String requestId)? onDenyRequest,
   void Function(ChatChangedFileDiffContract diff)? onOpenChangedFileDiff,

@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 
@@ -9,7 +9,7 @@ part 'chat_changed_files_item_projector_support.dart';
 class ChatChangedFilesItemProjector {
   const ChatChangedFilesItemProjector();
 
-  ChatChangedFilesItemContract project(CodexChangedFilesBlock block) {
+  ChatChangedFilesItemContract project(TranscriptChangedFilesBlock block) {
     final patches = _parseUnifiedDiff(block.unifiedDiff);
     final files = _displayFiles(block.files, patches);
     final headerStats = _resolveHeaderStats(files: files, patches: patches);

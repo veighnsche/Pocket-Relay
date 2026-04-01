@@ -9,15 +9,15 @@ void main() {
       buildTestApp(
         activeRequestIds: const <String>{'input_1'},
         child: entrySurface(
-          block: CodexUserInputRequestBlock(
+          block: TranscriptUserInputRequestBlock(
             id: 'input_1',
             createdAt: DateTime(2026, 3, 14, 12),
             requestId: 'input_1',
-            requestType: CodexCanonicalRequestType.toolUserInput,
+            requestType: TranscriptCanonicalRequestType.toolUserInput,
             title: 'Input required',
             body: 'Codex needs clarification.',
-            questions: const <CodexRuntimeUserInputQuestion>[
-              CodexRuntimeUserInputQuestion(
+            questions: const <TranscriptRuntimeUserInputQuestion>[
+              TranscriptRuntimeUserInputQuestion(
                 id: 'q1',
                 header: 'Project',
                 question: 'Which project should I use?',
@@ -51,20 +51,20 @@ void main() {
         buildTestApp(
           activeRequestIds: const <String>{'input_1'},
           child: entrySurface(
-            block: CodexUserInputRequestBlock(
+            block: TranscriptUserInputRequestBlock(
               id: 'input_1',
               createdAt: DateTime(2026, 3, 14, 12),
               requestId: 'input_1',
-              requestType: CodexCanonicalRequestType.toolUserInput,
+              requestType: TranscriptCanonicalRequestType.toolUserInput,
               title: 'Input required',
               body: 'Codex needs clarification.',
-              questions: const <CodexRuntimeUserInputQuestion>[
-                CodexRuntimeUserInputQuestion(
+              questions: const <TranscriptRuntimeUserInputQuestion>[
+                TranscriptRuntimeUserInputQuestion(
                   id: 'q1',
                   header: 'Project',
                   question: 'Which project should I use?',
-                  options: <CodexRuntimeUserInputOption>[
-                    CodexRuntimeUserInputOption(
+                  options: <TranscriptRuntimeUserInputOption>[
+                    TranscriptRuntimeUserInputOption(
                       label: 'Pocket Relay',
                       description: 'Use the mobile app project.',
                     ),
@@ -101,15 +101,15 @@ void main() {
       buildTestApp(
         activeRequestIds: const <String>{'input_1'},
         child: entrySurface(
-          block: CodexUserInputRequestBlock(
+          block: TranscriptUserInputRequestBlock(
             id: 'input_1',
             createdAt: DateTime(2026, 3, 14, 12),
             requestId: 'input_1',
-            requestType: CodexCanonicalRequestType.toolUserInput,
+            requestType: TranscriptCanonicalRequestType.toolUserInput,
             title: 'Input required',
             body: 'First request.',
-            questions: const <CodexRuntimeUserInputQuestion>[
-              CodexRuntimeUserInputQuestion(
+            questions: const <TranscriptRuntimeUserInputQuestion>[
+              TranscriptRuntimeUserInputQuestion(
                 id: 'q1',
                 header: 'Project',
                 question: 'Which project should I use?',
@@ -127,16 +127,16 @@ void main() {
       buildTestApp(
         activeRequestIds: const <String>{'input_2'},
         child: entrySurface(
-          block: CodexUserInputRequestBlock(
+          block: TranscriptUserInputRequestBlock(
             id: 'input_2',
             createdAt: DateTime(2026, 3, 14, 12, 0, 5),
             requestId: 'input_2',
-            requestType: CodexCanonicalRequestType.toolUserInput,
+            requestType: TranscriptCanonicalRequestType.toolUserInput,
             title: 'Input submitted',
             body: 'Second request.',
             isResolved: true,
-            questions: const <CodexRuntimeUserInputQuestion>[
-              CodexRuntimeUserInputQuestion(
+            questions: const <TranscriptRuntimeUserInputQuestion>[
+              TranscriptRuntimeUserInputQuestion(
                 id: 'q2',
                 header: 'Workspace',
                 question: 'Which workspace should I use?',
@@ -161,11 +161,11 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexUserInputRequestBlock(
+            block: TranscriptUserInputRequestBlock(
               id: 'input_resolved_1',
               createdAt: DateTime(2026, 3, 14, 12),
               requestId: 'input_resolved_1',
-              requestType: CodexCanonicalRequestType.toolUserInput,
+              requestType: TranscriptCanonicalRequestType.toolUserInput,
               title: 'Input submitted',
               body: 'Project: Pocket Relay',
               isResolved: true,
@@ -186,15 +186,15 @@ void main() {
   testWidgets(
     'preserves user-input drafts when a request moves within the transcript surface',
     (tester) async {
-      final block = CodexUserInputRequestBlock(
+      final block = TranscriptUserInputRequestBlock(
         id: 'input_1',
         createdAt: DateTime(2026, 3, 14, 12),
         requestId: 'input_1',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: 'Codex needs clarification.',
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Project',
             question: 'Which project should I use?',
@@ -205,7 +205,7 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: TranscriptList(
-            surface: surfaceContract(mainItems: <CodexUiBlock>[block]),
+            surface: surfaceContract(mainItems: <TranscriptUiBlock>[block]),
             followBehavior: defaultFollowBehavior,
             platformBehavior: PocketPlatformBehavior.resolve(),
             onConfigure: () {},
@@ -221,7 +221,7 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: TranscriptList(
-            surface: surfaceContract(pinnedItems: <CodexUiBlock>[block]),
+            surface: surfaceContract(pinnedItems: <TranscriptUiBlock>[block]),
             followBehavior: defaultFollowBehavior,
             platformBehavior: PocketPlatformBehavior.resolve(),
             onConfigure: () {},
@@ -240,30 +240,30 @@ void main() {
   testWidgets(
     'does not leak pending-user-input drafts when visibility promotes to the next request',
     (tester) async {
-      final firstBlock = CodexUserInputRequestBlock(
+      final firstBlock = TranscriptUserInputRequestBlock(
         id: 'input_1',
         createdAt: DateTime(2026, 3, 14, 12),
         requestId: 'input_1',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: 'First request',
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Project',
             question: 'Which first project should I use?',
           ),
         ],
       );
-      final secondBlock = CodexUserInputRequestBlock(
+      final secondBlock = TranscriptUserInputRequestBlock(
         id: 'input_2',
         createdAt: DateTime(2026, 3, 14, 12, 0, 1),
         requestId: 'input_2',
-        requestType: CodexCanonicalRequestType.toolUserInput,
+        requestType: TranscriptCanonicalRequestType.toolUserInput,
         title: 'Input required',
         body: 'Second request',
-        questions: const <CodexRuntimeUserInputQuestion>[
-          CodexRuntimeUserInputQuestion(
+        questions: const <TranscriptRuntimeUserInputQuestion>[
+          TranscriptRuntimeUserInputQuestion(
             id: 'q1',
             header: 'Project',
             question: 'Which second project should I use?',
@@ -274,7 +274,9 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: TranscriptList(
-            surface: surfaceContract(pinnedItems: <CodexUiBlock>[firstBlock]),
+            surface: surfaceContract(
+              pinnedItems: <TranscriptUiBlock>[firstBlock],
+            ),
             followBehavior: defaultFollowBehavior,
             platformBehavior: PocketPlatformBehavior.resolve(),
             onConfigure: () {},
@@ -290,7 +292,9 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: TranscriptList(
-            surface: surfaceContract(pinnedItems: <CodexUiBlock>[secondBlock]),
+            surface: surfaceContract(
+              pinnedItems: <TranscriptUiBlock>[secondBlock],
+            ),
             followBehavior: defaultFollowBehavior,
             platformBehavior: PocketPlatformBehavior.resolve(),
             onConfigure: () {},

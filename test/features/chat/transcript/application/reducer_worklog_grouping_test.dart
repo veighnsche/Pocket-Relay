@@ -14,12 +14,12 @@ void main() {
 
   test('keeps changed files above the turn-end usage footer', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: now,
         threadId: 'thread_123',
         turnId: 'turn_123',
@@ -28,7 +28,7 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeStatusEvent(
+      TranscriptRuntimeStatusEvent(
         createdAt: now.add(const Duration(seconds: 1)),
         threadId: 'thread_123',
         rawMethod: 'thread/tokenUsage/updated',
@@ -39,13 +39,13 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now.add(const Duration(seconds: 2)),
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'file_change_1',
-        itemType: CodexCanonicalItemType.fileChange,
-        status: CodexRuntimeItemStatus.completed,
+        itemType: TranscriptCanonicalItemType.fileChange,
+        status: TranscriptRuntimeItemStatus.completed,
         snapshot: const <String, Object?>{
           'changes': <Object?>[
             <String, Object?>{
@@ -65,12 +65,12 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnCompletedEvent(
+      TranscriptRuntimeTurnCompletedEvent(
         createdAt: now.add(const Duration(seconds: 3)),
         threadId: 'thread_123',
         turnId: 'turn_123',
-        state: CodexRuntimeTurnState.completed,
-        usage: const CodexRuntimeTurnUsage(
+        state: TranscriptRuntimeTurnState.completed,
+        usage: const TranscriptRuntimeTurnUsage(
           inputTokens: 12,
           cachedInputTokens: 3,
           outputTokens: 7,
@@ -79,8 +79,8 @@ void main() {
     );
 
     expect(state.transcriptBlocks, hasLength(2));
-    expect(state.transcriptBlocks.first, isA<CodexChangedFilesBlock>());
-    final boundary = state.transcriptBlocks.last as CodexTurnBoundaryBlock;
+    expect(state.transcriptBlocks.first, isA<TranscriptChangedFilesBlock>());
+    final boundary = state.transcriptBlocks.last as TranscriptTurnBoundaryBlock;
     expect(boundary.usage, isNotNull);
     expect(boundary.usage?.title, 'Thread token usage');
   });
@@ -89,12 +89,12 @@ void main() {
     'creates active turn state on turn start and tracks reasoning/work flags',
     () {
       final reducer = TranscriptReducer();
-      var state = CodexSessionState.initial();
+      var state = TranscriptSessionState.initial();
       final now = DateTime(2026, 3, 14, 12);
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnStartedEvent(
+        TranscriptRuntimeTurnStartedEvent(
           createdAt: now,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -102,24 +102,24 @@ void main() {
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 1)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_reasoning',
-          streamKind: CodexRuntimeContentStreamKind.reasoningText,
+          streamKind: TranscriptRuntimeContentStreamKind.reasoningText,
           delta: 'Thinking through the patch.',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemStartedEvent(
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now.add(const Duration(seconds: 1)),
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_command',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           detail: 'git status',
         ),
       );
@@ -129,37 +129,43 @@ void main() {
       expect(state.activeTurn?.threadId, 'thread_123');
       expect(state.activeTurn?.timer.turnId, 'turn_123');
       expect(state.activeTurn?.artifacts, hasLength(2));
-      expect(state.activeTurn?.artifacts.first, isA<CodexTurnTextArtifact>());
-      expect(state.activeTurn?.artifacts.last, isA<CodexTurnWorkArtifact>());
+      expect(
+        state.activeTurn?.artifacts.first,
+        isA<TranscriptTurnTextArtifact>(),
+      );
+      expect(
+        state.activeTurn?.artifacts.last,
+        isA<TranscriptTurnWorkArtifact>(),
+      );
     },
   );
 
   test('groups consecutive work-log entries in one live work artifact', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemStartedEvent(
+      TranscriptRuntimeItemStartedEvent(
         createdAt: now,
-        itemType: CodexCanonicalItemType.commandExecution,
+        itemType: TranscriptCanonicalItemType.commandExecution,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_command',
-        status: CodexRuntimeItemStatus.inProgress,
+        status: TranscriptRuntimeItemStatus.inProgress,
         detail: 'git status',
       ),
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now,
-        itemType: CodexCanonicalItemType.commandExecution,
+        itemType: TranscriptCanonicalItemType.commandExecution,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_command',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         snapshot: const <String, Object?>{
           'result': <String, Object?>{'output': 'On branch main'},
           'exitCode': 0,
@@ -168,13 +174,13 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemStartedEvent(
+      TranscriptRuntimeItemStartedEvent(
         createdAt: now.add(const Duration(seconds: 1)),
-        itemType: CodexCanonicalItemType.webSearch,
+        itemType: TranscriptCanonicalItemType.webSearch,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_search',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         detail: 'Search docs',
       ),
     );
@@ -182,31 +188,34 @@ void main() {
     expect(state.blocks, isEmpty);
     expect(state.activeTurn?.artifacts, hasLength(1));
     final artifact =
-        state.activeTurn!.artifacts.single as CodexTurnWorkArtifact;
+        state.activeTurn!.artifacts.single as TranscriptTurnWorkArtifact;
     expect(artifact.entries, hasLength(2));
     expect(artifact.entries.first.title, 'git status');
-    expect(artifact.entries.last.entryKind, CodexWorkLogEntryKind.webSearch);
+    expect(
+      artifact.entries.last.entryKind,
+      TranscriptWorkLogEntryKind.webSearch,
+    );
     expect(state.transcriptBlocks, hasLength(1));
-    final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+    final group = state.transcriptBlocks.single as TranscriptWorkLogGroupBlock;
     expect(group.entries, hasLength(2));
     expect(group.entries.first.title, 'git status');
-    expect(group.entries.last.entryKind, CodexWorkLogEntryKind.webSearch);
+    expect(group.entries.last.entryKind, TranscriptWorkLogEntryKind.webSearch);
   });
 
   test('normalizes shell-wrapped command titles in work-log entries', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now,
-        itemType: CodexCanonicalItemType.commandExecution,
+        itemType: TranscriptCanonicalItemType.commandExecution,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_command',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         detail: '/usr/bin/zsh -lc "sed -n \'1,40p\' lib/main.dart"',
         snapshot: const <String, Object?>{
           'result': <String, Object?>{'output': 'class App {}'},
@@ -215,24 +224,24 @@ void main() {
       ),
     );
 
-    final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+    final group = state.transcriptBlocks.single as TranscriptWorkLogGroupBlock;
     expect(group.entries.single.title, "sed -n '1,40p' lib/main.dart");
   });
 
   test('normalizes PowerShell-wrapped command titles in work-log entries', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now,
-        itemType: CodexCanonicalItemType.commandExecution,
+        itemType: TranscriptCanonicalItemType.commandExecution,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_command_pwsh',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         detail:
             r'powershell.exe -NoLogo -NoProfile -Command "Get-Content -Path C:\repo\README.md -TotalCount 25"',
         snapshot: const <String, Object?>{
@@ -242,7 +251,7 @@ void main() {
       ),
     );
 
-    final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+    final group = state.transcriptBlocks.single as TranscriptWorkLogGroupBlock;
     expect(
       group.entries.single.title,
       r'Get-Content -Path C:\repo\README.md -TotalCount 25',
@@ -251,18 +260,18 @@ void main() {
 
   test('normalizes shell-wrapped rg titles in work-log entries', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now,
-        itemType: CodexCanonicalItemType.commandExecution,
+        itemType: TranscriptCanonicalItemType.commandExecution,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_command_rg',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         detail: '/usr/bin/zsh -lc "rg -n \\"Pocket Relay\\" lib test"',
         snapshot: const <String, Object?>{
           'result': <String, Object?>{'output': 'lib/main.dart:1:Pocket Relay'},
@@ -271,7 +280,7 @@ void main() {
       ),
     );
 
-    final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+    final group = state.transcriptBlocks.single as TranscriptWorkLogGroupBlock;
     expect(group.entries.single.title, 'rg -n "Pocket Relay" lib test');
   });
 
@@ -279,18 +288,18 @@ void main() {
     'normalizes PowerShell-wrapped Select-String titles in work-log entries',
     () {
       final reducer = TranscriptReducer();
-      var state = CodexSessionState.initial();
+      var state = TranscriptSessionState.initial();
       final now = DateTime(2026, 3, 14, 12);
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_command_select_string',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           detail:
               r'powershell.exe -NoLogo -NoProfile -Command "Select-String -Path C:\repo\README.md -Pattern \"Pocket Relay\""',
           snapshot: const <String, Object?>{
@@ -300,7 +309,8 @@ void main() {
         ),
       );
 
-      final group = state.transcriptBlocks.single as CodexWorkLogGroupBlock;
+      final group =
+          state.transcriptBlocks.single as TranscriptWorkLogGroupBlock;
       expect(
         group.entries.single.title,
         r'Select-String -Path C:\repo\README.md -Pattern "Pocket Relay"',
@@ -312,12 +322,12 @@ void main() {
     'starts a new work group when a resolved request interrupts work history',
     () {
       final reducer = TranscriptReducer();
-      var state = CodexSessionState.initial();
+      var state = TranscriptSessionState.initial();
       final now = DateTime(2026, 3, 14, 12);
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnStartedEvent(
+        TranscriptRuntimeTurnStartedEvent(
           createdAt: now,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -325,13 +335,13 @@ void main() {
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_command_1',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           detail: 'git status',
           snapshot: const <String, Object?>{
             'result': <String, Object?>{'output': 'clean'},
@@ -341,52 +351,61 @@ void main() {
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeRequestOpenedEvent(
+        TranscriptRuntimeRequestOpenedEvent(
           createdAt: now.add(const Duration(milliseconds: 100)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_command_1',
           requestId: 'approval_1',
-          requestType: CodexCanonicalRequestType.fileChangeApproval,
+          requestType: TranscriptCanonicalRequestType.fileChangeApproval,
           detail: 'Write files',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeRequestResolvedEvent(
+        TranscriptRuntimeRequestResolvedEvent(
           createdAt: now.add(const Duration(milliseconds: 200)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_command_1',
           requestId: 'approval_1',
-          requestType: CodexCanonicalRequestType.fileChangeApproval,
+          requestType: TranscriptCanonicalRequestType.fileChangeApproval,
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 300)),
-          itemType: CodexCanonicalItemType.webSearch,
+          itemType: TranscriptCanonicalItemType.webSearch,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_search_2',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           detail: 'Search docs',
         ),
       );
 
       expect(state.activeTurn?.artifacts, hasLength(3));
-      expect(state.activeTurn?.artifacts.first, isA<CodexTurnWorkArtifact>());
-      expect(state.activeTurn?.artifacts[1], isA<CodexTurnBlockArtifact>());
-      expect(state.activeTurn?.artifacts.last, isA<CodexTurnWorkArtifact>());
+      expect(
+        state.activeTurn?.artifacts.first,
+        isA<TranscriptTurnWorkArtifact>(),
+      );
+      expect(
+        state.activeTurn?.artifacts[1],
+        isA<TranscriptTurnBlockArtifact>(),
+      );
+      expect(
+        state.activeTurn?.artifacts.last,
+        isA<TranscriptTurnWorkArtifact>(),
+      );
 
       final firstWork =
-          state.activeTurn!.artifacts.first as CodexTurnWorkArtifact;
+          state.activeTurn!.artifacts.first as TranscriptTurnWorkArtifact;
       final resolvedRequestBlock =
-          (state.activeTurn!.artifacts[1] as CodexTurnBlockArtifact).block
-              as CodexApprovalRequestBlock;
+          (state.activeTurn!.artifacts[1] as TranscriptTurnBlockArtifact).block
+              as TranscriptApprovalRequestBlock;
       final resumedWork =
-          state.activeTurn!.artifacts.last as CodexTurnWorkArtifact;
+          state.activeTurn!.artifacts.last as TranscriptTurnWorkArtifact;
 
       expect(firstWork.entries, hasLength(1));
       expect(firstWork.entries.single.title, 'git status');
@@ -396,13 +415,13 @@ void main() {
       expect(resumedWork.entries, hasLength(1));
       expect(
         resumedWork.entries.single.entryKind,
-        CodexWorkLogEntryKind.webSearch,
+        TranscriptWorkLogEntryKind.webSearch,
       );
 
       expect(state.transcriptBlocks, hasLength(3));
-      expect(state.transcriptBlocks.first, isA<CodexWorkLogGroupBlock>());
-      expect(state.transcriptBlocks[1], isA<CodexApprovalRequestBlock>());
-      expect(state.transcriptBlocks.last, isA<CodexWorkLogGroupBlock>());
+      expect(state.transcriptBlocks.first, isA<TranscriptWorkLogGroupBlock>());
+      expect(state.transcriptBlocks[1], isA<TranscriptApprovalRequestBlock>());
+      expect(state.transcriptBlocks.last, isA<TranscriptWorkLogGroupBlock>());
     },
   );
 }

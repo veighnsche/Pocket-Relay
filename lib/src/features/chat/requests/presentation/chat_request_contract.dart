@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 sealed class ChatRequestContract {
   const ChatRequestContract({
@@ -14,7 +14,7 @@ sealed class ChatRequestContract {
   final String id;
   final DateTime createdAt;
   final String requestId;
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final String title;
   final String body;
   final bool isResolved;
@@ -44,10 +44,10 @@ final class ChatUserInputRequestContract extends ChatRequestContract {
     required super.title,
     required super.body,
     required super.isResolved,
-    this.questions = const <CodexRuntimeUserInputQuestion>[],
+    this.questions = const <TranscriptRuntimeUserInputQuestion>[],
     this.answers = const <String, List<String>>{},
   });
 
-  final List<CodexRuntimeUserInputQuestion> questions;
+  final List<TranscriptRuntimeUserInputQuestion> questions;
   final Map<String, List<String>> answers;
 }

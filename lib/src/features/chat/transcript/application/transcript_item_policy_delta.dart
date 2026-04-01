@@ -1,9 +1,9 @@
 part of 'transcript_item_policy.dart';
 
-CodexSessionState _applyContentDelta(
+TranscriptSessionState _applyContentDelta(
   TranscriptItemPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeContentDeltaEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeContentDeltaEvent event,
 ) {
   final itemId = event.itemId;
   final threadId = event.threadId;
@@ -32,12 +32,12 @@ CodexSessionState _applyContentDelta(
   );
 }
 
-CodexSessionActiveItem _activeItemFromContentDelta(
+TranscriptSessionActiveItem _activeItemFromContentDelta(
   TranscriptItemPolicy policy,
-  CodexSessionState state,
-  CodexActiveTurnState? activeTurn,
-  CodexRuntimeContentDeltaEvent event, {
-  CodexSessionActiveItem? existing,
+  TranscriptSessionState state,
+  TranscriptActiveTurnState? activeTurn,
+  TranscriptRuntimeContentDeltaEvent event, {
+  TranscriptSessionActiveItem? existing,
 }) {
   final itemType =
       existing?.itemType ??
@@ -52,7 +52,7 @@ CodexSessionActiveItem _activeItemFromContentDelta(
   final artifactBaseBody = existing == null
       ? ''
       : (forkArtifact ? previousAggregatedBody : existing.artifactBaseBody);
-  return CodexSessionActiveItem(
+  return TranscriptSessionActiveItem(
     itemId: event.itemId!,
     threadId: event.threadId!,
     turnId: event.turnId!,
@@ -61,7 +61,8 @@ CodexSessionActiveItem _activeItemFromContentDelta(
         ? _nextItemEntryId(policy, state, activeTurn, itemId: event.itemId!)
         : existing.entryId,
     blockKind:
-        existing?.blockKind ?? policy._blockFactory.blockKindForItemType(itemType),
+        existing?.blockKind ??
+        policy._blockFactory.blockKindForItemType(itemType),
     createdAt: existing == null || forkArtifact
         ? event.createdAt
         : existing.createdAt,
@@ -79,10 +80,10 @@ CodexSessionActiveItem _activeItemFromContentDelta(
 }
 
 Map<String, dynamic>? _nextContentDeltaSnapshot(
-  CodexRuntimeContentDeltaEvent event,
+  TranscriptRuntimeContentDeltaEvent event,
   Map<String, dynamic>? existingSnapshot,
 ) {
-  if (event.streamKind != CodexRuntimeContentStreamKind.commandOutput ||
+  if (event.streamKind != TranscriptRuntimeContentStreamKind.commandOutput ||
       existingSnapshot == null ||
       !_isBackgroundTerminalWaitSnapshot(existingSnapshot)) {
     return existingSnapshot;
@@ -103,10 +104,10 @@ bool _isBackgroundTerminalWaitSnapshot(Map<String, dynamic> snapshot) {
   return processId is String && processId.isNotEmpty;
 }
 
-CodexActiveTurnState? _nextActiveTurnForContentDelta(
+TranscriptActiveTurnState? _nextActiveTurnForContentDelta(
   TranscriptItemPolicy policy,
-  CodexActiveTurnState? activeTurn,
-  CodexSessionActiveItem item,
+  TranscriptActiveTurnState? activeTurn,
+  TranscriptSessionActiveItem item,
 ) {
   if (activeTurn == null || activeTurn.turnId != item.turnId) {
     return activeTurn;
@@ -114,7 +115,7 @@ CodexActiveTurnState? _nextActiveTurnForContentDelta(
 
   return policy._turnArtifactBuilder.upsertItem(
     activeTurn.copyWith(
-      itemsById: <String, CodexSessionActiveItem>{
+      itemsById: <String, TranscriptSessionActiveItem>{
         ...activeTurn.itemsById,
         item.itemId: item,
       },

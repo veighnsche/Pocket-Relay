@@ -1,7 +1,7 @@
-part of 'codex_ui_block.dart';
+part of 'transcript_ui_block.dart';
 
-final class CodexApprovalRequestBlock extends CodexUiBlock {
-  const CodexApprovalRequestBlock({
+final class TranscriptApprovalRequestBlock extends TranscriptUiBlock {
+  const TranscriptApprovalRequestBlock({
     required super.id,
     required super.createdAt,
     required this.requestId,
@@ -10,22 +10,22 @@ final class CodexApprovalRequestBlock extends CodexUiBlock {
     required this.body,
     this.isResolved = false,
     this.resolutionLabel,
-  }) : super(kind: CodexUiBlockKind.approvalRequest);
+  }) : super(kind: TranscriptUiBlockKind.approvalRequest);
 
   final String requestId;
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final String title;
   final String body;
   final bool isResolved;
   final String? resolutionLabel;
 
-  CodexApprovalRequestBlock copyWith({
+  TranscriptApprovalRequestBlock copyWith({
     String? title,
     String? body,
     bool? isResolved,
     String? resolutionLabel,
   }) {
-    return CodexApprovalRequestBlock(
+    return TranscriptApprovalRequestBlock(
       id: id,
       createdAt: createdAt,
       requestId: requestId,
@@ -38,35 +38,35 @@ final class CodexApprovalRequestBlock extends CodexUiBlock {
   }
 }
 
-final class CodexUserInputRequestBlock extends CodexUiBlock {
-  const CodexUserInputRequestBlock({
+final class TranscriptUserInputRequestBlock extends TranscriptUiBlock {
+  const TranscriptUserInputRequestBlock({
     required super.id,
     required super.createdAt,
     required this.requestId,
     required this.requestType,
     required this.title,
     required this.body,
-    this.questions = const <CodexRuntimeUserInputQuestion>[],
+    this.questions = const <TranscriptRuntimeUserInputQuestion>[],
     this.isResolved = false,
     this.answers = const <String, List<String>>{},
-  }) : super(kind: CodexUiBlockKind.userInputRequest);
+  }) : super(kind: TranscriptUiBlockKind.userInputRequest);
 
   final String requestId;
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final String title;
   final String body;
-  final List<CodexRuntimeUserInputQuestion> questions;
+  final List<TranscriptRuntimeUserInputQuestion> questions;
   final bool isResolved;
   final Map<String, List<String>> answers;
 
-  CodexUserInputRequestBlock copyWith({
+  TranscriptUserInputRequestBlock copyWith({
     String? title,
     String? body,
-    List<CodexRuntimeUserInputQuestion>? questions,
+    List<TranscriptRuntimeUserInputQuestion>? questions,
     bool? isResolved,
     Map<String, List<String>>? answers,
   }) {
-    return CodexUserInputRequestBlock(
+    return TranscriptUserInputRequestBlock(
       id: id,
       createdAt: createdAt,
       requestId: requestId,

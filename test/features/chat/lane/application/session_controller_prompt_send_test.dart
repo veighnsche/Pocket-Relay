@@ -29,13 +29,16 @@ void main() {
     expect(appServerClient.startSessionRequests.single.reasoningEffort, isNull);
     expect(appServerClient.sentMessages, <String>['Hello controller']);
     expect(controller.transcriptBlocks.length, 1);
-    expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+    expect(
+      controller.transcriptBlocks.first,
+      isA<TranscriptUserMessageBlock>(),
+    );
     expect(controller.sessionState.headerMetadata.cwd, '/workspace');
     expect(controller.sessionState.headerMetadata.model, 'gpt-5.3-codex');
     final messageBlock =
-        controller.transcriptBlocks.first as CodexUserMessageBlock;
+        controller.transcriptBlocks.first as TranscriptUserMessageBlock;
     expect(messageBlock.text, 'Hello controller');
-    expect(messageBlock.deliveryState, CodexUserMessageDeliveryState.sent);
+    expect(messageBlock.deliveryState, TranscriptUserMessageDeliveryState.sent);
   });
 
   test('sendPrompt allows steering while a turn is already running', () async {

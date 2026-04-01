@@ -7,11 +7,11 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexApprovalRequestBlock(
+          block: TranscriptApprovalRequestBlock(
             id: 'request_1',
             createdAt: DateTime(2026, 3, 14, 12),
             requestId: 'request_1',
-            requestType: CodexCanonicalRequestType.fileChangeApproval,
+            requestType: TranscriptCanonicalRequestType.fileChangeApproval,
             title: 'File change approval',
             body: 'Allow Codex to write files.',
           ),
@@ -38,11 +38,11 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexApprovalRequestBlock(
+          block: TranscriptApprovalRequestBlock(
             id: 'request_resolved_1',
             createdAt: DateTime(2026, 3, 14, 12),
             requestId: 'request_resolved_1',
-            requestType: CodexCanonicalRequestType.fileChangeApproval,
+            requestType: TranscriptCanonicalRequestType.fileChangeApproval,
             title: 'File change approval resolved',
             body: 'Codex received approval for this request.',
             isResolved: true,
@@ -66,7 +66,7 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexSshUnpinnedHostKeyBlock(
+            block: TranscriptSshUnpinnedHostKeyBlock(
               id: 'ssh_unpinned_1',
               createdAt: DateTime(2026, 3, 14, 12),
               host: 'example.com',
@@ -118,7 +118,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexSshConnectFailedBlock(
+          block: TranscriptSshConnectFailedBlock(
             id: 'ssh_connect_1',
             createdAt: DateTime(2026, 3, 14, 12),
             host: 'example.com',
@@ -148,7 +148,7 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexSshHostKeyMismatchBlock(
+            block: TranscriptSshHostKeyMismatchBlock(
               id: 'ssh_mismatch_1',
               createdAt: DateTime(2026, 3, 14, 12),
               host: 'example.com',
@@ -191,7 +191,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexSshAuthenticationFailedBlock(
+          block: TranscriptSshAuthenticationFailedBlock(
             id: 'ssh_auth_1',
             createdAt: DateTime(2026, 3, 14, 12),
             host: 'example.com',

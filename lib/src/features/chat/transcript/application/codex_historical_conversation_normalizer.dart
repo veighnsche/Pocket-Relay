@@ -1,7 +1,7 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/codex_runtime_payload_support.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 class CodexHistoricalConversationNormalizer {
   const CodexHistoricalConversationNormalizer({
@@ -90,9 +90,9 @@ class CodexHistoricalConversationNormalizer {
       itemType: itemType,
       status: _payloadSupport.itemStatus(
         item.status,
-        CodexRuntimeItemStatus.completed,
+        TranscriptRuntimeItemStatus.completed,
       ),
-      title: codexItemTitle(itemType),
+      title: transcriptItemTitle(itemType),
       detail: _payloadSupport.itemDetail(item.raw),
       snapshot: item.raw,
       collaboration: _payloadSupport.collaborationDetails(itemType, item.raw),

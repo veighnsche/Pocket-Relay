@@ -1,6 +1,6 @@
 part of 'transcript_changed_files_parser.dart';
 
-List<CodexChangedFile> _extractChangedFilesFromDiff(String diff) {
+List<TranscriptChangedFile> _extractChangedFilesFromDiff(String diff) {
   final files = <String, _DiffStat>{};
   String? currentPath;
 
@@ -52,7 +52,7 @@ List<CodexChangedFile> _extractChangedFilesFromDiff(String diff) {
 
   return files.entries
       .map(
-        (entry) => CodexChangedFile(
+        (entry) => TranscriptChangedFile(
           path: entry.key,
           additions: entry.value.additions,
           deletions: entry.value.deletions,

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_thread_read_decoder.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 void main() {
   const decoder = CodexAppServerThreadReadDecoder();
@@ -30,16 +30,19 @@ void main() {
     final turn = conversation.turns.single;
     expect(turn.id, 'turn_saved');
     expect(turn.threadId, 'thread_nested');
-    expect(turn.state, CodexRuntimeTurnState.completed);
+    expect(turn.state, TranscriptRuntimeTurnState.completed);
     expect(turn.entries, hasLength(2));
 
     final userEntry = turn.entries.first;
-    expect(userEntry.itemType, CodexCanonicalItemType.userMessage);
+    expect(userEntry.itemType, TranscriptCanonicalItemType.userMessage);
     expect(userEntry.title, 'You');
     expect(userEntry.detail, 'Restore this');
 
     final assistantEntry = turn.entries.last;
-    expect(assistantEntry.itemType, CodexCanonicalItemType.assistantMessage);
+    expect(
+      assistantEntry.itemType,
+      TranscriptCanonicalItemType.assistantMessage,
+    );
     expect(assistantEntry.title, 'Codex');
     expect(assistantEntry.detail, 'Restored answer');
   });
@@ -64,13 +67,13 @@ void main() {
       expect(turn.entries, hasLength(10));
 
       final userEntry = turn.entries.first;
-      expect(userEntry.itemType, CodexCanonicalItemType.userMessage);
+      expect(userEntry.itemType, TranscriptCanonicalItemType.userMessage);
       expect(userEntry.detail, '<text_1>');
 
       final assistantEntries = turn.entries
           .where(
             (entry) =>
-                entry.itemType == CodexCanonicalItemType.assistantMessage,
+                entry.itemType == TranscriptCanonicalItemType.assistantMessage,
           )
           .toList(growable: false);
       expect(assistantEntries, hasLength(9));

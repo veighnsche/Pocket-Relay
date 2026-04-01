@@ -110,7 +110,7 @@ void main() {
       await controller.initialize();
       await controller.selectConversationForResume('thread_saved');
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (b) => b.text,
         ),
         <String>['Restore this', 'Second prompt'],
@@ -120,7 +120,7 @@ void main() {
           rewoundConversationThread(threadId: 'thread_saved');
 
       final selectedBlock = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .firstWhere((block) => block.text == 'Restore this');
 
       final draft = await controller.continueFromUserMessage(selectedBlock.id);
@@ -133,11 +133,11 @@ void main() {
         ],
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>(),
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>(),
         isEmpty,
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptTextBlock>().map(
           (b) => b.body,
         ),
         <String>['Earlier answer only'],
@@ -179,7 +179,7 @@ void main() {
       );
 
       final selectedBlock = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .firstWhere((block) => block.text == 'Restore this');
 
       final draft = await controller.continueFromUserMessage(selectedBlock.id);
@@ -221,11 +221,11 @@ void main() {
       await controller.initialize();
       await controller.selectConversationForResume('thread_saved');
       final originalUserTexts = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .map((block) => block.text)
           .toList(growable: false);
       final originalAssistantTexts = controller.transcriptBlocks
-          .whereType<CodexTextBlock>()
+          .whereType<TranscriptTextBlock>()
           .map((block) => block.body)
           .toList(growable: false);
       final snackBarMessage = controller.snackBarMessages.first.timeout(
@@ -233,7 +233,7 @@ void main() {
       );
 
       final selectedBlock = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .firstWhere((block) => block.text == 'Restore this');
 
       final draft = await controller.continueFromUserMessage(selectedBlock.id);
@@ -246,13 +246,13 @@ void main() {
         ],
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         originalUserTexts,
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptTextBlock>().map(
           (block) => block.body,
         ),
         originalAssistantTexts,
@@ -311,7 +311,7 @@ void main() {
     );
 
     final selectedBlock = controller.transcriptBlocks
-        .whereType<CodexUserMessageBlock>()
+        .whereType<TranscriptUserMessageBlock>()
         .single;
     appServerClient.emit(
       const CodexAppServerNotificationEvent(

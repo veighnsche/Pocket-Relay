@@ -7,8 +7,8 @@ part 'codex_runtime_event_events_requests.dart';
 part 'codex_runtime_event_events_session.dart';
 part 'codex_runtime_event_events_status.dart';
 
-sealed class CodexRuntimeEvent extends AgentAdapterRuntimeEvent {
-  const CodexRuntimeEvent({
+sealed class TranscriptRuntimeEvent extends AgentAdapterRuntimeEvent {
+  const TranscriptRuntimeEvent({
     required super.createdAt,
     super.threadId,
     super.turnId,

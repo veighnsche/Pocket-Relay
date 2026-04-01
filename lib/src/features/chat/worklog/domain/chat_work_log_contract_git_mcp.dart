@@ -45,7 +45,7 @@ final class ChatMcpToolCallWorkLogEntryContract
     this.rawError,
     super.turnId,
     super.isRunning = false,
-  }) : super(entryKind: CodexWorkLogEntryKind.mcpToolCall, exitCode: null);
+  }) : super(entryKind: TranscriptWorkLogEntryKind.mcpToolCall, exitCode: null);
 
   final String serverName;
   final String toolName;

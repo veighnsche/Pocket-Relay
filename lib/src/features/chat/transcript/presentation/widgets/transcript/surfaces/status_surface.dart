@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
 class StatusSurface extends StatelessWidget {
   const StatusSurface({super.key, required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   Widget build(BuildContext context) {
@@ -36,26 +36,29 @@ class StatusSurface extends StatelessWidget {
 
   (Color, IconData) _presentationFor(
     Brightness brightness,
-    CodexStatusBlockKind kind,
+    TranscriptStatusBlockKind kind,
   ) {
     return switch (kind) {
-      CodexStatusBlockKind.warning => (
+      TranscriptStatusBlockKind.warning => (
         amberAccent(brightness),
         Icons.warning_amber_rounded,
       ),
-      CodexStatusBlockKind.review => (
+      TranscriptStatusBlockKind.review => (
         purpleAccent(brightness),
         Icons.rate_review_outlined,
       ),
-      CodexStatusBlockKind.compaction => (
+      TranscriptStatusBlockKind.compaction => (
         blueAccent(brightness),
         Icons.compress_outlined,
       ),
-      CodexStatusBlockKind.auth => (
+      TranscriptStatusBlockKind.auth => (
         pinkAccent(brightness),
         Icons.lock_reset_outlined,
       ),
-      CodexStatusBlockKind.info => (tealAccent(brightness), Icons.info_outline),
+      TranscriptStatusBlockKind.info => (
+        tealAccent(brightness),
+        Icons.info_outline,
+      ),
     };
   }
 }

@@ -10,7 +10,7 @@ sealed class ChatWorkLogEntryContract {
   });
 
   final String id;
-  final CodexWorkLogEntryKind entryKind;
+  final TranscriptWorkLogEntryKind entryKind;
   final bool isRunning;
   final int? exitCode;
   final String? turnId;
@@ -28,7 +28,7 @@ sealed class ChatShellWorkLogEntryContract extends ChatWorkLogEntryContract {
     super.turnId,
     required super.isRunning,
     super.exitCode,
-  }) : super(entryKind: CodexWorkLogEntryKind.commandExecution);
+  }) : super(entryKind: TranscriptWorkLogEntryKind.commandExecution);
 
   final String commandText;
   final String? itemId;
@@ -103,7 +103,7 @@ final class ChatWebSearchWorkLogEntryContract extends ChatWorkLogEntryContract {
     this.queryCount,
     super.turnId,
     super.isRunning = false,
-  }) : super(entryKind: CodexWorkLogEntryKind.webSearch, exitCode: null);
+  }) : super(entryKind: TranscriptWorkLogEntryKind.webSearch, exitCode: null);
 
   final String queryText;
   final String? resultSummary;

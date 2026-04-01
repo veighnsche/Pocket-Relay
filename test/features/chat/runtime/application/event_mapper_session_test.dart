@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';
 
@@ -16,16 +16,23 @@ void main() {
     );
 
     expect(connectedEvents, hasLength(1));
-    expect(connectedEvents[0], isA<CodexRuntimeSessionStateChangedEvent>());
     expect(
-      (connectedEvents[0] as CodexRuntimeSessionStateChangedEvent).state,
-      CodexRuntimeSessionState.ready,
+      connectedEvents[0],
+      isA<TranscriptRuntimeSessionStateChangedEvent>(),
+    );
+    expect(
+      (connectedEvents[0] as TranscriptRuntimeSessionStateChangedEvent).state,
+      TranscriptRuntimeSessionState.ready,
     );
 
-    expect(disconnectedEvents.single, isA<CodexRuntimeSessionExitedEvent>());
     expect(
-      (disconnectedEvents.single as CodexRuntimeSessionExitedEvent).exitKind,
-      CodexRuntimeSessionExitKind.graceful,
+      disconnectedEvents.single,
+      isA<TranscriptRuntimeSessionExitedEvent>(),
+    );
+    expect(
+      (disconnectedEvents.single as TranscriptRuntimeSessionExitedEvent)
+          .exitKind,
+      TranscriptRuntimeSessionExitKind.graceful,
     );
   });
 
@@ -80,18 +87,22 @@ void main() {
       ),
     );
 
-    final threadEvent = threadStarted.single as CodexRuntimeThreadStartedEvent;
-    final turnEvent = turnStarted.single as CodexRuntimeTurnStartedEvent;
-    final itemEvent = itemStarted.single as CodexRuntimeItemStartedEvent;
-    final deltaEvent = delta.single as CodexRuntimeContentDeltaEvent;
+    final threadEvent =
+        threadStarted.single as TranscriptRuntimeThreadStartedEvent;
+    final turnEvent = turnStarted.single as TranscriptRuntimeTurnStartedEvent;
+    final itemEvent = itemStarted.single as TranscriptRuntimeItemStartedEvent;
+    final deltaEvent = delta.single as TranscriptRuntimeContentDeltaEvent;
 
     expect(threadEvent.providerThreadId, 'thread_123');
     expect(turnEvent.turnId, 'turn_123');
     expect(turnEvent.model, 'gpt-5.3-codex');
-    expect(itemEvent.itemType, CodexCanonicalItemType.assistantMessage);
-    expect(itemEvent.status, CodexRuntimeItemStatus.inProgress);
+    expect(itemEvent.itemType, TranscriptCanonicalItemType.assistantMessage);
+    expect(itemEvent.status, TranscriptRuntimeItemStatus.inProgress);
     expect(itemEvent.detail, 'Draft response');
-    expect(deltaEvent.streamKind, CodexRuntimeContentStreamKind.assistantText);
+    expect(
+      deltaEvent.streamKind,
+      TranscriptRuntimeContentStreamKind.assistantText,
+    );
     expect(deltaEvent.delta, 'Hello');
   });
 
@@ -126,11 +137,11 @@ void main() {
     );
 
     expect(
-      (camelCaseEvent.single as CodexRuntimeTurnStartedEvent).effort,
+      (camelCaseEvent.single as TranscriptRuntimeTurnStartedEvent).effort,
       'xhigh',
     );
     expect(
-      (snakeCaseEvent.single as CodexRuntimeTurnStartedEvent).effort,
+      (snakeCaseEvent.single as TranscriptRuntimeTurnStartedEvent).effort,
       'high',
     );
   });
@@ -162,9 +173,9 @@ void main() {
     );
 
     expect(
-      (leadingSpace.single as CodexRuntimeContentDeltaEvent).delta,
+      (leadingSpace.single as TranscriptRuntimeContentDeltaEvent).delta,
       ' shell',
     );
-    expect((spaceOnly.single as CodexRuntimeContentDeltaEvent).delta, ' ');
+    expect((spaceOnly.single as TranscriptRuntimeContentDeltaEvent).delta, ' ');
   });
 }

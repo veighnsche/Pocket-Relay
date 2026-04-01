@@ -7,41 +7,41 @@ void main() {
     test(
       'projects transcript blocks into the main region and pending requests into the pinned region',
       () {
-        final transcriptBlock = CodexTextBlock(
+        final transcriptBlock = TranscriptTextBlock(
           id: 'assistant_1',
-          kind: CodexUiBlockKind.assistantMessage,
+          kind: TranscriptUiBlockKind.assistantMessage,
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Codex',
           body: 'Hello',
         );
-        final activeTurn = CodexActiveTurnState(
+        final activeTurn = TranscriptActiveTurnState(
           turnId: 'turn_1',
-          timer: CodexSessionTurnTimer(
+          timer: TranscriptSessionTurnTimer(
             turnId: 'turn_1',
             startedAt: DateTime(2026, 3, 15, 12),
           ),
-          pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-            'request_1': CodexSessionPendingRequest(
+          pendingApprovalRequests: <String, TranscriptSessionPendingRequest>{
+            'request_1': TranscriptSessionPendingRequest(
               requestId: 'request_1',
-              requestType: CodexCanonicalRequestType.fileChangeApproval,
+              requestType: TranscriptCanonicalRequestType.fileChangeApproval,
               createdAt: DateTime(2026, 3, 15, 12, 0, 1),
               detail: 'Approve file change',
             ),
           },
           pendingUserInputRequests:
-              <String, CodexSessionPendingUserInputRequest>{
-                'request_2': CodexSessionPendingUserInputRequest(
+              <String, TranscriptSessionPendingUserInputRequest>{
+                'request_2': TranscriptSessionPendingUserInputRequest(
                   requestId: 'request_2',
-                  requestType: CodexCanonicalRequestType.toolUserInput,
+                  requestType: TranscriptCanonicalRequestType.toolUserInput,
                   createdAt: DateTime(2026, 3, 15, 12, 0, 2),
                   detail: 'Need extra info',
                 ),
               },
         );
-        final sessionState = CodexSessionState.initial()
+        final sessionState = TranscriptSessionState.initial()
             .copyWithProjectedTranscript(
               activeTurn: activeTurn,
-              blocks: <CodexUiBlock>[transcriptBlock],
+              blocks: <TranscriptUiBlock>[transcriptBlock],
             );
 
         final surface = projector.project(
@@ -95,17 +95,17 @@ void main() {
       final projector = ChatTranscriptSurfaceProjector(
         mainTranscriptItemLimit: 3,
       );
-      final transcriptBlocks = List<CodexUiBlock>.generate(
+      final transcriptBlocks = List<TranscriptUiBlock>.generate(
         5,
-        (index) => CodexTextBlock(
+        (index) => TranscriptTextBlock(
           id: 'assistant_$index',
-          kind: CodexUiBlockKind.assistantMessage,
+          kind: TranscriptUiBlockKind.assistantMessage,
           createdAt: DateTime(2026, 3, 15, 12, 0, index),
           title: 'Codex',
           body: 'Assistant message $index',
         ),
       );
-      final sessionState = CodexSessionState.initial()
+      final sessionState = TranscriptSessionState.initial()
           .copyWithProjectedTranscript(blocks: transcriptBlocks);
 
       final surface = projector.project(
@@ -127,29 +127,29 @@ void main() {
     test(
       'keeps active pending user-input ids limited to the visible request when multiple pending inputs exist',
       () {
-        final activeTurn = CodexActiveTurnState(
+        final activeTurn = TranscriptActiveTurnState(
           turnId: 'turn_1',
-          timer: CodexSessionTurnTimer(
+          timer: TranscriptSessionTurnTimer(
             turnId: 'turn_1',
             startedAt: DateTime(2026, 3, 15, 12),
           ),
           pendingUserInputRequests:
-              <String, CodexSessionPendingUserInputRequest>{
-                'request_newer': CodexSessionPendingUserInputRequest(
+              <String, TranscriptSessionPendingUserInputRequest>{
+                'request_newer': TranscriptSessionPendingUserInputRequest(
                   requestId: 'request_newer',
-                  requestType: CodexCanonicalRequestType.toolUserInput,
+                  requestType: TranscriptCanonicalRequestType.toolUserInput,
                   createdAt: DateTime(2026, 3, 15, 12, 0, 2),
                   detail: 'Newer input',
                 ),
-                'request_older': CodexSessionPendingUserInputRequest(
+                'request_older': TranscriptSessionPendingUserInputRequest(
                   requestId: 'request_older',
-                  requestType: CodexCanonicalRequestType.toolUserInput,
+                  requestType: TranscriptCanonicalRequestType.toolUserInput,
                   createdAt: DateTime(2026, 3, 15, 12, 0, 1),
                   detail: 'Older input',
                 ),
               },
         );
-        final sessionState = CodexSessionState.initial()
+        final sessionState = TranscriptSessionState.initial()
             .copyWithProjectedTranscript(activeTurn: activeTurn);
 
         final surface = projector.project(
@@ -175,7 +175,7 @@ void main() {
       () {
         final surface = projector.project(
           profile: ConnectionProfile.defaults(),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
         );
 
         expect(surface.showsEmptyState, isTrue);
@@ -201,7 +201,7 @@ void main() {
                     createdAt: DateTime(2026, 3, 15, 12, 0, 9),
                     requestId: 'request_override_approval',
                     requestType:
-                        CodexCanonicalRequestType.commandExecutionApproval,
+                        TranscriptCanonicalRequestType.commandExecutionApproval,
                     title: 'Injected approval',
                     body: 'Injected approval body',
                     isResolved: false,
@@ -210,7 +210,7 @@ void main() {
                     id: 'request_override_input',
                     createdAt: DateTime(2026, 3, 15, 12, 0, 10),
                     requestId: 'request_override_input',
-                    requestType: CodexCanonicalRequestType.toolUserInput,
+                    requestType: TranscriptCanonicalRequestType.toolUserInput,
                     title: 'Injected input',
                     body: 'Injected input body',
                     isResolved: false,
@@ -218,27 +218,30 @@ void main() {
                 ),
               ),
         );
-        final sessionState = CodexSessionState.initial()
+        final sessionState = TranscriptSessionState.initial()
             .copyWithProjectedTranscript(
-              activeTurn: CodexActiveTurnState(
+              activeTurn: TranscriptActiveTurnState(
                 turnId: 'turn_1',
-                timer: CodexSessionTurnTimer(
+                timer: TranscriptSessionTurnTimer(
                   turnId: 'turn_1',
                   startedAt: DateTime(2026, 3, 15, 12),
                 ),
-                pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-                  'runtime_approval': CodexSessionPendingRequest(
-                    requestId: 'runtime_approval',
-                    requestType: CodexCanonicalRequestType.fileChangeApproval,
-                    createdAt: DateTime(2026, 3, 15, 12, 0, 1),
-                    detail: 'Runtime approval body',
-                  ),
-                },
+                pendingApprovalRequests:
+                    <String, TranscriptSessionPendingRequest>{
+                      'runtime_approval': TranscriptSessionPendingRequest(
+                        requestId: 'runtime_approval',
+                        requestType:
+                            TranscriptCanonicalRequestType.fileChangeApproval,
+                        createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+                        detail: 'Runtime approval body',
+                      ),
+                    },
                 pendingUserInputRequests:
-                    <String, CodexSessionPendingUserInputRequest>{
-                      'runtime_input': CodexSessionPendingUserInputRequest(
+                    <String, TranscriptSessionPendingUserInputRequest>{
+                      'runtime_input': TranscriptSessionPendingUserInputRequest(
                         requestId: 'runtime_input',
-                        requestType: CodexCanonicalRequestType.toolUserInput,
+                        requestType:
+                            TranscriptCanonicalRequestType.toolUserInput,
                         createdAt: DateTime(2026, 3, 15, 12, 0, 2),
                         detail: 'Runtime input body',
                       ),
@@ -281,16 +284,16 @@ void main() {
     test(
       'marks sent root-thread user messages as rewindable when the session is idle',
       () {
-        final userBlock = CodexUserMessageBlock(
+        final userBlock = TranscriptUserMessageBlock(
           id: 'user_1',
           createdAt: DateTime(2026, 3, 15, 12),
           text: 'Restore this',
-          deliveryState: CodexUserMessageDeliveryState.sent,
+          deliveryState: TranscriptUserMessageDeliveryState.sent,
         );
-        final sessionState = CodexSessionState.initial().copyWith(
+        final sessionState = TranscriptSessionState.initial().copyWith(
           rootThreadId: 'thread_root',
           sessionThreadId: 'thread_root',
-          sessionBlocks: <CodexUiBlock>[userBlock],
+          sessionBlocks: <TranscriptUiBlock>[userBlock],
         );
 
         final surface = projector.project(
@@ -308,46 +311,48 @@ void main() {
     test(
       'does not mark user messages as rewindable while the session is busy, on child timelines, or for local echo prompts',
       () {
-        final userBlock = CodexUserMessageBlock(
+        final userBlock = TranscriptUserMessageBlock(
           id: 'user_1',
           createdAt: DateTime(2026, 3, 15, 12),
           text: 'Restore this',
-          deliveryState: CodexUserMessageDeliveryState.sent,
+          deliveryState: TranscriptUserMessageDeliveryState.sent,
         );
         final childUserBlock = userBlock.copyWith();
         final localEchoBlock = userBlock.copyWith(
-          deliveryState: CodexUserMessageDeliveryState.localEcho,
+          deliveryState: TranscriptUserMessageDeliveryState.localEcho,
         );
 
         final busySurface = projector.project(
           profile: configuredProfile(),
-          sessionState: CodexSessionState.initial().copyWith(
-            connectionStatus: CodexRuntimeSessionState.running,
+          sessionState: TranscriptSessionState.initial().copyWith(
+            connectionStatus: TranscriptRuntimeSessionState.running,
             rootThreadId: 'thread_root',
             sessionThreadId: 'thread_root',
-            sessionBlocks: <CodexUiBlock>[userBlock],
+            sessionBlocks: <TranscriptUiBlock>[userBlock],
           ),
         );
         final childTimelineSurface = projector.project(
           profile: configuredProfile(),
-          sessionState: CodexSessionState.initial().copyWith(
+          sessionState: TranscriptSessionState.initial().copyWith(
             rootThreadId: 'thread_root',
             selectedThreadId: 'thread_child',
-            timelinesByThreadId: <String, CodexTimelineState>{
-              'thread_root': const CodexTimelineState(threadId: 'thread_root'),
-              'thread_child': CodexTimelineState(
+            timelinesByThreadId: <String, TranscriptTimelineState>{
+              'thread_root': const TranscriptTimelineState(
+                threadId: 'thread_root',
+              ),
+              'thread_child': TranscriptTimelineState(
                 threadId: 'thread_child',
-                blocks: <CodexUiBlock>[childUserBlock],
+                blocks: <TranscriptUiBlock>[childUserBlock],
               ),
             },
           ),
         );
         final localEchoSurface = projector.project(
           profile: configuredProfile(),
-          sessionState: CodexSessionState.initial().copyWith(
+          sessionState: TranscriptSessionState.initial().copyWith(
             rootThreadId: 'thread_root',
             sessionThreadId: 'thread_root',
-            sessionBlocks: <CodexUiBlock>[localEchoBlock],
+            sessionBlocks: <TranscriptUiBlock>[localEchoBlock],
           ),
         );
 

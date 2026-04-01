@@ -1,7 +1,8 @@
-part of 'codex_runtime_event.dart';
+part of 'transcript_runtime_event.dart';
 
-final class CodexRuntimeSessionStateChangedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSessionStateChangedEvent({
+final class TranscriptRuntimeSessionStateChangedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeSessionStateChangedEvent({
     required super.createdAt,
     required this.state,
     super.threadId,
@@ -10,12 +11,12 @@ final class CodexRuntimeSessionStateChangedEvent extends CodexRuntimeEvent {
     this.reason,
   });
 
-  final CodexRuntimeSessionState state;
+  final TranscriptRuntimeSessionState state;
   final String? reason;
 }
 
-final class CodexRuntimeSessionExitedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeSessionExitedEvent({
+final class TranscriptRuntimeSessionExitedEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeSessionExitedEvent({
     required super.createdAt,
     required this.exitKind,
     super.threadId,
@@ -25,13 +26,13 @@ final class CodexRuntimeSessionExitedEvent extends CodexRuntimeEvent {
     this.exitCode,
   });
 
-  final CodexRuntimeSessionExitKind exitKind;
+  final TranscriptRuntimeSessionExitKind exitKind;
   final String? reason;
   final int? exitCode;
 }
 
-final class CodexRuntimeThreadStartedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeThreadStartedEvent({
+final class TranscriptRuntimeThreadStartedEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeThreadStartedEvent({
     required super.createdAt,
     required this.providerThreadId,
     super.threadId,
@@ -50,8 +51,9 @@ final class CodexRuntimeThreadStartedEvent extends CodexRuntimeEvent {
   final String? agentRole;
 }
 
-final class CodexRuntimeThreadStateChangedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeThreadStateChangedEvent({
+final class TranscriptRuntimeThreadStateChangedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeThreadStateChangedEvent({
     required super.createdAt,
     required this.state,
     super.threadId,
@@ -60,12 +62,12 @@ final class CodexRuntimeThreadStateChangedEvent extends CodexRuntimeEvent {
     this.detail,
   });
 
-  final CodexRuntimeThreadState state;
+  final TranscriptRuntimeThreadState state;
   final Object? detail;
 }
 
-final class CodexRuntimeTurnStartedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeTurnStartedEvent({
+final class TranscriptRuntimeTurnStartedEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeTurnStartedEvent({
     required super.createdAt,
     super.threadId,
     super.turnId,
@@ -79,8 +81,8 @@ final class CodexRuntimeTurnStartedEvent extends CodexRuntimeEvent {
   final String? effort;
 }
 
-final class CodexRuntimeTurnCompletedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeTurnCompletedEvent({
+final class TranscriptRuntimeTurnCompletedEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeTurnCompletedEvent({
     required super.createdAt,
     required this.state,
     super.threadId,
@@ -94,16 +96,16 @@ final class CodexRuntimeTurnCompletedEvent extends CodexRuntimeEvent {
     this.errorMessage,
   });
 
-  final CodexRuntimeTurnState state;
+  final TranscriptRuntimeTurnState state;
   final String? stopReason;
-  final CodexRuntimeTurnUsage? usage;
+  final TranscriptRuntimeTurnUsage? usage;
   final Map<String, dynamic>? modelUsage;
   final double? totalCostUsd;
   final String? errorMessage;
 }
 
-final class CodexRuntimeTurnAbortedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeTurnAbortedEvent({
+final class TranscriptRuntimeTurnAbortedEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeTurnAbortedEvent({
     required super.createdAt,
     super.threadId,
     super.turnId,
@@ -115,8 +117,9 @@ final class CodexRuntimeTurnAbortedEvent extends CodexRuntimeEvent {
   final String? reason;
 }
 
-final class CodexRuntimeTurnPlanUpdatedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeTurnPlanUpdatedEvent({
+final class TranscriptRuntimeTurnPlanUpdatedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeTurnPlanUpdatedEvent({
     required super.createdAt,
     required this.steps,
     super.threadId,
@@ -127,11 +130,12 @@ final class CodexRuntimeTurnPlanUpdatedEvent extends CodexRuntimeEvent {
   });
 
   final String? explanation;
-  final List<CodexRuntimePlanStep> steps;
+  final List<TranscriptRuntimePlanStep> steps;
 }
 
-sealed class CodexRuntimeItemLifecycleEvent extends CodexRuntimeEvent {
-  const CodexRuntimeItemLifecycleEvent({
+sealed class TranscriptRuntimeItemLifecycleEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeItemLifecycleEvent({
     required super.createdAt,
     required this.itemType,
     required super.threadId,
@@ -146,17 +150,17 @@ sealed class CodexRuntimeItemLifecycleEvent extends CodexRuntimeEvent {
     this.collaboration,
   });
 
-  final CodexCanonicalItemType itemType;
-  final CodexRuntimeItemStatus status;
+  final TranscriptCanonicalItemType itemType;
+  final TranscriptRuntimeItemStatus status;
   final String? title;
   final String? detail;
   final Map<String, dynamic>? snapshot;
-  final CodexRuntimeCollabAgentToolCall? collaboration;
+  final TranscriptRuntimeCollabAgentToolCall? collaboration;
 }
 
-final class CodexRuntimeItemStartedEvent
-    extends CodexRuntimeItemLifecycleEvent {
-  const CodexRuntimeItemStartedEvent({
+final class TranscriptRuntimeItemStartedEvent
+    extends TranscriptRuntimeItemLifecycleEvent {
+  const TranscriptRuntimeItemStartedEvent({
     required super.createdAt,
     required super.itemType,
     required super.threadId,
@@ -172,9 +176,9 @@ final class CodexRuntimeItemStartedEvent
   });
 }
 
-final class CodexRuntimeItemUpdatedEvent
-    extends CodexRuntimeItemLifecycleEvent {
-  const CodexRuntimeItemUpdatedEvent({
+final class TranscriptRuntimeItemUpdatedEvent
+    extends TranscriptRuntimeItemLifecycleEvent {
+  const TranscriptRuntimeItemUpdatedEvent({
     required super.createdAt,
     required super.itemType,
     required super.threadId,
@@ -190,9 +194,9 @@ final class CodexRuntimeItemUpdatedEvent
   });
 }
 
-final class CodexRuntimeItemCompletedEvent
-    extends CodexRuntimeItemLifecycleEvent {
-  const CodexRuntimeItemCompletedEvent({
+final class TranscriptRuntimeItemCompletedEvent
+    extends TranscriptRuntimeItemLifecycleEvent {
+  const TranscriptRuntimeItemCompletedEvent({
     required super.createdAt,
     required super.itemType,
     required super.threadId,
@@ -208,8 +212,8 @@ final class CodexRuntimeItemCompletedEvent
   });
 }
 
-final class CodexRuntimeContentDeltaEvent extends CodexRuntimeEvent {
-  const CodexRuntimeContentDeltaEvent({
+final class TranscriptRuntimeContentDeltaEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeContentDeltaEvent({
     required super.createdAt,
     required this.streamKind,
     required this.delta,
@@ -222,7 +226,7 @@ final class CodexRuntimeContentDeltaEvent extends CodexRuntimeEvent {
     this.summaryIndex,
   });
 
-  final CodexRuntimeContentStreamKind streamKind;
+  final TranscriptRuntimeContentStreamKind streamKind;
   final String delta;
   final int? contentIndex;
   final int? summaryIndex;

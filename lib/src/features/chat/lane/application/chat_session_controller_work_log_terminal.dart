@@ -42,8 +42,8 @@ Future<ChatWorkLogTerminalContract> _hydrateChatWorkLogTerminal(
   }
 }
 
-CodexSessionActiveItem? _matchingActiveTerminalItem(
-  CodexActiveTurnState? activeTurn, {
+TranscriptSessionActiveItem? _matchingActiveTerminalItem(
+  TranscriptActiveTurnState? activeTurn, {
   required String itemId,
   required String threadId,
   required String? turnId,
@@ -56,7 +56,7 @@ CodexSessionActiveItem? _matchingActiveTerminalItem(
   final activeItem = activeTurn.itemsById[itemId];
   if (activeItem == null ||
       activeItem.threadId != threadId ||
-      activeItem.itemType != CodexCanonicalItemType.commandExecution ||
+      activeItem.itemType != TranscriptCanonicalItemType.commandExecution ||
       !_matchesTerminalTurnId(activeItem.turnId, turnId)) {
     return null;
   }
@@ -65,7 +65,7 @@ CodexSessionActiveItem? _matchingActiveTerminalItem(
 
 ChatWorkLogTerminalContract _terminalFromActiveItem(
   ChatWorkLogTerminalContract terminal,
-  CodexSessionActiveItem item,
+  TranscriptSessionActiveItem item,
 ) {
   final snapshot = item.snapshot;
   final terminalInput =

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_item_projector.dart';
 
@@ -10,12 +10,12 @@ void main() {
     'builds review sections with unified line tokens and collapsed gaps',
     () {
       final item = projector.project(
-        CodexChangedFilesBlock(
+        TranscriptChangedFilesBlock(
           id: 'changed_files_review',
           createdAt: DateTime.utc(2026, 3, 27),
           title: 'Changed files',
-          files: const <CodexChangedFile>[
-            CodexChangedFile(path: 'lib/app.dart'),
+          files: const <TranscriptChangedFile>[
+            TranscriptChangedFile(path: 'lib/app.dart'),
           ],
           unifiedDiff:
               'diff --git a/lib/app.dart b/lib/app.dart\n'
@@ -73,12 +73,12 @@ void main() {
     ];
 
     final item = projector.project(
-      CodexChangedFilesBlock(
+      TranscriptChangedFilesBlock(
         id: 'changed_files_large',
         createdAt: DateTime.utc(2026, 3, 27),
         title: 'Changed files',
-        files: const <CodexChangedFile>[
-          CodexChangedFile(path: 'lib/large.dart', additions: 330),
+        files: const <TranscriptChangedFile>[
+          TranscriptChangedFile(path: 'lib/large.dart', additions: 330),
         ],
         unifiedDiff: diffLines.join('\n'),
       ),
@@ -99,12 +99,12 @@ void main() {
 
   test('builds binary review sections without exposing raw patch headers', () {
     final item = projector.project(
-      CodexChangedFilesBlock(
+      TranscriptChangedFilesBlock(
         id: 'changed_files_binary',
         createdAt: DateTime.utc(2026, 3, 27),
         title: 'Changed files',
-        files: const <CodexChangedFile>[
-          CodexChangedFile(path: 'assets/logo.png'),
+        files: const <TranscriptChangedFile>[
+          TranscriptChangedFile(path: 'assets/logo.png'),
         ],
         unifiedDiff:
             'diff --git a/assets/logo.png b/assets/logo.png\n'

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_surface_frame.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
@@ -10,7 +10,7 @@ class SshHostKeyMismatchSurface extends StatelessWidget {
     this.onOpenConnectionSettings,
   });
 
-  final CodexSshHostKeyMismatchBlock block;
+  final TranscriptSshHostKeyMismatchBlock block;
   final VoidCallback? onOpenConnectionSettings;
 
   @override

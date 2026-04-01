@@ -1,27 +1,27 @@
 part of 'transcript_reducer.dart';
 
-CodexSessionState _reduceSessionTranscriptRuntimeEventImpl(
+TranscriptSessionState _reduceSessionTranscriptRuntimeEventImpl(
   TranscriptReducer reducer,
-  CodexSessionState state,
-  CodexRuntimeEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeEvent event,
 ) {
   final normalizedState = _normalizeTurnStateImpl(reducer, state, event);
   switch (event) {
-    case CodexRuntimeSessionStateChangedEvent():
+    case TranscriptRuntimeSessionStateChangedEvent():
       return normalizedState.copyWith(connectionStatus: event.state);
-    case CodexRuntimeSessionExitedEvent():
+    case TranscriptRuntimeSessionExitedEvent():
       return reducer._policy.applySessionExited(normalizedState, event);
-    case CodexRuntimeThreadStartedEvent():
+    case TranscriptRuntimeThreadStartedEvent():
       return normalizedState.copyWithProjectedTranscript(
         threadId: event.providerThreadId,
       );
-    case CodexRuntimeThreadStateChangedEvent():
-      final isClosed = event.state == CodexRuntimeThreadState.closed;
+    case TranscriptRuntimeThreadStateChangedEvent():
+      final isClosed = event.state == TranscriptRuntimeThreadState.closed;
       if (!isClosed) {
         return normalizedState;
       }
       return reducer._policy.applyThreadClosed(normalizedState, event);
-    case CodexRuntimeTurnStartedEvent():
+    case TranscriptRuntimeTurnStartedEvent():
       final nextActiveTurn = reducer._support.activeTurnForStartedEvent(
         normalizedState.activeTurn,
         turnId: event.turnId,
@@ -30,71 +30,71 @@ CodexSessionState _reduceSessionTranscriptRuntimeEventImpl(
         createdAt: event.createdAt,
       );
       final nextState = normalizedState
-          .copyWith(connectionStatus: CodexRuntimeSessionState.running)
+          .copyWith(connectionStatus: TranscriptRuntimeSessionState.running)
           .copyWithProjectedTranscript(
             threadId: event.threadId ?? normalizedState.threadId,
             activeTurn: nextActiveTurn,
           );
       return _withUpdatedHeaderMetadataForTurnStartedImpl(nextState, event);
-    case CodexRuntimeTurnCompletedEvent():
+    case TranscriptRuntimeTurnCompletedEvent():
       return reducer._policy.applyTurnCompleted(normalizedState, event);
-    case CodexRuntimeTurnAbortedEvent():
+    case TranscriptRuntimeTurnAbortedEvent():
       return reducer._policy.applyTurnAborted(normalizedState, event);
-    case CodexRuntimeTurnPlanUpdatedEvent():
+    case TranscriptRuntimeTurnPlanUpdatedEvent():
       return reducer._policy.applyTurnPlanUpdated(normalizedState, event);
-    case CodexRuntimeItemStartedEvent():
+    case TranscriptRuntimeItemStartedEvent():
       return reducer._policy.applyItemLifecycle(
         normalizedState,
         event,
         removeAfterUpsert: false,
       );
-    case CodexRuntimeItemUpdatedEvent():
+    case TranscriptRuntimeItemUpdatedEvent():
       return reducer._policy.applyItemLifecycle(
         normalizedState,
         event,
         removeAfterUpsert: false,
       );
-    case CodexRuntimeItemCompletedEvent():
+    case TranscriptRuntimeItemCompletedEvent():
       return reducer._policy.applyItemLifecycle(
         normalizedState,
         event,
         removeAfterUpsert: true,
       );
-    case CodexRuntimeContentDeltaEvent():
+    case TranscriptRuntimeContentDeltaEvent():
       return reducer._policy.applyContentDelta(normalizedState, event);
-    case CodexRuntimeRequestOpenedEvent():
+    case TranscriptRuntimeRequestOpenedEvent():
       return reducer._policy.applyRequestOpened(normalizedState, event);
-    case CodexRuntimeRequestResolvedEvent():
+    case TranscriptRuntimeRequestResolvedEvent():
       return reducer._policy.applyRequestResolved(normalizedState, event);
-    case CodexRuntimeUserInputRequestedEvent():
+    case TranscriptRuntimeUserInputRequestedEvent():
       return reducer._policy.applyUserInputRequested(normalizedState, event);
-    case CodexRuntimeUserInputResolvedEvent():
+    case TranscriptRuntimeUserInputResolvedEvent():
       return reducer._policy.applyUserInputResolved(normalizedState, event);
-    case CodexRuntimeWarningEvent():
+    case TranscriptRuntimeWarningEvent():
       return reducer._policy.applyWarning(normalizedState, event);
-    case CodexRuntimeSshConnectFailedEvent():
+    case TranscriptRuntimeSshConnectFailedEvent():
       return reducer._policy.applySshConnectFailed(normalizedState, event);
-    case CodexRuntimeUnpinnedHostKeyEvent():
+    case TranscriptRuntimeUnpinnedHostKeyEvent():
       return reducer._policy.applyUnpinnedHostKey(normalizedState, event);
-    case CodexRuntimeSshHostKeyMismatchEvent():
+    case TranscriptRuntimeSshHostKeyMismatchEvent():
       return reducer._policy.applySshHostKeyMismatch(normalizedState, event);
-    case CodexRuntimeSshAuthenticationFailedEvent():
+    case TranscriptRuntimeSshAuthenticationFailedEvent():
       return reducer._policy.applySshAuthenticationFailed(
         normalizedState,
         event,
       );
-    case CodexRuntimeSshAuthenticatedEvent():
+    case TranscriptRuntimeSshAuthenticatedEvent():
       return normalizedState;
-    case CodexRuntimeStatusEvent():
+    case TranscriptRuntimeStatusEvent():
       return reducer._policy.applyStatus(normalizedState, event);
-    case CodexRuntimeErrorEvent():
+    case TranscriptRuntimeErrorEvent():
       return reducer._policy.applyRuntimeError(normalizedState, event);
   }
 }
 
-CodexSessionState _withUpdatedHeaderMetadataForTurnStartedImpl(
-  CodexSessionState state,
-  CodexRuntimeTurnStartedEvent event,
+TranscriptSessionState _withUpdatedHeaderMetadataForTurnStartedImpl(
+  TranscriptSessionState state,
+  TranscriptRuntimeTurnStartedEvent event,
 ) {
   if (!_shouldUpdateHeaderMetadataForThreadImpl(state, event.threadId)) {
     return state;
@@ -118,7 +118,7 @@ CodexSessionState _withUpdatedHeaderMetadataForTurnStartedImpl(
 }
 
 bool _shouldUpdateHeaderMetadataForThreadImpl(
-  CodexSessionState state,
+  TranscriptSessionState state,
   String? threadId,
 ) {
   final normalizedThreadId = threadId?.trim();
@@ -134,22 +134,22 @@ bool _shouldUpdateHeaderMetadataForThreadImpl(
   return normalizedThreadId == rootThreadId;
 }
 
-CodexSessionState _normalizeTurnStateImpl(
+TranscriptSessionState _normalizeTurnStateImpl(
   TranscriptReducer reducer,
-  CodexSessionState state,
-  CodexRuntimeEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeEvent event,
 ) {
   return switch (event) {
-    CodexRuntimeSessionStateChangedEvent() ||
-    CodexRuntimeSessionExitedEvent() ||
-    CodexRuntimeThreadStartedEvent() ||
-    CodexRuntimeThreadStateChangedEvent() ||
-    CodexRuntimeTurnCompletedEvent() ||
-    CodexRuntimeTurnAbortedEvent() => state,
-    CodexRuntimeSshConnectFailedEvent() ||
-    CodexRuntimeSshHostKeyMismatchEvent() ||
-    CodexRuntimeSshAuthenticationFailedEvent() ||
-    CodexRuntimeSshAuthenticatedEvent() => state,
+    TranscriptRuntimeSessionStateChangedEvent() ||
+    TranscriptRuntimeSessionExitedEvent() ||
+    TranscriptRuntimeThreadStartedEvent() ||
+    TranscriptRuntimeThreadStateChangedEvent() ||
+    TranscriptRuntimeTurnCompletedEvent() ||
+    TranscriptRuntimeTurnAbortedEvent() => state,
+    TranscriptRuntimeSshConnectFailedEvent() ||
+    TranscriptRuntimeSshHostKeyMismatchEvent() ||
+    TranscriptRuntimeSshAuthenticationFailedEvent() ||
+    TranscriptRuntimeSshAuthenticatedEvent() => state,
     _ => reducer._policy.rolloverTurnIfNeeded(
       state,
       turnId: event.turnId,

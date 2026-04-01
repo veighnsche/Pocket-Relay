@@ -5,14 +5,14 @@ void main() {
     const projector = ChatTranscriptItemProjector();
 
     test('projects work-log groups into work-log group item contracts', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_1',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_1',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'Read docs',
             turnId: 'turn_1',
             preview: 'Found the CLI docs',
@@ -38,14 +38,14 @@ void main() {
     });
 
     test('projects simple sed read commands into read work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_sed',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_sed',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: "sed -n '1,120p' lib/src/app/pocket_relay_app.dart",
           ),
         ],
@@ -63,14 +63,14 @@ void main() {
     });
 
     test('projects web-search items into dedicated web-search entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_web_search',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_web_search',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.webSearch,
+            entryKind: TranscriptWorkLogEntryKind.webSearch,
             title: 'Search docs',
             preview: 'Found CLI reference and API notes',
             snapshot: const <String, Object?>{'query': 'Pocket Relay CLI'},
@@ -89,14 +89,14 @@ void main() {
     test(
       'projects plain command executions into dedicated command entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_command',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_command',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: 'pwd',
               preview: '/repo',
               body: '/repo\n',
@@ -118,14 +118,14 @@ void main() {
     test(
       'projects empty-stdin terminal interactions into command wait entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_command_wait',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_command_wait',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: 'sleep 5',
               preview: 'still running',
               isRunning: true,
@@ -150,14 +150,14 @@ void main() {
     test(
       'projects shell-derived work-log entries with full terminal payload',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_shell_payload',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_shell_payload',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: 'git status --short',
               body: ' M lib/main.dart\n',
               snapshot: const <String, Object?>{
@@ -181,14 +181,14 @@ void main() {
     test(
       'keeps resumed background-terminal commands in the command execution family',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_command_wait_resumed',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_command_wait_resumed',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: 'sleep 5',
               preview: 'ready',
               isRunning: true,
@@ -212,12 +212,12 @@ void main() {
 
     test('projects review status blocks into dedicated review items', () {
       final item = projector.project(
-        CodexStatusBlock(
+        TranscriptStatusBlock(
           id: 'status_review',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Review started',
           body: 'Checking the patch set',
-          statusKind: CodexStatusBlockKind.review,
+          statusKind: TranscriptStatusBlockKind.review,
         ),
       );
 
@@ -228,12 +228,12 @@ void main() {
       'projects compaction status blocks into dedicated context-compacted items',
       () {
         final item = projector.project(
-          CodexStatusBlock(
+          TranscriptStatusBlock(
             id: 'status_compaction',
             createdAt: DateTime(2026, 3, 15, 12),
             title: 'Context compacted',
             body: 'Codex compacted the current thread context.',
-            statusKind: CodexStatusBlockKind.compaction,
+            statusKind: TranscriptStatusBlockKind.compaction,
           ),
         );
 
@@ -243,12 +243,12 @@ void main() {
 
     test('projects info status blocks into dedicated session-info items', () {
       final item = projector.project(
-        CodexStatusBlock(
+        TranscriptStatusBlock(
           id: 'status_info',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'New thread',
           body: 'Resume the previous task.',
-          statusKind: CodexStatusBlockKind.info,
+          statusKind: TranscriptStatusBlockKind.info,
           isTranscriptSignal: true,
         ),
       );
@@ -258,12 +258,12 @@ void main() {
 
     test('projects warning status blocks into dedicated warning items', () {
       final item = projector.project(
-        CodexStatusBlock(
+        TranscriptStatusBlock(
           id: 'status_warning',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Warning',
           body: 'The command exceeded the preferred timeout.',
-          statusKind: CodexStatusBlockKind.warning,
+          statusKind: TranscriptStatusBlockKind.warning,
         ),
       );
 
@@ -272,12 +272,12 @@ void main() {
 
     test('projects deprecation notices into dedicated warning items', () {
       final item = projector.project(
-        CodexStatusBlock(
+        TranscriptStatusBlock(
           id: 'status_deprecation',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Deprecation notice',
           body: 'This event family will be removed soon.',
-          statusKind: CodexStatusBlockKind.warning,
+          statusKind: TranscriptStatusBlockKind.warning,
         ),
       );
 
@@ -286,7 +286,7 @@ void main() {
 
     test('projects patch-apply failures into dedicated error items', () {
       final item = projector.project(
-        CodexErrorBlock(
+        TranscriptErrorBlock(
           id: 'error_patch_apply',
           createdAt: DateTime(2026, 3, 15, 12),
           title: 'Patch apply failed',

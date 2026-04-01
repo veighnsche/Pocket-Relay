@@ -1,15 +1,15 @@
-part of 'codex_session_state.dart';
+part of 'transcript_session_state.dart';
 
-List<CodexUiBlock> projectCodexTurnArtifacts(
-  Iterable<CodexTurnArtifact> artifacts,
+List<TranscriptUiBlock> projectTranscriptTurnArtifacts(
+  Iterable<TranscriptTurnArtifact> artifacts,
 ) {
-  final projected = <CodexUiBlock>[];
+  final projected = <TranscriptUiBlock>[];
 
   for (final artifact in artifacts) {
     switch (artifact) {
-      case CodexTurnTextArtifact():
+      case TranscriptTurnTextArtifact():
         projected.add(
-          CodexTextBlock(
+          TranscriptTextBlock(
             id: artifact.id,
             kind: artifact.kind,
             createdAt: artifact.createdAt,
@@ -18,17 +18,17 @@ List<CodexUiBlock> projectCodexTurnArtifacts(
             isRunning: artifact.isStreaming,
           ),
         );
-      case CodexTurnWorkArtifact():
+      case TranscriptTurnWorkArtifact():
         projected.add(
-          CodexWorkLogGroupBlock(
+          TranscriptWorkLogGroupBlock(
             id: artifact.id,
             createdAt: artifact.createdAt,
             entries: artifact.entries,
           ),
         );
-      case CodexTurnPlanArtifact():
+      case TranscriptTurnPlanArtifact():
         projected.add(
-          CodexProposedPlanBlock(
+          TranscriptProposedPlanBlock(
             id: artifact.id,
             createdAt: artifact.createdAt,
             title: artifact.title,
@@ -36,9 +36,9 @@ List<CodexUiBlock> projectCodexTurnArtifacts(
             isStreaming: artifact.isStreaming,
           ),
         );
-      case CodexTurnChangedFilesArtifact():
+      case TranscriptTurnChangedFilesArtifact():
         projected.add(
-          CodexChangedFilesBlock(
+          TranscriptChangedFilesBlock(
             id: artifact.id,
             createdAt: artifact.createdAt,
             title: artifact.title,
@@ -47,7 +47,7 @@ List<CodexUiBlock> projectCodexTurnArtifacts(
             isRunning: artifact.isStreaming,
           ),
         );
-      case CodexTurnBlockArtifact():
+      case TranscriptTurnBlockArtifact():
         projected.add(artifact.block);
     }
   }
@@ -55,11 +55,11 @@ List<CodexUiBlock> projectCodexTurnArtifacts(
   return projected;
 }
 
-List<CodexTurnArtifact> appendCodexTurnArtifact(
-  List<CodexTurnArtifact> artifacts,
-  CodexTurnArtifact nextArtifact,
+List<TranscriptTurnArtifact> appendCodexTurnArtifact(
+  List<TranscriptTurnArtifact> artifacts,
+  TranscriptTurnArtifact nextArtifact,
 ) {
-  final nextArtifacts = List<CodexTurnArtifact>.from(artifacts);
+  final nextArtifacts = List<TranscriptTurnArtifact>.from(artifacts);
   if (nextArtifacts.isNotEmpty) {
     nextArtifacts[nextArtifacts.length - 1] = freezeCodexTurnArtifact(
       nextArtifacts.last,
@@ -69,10 +69,12 @@ List<CodexTurnArtifact> appendCodexTurnArtifact(
   return nextArtifacts;
 }
 
-CodexTurnArtifact freezeCodexTurnArtifact(CodexTurnArtifact artifact) {
+TranscriptTurnArtifact freezeCodexTurnArtifact(
+  TranscriptTurnArtifact artifact,
+) {
   return switch (artifact) {
-    CodexTurnTextArtifact(:final isStreaming) when isStreaming =>
-      CodexTurnTextArtifact(
+    TranscriptTurnTextArtifact(:final isStreaming) when isStreaming =>
+      TranscriptTurnTextArtifact(
         id: artifact.id,
         createdAt: artifact.createdAt,
         kind: artifact.kind,
@@ -81,15 +83,15 @@ CodexTurnArtifact freezeCodexTurnArtifact(CodexTurnArtifact artifact) {
         itemId: artifact.itemId,
         isStreaming: false,
       ),
-    CodexTurnWorkArtifact() => CodexTurnWorkArtifact(
+    TranscriptTurnWorkArtifact() => TranscriptTurnWorkArtifact(
       id: artifact.id,
       createdAt: artifact.createdAt,
       entries: artifact.entries
           .map((entry) => entry.copyWith(isRunning: false))
           .toList(growable: false),
     ),
-    CodexTurnPlanArtifact(:final isStreaming) when isStreaming =>
-      CodexTurnPlanArtifact(
+    TranscriptTurnPlanArtifact(:final isStreaming) when isStreaming =>
+      TranscriptTurnPlanArtifact(
         id: artifact.id,
         createdAt: artifact.createdAt,
         title: artifact.title,
@@ -97,8 +99,8 @@ CodexTurnArtifact freezeCodexTurnArtifact(CodexTurnArtifact artifact) {
         itemId: artifact.itemId,
         isStreaming: false,
       ),
-    CodexTurnChangedFilesArtifact(:final isStreaming) when isStreaming =>
-      CodexTurnChangedFilesArtifact(
+    TranscriptTurnChangedFilesArtifact(:final isStreaming) when isStreaming =>
+      TranscriptTurnChangedFilesArtifact(
         id: artifact.id,
         createdAt: artifact.createdAt,
         title: artifact.title,
@@ -110,32 +112,31 @@ CodexTurnArtifact freezeCodexTurnArtifact(CodexTurnArtifact artifact) {
             .toList(growable: false),
         isStreaming: false,
       ),
-    CodexTurnBlockArtifact(:final block) => CodexTurnBlockArtifact(
+    TranscriptTurnBlockArtifact(:final block) => TranscriptTurnBlockArtifact(
       block: _freezeCodexUiBlock(block),
     ),
     _ => artifact,
   };
 }
 
-CodexUiBlock _freezeCodexUiBlock(CodexUiBlock block) {
+TranscriptUiBlock _freezeCodexUiBlock(TranscriptUiBlock block) {
   return switch (block) {
-    CodexTextBlock(:final isRunning) when isRunning => block.copyWith(
+    TranscriptTextBlock(:final isRunning) when isRunning => block.copyWith(
       isRunning: false,
     ),
-    CodexProposedPlanBlock(:final isStreaming) when isStreaming =>
+    TranscriptProposedPlanBlock(:final isStreaming) when isStreaming =>
       block.copyWith(isStreaming: false),
-    CodexChangedFilesBlock(:final isRunning) when isRunning => block.copyWith(
-      isRunning: false,
-    ),
+    TranscriptChangedFilesBlock(:final isRunning) when isRunning =>
+      block.copyWith(isRunning: false),
     _ => block,
   };
 }
 
-bool _shouldAppearInTranscript(CodexUiBlock block) {
+bool _shouldAppearInTranscript(TranscriptUiBlock block) {
   return switch (block) {
-    CodexApprovalRequestBlock(:final isResolved) => isResolved,
-    CodexUserInputRequestBlock(:final isResolved) => isResolved,
-    CodexStatusBlock(:final isTranscriptSignal) => isTranscriptSignal,
+    TranscriptApprovalRequestBlock(:final isResolved) => isResolved,
+    TranscriptUserInputRequestBlock(:final isResolved) => isResolved,
+    TranscriptStatusBlock(:final isTranscriptSignal) => isTranscriptSignal,
     _ => true,
   };
 }

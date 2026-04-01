@@ -70,9 +70,7 @@ List<_StructuredChangedFile> _extractStructuredChangedFiles(
   return changes;
 }
 
-List<_StructuredChangedFile> _parseStructuredChangeList(
-  List<Object?> changes,
-) {
+List<_StructuredChangedFile> _parseStructuredChangeList(List<Object?> changes) {
   final parsed = <_StructuredChangedFile>[];
   for (final entry in changes) {
     final map = switch (entry) {
@@ -110,7 +108,7 @@ List<_StructuredChangedFile> _parseStructuredChangeList(
     );
     parsed.add(
       _StructuredChangedFile(
-        file: CodexChangedFile(
+        file: TranscriptChangedFile(
           path: path,
           movePath: movePath,
           additions: stats.additions,

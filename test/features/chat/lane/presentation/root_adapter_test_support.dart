@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
@@ -17,7 +18,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_pre
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
@@ -43,7 +44,7 @@ export 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_pre
 export 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 export 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
@@ -520,10 +521,11 @@ class CountingChatScreenPresenter extends ChatScreenPresenter {
     required bool isLoading,
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
-    required CodexSessionState sessionState,
+    required TranscriptSessionState sessionState,
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     bool effectiveModelSupportsImages = true,
+    AgentAdapterCapabilities? agentAdapterCapabilities,
     ConnectionMode? preferredConnectionMode,
   }) {
     presentSessionCalls += 1;
@@ -535,6 +537,7 @@ class CountingChatScreenPresenter extends ChatScreenPresenter {
       conversationRecoveryState: conversationRecoveryState,
       historicalConversationRestoreState: historicalConversationRestoreState,
       effectiveModelSupportsImages: effectiveModelSupportsImages,
+      agentAdapterCapabilities: agentAdapterCapabilities,
       preferredConnectionMode: preferredConnectionMode,
     );
   }

@@ -6,9 +6,9 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexTextBlock(
+          block: TranscriptTextBlock(
             id: 'reasoning_1',
-            kind: CodexUiBlockKind.reasoning,
+            kind: TranscriptUiBlockKind.reasoning,
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Reasoning',
             body: 'Investigating the next step.',
@@ -35,9 +35,9 @@ void main() {
       buildTestApp(
         themeMode: ThemeMode.dark,
         child: entrySurface(
-          block: CodexTextBlock(
+          block: TranscriptTextBlock(
             id: 'reasoning_code_1',
-            kind: CodexUiBlockKind.reasoning,
+            kind: TranscriptUiBlockKind.reasoning,
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Reasoning',
             body: '```dart\nfinal answer = 42;\n```',
@@ -63,9 +63,9 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexTextBlock(
+          block: TranscriptTextBlock(
             id: 'assistant_inline_code_1',
-            kind: CodexUiBlockKind.assistantMessage,
+            kind: TranscriptUiBlockKind.assistantMessage,
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Assistant',
             body: 'Use `dart test` before shipping.',
@@ -87,7 +87,7 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexProposedPlanBlock(
+            block: TranscriptProposedPlanBlock(
               id: 'plan_code_1',
               createdAt: DateTime(2026, 3, 14, 12),
               title: 'Proposed plan',
@@ -119,12 +119,12 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexStatusBlock(
+            block: TranscriptStatusBlock(
               id: 'status_1',
               createdAt: DateTime(2026, 3, 14, 12),
               title: 'Context compacted',
               body: 'Older transcript context was compacted upstream.',
-              statusKind: CodexStatusBlockKind.compaction,
+              statusKind: TranscriptStatusBlockKind.compaction,
             ),
           ),
         ),
@@ -145,12 +145,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexStatusBlock(
+          block: TranscriptStatusBlock(
             id: 'status_review_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Review started',
             body: 'Checking the patch set',
-            statusKind: CodexStatusBlockKind.review,
+            statusKind: TranscriptStatusBlockKind.review,
           ),
         ),
       ),
@@ -167,12 +167,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexStatusBlock(
+          block: TranscriptStatusBlock(
             id: 'status_info_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'New thread',
             body: 'Resume the previous task.',
-            statusKind: CodexStatusBlockKind.info,
+            statusKind: TranscriptStatusBlockKind.info,
             isTranscriptSignal: true,
           ),
         ),
@@ -190,12 +190,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexStatusBlock(
+          block: TranscriptStatusBlock(
             id: 'status_warning_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Warning',
             body: 'The command exceeded the preferred timeout.',
-            statusKind: CodexStatusBlockKind.warning,
+            statusKind: TranscriptStatusBlockKind.warning,
           ),
         ),
       ),
@@ -215,12 +215,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexStatusBlock(
+          block: TranscriptStatusBlock(
             id: 'status_deprecation_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Deprecation notice',
             body: 'This event family will be removed soon.',
-            statusKind: CodexStatusBlockKind.warning,
+            statusKind: TranscriptStatusBlockKind.warning,
           ),
         ),
       ),
@@ -240,7 +240,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexErrorBlock(
+          block: TranscriptErrorBlock(
             id: 'error_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Patch apply failed',
@@ -271,18 +271,18 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexPlanUpdateBlock(
+          block: TranscriptPlanUpdateBlock(
             id: 'plan_update_1',
             createdAt: DateTime(2026, 3, 14, 12),
             explanation: 'Updated the execution sequence.',
-            steps: const <CodexRuntimePlanStep>[
-              CodexRuntimePlanStep(
+            steps: const <TranscriptRuntimePlanStep>[
+              TranscriptRuntimePlanStep(
                 step: 'Inspect the existing transcript item hierarchy.',
-                status: CodexRuntimePlanStepStatus.completed,
+                status: TranscriptRuntimePlanStepStatus.completed,
               ),
-              CodexRuntimePlanStep(
+              TranscriptRuntimePlanStep(
                 step: 'Replace framed transcript annotations.',
-                status: CodexRuntimePlanStepStatus.inProgress,
+                status: TranscriptRuntimePlanStepStatus.inProgress,
               ),
             ],
           ),
@@ -317,9 +317,9 @@ void main() {
           child: Column(
             children: [
               entrySurface(
-                block: CodexTextBlock(
+                block: TranscriptTextBlock(
                   id: 'reasoning_dark_1',
-                  kind: CodexUiBlockKind.reasoning,
+                  kind: TranscriptUiBlockKind.reasoning,
                   createdAt: DateTime(2026, 3, 14, 12),
                   title: 'Reasoning',
                   body: 'Dark mode should use the themed surface.',
@@ -327,12 +327,12 @@ void main() {
               ),
               const SizedBox(height: 16),
               entrySurface(
-                block: CodexChangedFilesBlock(
+                block: TranscriptChangedFilesBlock(
                   id: 'files_dark_1',
                   createdAt: DateTime(2026, 3, 14, 12),
                   title: 'Changed files',
-                  files: <CodexChangedFile>[
-                    const CodexChangedFile(
+                  files: <TranscriptChangedFile>[
+                    const TranscriptChangedFile(
                       path:
                           'lib/src/features/chat/presentation/widgets/foo.dart',
                       additions: 2,

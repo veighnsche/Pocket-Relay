@@ -3,7 +3,7 @@ part of 'chat_changed_files_item_projector.dart';
 ChatChangedFileRowContract _projectChangedFileRow({
   required String blockId,
   required int index,
-  required CodexChangedFile file,
+  required TranscriptChangedFile file,
   required List<_ParsedDiffPatch> patches,
   required int totalFiles,
 }) {
@@ -76,7 +76,7 @@ ChatChangedFileRowContract _projectChangedFileRow({
 }
 
 ChatChangedFileOperationKind _resolveOperationKind({
-  required CodexChangedFile file,
+  required TranscriptChangedFile file,
   required _ParsedDiffPatch? patch,
 }) {
   switch (patch?.statusLabel) {
@@ -105,15 +105,15 @@ String _operationLabel(ChatChangedFileOperationKind kind) {
   };
 }
 
-List<CodexChangedFile> _displayFiles(
-  List<CodexChangedFile> files,
+List<TranscriptChangedFile> _displayFiles(
+  List<TranscriptChangedFile> files,
   List<_ParsedDiffPatch> patches,
 ) {
   final baseFiles = files.isNotEmpty
       ? files
       : patches
             .map(
-              (patch) => CodexChangedFile(
+              (patch) => TranscriptChangedFile(
                 path: patch.renameFromPath ?? patch.path,
                 movePath: patch.renameToPath,
                 additions: patch.additions,
@@ -122,7 +122,7 @@ List<CodexChangedFile> _displayFiles(
             )
             .toList(growable: false);
   if (baseFiles.isEmpty) {
-    return const <CodexChangedFile>[];
+    return const <TranscriptChangedFile>[];
   }
 
   return baseFiles
@@ -135,8 +135,8 @@ List<CodexChangedFile> _displayFiles(
       .toList(growable: false);
 }
 
-CodexChangedFile _enrichFileFromPatch(
-  CodexChangedFile file,
+TranscriptChangedFile _enrichFileFromPatch(
+  TranscriptChangedFile file,
   _ParsedDiffPatch? patch,
 ) {
   if (patch == null) {
@@ -157,7 +157,7 @@ CodexChangedFile _enrichFileFromPatch(
 }
 
 _ParsedDiffPatch? _patchForFile(
-  CodexChangedFile file,
+  TranscriptChangedFile file,
   List<_ParsedDiffPatch> patches, {
   required int totalFiles,
 }) {
@@ -182,7 +182,7 @@ _ParsedDiffPatch? _patchForFile(
 }
 
 _DiffStats _resolveHeaderStats({
-  required List<CodexChangedFile> files,
+  required List<TranscriptChangedFile> files,
   required List<_ParsedDiffPatch> patches,
 }) {
   final fileStats = files.fold<_DiffStats>(const _DiffStats(), (sum, file) {
@@ -209,7 +209,7 @@ _DiffStats _resolveHeaderStats({
 }
 
 _DiffStats _resolveFileStats({
-  required CodexChangedFile file,
+  required TranscriptChangedFile file,
   required _ParsedDiffPatch? patch,
 }) {
   if (patch == null) {

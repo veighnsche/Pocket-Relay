@@ -5,12 +5,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexChangedFilesBlock(
+          block: TranscriptChangedFilesBlock(
             id: 'diff_rename_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Changed files',
-            files: const <CodexChangedFile>[
-              CodexChangedFile(path: 'lib/new_name.dart'),
+            files: const <TranscriptChangedFile>[
+              TranscriptChangedFile(path: 'lib/new_name.dart'),
             ],
             unifiedDiff:
                 'diff --git a/lib/old_name.dart b/lib/new_name.dart\n'
@@ -61,12 +61,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexChangedFilesBlock(
+          block: TranscriptChangedFilesBlock(
             id: 'diff_binary_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Changed files',
-            files: const <CodexChangedFile>[
-              CodexChangedFile(path: 'assets/logo.png'),
+            files: const <TranscriptChangedFile>[
+              TranscriptChangedFile(path: 'assets/logo.png'),
             ],
             unifiedDiff:
                 'diff --git a/assets/logo.png b/assets/logo.png\n'
@@ -99,18 +99,21 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexChangedFilesBlock(
+            block: TranscriptChangedFilesBlock(
               id: 'diff_states_1',
               createdAt: DateTime(2026, 3, 14, 12),
               title: 'Changed files',
-              files: const <CodexChangedFile>[
-                CodexChangedFile(path: 'lib/new_file.dart', additions: 3),
-                CodexChangedFile(
+              files: const <TranscriptChangedFile>[
+                TranscriptChangedFile(path: 'lib/new_file.dart', additions: 3),
+                TranscriptChangedFile(
                   path: 'lib/edited_file.dart',
                   additions: 2,
                   deletions: 1,
                 ),
-                CodexChangedFile(path: 'lib/deleted_file.dart', deletions: 4),
+                TranscriptChangedFile(
+                  path: 'lib/deleted_file.dart',
+                  deletions: 4,
+                ),
               ],
               unifiedDiff:
                   'diff --git a/lib/new_file.dart b/lib/new_file.dart\n'
@@ -172,7 +175,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexChangedFilesBlock(
+          block: TranscriptChangedFilesBlock(
             id: 'diff_only_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Changed files',
@@ -224,12 +227,12 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexChangedFilesBlock(
+          block: TranscriptChangedFilesBlock(
             id: 'diff_large_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Changed files',
-            files: const <CodexChangedFile>[
-              CodexChangedFile(path: 'lib/large.dart', additions: 360),
+            files: const <TranscriptChangedFile>[
+              TranscriptChangedFile(path: 'lib/large.dart', additions: 360),
             ],
             unifiedDiff: diffLines.join('\n'),
           ),

@@ -1,12 +1,12 @@
 part of 'transcript_policy.dart';
 
-CodexSessionState _applyStatusImpl(
+TranscriptSessionState _applyStatusImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeStatusEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeStatusEvent event,
 ) {
   if (event.rawMethod == 'thread/tokenUsage/updated') {
-    final usageBlock = CodexUsageBlock(
+    final usageBlock = TranscriptUsageBlock(
       id: policy._support.eventEntryId('thread-usage', event.createdAt),
       createdAt: event.createdAt,
       title: event.title,
@@ -30,7 +30,7 @@ CodexSessionState _applyStatusImpl(
   return _stateWithTranscriptBlockImpl(
     policy,
     state,
-    CodexStatusBlock(
+    TranscriptStatusBlock(
       id: policy._support.eventEntryId('status', event.createdAt),
       createdAt: event.createdAt,
       title: event.title,
@@ -43,23 +43,24 @@ CodexSessionState _applyStatusImpl(
   );
 }
 
-CodexSessionState _markUnpinnedHostKeySavedImpl(
-  CodexSessionState state, {
+TranscriptSessionState _markUnpinnedHostKeySavedImpl(
+  TranscriptSessionState state, {
   required String blockId,
 }) {
   final blockIndex = state.blocks.indexWhere(
-    (block) => block is CodexSshUnpinnedHostKeyBlock && block.id == blockId,
+    (block) =>
+        block is TranscriptSshUnpinnedHostKeyBlock && block.id == blockId,
   );
   if (blockIndex == -1) {
     return state;
   }
 
-  final block = state.blocks[blockIndex] as CodexSshUnpinnedHostKeyBlock;
+  final block = state.blocks[blockIndex] as TranscriptSshUnpinnedHostKeyBlock;
   if (block.isSaved) {
     return state;
   }
 
-  final nextBlocks = List<CodexUiBlock>.from(state.blocks);
+  final nextBlocks = List<TranscriptUiBlock>.from(state.blocks);
   nextBlocks[blockIndex] = block.copyWith(isSaved: true);
   return state.copyWithProjectedTranscript(blocks: nextBlocks);
 }

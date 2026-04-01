@@ -105,11 +105,14 @@ void main() {
       final sent = await controller.sendPrompt('Hello controller');
 
       expect(sent, isFalse);
-      expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+      expect(
+        controller.transcriptBlocks.first,
+        isA<TranscriptUserMessageBlock>(),
+      );
       expect(controller.sessionState.pendingLocalUserMessageBlockIds, isEmpty);
       expect(controller.sessionState.localUserMessageProviderBindings, isEmpty);
       final runtimeErrors = controller.transcriptBlocks
-          .whereType<CodexErrorBlock>()
+          .whereType<TranscriptErrorBlock>()
           .toList(growable: false);
       expect(runtimeErrors, hasLength(1));
       expect(

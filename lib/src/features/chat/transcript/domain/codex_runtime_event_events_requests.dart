@@ -1,7 +1,7 @@
-part of 'codex_runtime_event.dart';
+part of 'transcript_runtime_event.dart';
 
-final class CodexRuntimeRequestOpenedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeRequestOpenedEvent({
+final class TranscriptRuntimeRequestOpenedEvent extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeRequestOpenedEvent({
     required super.createdAt,
     required this.requestType,
     required super.threadId,
@@ -14,13 +14,14 @@ final class CodexRuntimeRequestOpenedEvent extends CodexRuntimeEvent {
     this.args,
   });
 
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final String? detail;
   final Object? args;
 }
 
-final class CodexRuntimeRequestResolvedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeRequestResolvedEvent({
+final class TranscriptRuntimeRequestResolvedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeRequestResolvedEvent({
     required super.createdAt,
     required this.requestType,
     required super.threadId,
@@ -32,12 +33,13 @@ final class CodexRuntimeRequestResolvedEvent extends CodexRuntimeEvent {
     this.resolution,
   });
 
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final Object? resolution;
 }
 
-final class CodexRuntimeUserInputRequestedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeUserInputRequestedEvent({
+final class TranscriptRuntimeUserInputRequestedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeUserInputRequestedEvent({
     required super.createdAt,
     required this.questions,
     required super.threadId,
@@ -48,11 +50,12 @@ final class CodexRuntimeUserInputRequestedEvent extends CodexRuntimeEvent {
     super.rawPayload,
   });
 
-  final List<CodexRuntimeUserInputQuestion> questions;
+  final List<TranscriptRuntimeUserInputQuestion> questions;
 }
 
-final class CodexRuntimeUserInputResolvedEvent extends CodexRuntimeEvent {
-  const CodexRuntimeUserInputResolvedEvent({
+final class TranscriptRuntimeUserInputResolvedEvent
+    extends TranscriptRuntimeEvent {
+  const TranscriptRuntimeUserInputResolvedEvent({
     required super.createdAt,
     required this.answers,
     super.threadId,

@@ -14,7 +14,7 @@ void main() {
           isLoading: false,
           profile: profile,
           secrets: secrets,
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: null,
           composerDraft: const ChatComposerDraft(),
           transcriptFollow: defaultTranscriptFollowContract,
@@ -53,7 +53,7 @@ void main() {
           connectionMode: ConnectionMode.local,
         ),
         secrets: const ConnectionSecrets(password: 'secret'),
-        sessionState: CodexSessionState.initial(),
+        sessionState: TranscriptSessionState.initial(),
         conversationRecoveryState: null,
         composerDraft: const ChatComposerDraft(),
         transcriptFollow: defaultTranscriptFollowContract,
@@ -69,7 +69,7 @@ void main() {
           isLoading: false,
           profile: configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: null,
           composerDraft: const ChatComposerDraft(),
           effectiveModelSupportsImages: false,
@@ -83,14 +83,14 @@ void main() {
     test(
       'uses adapter capabilities to disable branching, continue, and image attachment',
       () {
-        final sessionState = CodexSessionState.initial().copyWith(
+        final sessionState = TranscriptSessionState.initial().copyWith(
           rootThreadId: 'thread_root',
-          sessionBlocks: <CodexUiBlock>[
-            CodexUserMessageBlock(
+          sessionBlocks: <TranscriptUiBlock>[
+            TranscriptUserMessageBlock(
               id: 'user_1',
               createdAt: DateTime(2026, 3, 15, 12),
               text: 'Hello',
-              deliveryState: CodexUserMessageDeliveryState.sent,
+              deliveryState: TranscriptUserMessageDeliveryState.sent,
             ),
           ],
         );
@@ -124,8 +124,8 @@ void main() {
     );
 
     test('uses profile title and live Codex subtitle metadata', () {
-      final sessionState = CodexSessionState.initial().copyWith(
-        headerMetadata: const CodexSessionHeaderMetadata(
+      final sessionState = TranscriptSessionState.initial().copyWith(
+        headerMetadata: const TranscriptSessionHeaderMetadata(
           cwd: r'C:\Users\vince\Projects\InfraServer',
           model: 'gpt-5.4',
           reasoningEffort: 'high',
@@ -153,15 +153,15 @@ void main() {
     test(
       'keeps send enabled and surfaces turn status when the session is busy',
       () {
-        final activeTurn = CodexActiveTurnState(
+        final activeTurn = TranscriptActiveTurnState(
           turnId: 'turn_1',
-          timer: CodexSessionTurnTimer(
+          timer: TranscriptSessionTurnTimer(
             turnId: 'turn_1',
             startedAt: DateTime(2026, 3, 15, 12),
           ),
         );
-        final sessionState = CodexSessionState.initial()
-            .copyWith(connectionStatus: CodexRuntimeSessionState.running)
+        final sessionState = TranscriptSessionState.initial()
+            .copyWith(connectionStatus: TranscriptRuntimeSessionState.running)
             .copyWithProjectedTranscript(activeTurn: activeTurn);
 
         final contract = presenter.present(
@@ -181,15 +181,15 @@ void main() {
     );
 
     test('disables conversation reset actions while the session is busy', () {
-      final activeTurn = CodexActiveTurnState(
+      final activeTurn = TranscriptActiveTurnState(
         turnId: 'turn_1',
-        timer: CodexSessionTurnTimer(
+        timer: TranscriptSessionTurnTimer(
           turnId: 'turn_1',
           startedAt: DateTime(2026, 3, 15, 12),
         ),
       );
-      final sessionState = CodexSessionState.initial()
-          .copyWith(connectionStatus: CodexRuntimeSessionState.running)
+      final sessionState = TranscriptSessionState.initial()
+          .copyWith(connectionStatus: TranscriptRuntimeSessionState.running)
           .copyWithProjectedTranscript(activeTurn: activeTurn);
 
       final contract = presenter.present(
@@ -223,7 +223,7 @@ void main() {
           isLoading: false,
           profile: configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: const ChatConversationRecoveryState(
             reason: ChatConversationRecoveryReason.missingRemoteConversation,
           ),
@@ -255,7 +255,7 @@ void main() {
           isLoading: false,
           profile: configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: const ChatConversationRecoveryState(
             reason: ChatConversationRecoveryReason.unexpectedRemoteConversation,
             expectedThreadId: 'thread_old',
@@ -284,7 +284,7 @@ void main() {
           isLoading: false,
           profile: configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: null,
           historicalConversationRestoreState:
               const ChatHistoricalConversationRestoreState(
@@ -314,27 +314,27 @@ void main() {
     );
 
     test('projects ordered timeline summaries for workspace mode', () {
-      final sessionState = CodexSessionState.initial().copyWith(
+      final sessionState = TranscriptSessionState.initial().copyWith(
         rootThreadId: 'thread_root',
         selectedThreadId: 'thread_child',
-        timelinesByThreadId: <String, CodexTimelineState>{
-          'thread_root': const CodexTimelineState(
+        timelinesByThreadId: <String, TranscriptTimelineState>{
+          'thread_root': const TranscriptTimelineState(
             threadId: 'thread_root',
-            lifecycleState: CodexAgentLifecycleState.idle,
+            lifecycleState: TranscriptAgentLifecycleState.idle,
           ),
-          'thread_child': const CodexTimelineState(
+          'thread_child': const TranscriptTimelineState(
             threadId: 'thread_child',
-            lifecycleState: CodexAgentLifecycleState.blockedOnApproval,
+            lifecycleState: TranscriptAgentLifecycleState.blockedOnApproval,
             hasUnreadActivity: true,
           ),
         },
-        threadRegistry: const <String, CodexThreadRegistryEntry>{
-          'thread_root': CodexThreadRegistryEntry(
+        threadRegistry: const <String, TranscriptThreadRegistryEntry>{
+          'thread_root': TranscriptThreadRegistryEntry(
             threadId: 'thread_root',
             displayOrder: 0,
             isPrimary: true,
           ),
-          'thread_child': CodexThreadRegistryEntry(
+          'thread_child': TranscriptThreadRegistryEntry(
             threadId: 'thread_child',
             displayOrder: 1,
             agentNickname: 'Reviewer',
@@ -361,7 +361,7 @@ void main() {
       expect(contract.timelineSummaries[1].isSelected, isTrue);
       expect(
         contract.timelineSummaries[1].status,
-        CodexAgentLifecycleState.blockedOnApproval,
+        TranscriptAgentLifecycleState.blockedOnApproval,
       );
       expect(contract.timelineSummaries[1].hasUnreadActivity, isTrue);
     });
@@ -375,7 +375,7 @@ void main() {
           isLoading: false,
           profile: profile,
           secrets: const ConnectionSecrets(),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: null,
           composerDraft: const ChatComposerDraft(),
           transcriptFollow: defaultTranscriptFollowContract,

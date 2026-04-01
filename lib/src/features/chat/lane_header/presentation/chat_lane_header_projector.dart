@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 
 class ChatLaneHeaderProjector {
@@ -8,7 +8,7 @@ class ChatLaneHeaderProjector {
 
   ChatHeaderContract project({
     required ConnectionProfile profile,
-    required CodexSessionHeaderMetadata metadata,
+    required TranscriptSessionHeaderMetadata metadata,
     required bool isConfigured,
   }) {
     final title = _title(profile);
@@ -30,7 +30,7 @@ class ChatLaneHeaderProjector {
 
   String _subtitle({
     required ConnectionProfile profile,
-    required CodexSessionHeaderMetadata metadata,
+    required TranscriptSessionHeaderMetadata metadata,
     required bool isConfigured,
   }) {
     if (!isConfigured) {
@@ -59,7 +59,7 @@ class ChatLaneHeaderProjector {
     };
   }
 
-  List<String> _runtimeDescriptor(CodexSessionHeaderMetadata metadata) {
+  List<String> _runtimeDescriptor(TranscriptSessionHeaderMetadata metadata) {
     final model = metadata.model?.trim();
     if (model == null || model.isEmpty) {
       return const <String>[];

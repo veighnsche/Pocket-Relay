@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 part 'codex_session_state_session.dart';
 part 'codex_session_state_timeline.dart';

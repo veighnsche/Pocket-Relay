@@ -7,9 +7,9 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexTextBlock(
+            block: TranscriptTextBlock(
               id: 'assistant_1',
-              kind: CodexUiBlockKind.assistantMessage,
+              kind: TranscriptUiBlockKind.assistantMessage,
               createdAt: DateTime(2026, 3, 14, 12),
               title: 'Codex',
               body: 'Plain assistant transcript.',
@@ -37,20 +37,20 @@ void main() {
           child: Column(
             children: [
               entrySurface(
-                block: CodexUserMessageBlock(
+                block: TranscriptUserMessageBlock(
                   id: 'user_local_1',
                   createdAt: DateTime(2026, 3, 14, 12),
                   text: 'Draft prompt',
-                  deliveryState: CodexUserMessageDeliveryState.localEcho,
+                  deliveryState: TranscriptUserMessageDeliveryState.localEcho,
                 ),
               ),
               const SizedBox(height: 16),
               entrySurface(
-                block: CodexUserMessageBlock(
+                block: TranscriptUserMessageBlock(
                   id: 'user_session_1',
                   createdAt: DateTime(2026, 3, 14, 12, 0, 1),
                   text: 'Delivered prompt',
-                  deliveryState: CodexUserMessageDeliveryState.sent,
+                  deliveryState: TranscriptUserMessageDeliveryState.sent,
                 ),
               ),
             ],
@@ -88,11 +88,11 @@ void main() {
       buildTestApp(
         themeMode: ThemeMode.dark,
         child: entrySurface(
-          block: CodexUserMessageBlock(
+          block: TranscriptUserMessageBlock(
             id: 'user_dark_1',
             createdAt: DateTime(2026, 3, 14, 12),
             text: 'Dark prompt',
-            deliveryState: CodexUserMessageDeliveryState.sent,
+            deliveryState: TranscriptUserMessageDeliveryState.sent,
           ),
         ),
       ),
@@ -110,7 +110,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: TurnElapsedFooter(
-          turnTimer: CodexSessionTurnTimer(
+          turnTimer: TranscriptSessionTurnTimer(
             turnId: 'turn_live',
             startedAt: DateTime.now().subtract(const Duration(seconds: 5)),
           ),
@@ -127,7 +127,7 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: TurnElapsedFooter(
-          turnTimer: CodexSessionTurnTimer(
+          turnTimer: TranscriptSessionTurnTimer(
             turnId: 'turn_done',
             startedAt: DateTime(2026, 3, 14, 12),
             completedAt: DateTime(2026, 3, 14, 12, 1, 8),

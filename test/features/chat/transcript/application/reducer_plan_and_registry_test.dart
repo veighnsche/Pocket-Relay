@@ -14,20 +14,20 @@ void main() {
 
   test('appends repeated plan updates for the same turn', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnPlanUpdatedEvent(
+      TranscriptRuntimeTurnPlanUpdatedEvent(
         createdAt: now,
         threadId: 'thread_123',
         turnId: 'turn_123',
         explanation: 'Starting with the initial structure.',
-        steps: const <CodexRuntimePlanStep>[
-          CodexRuntimePlanStep(
+        steps: const <TranscriptRuntimePlanStep>[
+          TranscriptRuntimePlanStep(
             step: 'Inspect transcript ownership',
-            status: CodexRuntimePlanStepStatus.inProgress,
+            status: TranscriptRuntimePlanStepStatus.inProgress,
           ),
         ],
       ),
@@ -35,26 +35,26 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnPlanUpdatedEvent(
+      TranscriptRuntimeTurnPlanUpdatedEvent(
         createdAt: now.add(const Duration(seconds: 1)),
         threadId: 'thread_123',
         turnId: 'turn_123',
         explanation: 'Refining after reading the reducer.',
-        steps: const <CodexRuntimePlanStep>[
-          CodexRuntimePlanStep(
+        steps: const <TranscriptRuntimePlanStep>[
+          TranscriptRuntimePlanStep(
             step: 'Inspect transcript ownership',
-            status: CodexRuntimePlanStepStatus.completed,
+            status: TranscriptRuntimePlanStepStatus.completed,
           ),
-          CodexRuntimePlanStep(
+          TranscriptRuntimePlanStep(
             step: 'Append visible plan updates',
-            status: CodexRuntimePlanStepStatus.inProgress,
+            status: TranscriptRuntimePlanStepStatus.inProgress,
           ),
         ],
       ),
     );
 
     final plans = state.transcriptBlocks
-        .whereType<CodexPlanUpdateBlock>()
+        .whereType<TranscriptPlanUpdateBlock>()
         .toList(growable: false);
 
     expect(plans, hasLength(2));
@@ -63,7 +63,10 @@ void main() {
     expect(plans.first.steps.single.step, 'Inspect transcript ownership');
     expect(plans.last.explanation, 'Refining after reading the reducer.');
     expect(plans.last.steps, hasLength(2));
-    expect(plans.last.steps.first.status, CodexRuntimePlanStepStatus.completed);
+    expect(
+      plans.last.steps.first.status,
+      TranscriptRuntimePlanStepStatus.completed,
+    );
     expect(plans.last.steps.last.step, 'Append visible plan updates');
   });
 
@@ -73,13 +76,13 @@ void main() {
       final reducer = TranscriptReducer();
       final startedAt = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeContentDeltaEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: startedAt,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_123',
-          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          streamKind: TranscriptRuntimeContentStreamKind.assistantText,
           delta: 'Earlier live row',
         ),
       );
@@ -91,14 +94,14 @@ void main() {
       );
 
       expect(state.transcriptBlocks, hasLength(2));
-      expect(state.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+      expect(state.transcriptBlocks.first, isA<TranscriptUserMessageBlock>());
       expect(
-        (state.transcriptBlocks.first as CodexUserMessageBlock).text,
+        (state.transcriptBlocks.first as TranscriptUserMessageBlock).text,
         'Later committed row',
       );
-      expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
+      expect(state.transcriptBlocks.last, isA<TranscriptTextBlock>());
       expect(
-        (state.transcriptBlocks.last as CodexTextBlock).body,
+        (state.transcriptBlocks.last as TranscriptTextBlock).body,
         'Earlier live row',
       );
     },
@@ -107,8 +110,8 @@ void main() {
   test('stores thread names in the workspace registry', () {
     final reducer = TranscriptReducer();
     final state = reducer.reduceRuntimeEvent(
-      CodexSessionState.initial(),
-      CodexRuntimeThreadStartedEvent(
+      TranscriptSessionState.initial(),
+      TranscriptRuntimeThreadStartedEvent(
         createdAt: DateTime(2026, 3, 14, 12),
         threadId: 'thread_child',
         providerThreadId: 'thread_child',
@@ -122,22 +125,22 @@ void main() {
   test('wait completion releases the parent timeline from waitingOnChild', () {
     final reducer = TranscriptReducer();
     final now = DateTime(2026, 3, 14, 12);
-    final waitCall = const CodexRuntimeCollabAgentToolCall(
-      tool: CodexRuntimeCollabAgentTool.wait,
-      status: CodexRuntimeCollabAgentToolCallStatus.inProgress,
+    final waitCall = const TranscriptRuntimeCollabAgentToolCall(
+      tool: TranscriptRuntimeCollabAgentTool.wait,
+      status: TranscriptRuntimeCollabAgentToolCallStatus.inProgress,
       senderThreadId: 'thread_root',
       receiverThreadIds: <String>['thread_child'],
     );
-    final completedWaitCall = const CodexRuntimeCollabAgentToolCall(
-      tool: CodexRuntimeCollabAgentTool.wait,
-      status: CodexRuntimeCollabAgentToolCallStatus.completed,
+    final completedWaitCall = const TranscriptRuntimeCollabAgentToolCall(
+      tool: TranscriptRuntimeCollabAgentTool.wait,
+      status: TranscriptRuntimeCollabAgentToolCallStatus.completed,
       senderThreadId: 'thread_root',
       receiverThreadIds: <String>['thread_child'],
     );
 
     var state = reducer.reduceRuntimeEvent(
-      CodexSessionState.initial(),
-      CodexRuntimeThreadStartedEvent(
+      TranscriptSessionState.initial(),
+      TranscriptRuntimeThreadStartedEvent(
         createdAt: now,
         threadId: 'thread_root',
         providerThreadId: 'thread_root',
@@ -145,7 +148,7 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: now.add(const Duration(milliseconds: 1)),
         threadId: 'thread_root',
         turnId: 'turn_root_1',
@@ -154,38 +157,38 @@ void main() {
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemStartedEvent(
+      TranscriptRuntimeItemStartedEvent(
         createdAt: now.add(const Duration(milliseconds: 2)),
-        itemType: CodexCanonicalItemType.collabAgentToolCall,
+        itemType: TranscriptCanonicalItemType.collabAgentToolCall,
         threadId: 'thread_root',
         turnId: 'turn_root_1',
         itemId: 'wait_1',
-        status: CodexRuntimeItemStatus.inProgress,
+        status: TranscriptRuntimeItemStatus.inProgress,
         collaboration: waitCall,
       ),
     );
 
     expect(
       state.timelineForThread('thread_root')?.lifecycleState,
-      CodexAgentLifecycleState.waitingOnChild,
+      TranscriptAgentLifecycleState.waitingOnChild,
     );
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now.add(const Duration(milliseconds: 3)),
-        itemType: CodexCanonicalItemType.collabAgentToolCall,
+        itemType: TranscriptCanonicalItemType.collabAgentToolCall,
         threadId: 'thread_root',
         turnId: 'turn_root_1',
         itemId: 'wait_1',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         collaboration: completedWaitCall,
       ),
     );
 
     expect(
       state.timelineForThread('thread_root')?.lifecycleState,
-      CodexAgentLifecycleState.running,
+      TranscriptAgentLifecycleState.running,
     );
   });
 }

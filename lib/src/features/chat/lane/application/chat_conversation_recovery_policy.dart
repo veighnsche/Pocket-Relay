@@ -1,8 +1,8 @@
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_session_errors.dart';
 
 typedef ChatConversationFailurePresentation = ({
@@ -26,7 +26,7 @@ class ChatConversationRecoveryPolicy {
   const ChatConversationRecoveryPolicy();
 
   ChatConversationRecoveryState? preflightRecoveryState({
-    required CodexSessionState sessionState,
+    required TranscriptSessionState sessionState,
     required String? activeThreadId,
     required String? trackedThreadId,
   }) {
@@ -51,7 +51,7 @@ class ChatConversationRecoveryPolicy {
 
   ChatConversationSendFailureAssessment assessSendFailure({
     required Object error,
-    required CodexSessionState sessionState,
+    required TranscriptSessionState sessionState,
     required String sessionLabel,
     String? preferredAlternateThreadId,
   }) {
@@ -114,7 +114,7 @@ class ChatConversationRecoveryPolicy {
   }
 
   String? _alternateRecoveryThreadId({
-    required CodexSessionState sessionState,
+    required TranscriptSessionState sessionState,
     String? preferredThreadId,
   }) {
     final normalizedPreferred = _normalizeThreadId(preferredThreadId);
@@ -127,22 +127,22 @@ class ChatConversationRecoveryPolicy {
     return null;
   }
 
-  bool _hasConversationHistory(CodexSessionState sessionState) {
+  bool _hasConversationHistory(TranscriptSessionState sessionState) {
     return sessionState.transcriptBlocks.any((block) {
       return switch (block.kind) {
-        CodexUiBlockKind.userMessage ||
-        CodexUiBlockKind.assistantMessage ||
-        CodexUiBlockKind.reasoning ||
-        CodexUiBlockKind.plan ||
-        CodexUiBlockKind.proposedPlan ||
-        CodexUiBlockKind.workLogEntry ||
-        CodexUiBlockKind.workLogGroup ||
-        CodexUiBlockKind.changedFiles ||
-        CodexUiBlockKind.approvalRequest ||
-        CodexUiBlockKind.userInputRequest ||
-        CodexUiBlockKind.usage ||
-        CodexUiBlockKind.turnBoundary => true,
-        CodexUiBlockKind.status || CodexUiBlockKind.error => false,
+        TranscriptUiBlockKind.userMessage ||
+        TranscriptUiBlockKind.assistantMessage ||
+        TranscriptUiBlockKind.reasoning ||
+        TranscriptUiBlockKind.plan ||
+        TranscriptUiBlockKind.proposedPlan ||
+        TranscriptUiBlockKind.workLogEntry ||
+        TranscriptUiBlockKind.workLogGroup ||
+        TranscriptUiBlockKind.changedFiles ||
+        TranscriptUiBlockKind.approvalRequest ||
+        TranscriptUiBlockKind.userInputRequest ||
+        TranscriptUiBlockKind.usage ||
+        TranscriptUiBlockKind.turnBoundary => true,
+        TranscriptUiBlockKind.status || TranscriptUiBlockKind.error => false,
       };
     });
   }

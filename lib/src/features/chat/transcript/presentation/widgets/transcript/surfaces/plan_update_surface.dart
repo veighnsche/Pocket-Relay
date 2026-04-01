@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/ui/layout/pocket_spacing.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
 class PlanUpdateSurface extends StatelessWidget {
   const PlanUpdateSurface({super.key, required this.block});
 
-  final CodexPlanUpdateBlock block;
+  final TranscriptPlanUpdateBlock block;
 
   @override
   Widget build(BuildContext context) {

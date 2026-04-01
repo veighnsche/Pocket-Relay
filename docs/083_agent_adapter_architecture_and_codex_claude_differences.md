@@ -218,7 +218,7 @@ The transport/client boundary is now also app-owned:
 This still did not remove all Codex assumptions. The transport/client boundary
 is now app-owned, but several deeper seams remain structurally Codex-shaped.
 
-### 1. Runtime event mapping still bridges into a Codex-owned transcript domain
+### 1. Runtime event mapping now feeds a transcript-owned runtime domain
 
 `AgentAdapterRuntimeEventMapper` now maps:
 
@@ -231,29 +231,29 @@ Files:
 - `lib/src/features/chat/runtime/application/runtime_event_mapper.dart`
 - `lib/src/features/chat/runtime/application/agent_adapter_runtime_event_bridge.dart`
 
-This is an improvement because the mapper no longer takes Codex transport
-events directly and no longer exposes `CodexRuntimeEvent` at the mapper
-contract. But the shared transcript reducer still consumes `CodexRuntimeEvent`,
-so Pocket Relay currently bridges generic runtime events back into Codex-owned
-transcript events at one explicit boundary.
+This layer is now app-owned end to end. The bridge resolves
+`AgentAdapterRuntimeEvent` values into `TranscriptRuntimeEvent`, and the shared
+transcript reducer no longer depends on Codex-named runtime types.
 
-### 2. Transcript and session domain are still Codex-owned
+### 2. Transcript and session domain are now app-owned
 
-The transcript runtime domain is still named and structured around Codex:
+The transcript/session backbone is now named and structured around generic
+app-owned transcript types:
 
-- `CodexRuntimeEvent`
-- `CodexSessionState`
-- `CodexUiBlock`
+- `TranscriptRuntimeEvent`
+- `TranscriptSessionState`
+- `TranscriptUiBlock`
 
 Representative files:
 
-- `lib/src/features/chat/transcript/domain/codex_runtime_event.dart`
-- `lib/src/features/chat/transcript/domain/codex_session_state.dart`
-- `lib/src/features/chat/transcript/domain/codex_ui_block.dart`
+- `lib/src/features/chat/transcript/domain/transcript_runtime_event.dart`
+- `lib/src/features/chat/transcript/domain/transcript_session_state.dart`
+- `lib/src/features/chat/transcript/domain/transcript_ui_block.dart`
 
-This is acceptable for now because Pocket Relay is still only running Codex,
-but it must be called out plainly: a Claude adapter cannot become trivial while
-the app transcript domain still assumes Codex-native event types.
+This is the structural change that stops adapter B from having to impersonate a
+Codex-shaped reducer or session model. Codex-specific logic still exists in the
+Codex mapper and history normalizer, which is correct, but the shared state
+backbone is no longer Codex-owned.
 
 ### 3. Model and reasoning selection are still Codex catalogs
 

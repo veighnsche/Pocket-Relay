@@ -14,13 +14,13 @@ void main() {
 
   test('tracks thread and turn ids and captures usage summaries', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final now = DateTime(2026, 3, 14, 12);
     final completedAt = now.add(const Duration(seconds: 5));
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeThreadStartedEvent(
+      TranscriptRuntimeThreadStartedEvent(
         createdAt: now,
         threadId: 'thread_123',
         providerThreadId: 'thread_123',
@@ -28,7 +28,7 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: now,
         threadId: 'thread_123',
         turnId: 'turn_123',
@@ -38,12 +38,12 @@ void main() {
     monotonicNow = const Duration(seconds: 5);
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnCompletedEvent(
+      TranscriptRuntimeTurnCompletedEvent(
         createdAt: completedAt,
         threadId: 'thread_123',
         turnId: 'turn_123',
-        state: CodexRuntimeTurnState.completed,
-        usage: const CodexRuntimeTurnUsage(
+        state: TranscriptRuntimeTurnState.completed,
+        usage: const TranscriptRuntimeTurnUsage(
           inputTokens: 12,
           cachedInputTokens: 3,
           outputTokens: 7,
@@ -54,7 +54,7 @@ void main() {
     expect(state.threadId, 'thread_123');
     expect(state.activeTurn, isNull);
     expect(state.blocks, hasLength(1));
-    final boundary = state.blocks.last as CodexTurnBoundaryBlock;
+    final boundary = state.blocks.last as TranscriptTurnBoundaryBlock;
     expect(boundary.elapsed, const Duration(seconds: 5));
   });
 
@@ -62,11 +62,11 @@ void main() {
     final reducer = TranscriptReducer();
     final startedAt = DateTime(2026, 3, 14, 12);
     final exitedAt = startedAt.add(const Duration(seconds: 9));
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: startedAt,
         threadId: 'thread_123',
         turnId: 'turn_123',
@@ -76,15 +76,15 @@ void main() {
     monotonicNow = const Duration(seconds: 9);
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeSessionExitedEvent(
+      TranscriptRuntimeSessionExitedEvent(
         createdAt: exitedAt,
-        exitKind: CodexRuntimeSessionExitKind.error,
+        exitKind: TranscriptRuntimeSessionExitKind.error,
         reason: 'Socket closed',
       ),
     );
 
     expect(state.activeTurn, isNull);
-    final errorBlock = state.blocks.single as CodexErrorBlock;
+    final errorBlock = state.blocks.single as TranscriptErrorBlock;
     expect(errorBlock.body, contains('Elapsed 0:09'));
   });
 
@@ -92,13 +92,13 @@ void main() {
     'uses monotonic elapsed time instead of wall-clock span on completion',
     () {
       final reducer = TranscriptReducer();
-      var state = CodexSessionState.initial();
+      var state = TranscriptSessionState.initial();
       final startedAt = DateTime(2026, 3, 14, 12);
       final completedAt = startedAt.add(const Duration(minutes: 10));
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnStartedEvent(
+        TranscriptRuntimeTurnStartedEvent(
           createdAt: startedAt,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -108,16 +108,16 @@ void main() {
       monotonicNow = const Duration(seconds: 5);
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnCompletedEvent(
+        TranscriptRuntimeTurnCompletedEvent(
           createdAt: completedAt,
           threadId: 'thread_123',
           turnId: 'turn_123',
-          state: CodexRuntimeTurnState.completed,
+          state: TranscriptRuntimeTurnState.completed,
         ),
       );
 
       expect(
-        (state.blocks.single as CodexTurnBoundaryBlock).elapsed,
+        (state.blocks.single as TranscriptTurnBoundaryBlock).elapsed,
         const Duration(seconds: 5),
       );
     },
@@ -125,12 +125,12 @@ void main() {
 
   test('commits the previous turn and boundary when a new turn starts', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final startedAt = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: startedAt,
         threadId: 'thread_123',
         turnId: 'turn_123',
@@ -138,13 +138,13 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: startedAt.add(const Duration(milliseconds: 1)),
-        itemType: CodexCanonicalItemType.assistantMessage,
+        itemType: TranscriptCanonicalItemType.assistantMessage,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_123',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         snapshot: const <String, Object?>{'text': 'First turn'},
       ),
     );
@@ -152,7 +152,7 @@ void main() {
     monotonicNow = const Duration(seconds: 4);
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: startedAt.add(const Duration(seconds: 4)),
         threadId: 'thread_123',
         turnId: 'turn_456',
@@ -161,35 +161,35 @@ void main() {
 
     expect(state.activeTurn?.turnId, 'turn_456');
     expect(state.blocks, hasLength(2));
-    expect(state.blocks.first, isA<CodexTextBlock>());
-    expect((state.blocks.first as CodexTextBlock).body, 'First turn');
-    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
+    expect(state.blocks.first, isA<TranscriptTextBlock>());
+    expect((state.blocks.first as TranscriptTextBlock).body, 'First turn');
+    expect(state.blocks.last, isA<TranscriptTurnBoundaryBlock>());
     expect(
-      (state.blocks.last as CodexTurnBoundaryBlock).elapsed,
+      (state.blocks.last as TranscriptTurnBoundaryBlock).elapsed,
       const Duration(seconds: 4),
     );
   });
 
   test('ignores late completion events for an already rolled-over turn', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final startedAt = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: startedAt,
-        itemType: CodexCanonicalItemType.assistantMessage,
+        itemType: TranscriptCanonicalItemType.assistantMessage,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_123',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         snapshot: const <String, Object?>{'text': 'First turn'},
       ),
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: startedAt.add(const Duration(seconds: 1)),
         threadId: 'thread_123',
         turnId: 'turn_456',
@@ -197,44 +197,47 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeContentDeltaEvent(
+      TranscriptRuntimeContentDeltaEvent(
         createdAt: startedAt.add(const Duration(seconds: 2)),
         threadId: 'thread_123',
         turnId: 'turn_456',
         itemId: 'item_456',
-        streamKind: CodexRuntimeContentStreamKind.assistantText,
+        streamKind: TranscriptRuntimeContentStreamKind.assistantText,
         delta: 'Second turn',
       ),
     );
 
-    final baselineBlocks = List<CodexUiBlock>.from(state.blocks);
+    final baselineBlocks = List<TranscriptUiBlock>.from(state.blocks);
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnCompletedEvent(
+      TranscriptRuntimeTurnCompletedEvent(
         createdAt: startedAt.add(const Duration(seconds: 3)),
         threadId: 'thread_123',
         turnId: 'turn_123',
-        state: CodexRuntimeTurnState.completed,
+        state: TranscriptRuntimeTurnState.completed,
       ),
     );
 
-    expect(state.connectionStatus, CodexRuntimeSessionState.running);
+    expect(state.connectionStatus, TranscriptRuntimeSessionState.running);
     expect(state.activeTurn?.turnId, 'turn_456');
     expect(state.blocks, baselineBlocks);
-    expect(state.transcriptBlocks.last, isA<CodexTextBlock>());
-    expect((state.transcriptBlocks.last as CodexTextBlock).body, 'Second turn');
+    expect(state.transcriptBlocks.last, isA<TranscriptTextBlock>());
+    expect(
+      (state.transcriptBlocks.last as TranscriptTextBlock).body,
+      'Second turn',
+    );
   });
 
   test(
     'pauses elapsed work time while approval is pending and resumes after resolution',
     () {
       final reducer = TranscriptReducer();
-      var state = CodexSessionState.initial();
+      var state = TranscriptSessionState.initial();
       final startedAt = DateTime(2026, 3, 14, 12);
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnStartedEvent(
+        TranscriptRuntimeTurnStartedEvent(
           createdAt: startedAt,
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -244,13 +247,13 @@ void main() {
       monotonicNow = const Duration(seconds: 4);
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeRequestOpenedEvent(
+        TranscriptRuntimeRequestOpenedEvent(
           createdAt: startedAt.add(const Duration(seconds: 4)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_123',
           requestId: 'approval_1',
-          requestType: CodexCanonicalRequestType.execCommandApproval,
+          requestType: TranscriptCanonicalRequestType.execCommandApproval,
           detail: 'Approve command',
         ),
       );
@@ -267,13 +270,13 @@ void main() {
       monotonicNow = const Duration(seconds: 20);
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeRequestResolvedEvent(
+        TranscriptRuntimeRequestResolvedEvent(
           createdAt: startedAt.add(const Duration(seconds: 20)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_123',
           requestId: 'approval_1',
-          requestType: CodexCanonicalRequestType.execCommandApproval,
+          requestType: TranscriptCanonicalRequestType.execCommandApproval,
         ),
       );
 
@@ -282,16 +285,16 @@ void main() {
       monotonicNow = const Duration(seconds: 25);
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnCompletedEvent(
+        TranscriptRuntimeTurnCompletedEvent(
           createdAt: startedAt.add(const Duration(seconds: 25)),
           threadId: 'thread_123',
           turnId: 'turn_123',
-          state: CodexRuntimeTurnState.completed,
+          state: TranscriptRuntimeTurnState.completed,
         ),
       );
 
       expect(
-        (state.blocks.last as CodexTurnBoundaryBlock).elapsed,
+        (state.blocks.last as TranscriptTurnBoundaryBlock).elapsed,
         const Duration(seconds: 9),
       );
     },
@@ -299,12 +302,12 @@ void main() {
 
   test('commits the live turn before clearing thread state on close', () {
     final reducer = TranscriptReducer();
-    var state = CodexSessionState.initial();
+    var state = TranscriptSessionState.initial();
     final startedAt = DateTime(2026, 3, 14, 12);
 
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeTurnStartedEvent(
+      TranscriptRuntimeTurnStartedEvent(
         createdAt: startedAt,
         threadId: 'thread_123',
         turnId: 'turn_123',
@@ -312,13 +315,13 @@ void main() {
     );
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeItemCompletedEvent(
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: startedAt.add(const Duration(milliseconds: 1)),
-        itemType: CodexCanonicalItemType.assistantMessage,
+        itemType: TranscriptCanonicalItemType.assistantMessage,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'item_123',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         snapshot: const <String, Object?>{'text': 'Before close'},
       ),
     );
@@ -326,17 +329,17 @@ void main() {
     monotonicNow = const Duration(seconds: 3);
     state = reducer.reduceRuntimeEvent(
       state,
-      CodexRuntimeThreadStateChangedEvent(
+      TranscriptRuntimeThreadStateChangedEvent(
         createdAt: startedAt.add(const Duration(seconds: 3)),
         threadId: 'thread_123',
-        state: CodexRuntimeThreadState.closed,
+        state: TranscriptRuntimeThreadState.closed,
       ),
     );
 
     expect(state.threadId, isNull);
     expect(state.activeTurn, isNull);
     expect(state.blocks, hasLength(2));
-    expect(state.blocks.first, isA<CodexTextBlock>());
-    expect(state.blocks.last, isA<CodexTurnBoundaryBlock>());
+    expect(state.blocks.first, isA<TranscriptTextBlock>());
+    expect(state.blocks.last, isA<TranscriptTurnBoundaryBlock>());
   });
 }

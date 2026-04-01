@@ -1,6 +1,6 @@
-part of 'codex_session_state.dart';
+part of 'transcript_session_state.dart';
 
-enum CodexAgentLifecycleState {
+enum TranscriptAgentLifecycleState {
   unknown,
   starting,
   idle,
@@ -14,8 +14,8 @@ enum CodexAgentLifecycleState {
   closed,
 }
 
-class CodexThreadRegistryEntry {
-  const CodexThreadRegistryEntry({
+class TranscriptThreadRegistryEntry {
+  const TranscriptThreadRegistryEntry({
     required this.threadId,
     required this.displayOrder,
     this.parentThreadId,
@@ -41,7 +41,7 @@ class CodexThreadRegistryEntry {
   final bool isClosed;
   final bool isPrimary;
 
-  CodexThreadRegistryEntry copyWith({
+  TranscriptThreadRegistryEntry copyWith({
     int? displayOrder,
     String? parentThreadId,
     bool clearParentThreadId = false,
@@ -59,7 +59,7 @@ class CodexThreadRegistryEntry {
     bool? isClosed,
     bool? isPrimary,
   }) {
-    return CodexThreadRegistryEntry(
+    return TranscriptThreadRegistryEntry(
       threadId: threadId,
       displayOrder: displayOrder ?? this.displayOrder,
       parentThreadId: clearParentThreadId
@@ -79,57 +79,58 @@ class CodexThreadRegistryEntry {
   }
 }
 
-class CodexTimelineState {
-  const CodexTimelineState({
+class TranscriptTimelineState {
+  const TranscriptTimelineState({
     required this.threadId,
-    this.connectionStatus = CodexRuntimeSessionState.stopped,
-    this.lifecycleState = CodexAgentLifecycleState.unknown,
+    this.connectionStatus = TranscriptRuntimeSessionState.stopped,
+    this.lifecycleState = TranscriptAgentLifecycleState.unknown,
     this.activeTurn,
-    this.blocks = const <CodexUiBlock>[],
+    this.blocks = const <TranscriptUiBlock>[],
     this.pendingLocalUserMessageBlockIds = const <String>[],
     this.localUserMessageProviderBindings = const <String, String>{},
     this.hasUnreadActivity = false,
   });
 
   final String threadId;
-  final CodexRuntimeSessionState connectionStatus;
-  final CodexAgentLifecycleState lifecycleState;
-  final CodexActiveTurnState? activeTurn;
-  final List<CodexUiBlock> blocks;
+  final TranscriptRuntimeSessionState connectionStatus;
+  final TranscriptAgentLifecycleState lifecycleState;
+  final TranscriptActiveTurnState? activeTurn;
+  final List<TranscriptUiBlock> blocks;
   final List<String> pendingLocalUserMessageBlockIds;
   final Map<String, String> localUserMessageProviderBindings;
   final bool hasUnreadActivity;
 
-  Map<String, CodexSessionPendingRequest> get pendingApprovalRequests =>
+  Map<String, TranscriptSessionPendingRequest> get pendingApprovalRequests =>
       activeTurn?.pendingApprovalRequests ??
-      const <String, CodexSessionPendingRequest>{};
+      const <String, TranscriptSessionPendingRequest>{};
 
-  Map<String, CodexSessionPendingUserInputRequest>
+  Map<String, TranscriptSessionPendingUserInputRequest>
   get pendingUserInputRequests =>
       activeTurn?.pendingUserInputRequests ??
-      const <String, CodexSessionPendingUserInputRequest>{};
+      const <String, TranscriptSessionPendingUserInputRequest>{};
 
   bool get hasPendingRequests =>
       pendingApprovalRequests.isNotEmpty || pendingUserInputRequests.isNotEmpty;
 
-  List<CodexUiBlock> get transcriptBlocks => <CodexUiBlock>[
+  List<TranscriptUiBlock> get transcriptBlocks => <TranscriptUiBlock>[
     ...blocks.where(_shouldAppearInTranscript),
-    if (activeTurn != null) ...projectCodexTurnArtifacts(activeTurn!.artifacts),
+    if (activeTurn != null)
+      ...projectTranscriptTurnArtifacts(activeTurn!.artifacts),
   ];
 
-  CodexTimelineState copyWith({
-    CodexRuntimeSessionState? connectionStatus,
-    CodexAgentLifecycleState? lifecycleState,
-    CodexActiveTurnState? activeTurn,
+  TranscriptTimelineState copyWith({
+    TranscriptRuntimeSessionState? connectionStatus,
+    TranscriptAgentLifecycleState? lifecycleState,
+    TranscriptActiveTurnState? activeTurn,
     bool clearActiveTurn = false,
-    List<CodexUiBlock>? blocks,
+    List<TranscriptUiBlock>? blocks,
     List<String>? pendingLocalUserMessageBlockIds,
     bool clearPendingLocalUserMessageBlockIds = false,
     Map<String, String>? localUserMessageProviderBindings,
     bool clearLocalUserMessageProviderBindings = false,
     bool? hasUnreadActivity,
   }) {
-    return CodexTimelineState(
+    return TranscriptTimelineState(
       threadId: threadId,
       connectionStatus: connectionStatus ?? this.connectionStatus,
       lifecycleState: lifecycleState ?? this.lifecycleState,
@@ -148,8 +149,8 @@ class CodexTimelineState {
   }
 }
 
-class CodexSessionHeaderMetadata {
-  const CodexSessionHeaderMetadata({
+class TranscriptSessionHeaderMetadata {
+  const TranscriptSessionHeaderMetadata({
     this.cwd,
     this.model,
     this.modelProvider,
@@ -161,7 +162,7 @@ class CodexSessionHeaderMetadata {
   final String? modelProvider;
   final String? reasoningEffort;
 
-  CodexSessionHeaderMetadata copyWith({
+  TranscriptSessionHeaderMetadata copyWith({
     String? cwd,
     bool clearCwd = false,
     String? model,
@@ -171,7 +172,7 @@ class CodexSessionHeaderMetadata {
     String? reasoningEffort,
     bool clearReasoningEffort = false,
   }) {
-    return CodexSessionHeaderMetadata(
+    return TranscriptSessionHeaderMetadata(
       cwd: clearCwd ? null : (cwd ?? this.cwd),
       model: clearModel ? null : (model ?? this.model),
       modelProvider: clearModelProvider

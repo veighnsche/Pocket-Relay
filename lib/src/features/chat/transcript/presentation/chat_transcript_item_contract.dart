@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/domain/chat_work_log_contract.dart';
@@ -15,7 +15,7 @@ final class ChatUserMessageItemContract extends ChatTranscriptItemContract {
     this.canContinueFromHere = false,
   });
 
-  final CodexUserMessageBlock block;
+  final TranscriptUserMessageBlock block;
   final bool canContinueFromHere;
 
   @override
@@ -25,7 +25,7 @@ final class ChatUserMessageItemContract extends ChatTranscriptItemContract {
 final class ChatReasoningItemContract extends ChatTranscriptItemContract {
   const ChatReasoningItemContract({required this.block});
 
-  final CodexTextBlock block;
+  final TranscriptTextBlock block;
 
   @override
   String get id => block.id;
@@ -35,7 +35,7 @@ final class ChatAssistantMessageItemContract
     extends ChatTranscriptItemContract {
   const ChatAssistantMessageItemContract({required this.block});
 
-  final CodexTextBlock block;
+  final TranscriptTextBlock block;
 
   @override
   String get id => block.id;
@@ -44,7 +44,7 @@ final class ChatAssistantMessageItemContract
 final class ChatPlanUpdateItemContract extends ChatTranscriptItemContract {
   const ChatPlanUpdateItemContract({required this.block});
 
-  final CodexPlanUpdateBlock block;
+  final TranscriptPlanUpdateBlock block;
 
   @override
   String get id => block.id;
@@ -53,7 +53,7 @@ final class ChatPlanUpdateItemContract extends ChatTranscriptItemContract {
 final class ChatProposedPlanItemContract extends ChatTranscriptItemContract {
   const ChatProposedPlanItemContract({required this.block});
 
-  final CodexProposedPlanBlock block;
+  final TranscriptProposedPlanBlock block;
 
   @override
   String get id => block.id;
@@ -68,7 +68,7 @@ final class ChatWorkLogGroupItemContract extends ChatTranscriptItemContract {
   final List<ChatWorkLogEntryContract> entries;
 
   bool get hasOnlyKnownEntries => entries.every(
-    (entry) => entry.entryKind != CodexWorkLogEntryKind.unknown,
+    (entry) => entry.entryKind != TranscriptWorkLogEntryKind.unknown,
   );
 }
 
@@ -142,7 +142,7 @@ final class ChatUserInputRequestItemContract
 final class ChatSshItemContract extends ChatTranscriptItemContract {
   const ChatSshItemContract({required this.block});
 
-  final CodexSshTranscriptBlock block;
+  final TranscriptSshTranscriptBlock block;
 
   @override
   String get id => block.id;
@@ -151,7 +151,7 @@ final class ChatSshItemContract extends ChatTranscriptItemContract {
 final class ChatReviewStatusItemContract extends ChatTranscriptItemContract {
   const ChatReviewStatusItemContract({required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   String get id => block.id;
@@ -161,7 +161,7 @@ final class ChatContextCompactedItemContract
     extends ChatTranscriptItemContract {
   const ChatContextCompactedItemContract({required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   String get id => block.id;
@@ -170,7 +170,7 @@ final class ChatContextCompactedItemContract
 final class ChatSessionInfoItemContract extends ChatTranscriptItemContract {
   const ChatSessionInfoItemContract({required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   String get id => block.id;
@@ -179,7 +179,7 @@ final class ChatSessionInfoItemContract extends ChatTranscriptItemContract {
 final class ChatWarningItemContract extends ChatTranscriptItemContract {
   const ChatWarningItemContract({required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   String get id => block.id;
@@ -189,7 +189,7 @@ final class ChatDeprecationNoticeItemContract
     extends ChatTranscriptItemContract {
   const ChatDeprecationNoticeItemContract({required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   String get id => block.id;
@@ -198,7 +198,7 @@ final class ChatDeprecationNoticeItemContract
 final class ChatStatusItemContract extends ChatTranscriptItemContract {
   const ChatStatusItemContract({required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   String get id => block.id;
@@ -208,7 +208,7 @@ final class ChatPatchApplyFailureItemContract
     extends ChatTranscriptItemContract {
   const ChatPatchApplyFailureItemContract({required this.block});
 
-  final CodexErrorBlock block;
+  final TranscriptErrorBlock block;
 
   @override
   String get id => block.id;
@@ -217,7 +217,7 @@ final class ChatPatchApplyFailureItemContract
 final class ChatErrorItemContract extends ChatTranscriptItemContract {
   const ChatErrorItemContract({required this.block});
 
-  final CodexErrorBlock block;
+  final TranscriptErrorBlock block;
 
   @override
   String get id => block.id;
@@ -226,7 +226,7 @@ final class ChatErrorItemContract extends ChatTranscriptItemContract {
 final class ChatUsageItemContract extends ChatTranscriptItemContract {
   const ChatUsageItemContract({required this.block});
 
-  final CodexUsageBlock block;
+  final TranscriptUsageBlock block;
 
   @override
   String get id => block.id;
@@ -235,7 +235,7 @@ final class ChatUsageItemContract extends ChatTranscriptItemContract {
 final class ChatTurnBoundaryItemContract extends ChatTranscriptItemContract {
   const ChatTurnBoundaryItemContract({required this.block});
 
-  final CodexTurnBoundaryBlock block;
+  final TranscriptTurnBoundaryBlock block;
 
   @override
   String get id => block.id;
