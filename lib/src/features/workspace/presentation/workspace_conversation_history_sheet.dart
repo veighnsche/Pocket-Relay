@@ -3,7 +3,7 @@ import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/widgets/modal_sheet_scaffold.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_lifecycle_errors.dart';
-import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
+import 'package:pocket_relay/src/features/workspace/domain/workspace_conversation_summary.dart';
 
 enum ConnectionWorkspaceConversationHistoryPresentation { mobile, desktop }
 
@@ -22,8 +22,8 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
       'Pick a saved conversation to resume in this lane.';
 
   final String title;
-  final Future<List<CodexWorkspaceConversationSummary>> future;
-  final ValueChanged<CodexWorkspaceConversationSummary> onResumeConversation;
+  final Future<List<WorkspaceConversationSummary>> future;
+  final ValueChanged<WorkspaceConversationSummary> onResumeConversation;
   final VoidCallback? onOpenConnectionSettings;
   final ConnectionWorkspaceConversationHistoryPresentation presentation;
 
@@ -44,7 +44,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
     };
   }
 
-  String _subtitleFor(CodexWorkspaceConversationSummary conversation) {
+  String _subtitleFor(WorkspaceConversationSummary conversation) {
     final activity = conversation.lastActivityAt?.toLocal();
     final activityLabel = activity == null
         ? 'Unknown activity time'
@@ -161,7 +161,7 @@ class ConnectionWorkspaceConversationHistorySheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: FutureBuilder<List<CodexWorkspaceConversationSummary>>(
+          child: FutureBuilder<List<WorkspaceConversationSummary>>(
             future: future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {

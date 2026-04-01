@@ -166,7 +166,7 @@ abstract final class ConnectionLifecycleErrors {
   }
 
   static PocketUserFacingError conversationHistoryFailure(Object error) {
-    if (error is CodexWorkspaceConversationHistoryUnpinnedHostKeyException) {
+    if (error is WorkspaceConversationHistoryUnpinnedHostKeyException) {
       return PocketUserFacingError(
         definition: PocketErrorCatalog.connectionHistoryHostKeyUnpinned,
         title: 'Host key not pinned',

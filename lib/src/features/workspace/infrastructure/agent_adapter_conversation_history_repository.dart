@@ -5,14 +5,14 @@ import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
-import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
+import 'package:pocket_relay/src/features/workspace/domain/workspace_conversation_summary.dart';
 
 abstract interface class WorkspaceConversationHistoryRepository {
   /// Loads authoritative conversation history from the configured agent adapter.
   ///
   /// Pocket Relay must not replace this with an app-owned local history store,
   /// because users can create and continue conversations outside this app.
-  Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
+  Future<List<WorkspaceConversationSummary>> loadWorkspaceConversations({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     String? ownerId,
@@ -23,9 +23,9 @@ abstract interface class WorkspaceConversationHistoryRepository {
 typedef CodexWorkspaceConversationHistoryRepository =
     WorkspaceConversationHistoryRepository;
 
-final class CodexWorkspaceConversationHistoryUnpinnedHostKeyException
+final class WorkspaceConversationHistoryUnpinnedHostKeyException
     implements Exception {
-  const CodexWorkspaceConversationHistoryUnpinnedHostKeyException({
+  const WorkspaceConversationHistoryUnpinnedHostKeyException({
     required this.host,
     required this.port,
     required this.keyType,
@@ -43,6 +43,10 @@ final class CodexWorkspaceConversationHistoryUnpinnedHostKeyException
   }
 }
 
+@Deprecated('Use WorkspaceConversationHistoryUnpinnedHostKeyException instead.')
+typedef CodexWorkspaceConversationHistoryUnpinnedHostKeyException =
+    WorkspaceConversationHistoryUnpinnedHostKeyException;
+
 typedef AgentAdapterClientFactory = AgentAdapterClient Function();
 
 class AgentAdapterConversationHistoryRepository
@@ -56,7 +60,7 @@ class AgentAdapterConversationHistoryRepository
   final int pageSize;
 
   @override
-  Future<List<CodexWorkspaceConversationSummary>> loadWorkspaceConversations({
+  Future<List<WorkspaceConversationSummary>> loadWorkspaceConversations({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
     String? ownerId,
@@ -65,14 +69,14 @@ class AgentAdapterConversationHistoryRepository
       profile.agentAdapter,
     );
     if (!agentAdapterCapabilities.supportsConversationHistory) {
-      return const <CodexWorkspaceConversationSummary>[];
+      return const <WorkspaceConversationSummary>[];
     }
     // Conversation discovery comes from the upstream agent adapter itself. The
     // app only displays upstream truth; it does not maintain its own
     // historical catalog.
     final workspaceDir = profile.workspaceDir.trim();
     if (workspaceDir.isEmpty) {
-      return const <CodexWorkspaceConversationSummary>[];
+      return const <WorkspaceConversationSummary>[];
     }
 
     final client =
@@ -98,7 +102,7 @@ class AgentAdapterConversationHistoryRepository
         ),
       );
 
-      final conversations = <CodexWorkspaceConversationSummary>[];
+      final conversations = <WorkspaceConversationSummary>[];
       for (final thread in matchingThreads) {
         final detailedThread = await client.readThreadWithTurns(
           threadId: thread.id,
@@ -108,7 +112,7 @@ class AgentAdapterConversationHistoryRepository
           continue;
         }
         conversations.add(
-          CodexWorkspaceConversationSummary(
+          WorkspaceConversationSummary(
             threadId: thread.id,
             preview: detailedThread.name?.trim().isNotEmpty == true
                 ? detailedThread.name!
@@ -136,7 +140,7 @@ class AgentAdapterConversationHistoryRepository
     } catch (error) {
       await Future<void>.microtask(() {});
       if (unpinnedHostKeyEvent case final event?) {
-        throw CodexWorkspaceConversationHistoryUnpinnedHostKeyException(
+        throw WorkspaceConversationHistoryUnpinnedHostKeyException(
           host: event.host,
           port: event.port,
           keyType: event.keyType,
