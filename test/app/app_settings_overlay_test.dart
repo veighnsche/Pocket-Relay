@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 
 import '../support/builders/app_test_harness.dart';
 import '../support/fakes/connection_settings_overlay_delegate.dart';
@@ -12,9 +13,14 @@ void main() {
     'routes live settings through the material workspace settings renderer on iOS',
     (tester) async {
       final settingsOverlayDelegate = FakeConnectionSettingsOverlayDelegate();
+      final appServerClient = FakeAgentAdapterClient();
+      addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(settingsOverlayDelegate: settingsOverlayDelegate),
+        buildCatalogApp(
+          settingsOverlayDelegate: settingsOverlayDelegate,
+          agentAdapterClient: appServerClient,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -29,8 +35,12 @@ void main() {
   testWidgets('settings sheet no longer shows a dark mode toggle', (
     tester,
   ) async {
+    final appServerClient = FakeAgentAdapterClient();
+    addTearDown(appServerClient.close);
+
     await tester.pumpWidget(
       buildCatalogApp(
+        agentAdapterClient: appServerClient,
         savedProfile: SavedProfile(
           profile: ConnectionProfile.defaults().copyWith(
             host: 'example.com',

@@ -75,6 +75,10 @@ PocketRelayApp buildCatalogApp({
   CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector,
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
 }) {
+  assert(
+    agentAdapterClient != null || appServerClient != null,
+    'buildCatalogApp requires an AgentAdapterClient.',
+  );
   final resolvedAgentAdapterClient = agentAdapterClient ?? appServerClient;
   return PocketRelayApp(
     connectionRepository:
@@ -87,7 +91,7 @@ PocketRelayApp buildCatalogApp({
     recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
     displayWakeLockController: displayWakeLockController,
     backgroundGraceController: backgroundGraceController,
-    agentAdapterClient: resolvedAgentAdapterClient,
+    agentAdapterClient: resolvedAgentAdapterClient!,
     agentAdapterRemoteRuntimeDelegateFactory:
         agentAdapterRemoteRuntimeDelegateFactory,
     remoteAppServerHostProbe: agentAdapterRemoteRuntimeDelegateFactory == null

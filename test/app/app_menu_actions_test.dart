@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
 
 import '../support/builders/app_test_harness.dart';
@@ -10,7 +11,12 @@ void main() {
   testWidgets(
     'presents top-level menu actions through the shared popup menu by default on iOS',
     (tester) async {
-      await tester.pumpWidget(buildCatalogApp());
+      final appServerClient = FakeAgentAdapterClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        buildCatalogApp(agentAdapterClient: appServerClient),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('More actions'));

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_desktop_shell.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
 
@@ -14,7 +15,12 @@ void main() {
   testWidgets(
     'uses the material renderer path by default on iOS',
     (tester) async {
-      await tester.pumpWidget(buildCatalogApp());
+      final appServerClient = FakeAgentAdapterClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        buildCatalogApp(agentAdapterClient: appServerClient),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(ConnectionWorkspaceMobileShell), findsOneWidget);
@@ -30,7 +36,12 @@ void main() {
   testWidgets(
     'uses the material renderer path by default on macOS',
     (tester) async {
-      await tester.pumpWidget(buildCatalogApp());
+      final appServerClient = FakeAgentAdapterClient();
+      addTearDown(appServerClient.close);
+
+      await tester.pumpWidget(
+        buildCatalogApp(agentAdapterClient: appServerClient),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(ConnectionWorkspaceDesktopShell), findsOneWidget);
@@ -44,8 +55,12 @@ void main() {
   );
 
   testWidgets('uses system theme mode', (tester) async {
+    final appServerClient = FakeAgentAdapterClient();
+    addTearDown(appServerClient.close);
+
     await tester.pumpWidget(
       buildCatalogApp(
+        agentAdapterClient: appServerClient,
         savedProfile: SavedProfile(
           profile: ConnectionProfile.defaults().copyWith(
             host: 'example.com',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 
 import '../support/builders/app_test_harness.dart';
 
@@ -12,9 +13,14 @@ void main() {
     'shows the material bootstrap shell while the catalog is loading on iOS',
     (tester) async {
       final connectionRepository = DeferredConnectionRepository();
+      final appServerClient = FakeAgentAdapterClient();
+      addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(connectionRepository: connectionRepository),
+        buildCatalogApp(
+          connectionRepository: connectionRepository,
+          agentAdapterClient: appServerClient,
+        ),
       );
       await tester.pump();
 
@@ -41,9 +47,14 @@ void main() {
       final connectionRepository = FailOnceConnectionRepository(
         savedConnection: buildSavedConnection(),
       );
+      final appServerClient = FakeAgentAdapterClient();
+      addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(connectionRepository: connectionRepository),
+        buildCatalogApp(
+          connectionRepository: connectionRepository,
+          agentAdapterClient: appServerClient,
+        ),
       );
       await tester.pumpAndSettle();
 

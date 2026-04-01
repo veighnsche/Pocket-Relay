@@ -4,6 +4,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
 
@@ -13,8 +14,12 @@ void main() {
   registerAppTestStorageLifecycle();
 
   testWidgets('shows the Pocket Relay shell', (tester) async {
+    final appServerClient = FakeAgentAdapterClient();
+    addTearDown(appServerClient.close);
+
     await tester.pumpWidget(
       buildCatalogApp(
+        agentAdapterClient: appServerClient,
         savedProfile: SavedProfile(
           profile: ConnectionProfile.defaults(),
           secrets: const ConnectionSecrets(),
@@ -38,6 +43,9 @@ void main() {
   testWidgets('boots the first saved connection from the catalog', (
     tester,
   ) async {
+    final appServerClient = FakeAgentAdapterClient();
+    addTearDown(appServerClient.close);
+
     final repository = MemoryCodexConnectionRepository(
       initialConnections: <SavedConnection>[
         buildSavedConnection(),
@@ -52,7 +60,12 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(buildCatalogApp(connectionRepository: repository));
+    await tester.pumpWidget(
+      buildCatalogApp(
+        connectionRepository: repository,
+        agentAdapterClient: appServerClient,
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Dev Box'), findsOneWidget);
@@ -64,8 +77,14 @@ void main() {
   testWidgets('boots an empty workspace into the dormant roster shell', (
     tester,
   ) async {
+    final appServerClient = FakeAgentAdapterClient();
+    addTearDown(appServerClient.close);
+
     await tester.pumpWidget(
-      buildCatalogApp(connectionRepository: MemoryCodexConnectionRepository()),
+      buildCatalogApp(
+        connectionRepository: MemoryCodexConnectionRepository(),
+        agentAdapterClient: appServerClient,
+      ),
     );
     await tester.pumpAndSettle();
 
