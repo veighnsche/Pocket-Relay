@@ -56,7 +56,7 @@ void main() {
 
       expect(capabilities.issues, <ConnectionRemoteHostCapabilityIssue>{
         ConnectionRemoteHostCapabilityIssue.tmuxMissing,
-        ConnectionRemoteHostCapabilityIssue.codexMissing,
+        ConnectionRemoteHostCapabilityIssue.agentCommandMissing,
       });
     },
   );
@@ -88,7 +88,7 @@ void main() {
       expect(capabilities.supportsContinuity, isFalse);
       expect(capabilities.issues, <ConnectionRemoteHostCapabilityIssue>{
         ConnectionRemoteHostCapabilityIssue.workspaceUnavailable,
-        ConnectionRemoteHostCapabilityIssue.codexMissing,
+        ConnectionRemoteHostCapabilityIssue.agentCommandMissing,
       });
     },
   );

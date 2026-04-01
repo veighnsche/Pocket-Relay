@@ -1,4 +1,6 @@
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
+import 'package:pocket_relay/src/agent_adapters/codex_agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';
@@ -101,6 +103,25 @@ String localConnectionLabelForAgentAdapter(AgentAdapterKind kind) {
 
 String defaultCommandForAgentAdapter(AgentAdapterKind kind) {
   return agentAdapterDefinitionFor(kind).defaultCommand;
+}
+
+AgentAdapterRemoteRuntimeDelegate
+createDefaultAgentAdapterRemoteRuntimeDelegate(
+  AgentAdapterKind kind, {
+  CodexRemoteAppServerHostProbe remoteHostProbe =
+      const CodexSshRemoteAppServerHostProbe(),
+  CodexRemoteAppServerOwnerInspector remoteOwnerInspector =
+      const CodexSshRemoteAppServerOwnerInspector(),
+  CodexRemoteAppServerOwnerControl remoteOwnerControl =
+      const CodexSshRemoteAppServerOwnerControl(),
+}) {
+  return switch (kind) {
+    AgentAdapterKind.codex => CodexAgentAdapterRemoteRuntimeDelegate(
+      hostProbe: remoteHostProbe,
+      ownerInspector: remoteOwnerInspector,
+      ownerControl: remoteOwnerControl,
+    ),
+  };
 }
 
 ConnectionModelCatalog referenceModelCatalogForAgentAdapter(

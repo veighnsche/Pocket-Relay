@@ -10,12 +10,13 @@ Future<ConnectionRemoteRuntimeState> _startWorkspaceRemoteServer(
     connectionId: connectionId,
     actionDetail: 'Starting managed remote app-server…',
     runAction: ({required profile, required secrets, required ownerId}) =>
-        controller._remoteAppServerOwnerControl.startOwner(
-          profile: profile,
-          secrets: secrets,
-          ownerId: ownerId,
-          workspaceDir: profile.workspaceDir,
-        ),
+        controller
+            ._remoteRuntimeDelegateFactory(profile.agentAdapter)
+            .startRemoteServer(
+              profile: profile,
+              secrets: secrets,
+              ownerId: ownerId,
+            ),
   );
 }
 
@@ -29,12 +30,13 @@ Future<ConnectionRemoteRuntimeState> _stopWorkspaceRemoteServer(
     connectionId: connectionId,
     actionDetail: 'Stopping managed remote app-server…',
     runAction: ({required profile, required secrets, required ownerId}) =>
-        controller._remoteAppServerOwnerControl.stopOwner(
-          profile: profile,
-          secrets: secrets,
-          ownerId: ownerId,
-          workspaceDir: profile.workspaceDir,
-        ),
+        controller
+            ._remoteRuntimeDelegateFactory(profile.agentAdapter)
+            .stopRemoteServer(
+              profile: profile,
+              secrets: secrets,
+              ownerId: ownerId,
+            ),
   );
 }
 
@@ -48,17 +50,18 @@ Future<ConnectionRemoteRuntimeState> _restartWorkspaceRemoteServer(
     connectionId: connectionId,
     actionDetail: 'Restarting managed remote app-server…',
     runAction: ({required profile, required secrets, required ownerId}) =>
-        controller._remoteAppServerOwnerControl.restartOwner(
-          profile: profile,
-          secrets: secrets,
-          ownerId: ownerId,
-          workspaceDir: profile.workspaceDir,
-        ),
+        controller
+            ._remoteRuntimeDelegateFactory(profile.agentAdapter)
+            .restartRemoteServer(
+              profile: profile,
+              secrets: secrets,
+              ownerId: ownerId,
+            ),
   );
 }
 
 typedef _WorkspaceRemoteServerActionRunner =
-    Future<CodexRemoteAppServerOwnerSnapshot> Function({
+    Future<void> Function({
       required ConnectionProfile profile,
       required ConnectionSecrets secrets,
       required String ownerId,

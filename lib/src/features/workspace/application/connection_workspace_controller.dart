@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error_detail_formatter.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -52,10 +54,14 @@ class ConnectionWorkspaceController extends ChangeNotifier {
     required ConnectionLaneBindingFactory laneBindingFactory,
     ConnectionModelCatalogStore? modelCatalogStore,
     ConnectionWorkspaceRecoveryStore? recoveryStore,
+    AgentAdapterRemoteRuntimeDelegateFactory? remoteRuntimeDelegateFactory,
+    @Deprecated('Use remoteRuntimeDelegateFactory instead.')
     CodexRemoteAppServerHostProbe remoteAppServerHostProbe =
         const CodexSshRemoteAppServerHostProbe(),
+    @Deprecated('Use remoteRuntimeDelegateFactory instead.')
     CodexRemoteAppServerOwnerInspector remoteAppServerOwnerInspector =
         const CodexSshRemoteAppServerOwnerInspector(),
+    @Deprecated('Use remoteRuntimeDelegateFactory instead.')
     CodexRemoteAppServerOwnerControl remoteAppServerOwnerControl =
         const CodexSshRemoteAppServerOwnerControl(),
     Duration recoveryPersistenceDebounceDuration = const Duration(
@@ -68,9 +74,14 @@ class ConnectionWorkspaceController extends ChangeNotifier {
            modelCatalogStore ?? const NoopConnectionModelCatalogStore(),
        _recoveryStore =
            recoveryStore ?? const NoopConnectionWorkspaceRecoveryStore(),
-       _remoteAppServerHostProbe = remoteAppServerHostProbe,
-       _remoteAppServerOwnerInspector = remoteAppServerOwnerInspector,
-       _remoteAppServerOwnerControl = remoteAppServerOwnerControl,
+       _remoteRuntimeDelegateFactory =
+           remoteRuntimeDelegateFactory ??
+           ((kind) => createDefaultAgentAdapterRemoteRuntimeDelegate(
+             kind,
+             remoteHostProbe: remoteAppServerHostProbe,
+             remoteOwnerInspector: remoteAppServerOwnerInspector,
+             remoteOwnerControl: remoteAppServerOwnerControl,
+           )),
        _recoveryPersistenceDebounceDuration =
            recoveryPersistenceDebounceDuration,
        _now = now ?? DateTime.now;
@@ -79,9 +90,7 @@ class ConnectionWorkspaceController extends ChangeNotifier {
   final ConnectionLaneBindingFactory _laneBindingFactory;
   final ConnectionModelCatalogStore _modelCatalogStore;
   final ConnectionWorkspaceRecoveryStore _recoveryStore;
-  final CodexRemoteAppServerHostProbe _remoteAppServerHostProbe;
-  final CodexRemoteAppServerOwnerInspector _remoteAppServerOwnerInspector;
-  final CodexRemoteAppServerOwnerControl _remoteAppServerOwnerControl;
+  final AgentAdapterRemoteRuntimeDelegateFactory _remoteRuntimeDelegateFactory;
   final Duration _recoveryPersistenceDebounceDuration;
   final WorkspaceNow _now;
   final Map<String, ConnectionLaneBinding> _liveBindingsByConnectionId =
