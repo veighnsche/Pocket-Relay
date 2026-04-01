@@ -105,6 +105,10 @@ class WorkspaceProfile {
 
   factory WorkspaceProfile.fromJson(Map<String, dynamic> json) {
     final defaults = WorkspaceProfile.defaults();
+    final resolvedAgentAdapter = _agentAdapterKindFromName(
+      json['agentAdapter'] as String? ?? json['hostKind'] as String?,
+      fallback: defaults.agentAdapter,
+    );
     final rawSystemId = json['systemId'] as String?;
     final normalizedSystemId = rawSystemId?.trim();
     return WorkspaceProfile(
@@ -117,15 +121,12 @@ class WorkspaceProfile {
           ? null
           : normalizedSystemId,
       workspaceDir: json['workspaceDir'] as String? ?? defaults.workspaceDir,
-      agentAdapter: _agentAdapterKindFromName(
-        json['agentAdapter'] as String? ?? json['hostKind'] as String?,
-        fallback: defaults.agentAdapter,
-      ),
+      agentAdapter: resolvedAgentAdapter,
       agentCommand:
           json['agentCommand'] as String? ??
           json['hostCommand'] as String? ??
           json['codexPath'] as String? ??
-          defaults.agentCommand,
+          defaultAgentAdapterCommandForKind(resolvedAgentAdapter),
       dangerouslyBypassSandbox:
           json['dangerouslyBypassSandbox'] as bool? ??
           defaults.dangerouslyBypassSandbox,

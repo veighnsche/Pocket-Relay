@@ -136,6 +136,10 @@ class ConnectionProfile {
 
   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
     final defaults = ConnectionProfile.defaults();
+    final resolvedAgentAdapter = _agentAdapterKindFromName(
+      json['agentAdapter'] as String? ?? json['hostKind'] as String?,
+      fallback: defaults.agentAdapter,
+    );
 
     return ConnectionProfile(
       label: json['label'] as String? ?? defaults.label,
@@ -143,15 +147,12 @@ class ConnectionProfile {
       port: (json['port'] as num?)?.toInt() ?? 22,
       username: json['username'] as String? ?? '',
       workspaceDir: json['workspaceDir'] as String? ?? defaults.workspaceDir,
-      agentAdapter: _agentAdapterKindFromName(
-        json['agentAdapter'] as String? ?? json['hostKind'] as String?,
-        fallback: defaults.agentAdapter,
-      ),
+      agentAdapter: resolvedAgentAdapter,
       agentCommand:
           json['agentCommand'] as String? ??
           json['hostCommand'] as String? ??
           json['codexPath'] as String? ??
-          defaults.agentCommand,
+          defaultAgentAdapterCommandForKind(resolvedAgentAdapter),
       authMode: _authModeFromName(
         json['authMode'] as String?,
         fallback: defaults.authMode,
