@@ -208,4 +208,43 @@ void main() {
       expect(contract.agentAdapterSection.status, isNotNull);
     },
   );
+
+  test(
+    'unsupported saved connection mode still shows the workspace location picker',
+    () {
+      final initialProfile = configuredConnectionProfile().copyWith(
+        connectionMode: ConnectionMode.local,
+      );
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState =
+          ConnectionSettingsFormState.initial(
+            profile: initialProfile,
+            secrets: initialSecrets,
+          ).copyWith(
+            draft: ConnectionSettingsDraft.fromConnection(
+              profile: initialProfile,
+              secrets: initialSecrets,
+            ),
+          );
+
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        supportsLocalConnectionMode: false,
+        agentAdapterCapabilities: agentAdapterCapabilitiesFor(
+          AgentAdapterKind.codex,
+        ),
+      );
+
+      expect(contract.connectionModeSection, isNotNull);
+      expect(contract.connectionModeSection!.selectedMode, ConnectionMode.local);
+      expect(contract.connectionModeSection!.options, hasLength(1));
+      expect(
+        contract.connectionModeSection!.options.single.mode,
+        ConnectionMode.remote,
+      );
+      expect(contract.saveAction.canSubmit, isFalse);
+    },
+  );
 }
