@@ -5,6 +5,13 @@ ConnectionSettingsModelSectionContract _buildModelSection(
 ) {
   final draft = state.draft;
   final availableModelCatalog = state.availableModelCatalog;
+  if (!state.agentAdapterCapabilities.supportsModelCatalog) {
+    return _buildUnsupportedModelSection(
+      state: state,
+      selectedModelId: _selectedModelIdForDraft(draft),
+      selectedReasoningEffort: draft.reasoningEffort,
+    );
+  }
   final refreshActionLabel = state.isRefreshingModelCatalog
       ? 'Refreshing models...'
       : 'Refresh models';
@@ -124,6 +131,73 @@ ConnectionSettingsModelSectionContract _buildModelSection(
     refreshActionHelperText: refreshActionHelperText,
     isRefreshActionEnabled: isRefreshActionEnabled,
     isRefreshActionInProgress: state.isRefreshingModelCatalog,
+  );
+}
+
+ConnectionSettingsModelSectionContract _buildUnsupportedModelSection({
+  required _ConnectionSettingsPresentationState state,
+  required String? selectedModelId,
+  required CodexReasoningEffort? selectedReasoningEffort,
+}) {
+  final supportsReasoningEffort =
+      state.agentAdapterCapabilities.supportsReasoningEffort;
+  final reasoningOptions =
+      supportsReasoningEffort && selectedReasoningEffort != null
+      ? <ConnectionSettingsReasoningEffortOptionContract>[
+          ConnectionSettingsReasoningEffortOptionContract(
+            effort: selectedReasoningEffort,
+            label: _reasoningEffortLabel(selectedReasoningEffort),
+            description:
+                'Saved reasoning effort. This agent adapter does not expose model metadata yet.',
+          ),
+        ]
+      : const <ConnectionSettingsReasoningEffortOptionContract>[
+          ConnectionSettingsReasoningEffortOptionContract(
+            effort: null,
+            label: 'Unavailable',
+            description:
+                'This agent adapter does not expose model or reasoning metadata.',
+          ),
+        ];
+
+  return ConnectionSettingsModelSectionContract(
+    title: 'Model defaults',
+    selectedModelId: selectedModelId,
+    modelOptions: selectedModelId == null
+        ? const <ConnectionSettingsModelOptionContract>[
+            ConnectionSettingsModelOptionContract(
+              modelId: null,
+              label: 'Unavailable',
+              description:
+                  'This agent adapter does not expose model catalog metadata.',
+            ),
+          ]
+        : <ConnectionSettingsModelOptionContract>[
+            ConnectionSettingsModelOptionContract(
+              modelId: selectedModelId,
+              label: selectedModelId,
+              description:
+                  'Saved model value. This agent adapter does not expose model catalog metadata.',
+            ),
+          ],
+    modelHelperText:
+        'This agent adapter does not expose model catalog metadata.',
+    isModelEnabled: false,
+    selectedReasoningEffort: supportsReasoningEffort
+        ? selectedReasoningEffort
+        : null,
+    reasoningEffortOptions: reasoningOptions,
+    reasoningEffortHelperText: supportsReasoningEffort
+        ? 'This agent adapter does not expose model metadata, so Pocket Relay can only show the saved reasoning value.'
+        : 'This agent adapter does not expose reasoning controls.',
+    isReasoningEffortEnabled: false,
+    refreshActionLabel: state.isRefreshingModelCatalog
+        ? 'Refreshing models...'
+        : 'Refresh models',
+    refreshActionHelperText:
+        'This agent adapter does not expose model catalog refresh.',
+    isRefreshActionEnabled: false,
+    isRefreshActionInProgress: false,
   );
 }
 

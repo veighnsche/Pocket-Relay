@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_presenter.dart';
@@ -90,5 +91,23 @@ void main() {
 
     expect(contract.remoteRuntime, isNull);
     expect(contract.remoteConnectionSection, isNull);
+  });
+
+  test('run mode toggles follow the selected adapter capability contract', () {
+    final initialProfile = configuredConnectionProfile();
+    const initialSecrets = ConnectionSecrets(password: 'secret');
+    final formState = ConnectionSettingsFormState.initial(
+      profile: initialProfile,
+      secrets: initialSecrets,
+    );
+
+    final contract = presenter.present(
+      initialProfile: initialProfile,
+      initialSecrets: initialSecrets,
+      formState: formState,
+      agentAdapterCapabilities: const AgentAdapterCapabilities(),
+    );
+
+    expect(contract.runModeSection.toggles, isEmpty);
   });
 }

@@ -3,6 +3,7 @@ part of 'connection_settings_presenter.dart';
 class _ConnectionSettingsPresentationState {
   const _ConnectionSettingsPresentationState({
     required this.draft,
+    required this.agentAdapterCapabilities,
     required this.availableModelCatalog,
     required this.availableModelCatalogSource,
     required this.availableSystemTemplates,
@@ -32,6 +33,7 @@ class _ConnectionSettingsPresentationState {
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
+    required AgentAdapterCapabilities agentAdapterCapabilities,
     bool isSystemSettings = false,
     ConnectionModelCatalog? availableModelCatalog,
     ConnectionSettingsModelCatalogSource? availableModelCatalogSource,
@@ -134,6 +136,7 @@ class _ConnectionSettingsPresentationState {
 
     return _ConnectionSettingsPresentationState(
       draft: draft,
+      agentAdapterCapabilities: agentAdapterCapabilities,
       availableModelCatalog: availableModelCatalog,
       availableModelCatalogSource: availableModelCatalogSource,
       availableSystemTemplates: availableSystemTemplates,
@@ -142,7 +145,9 @@ class _ConnectionSettingsPresentationState {
         templates: availableSystemTemplates,
       ),
       modelCatalogRefreshError: modelCatalogRefreshError,
-      supportsModelCatalogRefresh: supportsModelCatalogRefresh,
+      supportsModelCatalogRefresh:
+          agentAdapterCapabilities.supportsModelCatalogRefresh &&
+          supportsModelCatalogRefresh,
       isRefreshingModelCatalog: isRefreshingModelCatalog,
       isTestingSystem: isTestingSystem,
       systemTestFailure: systemTestFailure,
@@ -164,6 +169,7 @@ class _ConnectionSettingsPresentationState {
   }
 
   final ConnectionSettingsDraft draft;
+  final AgentAdapterCapabilities agentAdapterCapabilities;
   final ConnectionModelCatalog? availableModelCatalog;
   final ConnectionSettingsModelCatalogSource? availableModelCatalogSource;
   final List<ConnectionSettingsSystemTemplate> availableSystemTemplates;

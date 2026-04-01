@@ -165,6 +165,7 @@ Today the registry defines one adapter:
 Registry responsibilities currently include:
 
 - `agentAdapterDefinitionFor`
+- `agentAdapterCapabilitiesFor`
 - `createAgentAdapterRuntimeEventMapper`
 - `createDefaultAgentAdapterClient`
 - `agentAdapterLabel`
@@ -172,6 +173,17 @@ Registry responsibilities currently include:
 - `defaultCommandForAgentAdapter`
 
 That is the correct app-owned location for host-specific branching.
+
+Registry definitions now also declare `AgentAdapterCapabilities`, so shared
+surfaces can gate behavior from explicit capability data instead of silently
+assuming that every future adapter exposes the full Codex feature set.
+
+Current shared consumers of capability metadata include:
+
+- connection-settings model refresh and run-mode toggles
+- branch-conversation and continue-from-here affordances
+- image-attachment availability
+- workspace conversation-history discovery affordances
 
 ### Current settings and profile surface
 

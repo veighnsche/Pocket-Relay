@@ -1,3 +1,5 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
@@ -27,8 +29,12 @@ class ChatScreenPresenter {
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     bool effectiveModelSupportsImages = true,
+    AgentAdapterCapabilities? agentAdapterCapabilities,
     ConnectionMode? preferredConnectionMode,
   }) {
+    final resolvedAgentAdapterCapabilities =
+        agentAdapterCapabilities ??
+        agentAdapterCapabilitiesFor(profile.agentAdapter);
     final isConfigured = profile.isReady;
     final hasWorkspaceScope = profile.workspaceDir.trim().isNotEmpty;
     final timelineSummaries = _timelineSummaries(sessionState);
@@ -41,6 +47,7 @@ class ChatScreenPresenter {
           historicalConversationRestoreState,
         );
     final canBranchConversation =
+        resolvedAgentAdapterCapabilities.supportsConversationForking &&
         hasWorkspaceScope &&
         !isLoading &&
         sessionState.currentThreadId?.trim().isNotEmpty == true &&
@@ -103,6 +110,8 @@ class ChatScreenPresenter {
       transcriptSurface: _transcriptSurfaceProjector.project(
         profile: profile,
         sessionState: sessionState,
+        allowsContinueFromHere:
+            resolvedAgentAdapterCapabilities.supportsConversationRollback,
         emptyStateConnectionMode: displayConnectionMode,
       ),
       connectionSettings: ChatConnectionSettingsLaunchContract(
@@ -110,7 +119,10 @@ class ChatScreenPresenter {
         initialSecrets: secrets,
       ),
       isComposerSendEnabled: canSend,
-      allowsImageAttachment: isConfigured && effectiveModelSupportsImages,
+      allowsImageAttachment:
+          isConfigured &&
+          resolvedAgentAdapterCapabilities.supportsImageInput &&
+          effectiveModelSupportsImages,
       composerPlaceholder: 'Message Codex',
       conversationRecoveryNotice: conversationRecoveryNotice,
       historicalConversationRestoreNotice: historicalConversationRestoreNotice,
@@ -132,6 +144,7 @@ class ChatScreenPresenter {
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     required ChatComposerDraft composerDraft,
     bool effectiveModelSupportsImages = true,
+    AgentAdapterCapabilities? agentAdapterCapabilities,
     required ChatTranscriptFollowContract transcriptFollow,
     ConnectionMode? preferredConnectionMode,
   }) {
@@ -143,6 +156,7 @@ class ChatScreenPresenter {
       conversationRecoveryState: conversationRecoveryState,
       historicalConversationRestoreState: historicalConversationRestoreState,
       effectiveModelSupportsImages: effectiveModelSupportsImages,
+      agentAdapterCapabilities: agentAdapterCapabilities,
       preferredConnectionMode: preferredConnectionMode,
     );
     return session.compose(

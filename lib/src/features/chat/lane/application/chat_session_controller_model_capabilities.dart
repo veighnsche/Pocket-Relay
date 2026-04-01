@@ -2,6 +2,9 @@ part of 'chat_session_controller.dart';
 
 extension _ChatSessionControllerModelCapabilities on ChatSessionController {
   Future<void> _refreshModelCatalogAfterConnect() async {
+    if (!agentAdapterCapabilities.supportsModelCatalogRefresh) {
+      return;
+    }
     if (!agentAdapterClient.isConnected) {
       return;
     }
@@ -35,6 +38,10 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
     if (!draft.hasImageAttachments) {
       return true;
     }
+    if (!agentAdapterCapabilities.supportsImageInput) {
+      _emitUserFacingError(_imageInputsNotSupportedError());
+      return false;
+    }
 
     try {
       await _ensureChatSessionAppServerConnected(this);
@@ -59,6 +66,9 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
   }
 
   bool _currentModelSupportsImageInput() {
+    if (!agentAdapterCapabilities.supportsImageInput) {
+      return false;
+    }
     final catalog = _modelCatalog;
     final effectiveModel = _effectiveModelForCapabilities(catalog);
     if (effectiveModel == null || catalog == null) {

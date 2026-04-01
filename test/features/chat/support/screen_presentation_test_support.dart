@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
@@ -24,6 +25,7 @@ import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_tran
 import 'package:pocket_relay/src/features/chat/worklog/domain/chat_work_log_contract.dart';
 
 export 'package:flutter_test/flutter_test.dart';
+export 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
