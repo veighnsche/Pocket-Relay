@@ -401,9 +401,39 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       agentNickname: thread.agentNickname,
       agentRole: thread.agentRole,
       turns: thread is AgentAdapterThreadHistory
-          ? List<CodexAppServerHistoryTurn>.from(
-              thread.turns.whereType<CodexAppServerHistoryTurn>(),
-            )
+          ? thread.turns
+                .map<CodexAppServerHistoryTurn>(
+                  (turn) => switch (turn) {
+                    CodexAppServerHistoryTurn() => turn,
+                    _ => CodexAppServerHistoryTurn(
+                      id: turn.id,
+                      threadId: turn.threadId,
+                      status: turn.status,
+                      model: turn.model,
+                      effort: turn.effort,
+                      stopReason: turn.stopReason,
+                      usage: turn.usage,
+                      modelUsage: turn.modelUsage,
+                      totalCostUsd: turn.totalCostUsd,
+                      error: turn.error,
+                      items: turn.items
+                          .map<CodexAppServerHistoryItem>(
+                            (item) => switch (item) {
+                              CodexAppServerHistoryItem() => item,
+                              _ => CodexAppServerHistoryItem(
+                                id: item.id,
+                                type: item.type,
+                                status: item.status,
+                                raw: item.raw,
+                              ),
+                            },
+                          )
+                          .toList(growable: false),
+                      raw: turn.raw,
+                    ),
+                  },
+                )
+                .toList(growable: false)
           : const <CodexAppServerHistoryTurn>[],
     );
   }
