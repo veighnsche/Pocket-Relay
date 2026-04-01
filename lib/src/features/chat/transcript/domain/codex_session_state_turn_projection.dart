@@ -111,7 +111,7 @@ TranscriptTurnArtifact freezeTranscriptTurnArtifact(
             .map((entry) => entry.copyWith(isRunning: false))
             .toList(growable: false),
         isStreaming: false,
-      ),
+    ),
     TranscriptTurnBlockArtifact(:final block) => TranscriptTurnBlockArtifact(
       block: _freezeTranscriptUiBlock(block),
     ),
