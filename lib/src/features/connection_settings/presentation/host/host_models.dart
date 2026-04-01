@@ -26,6 +26,7 @@ class ConnectionSettingsHostActions {
   const ConnectionSettingsHostActions({
     required this.onFieldChanged,
     required this.onModelChanged,
+    required this.onAgentAdapterChanged,
     required this.onConnectionModeChanged,
     required this.onAuthModeChanged,
     required this.onReasoningEffortChanged,
@@ -40,6 +41,7 @@ class ConnectionSettingsHostActions {
   final void Function(ConnectionSettingsFieldId fieldId, String value)
   onFieldChanged;
   final ValueChanged<String?> onModelChanged;
+  final ValueChanged<AgentAdapterKind> onAgentAdapterChanged;
   final ValueChanged<ConnectionMode> onConnectionModeChanged;
   final ValueChanged<AuthMode> onAuthModeChanged;
   final ValueChanged<AgentAdapterReasoningEffort?> onReasoningEffortChanged;

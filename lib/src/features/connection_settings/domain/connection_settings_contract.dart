@@ -179,6 +179,36 @@ class ConnectionSettingsSectionContract {
   final ConnectionSettingsSectionStatusContract? status;
 }
 
+class ConnectionSettingsAgentAdapterOptionContract {
+  const ConnectionSettingsAgentAdapterOptionContract({
+    required this.kind,
+    required this.label,
+    required this.description,
+  });
+
+  final AgentAdapterKind kind;
+  final String label;
+  final String description;
+}
+
+class ConnectionSettingsAgentAdapterSectionContract {
+  const ConnectionSettingsAgentAdapterSectionContract({
+    required this.title,
+    required this.selectedAdapter,
+    required this.options,
+    required this.helperText,
+    required this.fields,
+    this.status,
+  });
+
+  final String title;
+  final AgentAdapterKind selectedAdapter;
+  final List<ConnectionSettingsAgentAdapterOptionContract> options;
+  final String helperText;
+  final List<ConnectionSettingsTextFieldContract> fields;
+  final ConnectionSettingsSectionStatusContract? status;
+}
+
 class ConnectionSettingsSectionStatusContract {
   const ConnectionSettingsSectionStatusContract({
     required this.label,
@@ -314,7 +344,7 @@ class ConnectionSettingsContract {
 
   final String title;
   final ConnectionSettingsSectionContract profileSection;
-  final ConnectionSettingsSectionContract agentAdapterSection;
+  final ConnectionSettingsAgentAdapterSectionContract agentAdapterSection;
   final ConnectionSettingsModelSectionContract modelSection;
   final ConnectionSettingsConnectionModeSectionContract? connectionModeSection;
   final ConnectionSettingsSystemPickerContract? systemPicker;
@@ -326,7 +356,12 @@ class ConnectionSettingsContract {
   final ConnectionRemoteRuntimeState? remoteRuntime;
 
   @Deprecated('Use agentAdapterSection instead.')
-  ConnectionSettingsSectionContract get hostSection => agentAdapterSection;
+  ConnectionSettingsSectionContract get hostSection =>
+      ConnectionSettingsSectionContract(
+        title: agentAdapterSection.title,
+        fields: agentAdapterSection.fields,
+        status: agentAdapterSection.status,
+      );
   @Deprecated('Use agentAdapterSection instead.')
-  ConnectionSettingsSectionContract get codexSection => agentAdapterSection;
+  ConnectionSettingsSectionContract get codexSection => hostSection;
 }

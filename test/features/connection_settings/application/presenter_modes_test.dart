@@ -48,10 +48,15 @@ void main() {
     expect(contract.systemTrust, isNull);
     expect(
       settingsField(
-        contract.codexSection,
+        contract.profileSection,
         ConnectionSettingsFieldId.workspaceDir,
       ).label,
       'Workspace directory',
+    );
+    expect(contract.agentAdapterSection.options, hasLength(1));
+    expect(
+      contract.agentAdapterSection.selectedAdapter,
+      AgentAdapterKind.codex,
     );
     expect(contract.modelSection.selectedReasoningEffort, isNull);
     expect(
@@ -110,6 +115,9 @@ void main() {
       agentAdapterCapabilities: const AgentAdapterCapabilities(),
     );
 
+    expect(contract.connectionModeSection, isNull);
+    expect(contract.agentAdapterSection.status, isNotNull);
+    expect(contract.saveAction.canSubmit, isFalse);
     expect(contract.runModeSection.toggles, isEmpty);
   });
 

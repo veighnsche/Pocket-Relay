@@ -1,8 +1,9 @@
 part of '../connection_settings_presenter.dart';
 
 ConnectionSettingsSectionContract _buildProfileSection(
-  ConnectionSettingsDraft draft,
+  _ConnectionSettingsPresentationState state,
 ) {
+  final draft = state.draft;
   return ConnectionSettingsSectionContract(
     title: 'Workspace',
     fields: <ConnectionSettingsTextFieldContract>[
@@ -11,34 +12,45 @@ ConnectionSettingsSectionContract _buildProfileSection(
         label: 'Workspace name',
         value: draft.label,
       ),
+      if (!state.isSystemSettings)
+        ConnectionSettingsTextFieldContract(
+          id: ConnectionSettingsFieldId.workspaceDir,
+          label: 'Workspace directory',
+          value: draft.workspaceDir,
+          hintText: '/path/to/workspace',
+          errorText: state.workspaceDirError,
+        ),
     ],
   );
 }
 
 ConnectionSettingsConnectionModeSectionContract? _buildConnectionModeSection(
-  ConnectionSettingsDraft draft, {
-  required bool supportsLocalConnectionMode,
-}) {
-  if (!supportsLocalConnectionMode) {
+  _ConnectionSettingsPresentationState state,
+) {
+  final options = <ConnectionSettingsConnectionModeOptionContract>[
+    if (state.supportsRemoteConnectionMode)
+      ConnectionSettingsConnectionModeOptionContract(
+        mode: ConnectionMode.remote,
+        label: 'Remote',
+        description:
+            'Run this workspace with ${agentAdapterLabel(state.draft.agentAdapter)} on a remote system over SSH.',
+      ),
+    if (state.supportsLocalConnectionMode)
+      ConnectionSettingsConnectionModeOptionContract(
+        mode: ConnectionMode.local,
+        label: 'Local',
+        description:
+            'Run this workspace with ${agentAdapterLabel(state.draft.agentAdapter)} on this device and keep the files here.',
+      ),
+  ];
+  if (options.length < 2) {
     return null;
   }
 
   return ConnectionSettingsConnectionModeSectionContract(
     title: 'Workspace location',
-    selectedMode: draft.connectionMode,
-    options: const <ConnectionSettingsConnectionModeOptionContract>[
-      ConnectionSettingsConnectionModeOptionContract(
-        mode: ConnectionMode.remote,
-        label: 'Remote',
-        description: 'Run this workspace on a remote system over SSH.',
-      ),
-      ConnectionSettingsConnectionModeOptionContract(
-        mode: ConnectionMode.local,
-        label: 'Local',
-        description:
-            'Run this workspace on this device and keep the files here.',
-      ),
-    ],
+    selectedMode: state.draft.connectionMode,
+    options: options,
   );
 }
 

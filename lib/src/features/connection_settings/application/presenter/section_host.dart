@@ -1,20 +1,46 @@
 part of '../connection_settings_presenter.dart';
 
-ConnectionSettingsSectionContract _buildHostSection(
+ConnectionSettingsAgentAdapterSectionContract _buildAgentAdapterSection(
   _ConnectionSettingsPresentationState state,
 ) {
   final draft = state.draft;
   final adapterLabel = agentAdapterLabel(draft.agentAdapter);
-  return ConnectionSettingsSectionContract(
+  final helperText = switch ((
+    state.supportsRemoteConnectionMode,
+    state.supportsLocalConnectionMode,
+  )) {
+    (true, true) => agentAdapterDescription(draft.agentAdapter),
+    (true, false) =>
+      '${agentAdapterDescription(draft.agentAdapter)} This adapter currently runs remote workspaces only on this device.',
+    (false, true) =>
+      '${agentAdapterDescription(draft.agentAdapter)} This adapter currently runs local workspaces only on this device.',
+    (false, false) =>
+      'This agent adapter does not support a workspace location Pocket Relay can run on this device.',
+  };
+
+  final status = state.hasSupportedConnectionMode
+      ? null
+      : const ConnectionSettingsSectionStatusContract(
+          label: 'Unsupported on this device',
+          detail:
+              'This agent adapter does not support a workspace location Pocket Relay can run on this device.',
+        );
+
+  return ConnectionSettingsAgentAdapterSectionContract(
     title: 'Agent adapter',
+    selectedAdapter: draft.agentAdapter,
+    options: availableAgentAdapterDefinitions()
+        .map<ConnectionSettingsAgentAdapterOptionContract>(
+          (definition) => ConnectionSettingsAgentAdapterOptionContract(
+            kind: definition.kind,
+            label: definition.label,
+            description: definition.description,
+          ),
+        )
+        .toList(growable: false),
+    helperText: helperText,
+    status: status,
     fields: <ConnectionSettingsTextFieldContract>[
-      ConnectionSettingsTextFieldContract(
-        id: ConnectionSettingsFieldId.workspaceDir,
-        label: 'Workspace directory',
-        value: draft.workspaceDir,
-        hintText: '/path/to/workspace',
-        errorText: state.workspaceDirError,
-      ),
       ConnectionSettingsTextFieldContract(
         id: ConnectionSettingsFieldId.hostCommand,
         label: 'Agent command',

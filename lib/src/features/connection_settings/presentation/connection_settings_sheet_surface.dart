@@ -412,15 +412,10 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     ConnectionSettingsContract contract,
   ) {
     final routeSection = contract.connectionModeSection;
-    final workspaceFields = <ConnectionSettingsTextFieldContract>[
-      ...contract.profileSection.fields,
-      for (final field in contract.agentAdapterSection.fields)
-        if (field.id == ConnectionSettingsFieldId.workspaceDir) field,
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldColumn(context, workspaceFields),
+        _buildFieldColumn(context, contract.profileSection.fields),
         if (routeSection != null) ...[
           const SizedBox(height: _sectionSpacing),
           _buildSubsectionLabel(context, routeSection.title),
@@ -496,14 +491,36 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
-    final hostFields = <ConnectionSettingsTextFieldContract>[
-      for (final field in contract.agentAdapterSection.fields)
-        if (field.id != ConnectionSettingsFieldId.workspaceDir) field,
-    ];
+    final agentAdapterSection = contract.agentAdapterSection;
+    final hostFields = agentAdapterSection.fields;
+    final helperText = agentAdapterSection.helperText.trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (agentAdapterSection.options.length > 1) ...[
+          _buildSubsectionLabel(context, 'Adapter'),
+          const SizedBox(height: 12),
+          _buildAgentAdapterPicker(context, agentAdapterSection),
+          if (helperText.isNotEmpty) const SizedBox(height: 10),
+        ],
+        if (helperText.isNotEmpty)
+          Text(
+            helperText,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+        if (agentAdapterSection.status case final status?) ...[
+          const SizedBox(height: _sectionSpacing),
+          _buildInlineStatusStrip(
+            context,
+            status,
+            icon: Icons.error_outline,
+            color: Theme.of(context).colorScheme.tertiary,
+          ),
+        ],
         if (hostFields.isNotEmpty) _buildFieldColumn(context, hostFields),
         if (hostFields.isNotEmpty) const SizedBox(height: _sectionSpacing),
         _buildSubsectionLabel(context, contract.modelSection.title),
@@ -554,17 +571,33 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     final theme = Theme.of(context);
     final visuals = _statusVisuals(context, contract.remoteRuntime);
 
+    return _buildInlineStatusStrip(
+      context,
+      status,
+      icon: visuals.icon,
+      color: visuals.color,
+    );
+  }
+
+  Widget _buildInlineStatusStrip(
+    BuildContext context,
+    ConnectionSettingsSectionStatusContract status, {
+    required IconData icon,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.only(left: 14),
       decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: visuals.color, width: 3)),
+        border: Border(left: BorderSide(color: color, width: 3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Icon(visuals.icon, size: 18, color: visuals.color),
+            child: Icon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -575,7 +608,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
                   status.label,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: visuals.color,
+                    color: color,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -959,6 +992,47 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     );
   }
 
+  Widget _buildAgentAdapterPicker(
+    BuildContext context,
+    ConnectionSettingsAgentAdapterSectionContract section,
+  ) {
+    return DropdownButtonFormField<AgentAdapterKind>(
+      key: const ValueKey<String>('connection_settings_agent_adapter'),
+      initialValue: section.selectedAdapter,
+      decoration: const InputDecoration(labelText: 'Agent adapter'),
+      isExpanded: true,
+      items: section.options
+          .map(
+            (option) => DropdownMenuItem<AgentAdapterKind>(
+              value: option.kind,
+              child: Text(
+                '${option.label} · ${option.description}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(growable: false),
+      selectedItemBuilder: (context) {
+        return section.options
+            .map(
+              (option) => Text(
+                option.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+            .toList(growable: false);
+      },
+      onChanged: (nextAdapter) {
+        if (nextAdapter == null) {
+          return;
+        }
+        actions.onAgentAdapterChanged(nextAdapter);
+      },
+    );
+  }
+
   Widget _buildReasoningEffortPicker(
     BuildContext context,
     ConnectionSettingsModelSectionContract section,
@@ -1074,7 +1148,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       ConnectionSettingsFieldId.label,
     );
     final workspaceDir = _fieldValueFor(
-      contract.agentAdapterSection.fields,
+      contract.profileSection.fields,
       ConnectionSettingsFieldId.workspaceDir,
     );
     final host = _fieldValueFor(

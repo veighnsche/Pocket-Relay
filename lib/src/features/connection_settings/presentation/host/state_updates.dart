@@ -58,6 +58,50 @@ void _updateConnectionSettingsConnectionMode(
   state._scheduleRemoteRuntimeRefresh();
 }
 
+void _updateConnectionSettingsAgentAdapter(
+  _ConnectionSettingsHostState state,
+  AgentAdapterKind agentAdapter,
+) {
+  final previousDraft = state._formState.draft;
+  if (previousDraft.agentAdapter == agentAdapter) {
+    return;
+  }
+
+  final previousDefaultCommand = defaultCommandForAgentAdapter(
+    previousDraft.agentAdapter,
+  );
+  final shouldResetCommand =
+      previousDraft.agentCommand.trim().isEmpty ||
+      previousDraft.agentCommand.trim() == previousDefaultCommand;
+  var nextDraft = previousDraft.copyWith(
+    agentAdapter: agentAdapter,
+    agentCommand: shouldResetCommand
+        ? defaultCommandForAgentAdapter(agentAdapter)
+        : previousDraft.agentCommand,
+  );
+  nextDraft = _normalizeConnectionSettingsDraftForAdapter(
+    nextDraft,
+    supportsLocalConnectionMode:
+        state.widget.platformBehavior.supportsLocalConnectionMode,
+  );
+
+  state._setStateInternal(() {
+    state._formState = state._formState.copyWith(draft: nextDraft);
+    state._availableModelCatalog = null;
+    state._availableModelCatalogSource = null;
+    state._modelCatalogRefreshError = null;
+    state._systemTestFailure = null;
+  });
+  _syncConnectionSettingsControllers(
+    state,
+    nextDraft,
+    fields: const <ConnectionSettingsFieldId>{
+      ConnectionSettingsFieldId.hostCommand,
+    },
+  );
+  state._scheduleRemoteRuntimeRefresh();
+}
+
 void _updateConnectionSettingsAuthMode(
   _ConnectionSettingsHostState state,
   AuthMode authMode,
@@ -381,4 +425,21 @@ void _syncConnectionSettingsControllers(
       composing: TextRange.empty,
     );
   }
+}
+
+ConnectionSettingsDraft _normalizeConnectionSettingsDraftForAdapter(
+  ConnectionSettingsDraft draft, {
+  required bool supportsLocalConnectionMode,
+}) {
+  final capabilities = agentAdapterCapabilitiesFor(draft.agentAdapter);
+  final supportedModes = <ConnectionMode>[
+    if (capabilities.supportsRemoteConnections) ConnectionMode.remote,
+    if (capabilities.supportsLocalConnections && supportsLocalConnectionMode)
+      ConnectionMode.local,
+  ];
+  if (supportedModes.isEmpty || supportedModes.contains(draft.connectionMode)) {
+    return draft;
+  }
+
+  return draft.copyWith(connectionMode: supportedModes.first);
 }

@@ -14,6 +14,7 @@ class AgentAdapterDefinition {
   const AgentAdapterDefinition({
     required this.kind,
     required this.label,
+    required this.description,
     required this.defaultCommand,
     required this.localConnectionLabel,
     required this.capabilities,
@@ -21,6 +22,7 @@ class AgentAdapterDefinition {
 
   final AgentAdapterKind kind;
   final String label;
+  final String description;
   final String defaultCommand;
   final String localConnectionLabel;
   final AgentAdapterCapabilities capabilities;
@@ -30,12 +32,15 @@ const AgentAdapterDefinition _codexAgentAdapterDefinition =
     AgentAdapterDefinition(
       kind: AgentAdapterKind.codex,
       label: 'Codex',
+      description:
+          'Runs local workspaces on desktop and remote workspaces over SSH.',
       defaultCommand: 'codex',
       localConnectionLabel: 'local Codex',
       capabilities: AgentAdapterCapabilities(
         supportsConversationHistory: true,
         supportsConversationRollback: true,
         supportsConversationForking: true,
+        supportsLocalConnections: true,
         supportsModelCatalog: true,
         supportsModelCatalogRefresh: true,
         supportsReasoningEffort: true,
@@ -50,10 +55,21 @@ const AgentAdapterDefinition _codexAgentAdapterDefinition =
       ),
     );
 
+const List<AgentAdapterDefinition> _agentAdapterDefinitions =
+    <AgentAdapterDefinition>[_codexAgentAdapterDefinition];
+
+List<AgentAdapterDefinition> availableAgentAdapterDefinitions() {
+  return _agentAdapterDefinitions;
+}
+
 AgentAdapterDefinition agentAdapterDefinitionFor(AgentAdapterKind kind) {
-  return switch (kind) {
-    AgentAdapterKind.codex => _codexAgentAdapterDefinition,
-  };
+  for (final definition in _agentAdapterDefinitions) {
+    if (definition.kind == kind) {
+      return definition;
+    }
+  }
+
+  throw StateError('Unknown agent adapter kind: $kind');
 }
 
 AgentAdapterRuntimeEventMapper createAgentAdapterRuntimeEventMapper(
@@ -91,6 +107,10 @@ AgentAdapterClient createDefaultAgentAdapterClient({
 
 String agentAdapterLabel(AgentAdapterKind kind) {
   return agentAdapterDefinitionFor(kind).label;
+}
+
+String agentAdapterDescription(AgentAdapterKind kind) {
+  return agentAdapterDefinitionFor(kind).description;
 }
 
 AgentAdapterCapabilities agentAdapterCapabilitiesFor(AgentAdapterKind kind) {

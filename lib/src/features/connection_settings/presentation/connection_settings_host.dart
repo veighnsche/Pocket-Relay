@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
@@ -96,6 +97,13 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       profile: widget.initialProfile,
       secrets: widget.initialSecrets,
     );
+    _formState = _formState.copyWith(
+      draft: _normalizeConnectionSettingsDraftForAdapter(
+        _formState.draft,
+        supportsLocalConnectionMode:
+            widget.platformBehavior.supportsLocalConnectionMode,
+      ),
+    );
     _remoteRuntime = widget.initialRemoteRuntime;
     _availableModelCatalog = widget.availableModelCatalog;
     _availableModelCatalogSource = widget.availableModelCatalogSource;
@@ -129,6 +137,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       ConnectionSettingsHostActions(
         onFieldChanged: _updateField,
         onModelChanged: _updateModel,
+        onAgentAdapterChanged: _updateAgentAdapter,
         onConnectionModeChanged: _updateConnectionMode,
         onAuthModeChanged: _updateAuthMode,
         onReasoningEffortChanged: _updateReasoningEffort,
@@ -163,6 +172,9 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
 
   void _updateModel(String? modelId) =>
       _updateConnectionSettingsModel(this, modelId);
+
+  void _updateAgentAdapter(AgentAdapterKind agentAdapter) =>
+      _updateConnectionSettingsAgentAdapter(this, agentAdapter);
 
   void _selectSystemTemplate(String? templateId) =>
       _selectConnectionSettingsSystemTemplate(this, templateId);

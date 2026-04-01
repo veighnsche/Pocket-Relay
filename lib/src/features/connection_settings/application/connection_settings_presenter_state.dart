@@ -16,6 +16,10 @@ class _ConnectionSettingsPresentationState {
     required this.supportsSystemTesting,
     required this.canTestSystem,
     required this.isRemote,
+    required this.isSystemSettings,
+    required this.supportsLocalConnectionMode,
+    required this.supportsRemoteConnectionMode,
+    required this.hasSupportedConnectionMode,
     required this.hasChanges,
     required this.canSubmit,
     required this.port,
@@ -45,9 +49,22 @@ class _ConnectionSettingsPresentationState {
     bool isTestingSystem = false,
     String? systemTestFailure,
     bool supportsSystemTesting = false,
+    bool supportsLocalConnectionMode = false,
   }) {
     final draft = formState.draft;
-    final isRemote = draft.connectionMode == ConnectionMode.remote;
+    final supportsLocalMode =
+        supportsLocalConnectionMode &&
+        agentAdapterCapabilities.supportsLocalConnections;
+    final supportsRemoteMode =
+        agentAdapterCapabilities.supportsRemoteConnections;
+    final hasSupportedConnectionMode = supportsLocalMode || supportsRemoteMode;
+    final hasSelectedSupportedConnectionMode = switch (draft.connectionMode) {
+      ConnectionMode.local => supportsLocalMode,
+      ConnectionMode.remote => supportsRemoteMode,
+    };
+    final isRemote =
+        draft.connectionMode == ConnectionMode.remote &&
+        hasSelectedSupportedConnectionMode;
     final hasChanges = _hasChanges(
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
@@ -154,8 +171,15 @@ class _ConnectionSettingsPresentationState {
       supportsSystemTesting: supportsSystemTesting,
       canTestSystem: canTestSystem,
       isRemote: isRemote,
+      isSystemSettings: isSystemSettings,
+      supportsLocalConnectionMode: supportsLocalMode,
+      supportsRemoteConnectionMode: supportsRemoteMode,
+      hasSupportedConnectionMode: hasSupportedConnectionMode,
       hasChanges: hasChanges,
-      canSubmit: !hasChanges || !hasValidationErrors,
+      canSubmit:
+          hasSelectedSupportedConnectionMode &&
+          hasSupportedConnectionMode &&
+          (!hasChanges || !hasValidationErrors),
       port: port,
       hostError: hostError,
       portError: portError,
@@ -182,6 +206,10 @@ class _ConnectionSettingsPresentationState {
   final bool supportsSystemTesting;
   final bool canTestSystem;
   final bool isRemote;
+  final bool isSystemSettings;
+  final bool supportsLocalConnectionMode;
+  final bool supportsRemoteConnectionMode;
+  final bool hasSupportedConnectionMode;
   final bool hasChanges;
   final bool canSubmit;
   final int? port;

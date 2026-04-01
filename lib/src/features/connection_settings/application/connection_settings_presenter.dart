@@ -56,6 +56,7 @@ class ConnectionSettingsPresenter {
       isTestingSystem: isTestingSystem,
       systemTestFailure: systemTestFailure,
       supportsSystemTesting: supportsSystemTesting,
+      supportsLocalConnectionMode: supportsLocalConnectionMode,
     );
     final adapterLabel = agentAdapterLabel(
       presentationState.draft.agentAdapter,
@@ -63,11 +64,8 @@ class ConnectionSettingsPresenter {
 
     return ConnectionSettingsContract(
       title: 'Workspace',
-      profileSection: _buildProfileSection(presentationState.draft),
-      connectionModeSection: _buildConnectionModeSection(
-        presentationState.draft,
-        supportsLocalConnectionMode: supportsLocalConnectionMode,
-      ),
+      profileSection: _buildProfileSection(presentationState),
+      connectionModeSection: _buildConnectionModeSection(presentationState),
       systemPicker: _buildSystemPicker(presentationState),
       remoteConnectionSection: _buildRemoteConnectionSection(
         presentationState,
@@ -75,7 +73,7 @@ class ConnectionSettingsPresenter {
       ),
       authenticationSection: _buildAuthenticationSection(presentationState),
       systemTrust: _buildSystemTrust(presentationState),
-      agentAdapterSection: _buildHostSection(presentationState),
+      agentAdapterSection: _buildAgentAdapterSection(presentationState),
       modelSection: _buildModelSection(presentationState),
       runModeSection: ConnectionSettingsRunModeSectionContract(
         title: 'Run mode',
