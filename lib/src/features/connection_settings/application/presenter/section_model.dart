@@ -151,12 +151,14 @@ ConnectionSettingsModelSectionContract _buildUnsupportedModelSection({
                 'Saved reasoning effort. This agent adapter does not expose model metadata yet.',
           ),
         ]
-      : const <ConnectionSettingsReasoningEffortOptionContract>[
+      : <ConnectionSettingsReasoningEffortOptionContract>[
           ConnectionSettingsReasoningEffortOptionContract(
             effort: null,
             label: 'Unavailable',
             description:
-                'This agent adapter does not expose model or reasoning metadata.',
+                supportsReasoningEffort
+                ? 'No reasoning effort is currently saved for this workspace.'
+                : 'This agent adapter does not expose model or reasoning metadata.',
           ),
         ];
 

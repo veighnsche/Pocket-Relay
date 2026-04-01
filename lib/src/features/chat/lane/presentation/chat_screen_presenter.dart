@@ -123,7 +123,8 @@ class ChatScreenPresenter {
           isConfigured &&
           resolvedAgentAdapterCapabilities.supportsImageInput &&
           effectiveModelSupportsImages,
-      composerPlaceholder: 'Message Codex',
+      composerPlaceholder:
+          'Message ${agentAdapterLabel(profile.agentAdapter)}',
       conversationRecoveryNotice: conversationRecoveryNotice,
       historicalConversationRestoreNotice: historicalConversationRestoreNotice,
       turnIndicator: switch (sessionState.activeTurn?.timer) {

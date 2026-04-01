@@ -319,6 +319,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     BuildContext context,
     ConnectionSettingsContract contract,
   ) {
+    final hasAdvancedToggles = contract.runModeSection.toggles.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -337,13 +338,15 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
           title: contract.agentAdapterSection.title,
           child: _buildHostSection(context, contract),
         ),
-        _buildSectionDivider(),
-        _buildSection(
-          context,
-          key: const ValueKey<String>('connection_settings_section_advanced'),
-          title: 'Advanced',
-          child: _buildAdvancedSection(context, contract),
-        ),
+        if (hasAdvancedToggles) ...[
+          _buildSectionDivider(),
+          _buildSection(
+            context,
+            key: const ValueKey<String>('connection_settings_section_advanced'),
+            title: 'Advanced',
+            child: _buildAdvancedSection(context, contract),
+          ),
+        ],
       ],
     );
   }
