@@ -86,6 +86,55 @@ void main() {
     expect(find.text('Systems'), findsWidgets);
   });
 
+  testWidgets('systems page shows fingerprint trust state only once', (
+    tester,
+  ) async {
+    final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+    final repository = MemoryCodexConnectionRepository(
+      initialConnections: <SavedConnection>[
+        SavedConnection(
+          id: 'conn_primary',
+          profile: workspaceProfile(
+            'Primary Box',
+            'primary.local',
+          ).copyWith(hostFingerprint: 'SHA256:primary'),
+          secrets: const ConnectionSecrets(password: 'secret-1'),
+        ),
+        SavedConnection(
+          id: 'conn_secondary',
+          profile: workspaceProfile('Secondary Box', 'secondary.local'),
+          secrets: const ConnectionSecrets(password: 'secret-2'),
+        ),
+      ],
+    );
+    final controller = buildWorkspaceController(
+      clientsById: clientsById,
+      repository: repository,
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await tester.pumpWidget(buildShell(controller));
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byKey(const ValueKey('workspace_page_view')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('workspace_page_view')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Password sign-in · Fingerprint saved'), findsOneWidget);
+    expect(find.textContaining('Fingerprint saved'), findsOneWidget);
+  });
+
   testWidgets(
     'system deletion failures show a friendly message on the systems page',
     (tester) async {

@@ -13,7 +13,6 @@ import 'package:pocket_relay/src/features/connection_settings/presentation/conne
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_sheet_surface.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
-import 'package:pocket_relay/src/features/workspace/presentation/connection_lifecycle_presentation.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/connection_lifecycle_widgets.dart';
 
 const double _savedSystemsPanelRadius = 12;
@@ -121,13 +120,7 @@ class _ConnectionWorkspaceSavedSystemsContentState
                 subtitle: ConnectionWorkspaceCopy.systemSubtitle(
                   system.profile,
                 ),
-                facts: <ConnectionLifecycleFact>[
-                  if (system.profile.hostFingerprint.trim().isNotEmpty)
-                    const ConnectionLifecycleFact(
-                      label: 'Fingerprint saved',
-                      tone: ConnectionLifecycleFactTone.positive,
-                    ),
-                ],
+                facts: const [],
                 secondaryActions: <ConnectionLifecycleButtonAction>[
                   ConnectionLifecycleButtonAction(
                     key: ValueKey<String>('edit_system_${system.id}'),
