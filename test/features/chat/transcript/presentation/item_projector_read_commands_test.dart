@@ -5,14 +5,14 @@ void main() {
     const projector = ChatTranscriptItemProjector();
 
     test('projects sed -ne read commands into read work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_sed_ne',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_sed_ne',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: "sed -ne '5,25p' lib/src/app/pocket_relay_app.dart",
           ),
         ],
@@ -28,14 +28,14 @@ void main() {
     });
 
     test('projects nl piped into sed reads into read work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_nl_sed',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_nl_sed',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: "nl -ba lib/src/app/pocket_relay_app.dart | sed -n '5,25p'",
           ),
         ],
@@ -53,14 +53,14 @@ void main() {
     });
 
     test('keeps chained sed commands as generic work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_sed_chain',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_sed_chain',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title:
                 "sed -n '1,120p' lib/src/app/pocket_relay_app.dart && rg Pocket Relay",
           ),
@@ -74,14 +74,14 @@ void main() {
     });
 
     test('keeps reversed sed ranges as generic work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_sed_reversed',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_sed_reversed',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: "sed -n '40,1p' lib/src/app/pocket_relay_app.dart",
           ),
         ],
@@ -94,14 +94,14 @@ void main() {
     });
 
     test('projects cat reads into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_cat',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_cat',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'cat README.md',
           ),
         ],
@@ -117,14 +117,14 @@ void main() {
     });
 
     test('projects type reads into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_type',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_type',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: r'type C:\repo\README.md',
           ),
         ],
@@ -140,14 +140,14 @@ void main() {
     });
 
     test('projects more reads into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_more',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_more',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'more docs/021_codebase-handoff.md',
           ),
         ],
@@ -163,14 +163,14 @@ void main() {
     });
 
     test('projects head reads into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_head',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_head',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'head -n 40 docs/021_codebase-handoff.md',
           ),
         ],
@@ -188,14 +188,14 @@ void main() {
     test(
       'projects compact head -n40 reads into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_head_compact',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_head_compact',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: 'head -n40 docs/021_codebase-handoff.md',
             ),
           ],
@@ -211,14 +211,14 @@ void main() {
     );
 
     test('projects tail reads into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_tail',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_tail',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'tail -20 logs/output.txt',
           ),
         ],
@@ -236,14 +236,14 @@ void main() {
     test(
       'projects Get-Content reads into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_get_content',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_get_content',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: r'Get-Content -Path C:\repo\README.md -TotalCount 25',
             ),
           ],
@@ -265,14 +265,14 @@ void main() {
     test(
       'projects Get-Content piped through Select-Object first-lines reads into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_get_content_select_first',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_get_content_select_first',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title:
                   r'Get-Content -Path C:\repo\README.md | Select-Object -First 25',
             ),
@@ -294,14 +294,14 @@ void main() {
     test(
       'projects Get-Content piped through Select-Object range reads into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_get_content_select_range',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_get_content_select_range',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title:
                   r'Get-Content -Path C:\repo\README.md | Select-Object -Skip 4 -First 21',
             ),
@@ -323,14 +323,14 @@ void main() {
     test(
       'projects Get-Content piped through Select-Object last-lines reads into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_get_content_select_last',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_get_content_select_last',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title:
                   r'Get-Content -Path C:\repo\README.md | Select-Object -Last 10',
             ),
@@ -349,14 +349,14 @@ void main() {
     );
 
     test('projects awk range reads into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_awk',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_awk',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title:
                 "awk 'NR>=5 && NR<=25 {print}' lib/src/app/pocket_relay_app.dart",
           ),
@@ -376,14 +376,14 @@ void main() {
     test(
       'keeps unsupported Get-Content Select-Object pipelines as generic work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_get_content_select_skip_only',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_get_content_select_skip_only',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title:
                   r'Get-Content -Path C:\repo\README.md | Select-Object -Skip 4',
             ),
@@ -398,14 +398,14 @@ void main() {
     );
 
     test('keeps unsupported awk scripts as generic work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_awk_unsupported',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_awk_unsupported',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: "awk '{print \$1}' lib/src/app/pocket_relay_app.dart",
           ),
         ],

@@ -1,9 +1,9 @@
 part of 'transcript_request_policy.dart';
 
-CodexSessionState _applyUserInputRequested(
+TranscriptSessionState _applyUserInputRequested(
   TranscriptRequestPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeUserInputRequestedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeUserInputRequestedEvent event,
 ) {
   final requestId = event.requestId;
   if (requestId == null) {
@@ -22,9 +22,9 @@ CodexSessionState _applyUserInputRequested(
     itemId: event.itemId,
   );
   final wasBlocking = activeTurn?.hasBlockingRequests ?? false;
-  final pendingRequest = CodexSessionPendingUserInputRequest(
+  final pendingRequest = TranscriptSessionPendingUserInputRequest(
     requestId: requestId,
-    requestType: CodexCanonicalRequestType.toolUserInput,
+    requestType: TranscriptCanonicalRequestType.toolUserInput,
     createdAt: event.createdAt,
     threadId: threadId,
     turnId: turnId,
@@ -45,37 +45,39 @@ CodexSessionState _applyUserInputRequested(
   );
 }
 
-CodexSessionState _applyUserInputResolved(
+TranscriptSessionState _applyUserInputResolved(
   TranscriptRequestPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeUserInputResolvedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeUserInputResolvedEvent event,
 ) {
   final requestId = event.requestId;
   if (requestId == null) {
     return state;
   }
 
-  final nextInputRequests = <String, CodexSessionPendingUserInputRequest>{
+  final nextInputRequests = <String, TranscriptSessionPendingUserInputRequest>{
     ...?state.activeTurn?.pendingUserInputRequests,
   }..remove(requestId);
   final hasBlockingRequestsRemaining =
       state.activeTurn?.pendingApprovalRequests.isNotEmpty == true ||
       nextInputRequests.isNotEmpty;
   final pendingRequest = state.activeTurn?.pendingUserInputRequests[requestId];
-  final resolvedBlock = CodexUserInputRequestBlock(
+  final resolvedBlock = TranscriptUserInputRequestBlock(
     id: 'request_$requestId',
     createdAt: event.createdAt,
     requestId: requestId,
-    requestType: CodexCanonicalRequestType.toolUserInput,
+    requestType: TranscriptCanonicalRequestType.toolUserInput,
     title: 'Input submitted',
     body: codexAnswersSummaryFromQuestions(
       questions:
-          pendingRequest?.questions ?? const <CodexRuntimeUserInputQuestion>[],
+          pendingRequest?.questions ??
+          const <TranscriptRuntimeUserInputQuestion>[],
       answers: event.answers,
     ),
     isResolved: true,
     questions:
-        pendingRequest?.questions ?? const <CodexRuntimeUserInputQuestion>[],
+        pendingRequest?.questions ??
+        const <TranscriptRuntimeUserInputQuestion>[],
     answers: event.answers,
   );
   final nextState = state.copyWithProjectedTranscript(
@@ -97,4 +99,3 @@ CodexSessionState _applyUserInputResolved(
     threadId: event.threadId,
   );
 }
-

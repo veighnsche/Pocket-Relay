@@ -1,15 +1,15 @@
 part of 'runtime_event_mapper.dart';
 
-List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
+List<TranscriptRuntimeEvent>? _mapTransportRuntimeEvent(
   AgentAdapterEvent event,
   DateTime now,
 ) {
   switch (event) {
     case AgentAdapterConnectedEvent(:final userAgent):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSessionStateChangedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSessionStateChangedEvent(
           createdAt: now,
-          state: CodexRuntimeSessionState.ready,
+          state: TranscriptRuntimeSessionState.ready,
           reason: userAgent == null
               ? 'App-server connected.'
               : 'App-server connected as $userAgent.',
@@ -17,12 +17,12 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
         ),
       ];
     case AgentAdapterDisconnectedEvent(:final exitCode):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSessionExitedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSessionExitedEvent(
           createdAt: now,
           exitKind: exitCode == null || exitCode == 0
-              ? CodexRuntimeSessionExitKind.graceful
-              : CodexRuntimeSessionExitKind.error,
+              ? TranscriptRuntimeSessionExitKind.graceful
+              : TranscriptRuntimeSessionExitKind.error,
           exitCode: exitCode,
           reason: exitCode == null
               ? 'App-server disconnected.'
@@ -31,15 +31,15 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
         ),
       ];
     case AgentAdapterDiagnosticEvent(:final message, :final isError):
-      return <CodexRuntimeEvent>[
+      return <TranscriptRuntimeEvent>[
         isError
-            ? CodexRuntimeErrorEvent(
+            ? TranscriptRuntimeErrorEvent(
                 createdAt: now,
                 message: message,
-                errorClass: CodexRuntimeErrorClass.transportError,
+                errorClass: TranscriptRuntimeErrorClass.transportError,
                 rawMethod: 'transport/diagnostic',
               )
-            : CodexRuntimeWarningEvent(
+            : TranscriptRuntimeWarningEvent(
                 createdAt: now,
                 summary: message,
                 rawMethod: 'transport/diagnostic',
@@ -51,8 +51,8 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final keyType,
       :final fingerprint,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeUnpinnedHostKeyEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeUnpinnedHostKeyEvent(
           createdAt: now,
           host: host,
           port: port,
@@ -67,8 +67,8 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final message,
       :final detail,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSshConnectFailedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSshConnectFailedEvent(
           createdAt: now,
           host: host,
           port: port,
@@ -84,8 +84,8 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final expectedFingerprint,
       :final actualFingerprint,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSshHostKeyMismatchEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSshHostKeyMismatchEvent(
           createdAt: now,
           host: host,
           port: port,
@@ -103,8 +103,8 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final message,
       :final detail,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSshAuthenticationFailedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSshAuthenticationFailedEvent(
           createdAt: now,
           host: host,
           port: port,
@@ -121,8 +121,8 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final username,
       :final authMode,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeSshAuthenticatedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeSshAuthenticatedEvent(
           createdAt: now,
           host: host,
           port: port,
@@ -139,8 +139,8 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final remotePort,
       :final localPort,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeWarningEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeWarningEvent(
           createdAt: now,
           summary:
               'SSH forwarding ready for $username@$host:$port to $remoteHost:$remotePort on localhost:$localPort.',
@@ -156,13 +156,13 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
       :final message,
       :final detail,
     ):
-      return <CodexRuntimeEvent>[
-        CodexRuntimeErrorEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeErrorEvent(
           createdAt: now,
           message:
               'SSH forwarding failed for $username@$host:$port to $remoteHost:$remotePort: $message',
           detail: detail,
-          errorClass: CodexRuntimeErrorClass.transportError,
+          errorClass: TranscriptRuntimeErrorClass.transportError,
           rawMethod: 'transport/ssh/portForwardFailed',
         ),
       ];

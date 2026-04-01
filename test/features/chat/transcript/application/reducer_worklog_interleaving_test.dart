@@ -18,37 +18,37 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           detail: 'git status',
         ),
       );
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: 'clean',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 20)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'assistant_1',
-          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          streamKind: TranscriptRuntimeContentStreamKind.assistantText,
           delta: 'Investigating',
         ),
       );
@@ -58,12 +58,12 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 30)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: ' status',
         ),
       );
@@ -74,8 +74,8 @@ void main() {
 
       final blocks = state.transcriptBlocks;
       expect(blocks, hasLength(2));
-      final workBlock = blocks.first as CodexWorkLogGroupBlock;
-      final assistantBlock = blocks.last as CodexTextBlock;
+      final workBlock = blocks.first as TranscriptWorkLogGroupBlock;
+      final assistantBlock = blocks.last as TranscriptTextBlock;
       expect(workBlock.entries, hasLength(1));
       expect(workBlock.entries.single.title, 'git status');
       expect(workBlock.entries.single.preview, 'clean status');
@@ -91,36 +91,36 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           detail: 'git status',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: 'clean',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 20)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'assistant_1',
-          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          streamKind: TranscriptRuntimeContentStreamKind.assistantText,
           delta: 'Investigating',
         ),
       );
@@ -129,13 +129,13 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 30)),
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{
             'result': <String, Object?>{'output': 'final clean'},
             'exitCode': 0,
@@ -149,14 +149,14 @@ void main() {
 
       final blocks = state.transcriptBlocks;
       expect(blocks, hasLength(2));
-      final workBlock = blocks.first as CodexWorkLogGroupBlock;
+      final workBlock = blocks.first as TranscriptWorkLogGroupBlock;
       expect(workBlock.entries, hasLength(1));
       expect(workBlock.entries.single.title, 'git status');
       expect(workBlock.entries.single.preview, 'final clean');
       expect(workBlock.entries.single.isRunning, isFalse);
       expect(workBlock.entries.single.exitCode, 0);
-      expect((blocks.last as CodexTextBlock).body, 'Investigating');
-      expect((blocks.last as CodexTextBlock).isRunning, isTrue);
+      expect((blocks.last as TranscriptTextBlock).body, 'Investigating');
+      expect((blocks.last as TranscriptTextBlock).isRunning, isTrue);
     },
   );
 
@@ -166,59 +166,59 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           detail: 'git status',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: 'clean',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemStartedEvent(
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now.add(const Duration(milliseconds: 20)),
-          itemType: CodexCanonicalItemType.commandExecution,
+          itemType: TranscriptCanonicalItemType.commandExecution,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_2',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           detail: 'pwd',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 30)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_2',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: '/repo',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 40)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'assistant_1',
-          streamKind: CodexRuntimeContentStreamKind.assistantText,
+          streamKind: TranscriptRuntimeContentStreamKind.assistantText,
           delta: 'Investigating',
         ),
       );
@@ -228,23 +228,23 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 50)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_1',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: ' status',
         ),
       );
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 60)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'command_2',
-          streamKind: CodexRuntimeContentStreamKind.commandOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.commandOutput,
           delta: ' ready',
         ),
       );
@@ -252,13 +252,13 @@ void main() {
       expect(state.activeTurn?.artifacts, hasLength(2));
       final blocks = state.transcriptBlocks;
       expect(blocks, hasLength(2));
-      final workBlock = blocks.first as CodexWorkLogGroupBlock;
+      final workBlock = blocks.first as TranscriptWorkLogGroupBlock;
       expect(workBlock.entries, hasLength(2));
       expect(workBlock.entries.first.title, 'git status');
       expect(workBlock.entries.first.preview, 'clean status');
       expect(workBlock.entries.last.title, 'pwd');
       expect(workBlock.entries.last.preview, '/repo ready');
-      expect((blocks.last as CodexTextBlock).body, 'Investigating');
+      expect((blocks.last as TranscriptTextBlock).body, 'Investigating');
     },
   );
 }

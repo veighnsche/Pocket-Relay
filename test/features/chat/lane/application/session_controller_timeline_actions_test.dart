@@ -303,7 +303,7 @@ void main() {
 
       expect(appServerClient.readThreadCalls, contains('thread_child'));
       final warning = controller.transcriptBlocks
-          .whereType<CodexStatusBlock>()
+          .whereType<TranscriptStatusBlock>()
           .firstWhere(
             (block) =>
                 block.body.contains(
@@ -313,7 +313,7 @@ void main() {
                 ) &&
                 block.body.contains('thread_child'),
           );
-      expect(warning.statusKind, CodexStatusBlockKind.warning);
+      expect(warning.statusKind, TranscriptStatusBlockKind.warning);
       expect(warning.body, contains('thread_child'));
       expect(warning.body, contains('thread metadata unavailable'));
     },

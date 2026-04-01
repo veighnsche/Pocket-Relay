@@ -5,9 +5,9 @@ void main() {
     const projector = ChatRequestProjector();
 
     test('projects pending approval requests into presentation contracts', () {
-      final request = CodexSessionPendingRequest(
+      final request = TranscriptSessionPendingRequest(
         requestId: 'request_approval',
-        requestType: CodexCanonicalRequestType.execCommandApproval,
+        requestType: TranscriptCanonicalRequestType.execCommandApproval,
         createdAt: DateTime(2026, 3, 15, 12, 0, 1),
       );
 
@@ -23,12 +23,12 @@ void main() {
     test(
       'projects pending user-input requests into presentation contracts',
       () {
-        final request = CodexSessionPendingUserInputRequest(
+        final request = TranscriptSessionPendingUserInputRequest(
           requestId: 'request_input',
-          requestType: CodexCanonicalRequestType.toolUserInput,
+          requestType: TranscriptCanonicalRequestType.toolUserInput,
           createdAt: DateTime(2026, 3, 15, 12, 0, 2),
-          questions: const <CodexRuntimeUserInputQuestion>[
-            CodexRuntimeUserInputQuestion(
+          questions: const <TranscriptRuntimeUserInputQuestion>[
+            TranscriptRuntimeUserInputQuestion(
               id: 'project',
               header: 'Project',
               question: 'Which project should I use?',

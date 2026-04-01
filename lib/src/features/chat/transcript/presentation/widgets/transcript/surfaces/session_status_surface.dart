@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_item_primitives.dart';
 
 class ReviewStatusSurface extends StatelessWidget {
   const ReviewStatusSurface({super.key, required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,7 @@ class ReviewStatusSurface extends StatelessWidget {
 class ContextCompactedSurface extends StatelessWidget {
   const ContextCompactedSurface({super.key, required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +66,7 @@ class ContextCompactedSurface extends StatelessWidget {
 class SessionInfoSurface extends StatelessWidget {
   const SessionInfoSurface({super.key, required this.block});
 
-  final CodexStatusBlock block;
+  final TranscriptStatusBlock block;
 
   @override
   Widget build(BuildContext context) {

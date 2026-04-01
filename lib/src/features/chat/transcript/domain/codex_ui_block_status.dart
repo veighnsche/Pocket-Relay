@@ -1,63 +1,57 @@
-part of 'codex_ui_block.dart';
+part of 'transcript_ui_block.dart';
 
-final class CodexStatusBlock extends CodexUiBlock {
-  const CodexStatusBlock({
+final class TranscriptStatusBlock extends TranscriptUiBlock {
+  const TranscriptStatusBlock({
     required super.id,
     required super.createdAt,
     required this.title,
     required this.body,
-    this.statusKind = CodexStatusBlockKind.info,
+    this.statusKind = TranscriptStatusBlockKind.info,
     this.isTranscriptSignal = false,
-  }) : super(kind: CodexUiBlockKind.status);
+  }) : super(kind: TranscriptUiBlockKind.status);
 
   final String title;
   final String body;
-  final CodexStatusBlockKind statusKind;
+  final TranscriptStatusBlockKind statusKind;
   final bool isTranscriptSignal;
 }
 
-enum CodexStatusBlockKind {
-  info,
-  warning,
-  review,
-  compaction,
-  auth,
-}
+enum TranscriptStatusBlockKind { info, warning, review, compaction, auth }
 
-final class CodexErrorBlock extends CodexUiBlock {
-  const CodexErrorBlock({
+final class TranscriptErrorBlock extends TranscriptUiBlock {
+  const TranscriptErrorBlock({
     required super.id,
     required super.createdAt,
     required this.title,
     required this.body,
-  }) : super(kind: CodexUiBlockKind.error);
+  }) : super(kind: TranscriptUiBlockKind.error);
 
   final String title;
   final String body;
 }
 
-final class CodexUsageBlock extends CodexUiBlock {
-  const CodexUsageBlock({
+final class TranscriptUsageBlock extends TranscriptUiBlock {
+  const TranscriptUsageBlock({
     required super.id,
     required super.createdAt,
     required this.title,
     required this.body,
-  }) : super(kind: CodexUiBlockKind.usage);
+  }) : super(kind: TranscriptUiBlockKind.usage);
 
   final String title;
   final String body;
 }
 
-final class CodexTurnBoundaryBlock extends CodexUiBlock {
-  const CodexTurnBoundaryBlock({
+final class TranscriptTurnBoundaryBlock extends TranscriptUiBlock {
+  const TranscriptTurnBoundaryBlock({
     required super.id,
     required super.createdAt,
     this.label = 'end',
     this.elapsed,
     this.usage,
-  }) : super(kind: CodexUiBlockKind.turnBoundary);
+  }) : super(kind: TranscriptUiBlockKind.turnBoundary);
 
   final String label;
   final Duration? elapsed;
-  final CodexUsageBlock? usage;
+  final TranscriptUsageBlock? usage;
 }

@@ -7,14 +7,14 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexWorkLogGroupBlock(
+            block: TranscriptWorkLogGroupBlock(
               id: 'worklog_search_alternation',
               createdAt: DateTime(2026, 3, 14, 12),
-              entries: <CodexWorkLogEntry>[
-                CodexWorkLogEntry(
+              entries: <TranscriptWorkLogEntry>[
+                TranscriptWorkLogEntry(
                   id: 'entry_rg_alt',
                   createdAt: DateTime(2026, 3, 14, 12),
-                  entryKind: CodexWorkLogEntryKind.commandExecution,
+                  entryKind: TranscriptWorkLogEntryKind.commandExecution,
                   title:
                       r'rg -n "pwsh|powershell|Get-Content|head -|tail -|/usr/bin/sed|/usr/bin/cat|/usr/bin/head|/usr/bin/tail|sed -n" lib test',
                 ),
@@ -47,32 +47,32 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexWorkLogGroupBlock(
+          block: TranscriptWorkLogGroupBlock(
             id: 'worklog_git_commands',
             createdAt: DateTime(2026, 3, 14, 12),
-            entries: <CodexWorkLogEntry>[
-              CodexWorkLogEntry(
+            entries: <TranscriptWorkLogEntry>[
+              TranscriptWorkLogEntry(
                 id: 'entry_git_status',
                 createdAt: DateTime(2026, 3, 14, 12),
-                entryKind: CodexWorkLogEntryKind.commandExecution,
+                entryKind: TranscriptWorkLogEntryKind.commandExecution,
                 title: 'git status',
               ),
-              CodexWorkLogEntry(
+              TranscriptWorkLogEntry(
                 id: 'entry_git_diff',
                 createdAt: DateTime(2026, 3, 14, 12, 0, 1),
-                entryKind: CodexWorkLogEntryKind.commandExecution,
+                entryKind: TranscriptWorkLogEntryKind.commandExecution,
                 title: 'git diff --staged README.md',
               ),
-              CodexWorkLogEntry(
+              TranscriptWorkLogEntry(
                 id: 'entry_git_show',
                 createdAt: DateTime(2026, 3, 14, 12, 0, 2),
-                entryKind: CodexWorkLogEntryKind.commandExecution,
+                entryKind: TranscriptWorkLogEntryKind.commandExecution,
                 title: 'git show HEAD~1:README.md',
               ),
-              CodexWorkLogEntry(
+              TranscriptWorkLogEntry(
                 id: 'entry_git_grep',
                 createdAt: DateTime(2026, 3, 14, 12, 0, 3),
-                entryKind: CodexWorkLogEntryKind.commandExecution,
+                entryKind: TranscriptWorkLogEntryKind.commandExecution,
                 title: 'git grep -n "relay_git_probe" lib test',
               ),
             ],
@@ -109,14 +109,14 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexWorkLogGroupBlock(
+          block: TranscriptWorkLogGroupBlock(
             id: 'worklog_git_terminal',
             createdAt: DateTime(2026, 3, 14, 12),
-            entries: <CodexWorkLogEntry>[
-              CodexWorkLogEntry(
+            entries: <TranscriptWorkLogEntry>[
+              TranscriptWorkLogEntry(
                 id: 'entry_git_status_terminal',
                 createdAt: DateTime(2026, 3, 14, 12),
-                entryKind: CodexWorkLogEntryKind.commandExecution,
+                entryKind: TranscriptWorkLogEntryKind.commandExecution,
                 title: 'git status',
                 body: ' M lib/main.dart\n',
               ),
@@ -143,14 +143,14 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexWorkLogGroupBlock(
+          block: TranscriptWorkLogGroupBlock(
             id: 'worklog_mcp',
             createdAt: DateTime(2026, 3, 14, 12),
-            entries: <CodexWorkLogEntry>[
-              CodexWorkLogEntry(
+            entries: <TranscriptWorkLogEntry>[
+              TranscriptWorkLogEntry(
                 id: 'entry_mcp_running',
                 createdAt: DateTime(2026, 3, 14, 12),
-                entryKind: CodexWorkLogEntryKind.mcpToolCall,
+                entryKind: TranscriptWorkLogEntryKind.mcpToolCall,
                 title: 'MCP tool call',
                 preview: 'Fetching repository metadata',
                 isRunning: true,
@@ -161,10 +161,10 @@ void main() {
                   'arguments': <String, Object?>{'path': 'README.md'},
                 },
               ),
-              CodexWorkLogEntry(
+              TranscriptWorkLogEntry(
                 id: 'entry_mcp_failed',
                 createdAt: DateTime(2026, 3, 14, 12, 0, 1),
-                entryKind: CodexWorkLogEntryKind.mcpToolCall,
+                entryKind: TranscriptWorkLogEntryKind.mcpToolCall,
                 title: 'MCP tool call',
                 snapshot: const <String, Object?>{
                   'server': 'filesystem',
@@ -196,14 +196,14 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexWorkLogGroupBlock(
+          block: TranscriptWorkLogGroupBlock(
             id: 'worklog_mcp_single',
             createdAt: DateTime(2026, 3, 14, 12),
-            entries: <CodexWorkLogEntry>[
-              CodexWorkLogEntry(
+            entries: <TranscriptWorkLogEntry>[
+              TranscriptWorkLogEntry(
                 id: 'entry_mcp_single',
                 createdAt: DateTime(2026, 3, 14, 12),
-                entryKind: CodexWorkLogEntryKind.mcpToolCall,
+                entryKind: TranscriptWorkLogEntryKind.mcpToolCall,
                 title: 'MCP tool call',
                 snapshot: const <String, Object?>{
                   'server': 'filesystem',

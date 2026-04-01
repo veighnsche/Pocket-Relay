@@ -1,20 +1,20 @@
 import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 class TranscriptPolicySupport {
   const TranscriptPolicySupport();
 
-  CodexActiveTurnState startActiveTurn({
+  TranscriptActiveTurnState startActiveTurn({
     required String turnId,
     required String? threadId,
     required DateTime createdAt,
   }) {
-    return CodexActiveTurnState(
+    return TranscriptActiveTurnState(
       turnId: turnId,
       threadId: threadId,
-      timer: CodexSessionTurnTimer(
+      timer: TranscriptSessionTurnTimer(
         turnId: turnId,
         startedAt: createdAt,
         activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
@@ -22,8 +22,8 @@ class TranscriptPolicySupport {
     );
   }
 
-  CodexActiveTurnState? ensureActiveTurn(
-    CodexActiveTurnState? activeTurn, {
+  TranscriptActiveTurnState? ensureActiveTurn(
+    TranscriptActiveTurnState? activeTurn, {
     required String? turnId,
     required String? threadId,
     required DateTime createdAt,
@@ -39,8 +39,8 @@ class TranscriptPolicySupport {
     );
   }
 
-  CodexActiveTurnState? activeTurnForStartedEvent(
-    CodexActiveTurnState? activeTurn, {
+  TranscriptActiveTurnState? activeTurnForStartedEvent(
+    TranscriptActiveTurnState? activeTurn, {
     required String? turnId,
     required String? threadId,
     required String? fallbackThreadId,
@@ -63,12 +63,12 @@ class TranscriptPolicySupport {
     );
   }
 
-  CodexSessionTurnTimer completeTurnTimer(
-    CodexSessionTurnTimer? turnTimer,
+  TranscriptSessionTurnTimer completeTurnTimer(
+    TranscriptSessionTurnTimer? turnTimer,
     DateTime completedAt,
   ) {
     if (turnTimer == null) {
-      return CodexSessionTurnTimer(
+      return TranscriptSessionTurnTimer(
         turnId: 'completed-${completedAt.microsecondsSinceEpoch}',
         startedAt: completedAt,
         completedAt: completedAt,
@@ -81,8 +81,8 @@ class TranscriptPolicySupport {
     );
   }
 
-  CodexSessionTurnTimer? pauseTurnTimer(
-    CodexSessionTurnTimer? turnTimer,
+  TranscriptSessionTurnTimer? pauseTurnTimer(
+    TranscriptSessionTurnTimer? turnTimer,
     DateTime pausedAt,
   ) {
     if (turnTimer == null) {
@@ -94,8 +94,8 @@ class TranscriptPolicySupport {
     );
   }
 
-  CodexSessionTurnTimer? resumeTurnTimer(
-    CodexSessionTurnTimer? turnTimer,
+  TranscriptSessionTurnTimer? resumeTurnTimer(
+    TranscriptSessionTurnTimer? turnTimer,
     DateTime resumedAt,
   ) {
     if (turnTimer == null) {
@@ -107,21 +107,24 @@ class TranscriptPolicySupport {
     );
   }
 
-  CodexSessionState appendBlock(CodexSessionState state, CodexUiBlock block) {
+  TranscriptSessionState appendBlock(
+    TranscriptSessionState state,
+    TranscriptUiBlock block,
+  ) {
     return state.copyWithProjectedTranscript(
-      blocks: <CodexUiBlock>[...state.blocks, block],
+      blocks: <TranscriptUiBlock>[...state.blocks, block],
     );
   }
 
-  CodexStatusBlock statusEntry({
+  TranscriptStatusBlock statusEntry({
     required String prefix,
     required String title,
     required String body,
     required DateTime createdAt,
-    CodexStatusBlockKind statusKind = CodexStatusBlockKind.info,
+    TranscriptStatusBlockKind statusKind = TranscriptStatusBlockKind.info,
     bool isTranscriptSignal = false,
   }) {
-    return CodexStatusBlock(
+    return TranscriptStatusBlock(
       id: eventEntryId(prefix, createdAt),
       createdAt: createdAt,
       title: title,
@@ -131,20 +134,19 @@ class TranscriptPolicySupport {
     );
   }
 
-  bool isTranscriptStatusSignal(CodexRuntimeStatusEvent event) {
+  bool isTranscriptStatusSignal(TranscriptRuntimeStatusEvent event) {
     return switch (event.rawMethod) {
-      'account/chatgptAuthTokens/refresh' ||
-      'item/tool/call' => true,
+      'account/chatgptAuthTokens/refresh' || 'item/tool/call' => true,
       _ => false,
     };
   }
 
-  CodexStatusBlockKind statusKindForRuntimeStatus(
-    CodexRuntimeStatusEvent event,
+  TranscriptStatusBlockKind statusKindForRuntimeStatus(
+    TranscriptRuntimeStatusEvent event,
   ) {
     return switch (event.rawMethod) {
-      'account/chatgptAuthTokens/refresh' => CodexStatusBlockKind.auth,
-      _ => CodexStatusBlockKind.info,
+      'account/chatgptAuthTokens/refresh' => TranscriptStatusBlockKind.auth,
+      _ => TranscriptStatusBlockKind.info,
     };
   }
 

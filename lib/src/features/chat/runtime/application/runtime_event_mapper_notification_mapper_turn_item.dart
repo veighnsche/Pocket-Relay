@@ -1,6 +1,6 @@
 part of 'runtime_event_mapper.dart';
 
-List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
+List<TranscriptRuntimeEvent>? _mapTurnOrItemNotificationEvent(
   AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, dynamic>? payload,
@@ -10,8 +10,8 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
       final threadId = _asString(payload?['threadId']);
       final turn = _asObject(payload?['turn']);
       final turnId = _asString(turn?['id']) ?? _asString(payload?['turnId']);
-      return <CodexRuntimeEvent>[
-        CodexRuntimeTurnStartedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeTurnStartedEvent(
           createdAt: now,
           threadId: threadId,
           turnId: turnId,
@@ -26,8 +26,8 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
       final turn = _asObject(payload?['turn']);
       final turnId = _asString(turn?['id']) ?? _asString(payload?['turnId']);
       final turnError = _asObject(turn?['error']);
-      return <CodexRuntimeEvent>[
-        CodexRuntimeTurnCompletedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeTurnCompletedEvent(
           createdAt: now,
           threadId: threadId,
           turnId: turnId,
@@ -42,8 +42,8 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
         ),
       ];
     case 'turn/aborted':
-      return <CodexRuntimeEvent>[
-        CodexRuntimeTurnAbortedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeTurnAbortedEvent(
           createdAt: now,
           threadId: _asString(payload?['threadId']),
           turnId: _asString(payload?['turnId']),
@@ -53,8 +53,8 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
         ),
       ];
     case 'turn/plan/updated':
-      return <CodexRuntimeEvent>[
-        CodexRuntimeTurnPlanUpdatedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeTurnPlanUpdatedEvent(
           createdAt: now,
           threadId: _asString(payload?['threadId']),
           turnId: _asString(payload?['turnId']),
@@ -70,7 +70,7 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
         now,
         rawMethod: event.method,
         rawPayload: event.params,
-        fallbackStatus: CodexRuntimeItemStatus.inProgress,
+        fallbackStatus: TranscriptRuntimeItemStatus.inProgress,
         builder:
             ({
               required createdAt,
@@ -85,7 +85,7 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
               required detail,
               required snapshot,
               required collaboration,
-            }) => CodexRuntimeItemStartedEvent(
+            }) => TranscriptRuntimeItemStartedEvent(
               createdAt: createdAt,
               itemType: itemType,
               threadId: threadId,
@@ -101,15 +101,15 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
             ),
       );
       return itemEvent == null
-          ? const <CodexRuntimeEvent>[]
-          : <CodexRuntimeEvent>[itemEvent];
+          ? const <TranscriptRuntimeEvent>[]
+          : <TranscriptRuntimeEvent>[itemEvent];
     case 'item/completed':
       final itemEvent = _mapItemLifecycle(
         payload,
         now,
         rawMethod: event.method,
         rawPayload: event.params,
-        fallbackStatus: CodexRuntimeItemStatus.completed,
+        fallbackStatus: TranscriptRuntimeItemStatus.completed,
         builder:
             ({
               required createdAt,
@@ -124,7 +124,7 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
               required detail,
               required snapshot,
               required collaboration,
-            }) => CodexRuntimeItemCompletedEvent(
+            }) => TranscriptRuntimeItemCompletedEvent(
               createdAt: createdAt,
               itemType: itemType,
               threadId: threadId,
@@ -140,8 +140,8 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
             ),
       );
       return itemEvent == null
-          ? const <CodexRuntimeEvent>[]
-          : <CodexRuntimeEvent>[itemEvent];
+          ? const <TranscriptRuntimeEvent>[]
+          : <TranscriptRuntimeEvent>[itemEvent];
     case 'item/reasoning/summaryPartAdded':
     case 'item/commandExecution/terminalInteraction':
     case 'item/mcpToolCall/progress':
@@ -157,7 +157,7 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
                   now,
                   rawMethod: event.method,
                   rawPayload: event.params,
-                  fallbackStatus: CodexRuntimeItemStatus.inProgress,
+                  fallbackStatus: TranscriptRuntimeItemStatus.inProgress,
                   builder:
                       ({
                         required createdAt,
@@ -172,7 +172,7 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
                         required detail,
                         required snapshot,
                         required collaboration,
-                      }) => CodexRuntimeItemUpdatedEvent(
+                      }) => TranscriptRuntimeItemUpdatedEvent(
                         createdAt: createdAt,
                         itemType: itemType,
                         threadId: threadId,
@@ -194,8 +194,8 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
                   rawPayload: event.params,
                 );
       return itemEvent == null
-          ? const <CodexRuntimeEvent>[]
-          : <CodexRuntimeEvent>[itemEvent];
+          ? const <TranscriptRuntimeEvent>[]
+          : <TranscriptRuntimeEvent>[itemEvent];
     case 'item/agentMessage/delta':
     case 'item/reasoning/textDelta':
     case 'item/reasoning/summaryTextDelta':
@@ -211,11 +211,11 @@ List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
           itemId == null ||
           threadId == null ||
           turnId == null) {
-        return const <CodexRuntimeEvent>[];
+        return const <TranscriptRuntimeEvent>[];
       }
 
-      return <CodexRuntimeEvent>[
-        CodexRuntimeContentDeltaEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now,
           threadId: threadId,
           turnId: turnId,

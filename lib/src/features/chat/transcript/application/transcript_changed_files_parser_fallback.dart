@@ -1,10 +1,10 @@
 part of 'transcript_changed_files_parser.dart';
 
-List<CodexChangedFile> _extractChangedFilesFromObject(
+List<TranscriptChangedFile> _extractChangedFilesFromObject(
   Map<String, dynamic>? value,
 ) {
   if (value == null) {
-    return const <CodexChangedFile>[];
+    return const <TranscriptChangedFile>[];
   }
 
   final paths = <String>{};
@@ -67,7 +67,7 @@ List<CodexChangedFile> _extractChangedFilesFromObject(
 
   collect(value, 0);
   return paths
-      .map((path) => CodexChangedFile(path: path))
+      .map((path) => TranscriptChangedFile(path: path))
       .toList(growable: false);
 }
 

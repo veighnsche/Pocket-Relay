@@ -176,32 +176,35 @@ String _timelineStatusLabel(ChatTimelineSummaryContract summary) {
   }
 
   return switch (summary.status) {
-    CodexAgentLifecycleState.unknown => 'Starting',
-    CodexAgentLifecycleState.starting => 'Starting',
-    CodexAgentLifecycleState.idle => 'Ready',
-    CodexAgentLifecycleState.running => 'Running',
-    CodexAgentLifecycleState.waitingOnChild => 'Waiting on child',
-    CodexAgentLifecycleState.blockedOnApproval => 'Waiting on approval',
-    CodexAgentLifecycleState.blockedOnInput => 'Waiting on input',
-    CodexAgentLifecycleState.completed => 'Completed',
-    CodexAgentLifecycleState.failed => 'Failed',
-    CodexAgentLifecycleState.aborted => 'Aborted',
-    CodexAgentLifecycleState.closed => 'Closed',
+    TranscriptAgentLifecycleState.unknown => 'Starting',
+    TranscriptAgentLifecycleState.starting => 'Starting',
+    TranscriptAgentLifecycleState.idle => 'Ready',
+    TranscriptAgentLifecycleState.running => 'Running',
+    TranscriptAgentLifecycleState.waitingOnChild => 'Waiting on child',
+    TranscriptAgentLifecycleState.blockedOnApproval => 'Waiting on approval',
+    TranscriptAgentLifecycleState.blockedOnInput => 'Waiting on input',
+    TranscriptAgentLifecycleState.completed => 'Completed',
+    TranscriptAgentLifecycleState.failed => 'Failed',
+    TranscriptAgentLifecycleState.aborted => 'Aborted',
+    TranscriptAgentLifecycleState.closed => 'Closed',
   };
 }
 
-Color _timelineStatusColor(CodexAgentLifecycleState state, ThemeData theme) {
+Color _timelineStatusColor(
+  TranscriptAgentLifecycleState state,
+  ThemeData theme,
+) {
   return switch (state) {
-    CodexAgentLifecycleState.unknown ||
-    CodexAgentLifecycleState.starting => theme.colorScheme.primary,
-    CodexAgentLifecycleState.idle => theme.colorScheme.secondary,
-    CodexAgentLifecycleState.running => theme.colorScheme.primary,
-    CodexAgentLifecycleState.waitingOnChild => theme.colorScheme.tertiary,
-    CodexAgentLifecycleState.blockedOnApproval => const Color(0xFFB45309),
-    CodexAgentLifecycleState.blockedOnInput => const Color(0xFF1D4ED8),
-    CodexAgentLifecycleState.completed => const Color(0xFF15803D),
-    CodexAgentLifecycleState.failed => theme.colorScheme.error,
-    CodexAgentLifecycleState.aborted => theme.colorScheme.outline,
-    CodexAgentLifecycleState.closed => theme.colorScheme.outline,
+    TranscriptAgentLifecycleState.unknown ||
+    TranscriptAgentLifecycleState.starting => theme.colorScheme.primary,
+    TranscriptAgentLifecycleState.idle => theme.colorScheme.secondary,
+    TranscriptAgentLifecycleState.running => theme.colorScheme.primary,
+    TranscriptAgentLifecycleState.waitingOnChild => theme.colorScheme.tertiary,
+    TranscriptAgentLifecycleState.blockedOnApproval => const Color(0xFFB45309),
+    TranscriptAgentLifecycleState.blockedOnInput => const Color(0xFF1D4ED8),
+    TranscriptAgentLifecycleState.completed => const Color(0xFF15803D),
+    TranscriptAgentLifecycleState.failed => theme.colorScheme.error,
+    TranscriptAgentLifecycleState.aborted => theme.colorScheme.outline,
+    TranscriptAgentLifecycleState.closed => theme.colorScheme.outline,
   };
 }

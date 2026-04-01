@@ -1,22 +1,22 @@
 part of 'runtime_event_mapper.dart';
 
 typedef _ItemLifecycleEventBuilder =
-    CodexRuntimeItemLifecycleEvent Function({
+    TranscriptRuntimeItemLifecycleEvent Function({
       required DateTime createdAt,
-      required CodexCanonicalItemType itemType,
+      required TranscriptCanonicalItemType itemType,
       required String threadId,
       required String turnId,
       required String itemId,
-      required CodexRuntimeItemStatus status,
+      required TranscriptRuntimeItemStatus status,
       required String rawMethod,
       required Object? rawPayload,
       required String? title,
       required String? detail,
       required Map<String, dynamic>? snapshot,
-      required CodexRuntimeCollabAgentToolCall? collaboration,
+      required TranscriptRuntimeCollabAgentToolCall? collaboration,
     });
 
-List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
+List<TranscriptRuntimeEvent> _mapRuntimeNotificationEvent(
   AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, _PendingRequestInfo> pendingRequests,
@@ -52,10 +52,10 @@ List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
     return requestOrErrorEvents;
   }
 
-  return const <CodexRuntimeEvent>[];
+  return const <TranscriptRuntimeEvent>[];
 }
 
-CodexRuntimeItemUpdatedEvent? _mapMcpToolProgress(
+TranscriptRuntimeItemUpdatedEvent? _mapMcpToolProgress(
   Map<String, dynamic>? payload,
   DateTime now, {
   required String rawMethod,
@@ -73,26 +73,26 @@ CodexRuntimeItemUpdatedEvent? _mapMcpToolProgress(
     return null;
   }
 
-  return CodexRuntimeItemUpdatedEvent(
+  return TranscriptRuntimeItemUpdatedEvent(
     createdAt: now,
-    itemType: CodexCanonicalItemType.mcpToolCall,
+    itemType: TranscriptCanonicalItemType.mcpToolCall,
     threadId: threadId,
     turnId: turnId,
     itemId: itemId,
-    status: CodexRuntimeItemStatus.inProgress,
+    status: TranscriptRuntimeItemStatus.inProgress,
     rawMethod: rawMethod,
     rawPayload: rawPayload,
-    title: _itemTitle(CodexCanonicalItemType.mcpToolCall),
+    title: _itemTitle(TranscriptCanonicalItemType.mcpToolCall),
     detail: message,
   );
 }
 
-CodexRuntimeItemLifecycleEvent? _mapItemLifecycle(
+TranscriptRuntimeItemLifecycleEvent? _mapItemLifecycle(
   Map<String, dynamic>? payload,
   DateTime now, {
   required String rawMethod,
   required Object? rawPayload,
-  required CodexRuntimeItemStatus fallbackStatus,
+  required TranscriptRuntimeItemStatus fallbackStatus,
   required _ItemLifecycleEventBuilder builder,
 }) {
   final item = _asObject(payload?['item']);
@@ -120,7 +120,7 @@ CodexRuntimeItemLifecycleEvent? _mapItemLifecycle(
   );
 }
 
-CodexRuntimeItemUpdatedEvent? _mapPartialItemUpdate(
+TranscriptRuntimeItemUpdatedEvent? _mapPartialItemUpdate(
   Map<String, dynamic>? payload,
   DateTime now, {
   required String rawMethod,
@@ -134,10 +134,10 @@ CodexRuntimeItemUpdatedEvent? _mapPartialItemUpdate(
   }
 
   final itemType = switch (rawMethod) {
-    'item/reasoning/summaryPartAdded' => CodexCanonicalItemType.reasoning,
+    'item/reasoning/summaryPartAdded' => TranscriptCanonicalItemType.reasoning,
     'item/commandExecution/terminalInteraction' =>
-      CodexCanonicalItemType.commandExecution,
-    _ => CodexCanonicalItemType.unknown,
+      TranscriptCanonicalItemType.commandExecution,
+    _ => TranscriptCanonicalItemType.unknown,
   };
 
   final detail = switch (rawMethod) {
@@ -147,13 +147,13 @@ CodexRuntimeItemUpdatedEvent? _mapPartialItemUpdate(
     _ => null,
   };
 
-  return CodexRuntimeItemUpdatedEvent(
+  return TranscriptRuntimeItemUpdatedEvent(
     createdAt: now,
     itemType: itemType,
     threadId: threadId,
     turnId: turnId,
     itemId: itemId,
-    status: CodexRuntimeItemStatus.inProgress,
+    status: TranscriptRuntimeItemStatus.inProgress,
     rawMethod: rawMethod,
     rawPayload: rawPayload,
     title: _itemTitle(itemType),

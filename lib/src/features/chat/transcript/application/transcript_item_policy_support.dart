@@ -6,12 +6,12 @@ int? _extractExitCode(Map<String, dynamic>? snapshot) {
 }
 
 bool _shouldForkVisibleArtifact(
-  CodexActiveTurnState? activeTurn,
-  CodexSessionActiveItem? existing, {
-  CodexCanonicalItemType? itemType,
+  TranscriptActiveTurnState? activeTurn,
+  TranscriptSessionActiveItem? existing, {
+  TranscriptCanonicalItemType? itemType,
 }) {
   final effectiveItemType = itemType ?? existing?.itemType;
-  if (effectiveItemType == CodexCanonicalItemType.commandExecution) {
+  if (effectiveItemType == TranscriptCanonicalItemType.commandExecution) {
     return false;
   }
 
@@ -29,13 +29,13 @@ bool _shouldForkVisibleArtifact(
 
 String _nextItemEntryId(
   TranscriptItemPolicy policy,
-  CodexSessionState state,
-  CodexActiveTurnState? activeTurn, {
+  TranscriptSessionState state,
+  TranscriptActiveTurnState? activeTurn, {
   required String itemId,
 }) {
   final usedIds = <String>{
-    ...codexUiBlockIds(state.blocks),
-    if (activeTurn != null) ...codexTurnArtifactIds(activeTurn.artifacts),
+    ...transcriptUiBlockIds(state.blocks),
+    if (activeTurn != null) ...transcriptTurnArtifactIds(activeTurn.artifacts),
   };
   bool conflicts(String candidate) {
     return usedIds.contains(candidate) ||
@@ -75,13 +75,13 @@ String _visibleBodyForArtifact(
   return visibleBody;
 }
 
-CodexSessionState? _suppressedLocalUserMessageState(
+TranscriptSessionState? _suppressedLocalUserMessageState(
   TranscriptItemPolicy policy,
-  CodexSessionState state,
-  CodexActiveTurnState? activeTurn,
-  CodexSessionActiveItem item,
+  TranscriptSessionState state,
+  TranscriptActiveTurnState? activeTurn,
+  TranscriptSessionActiveItem item,
 ) {
-  if (item.itemType != CodexCanonicalItemType.userMessage) {
+  if (item.itemType != TranscriptCanonicalItemType.userMessage) {
     return null;
   }
 
@@ -127,9 +127,9 @@ CodexSessionState? _suppressedLocalUserMessageState(
   );
 }
 
-CodexSessionState _stateAfterSuppressedLocalUserMessage(
-  CodexSessionState state, {
-  required CodexActiveTurnState? activeTurn,
+TranscriptSessionState _stateAfterSuppressedLocalUserMessage(
+  TranscriptSessionState state, {
+  required TranscriptActiveTurnState? activeTurn,
   required String itemId,
   List<String>? pendingLocalUserMessageBlockIds,
   Map<String, String>? localUserMessageProviderBindings,
@@ -148,20 +148,20 @@ CodexSessionState _stateAfterSuppressedLocalUserMessage(
   );
 }
 
-CodexUserMessageBlock? _userMessageBlockById(
-  List<CodexUiBlock> blocks,
+TranscriptUserMessageBlock? _userMessageBlockById(
+  List<TranscriptUiBlock> blocks,
   String blockId,
 ) {
   for (final block in blocks.reversed) {
-    if (block is CodexUserMessageBlock && block.id == blockId) {
+    if (block is TranscriptUserMessageBlock && block.id == blockId) {
       return block;
     }
   }
   return null;
 }
 
-(CodexUserMessageBlock, List<String>)? _matchingPendingLocalUserMessage(
-  List<CodexUiBlock> blocks,
+(TranscriptUserMessageBlock, List<String>)? _matchingPendingLocalUserMessage(
+  List<TranscriptUiBlock> blocks,
   List<String> pendingBlockIds, {
   required String text,
   ChatComposerDraft? providerDraft,
@@ -232,8 +232,8 @@ bool _imageAttachmentsEqualForProviderBinding(
   return true;
 }
 
-CodexActiveTurnState? _activeTurnAfterSuppressedLocalUserMessage(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _activeTurnAfterSuppressedLocalUserMessage(
+  TranscriptActiveTurnState? activeTurn, {
   required String itemId,
 }) {
   if (activeTurn == null) {
@@ -246,8 +246,9 @@ CodexActiveTurnState? _activeTurnAfterSuppressedLocalUserMessage(
     return activeTurn;
   }
 
-  final nextItems = <String, CodexSessionActiveItem>{...activeTurn.itemsById}
-    ..remove(itemId);
+  final nextItems = <String, TranscriptSessionActiveItem>{
+    ...activeTurn.itemsById,
+  }..remove(itemId);
   final nextArtifactIds = <String, String>{...activeTurn.itemArtifactIds}
     ..remove(itemId);
 

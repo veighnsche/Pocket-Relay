@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 class CodexHistoricalConversation {
   const CodexHistoricalConversation({
@@ -44,11 +44,11 @@ class CodexHistoricalTurn {
   final String threadId;
   final DateTime createdAt;
   final DateTime? completedAt;
-  final CodexRuntimeTurnState? state;
+  final TranscriptRuntimeTurnState? state;
   final String? model;
   final String? effort;
   final String? stopReason;
-  final CodexRuntimeTurnUsage? usage;
+  final TranscriptRuntimeTurnUsage? usage;
   final Map<String, dynamic>? modelUsage;
   final double? totalCostUsd;
   final String? errorMessage;
@@ -76,10 +76,10 @@ class CodexHistoricalEntry {
   final String threadId;
   final String turnId;
   final DateTime createdAt;
-  final CodexCanonicalItemType itemType;
-  final CodexRuntimeItemStatus status;
+  final TranscriptCanonicalItemType itemType;
+  final TranscriptRuntimeItemStatus status;
   final String title;
   final String? detail;
   final Map<String, dynamic>? snapshot;
-  final CodexRuntimeCollabAgentToolCall? collaboration;
+  final TranscriptRuntimeCollabAgentToolCall? collaboration;
 }

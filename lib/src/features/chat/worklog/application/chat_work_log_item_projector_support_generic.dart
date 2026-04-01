@@ -77,7 +77,7 @@ String? _terminalInputText(Map<String, dynamic>? snapshot) {
 }
 
 String? _terminalOutputText(
-  CodexWorkLogEntry entry, {
+  TranscriptWorkLogEntry entry, {
   required String commandText,
   String? terminalInput,
 }) {
@@ -92,7 +92,10 @@ String? _terminalOutputText(
 }
 
 ({String? processId, String? terminalInput, String? terminalOutput})
-_shellTerminalFields(CodexWorkLogEntry entry, {required String commandText}) {
+_shellTerminalFields(
+  TranscriptWorkLogEntry entry, {
+  required String commandText,
+}) {
   final processId = _processIdFromSnapshot(entry.snapshot);
   final terminalInput = _terminalInputText(entry.snapshot);
   final terminalOutput = _terminalOutputText(

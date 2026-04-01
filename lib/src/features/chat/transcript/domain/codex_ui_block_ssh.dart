@@ -1,7 +1,7 @@
-part of 'codex_ui_block.dart';
+part of 'transcript_ui_block.dart';
 
-sealed class CodexSshTranscriptBlock extends CodexUiBlock {
-  const CodexSshTranscriptBlock({
+sealed class TranscriptSshTranscriptBlock extends TranscriptUiBlock {
+  const TranscriptSshTranscriptBlock({
     required super.id,
     required super.kind,
     required super.createdAt,
@@ -13,8 +13,9 @@ sealed class CodexSshTranscriptBlock extends CodexUiBlock {
   final int port;
 }
 
-final class CodexSshUnpinnedHostKeyBlock extends CodexSshTranscriptBlock {
-  const CodexSshUnpinnedHostKeyBlock({
+final class TranscriptSshUnpinnedHostKeyBlock
+    extends TranscriptSshTranscriptBlock {
+  const TranscriptSshUnpinnedHostKeyBlock({
     required super.id,
     required super.createdAt,
     required super.host,
@@ -22,14 +23,14 @@ final class CodexSshUnpinnedHostKeyBlock extends CodexSshTranscriptBlock {
     required this.keyType,
     required this.fingerprint,
     this.isSaved = false,
-  }) : super(kind: CodexUiBlockKind.status);
+  }) : super(kind: TranscriptUiBlockKind.status);
 
   final String keyType;
   final String fingerprint;
   final bool isSaved;
 
-  CodexSshUnpinnedHostKeyBlock copyWith({bool? isSaved}) {
-    return CodexSshUnpinnedHostKeyBlock(
+  TranscriptSshUnpinnedHostKeyBlock copyWith({bool? isSaved}) {
+    return TranscriptSshUnpinnedHostKeyBlock(
       id: id,
       createdAt: createdAt,
       host: host,
@@ -41,20 +42,22 @@ final class CodexSshUnpinnedHostKeyBlock extends CodexSshTranscriptBlock {
   }
 }
 
-final class CodexSshConnectFailedBlock extends CodexSshTranscriptBlock {
-  const CodexSshConnectFailedBlock({
+final class TranscriptSshConnectFailedBlock
+    extends TranscriptSshTranscriptBlock {
+  const TranscriptSshConnectFailedBlock({
     required super.id,
     required super.createdAt,
     required super.host,
     required super.port,
     required this.message,
-  }) : super(kind: CodexUiBlockKind.error);
+  }) : super(kind: TranscriptUiBlockKind.error);
 
   final String message;
 }
 
-final class CodexSshHostKeyMismatchBlock extends CodexSshTranscriptBlock {
-  const CodexSshHostKeyMismatchBlock({
+final class TranscriptSshHostKeyMismatchBlock
+    extends TranscriptSshTranscriptBlock {
+  const TranscriptSshHostKeyMismatchBlock({
     required super.id,
     required super.createdAt,
     required super.host,
@@ -62,15 +65,16 @@ final class CodexSshHostKeyMismatchBlock extends CodexSshTranscriptBlock {
     required this.keyType,
     required this.expectedFingerprint,
     required this.actualFingerprint,
-  }) : super(kind: CodexUiBlockKind.error);
+  }) : super(kind: TranscriptUiBlockKind.error);
 
   final String keyType;
   final String expectedFingerprint;
   final String actualFingerprint;
 }
 
-final class CodexSshAuthenticationFailedBlock extends CodexSshTranscriptBlock {
-  const CodexSshAuthenticationFailedBlock({
+final class TranscriptSshAuthenticationFailedBlock
+    extends TranscriptSshTranscriptBlock {
+  const TranscriptSshAuthenticationFailedBlock({
     required super.id,
     required super.createdAt,
     required super.host,
@@ -78,7 +82,7 @@ final class CodexSshAuthenticationFailedBlock extends CodexSshTranscriptBlock {
     required this.username,
     required this.authMode,
     required this.message,
-  }) : super(kind: CodexUiBlockKind.error);
+  }) : super(kind: TranscriptUiBlockKind.error);
 
   final String username;
   final AuthMode authMode;

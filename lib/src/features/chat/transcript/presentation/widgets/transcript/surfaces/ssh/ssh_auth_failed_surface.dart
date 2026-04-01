@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/ssh/ssh_surface_frame.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
@@ -11,7 +11,7 @@ class SshAuthFailedSurface extends StatelessWidget {
     this.onOpenConnectionSettings,
   });
 
-  final CodexSshAuthenticationFailedBlock block;
+  final TranscriptSshAuthenticationFailedBlock block;
   final VoidCallback? onOpenConnectionSettings;
 
   @override

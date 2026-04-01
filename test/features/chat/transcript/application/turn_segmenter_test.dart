@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_memory_budget.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_turn_segmenter.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 void main() {
   const builder = TranscriptTurnArtifactBuilder();
@@ -12,45 +12,45 @@ void main() {
   int countLines(String text) =>
       text.isEmpty ? 0 : '\n'.allMatches(text).length + 1;
 
-  CodexActiveTurnState initialTurn() {
-    return CodexActiveTurnState(
+  TranscriptActiveTurnState initialTurn() {
+    return TranscriptActiveTurnState(
       turnId: 'turn-1',
-      timer: CodexSessionTurnTimer(turnId: 'turn-1', startedAt: startedAt),
+      timer: TranscriptSessionTurnTimer(turnId: 'turn-1', startedAt: startedAt),
     );
   }
 
-  CodexSessionActiveItem changedFilesItem({
+  TranscriptSessionActiveItem changedFilesItem({
     required String entryId,
     required String itemId,
     required String body,
     bool isRunning = false,
   }) {
-    return CodexSessionActiveItem(
+    return TranscriptSessionActiveItem(
       itemId: itemId,
       threadId: 'thread-1',
       turnId: 'turn-1',
-      itemType: CodexCanonicalItemType.fileChange,
+      itemType: TranscriptCanonicalItemType.fileChange,
       entryId: entryId,
-      blockKind: CodexUiBlockKind.changedFiles,
+      blockKind: TranscriptUiBlockKind.changedFiles,
       createdAt: startedAt,
       body: body,
       isRunning: isRunning,
     );
   }
 
-  CodexSessionActiveItem commandItem({
+  TranscriptSessionActiveItem commandItem({
     required String entryId,
     required String itemId,
     required String body,
     bool isRunning = false,
   }) {
-    return CodexSessionActiveItem(
+    return TranscriptSessionActiveItem(
       itemId: itemId,
       threadId: 'thread-1',
       turnId: 'turn-1',
-      itemType: CodexCanonicalItemType.commandExecution,
+      itemType: TranscriptCanonicalItemType.commandExecution,
       entryId: entryId,
-      blockKind: CodexUiBlockKind.workLogEntry,
+      blockKind: TranscriptUiBlockKind.workLogEntry,
       createdAt: startedAt,
       title: 'pwd',
       body: body,
@@ -105,7 +105,7 @@ $diffLines
       final firstTurn = builder.upsertItem(initialTurn(), firstItem);
       final secondTurn = builder.upsertItem(firstTurn, secondItem);
       final artifact =
-          secondTurn.artifacts.single as CodexTurnChangedFilesArtifact;
+          secondTurn.artifacts.single as TranscriptTurnChangedFilesArtifact;
 
       expect(artifact.entries, hasLength(1));
       expect(artifact.files, hasLength(1));
@@ -126,7 +126,7 @@ $diffLines
         body: '/workspace\n',
       ),
     );
-    final artifact = turn.artifacts.single as CodexTurnWorkArtifact;
+    final artifact = turn.artifacts.single as TranscriptTurnWorkArtifact;
     final entry = artifact.entries.single;
 
     expect(entry.itemId, 'command-1');
@@ -153,7 +153,8 @@ $largeDiff
     );
 
     final turn = builder.upsertItem(initialTurn(), item);
-    final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
+    final artifact =
+        turn.artifacts.single as TranscriptTurnChangedFilesArtifact;
     final retainedEntryDiff = artifact.entries.single.unifiedDiff;
 
     expect(artifact.unifiedDiff, isNotNull);
@@ -179,7 +180,7 @@ $largeDiff
   test(
     'bounds total retained changed-file entry diffs across many entries',
     () {
-      CodexActiveTurnState turn = initialTurn();
+      TranscriptActiveTurnState turn = initialTurn();
       final entryCount = 6;
       final perEntryLines = 260;
 
@@ -204,7 +205,8 @@ $diffLines
         );
       }
 
-      final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
+      final artifact =
+          turn.artifacts.single as TranscriptTurnChangedFilesArtifact;
 
       expect(artifact.entries, hasLength(entryCount));
       expect(
@@ -268,8 +270,9 @@ $diffLines
         ),
       );
 
-      final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
-      final entriesById = <String, CodexChangedFilesEntry>{
+      final artifact =
+          turn.artifacts.single as TranscriptTurnChangedFilesArtifact;
+      final entriesById = <String, TranscriptChangedFilesEntry>{
         for (final entry in artifact.entries) entry.id: entry,
       };
 
@@ -315,7 +318,8 @@ $diffLines
       ),
     );
 
-    final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
+    final artifact =
+        turn.artifacts.single as TranscriptTurnChangedFilesArtifact;
     expect(artifact.unifiedDiff, contains('entry 1 line 0'));
     expect(artifact.unifiedDiff, contains('entry 2 line 0'));
     expect(
@@ -370,8 +374,9 @@ $diffLines
         ),
       );
 
-      final artifact = turn.artifacts.single as CodexTurnChangedFilesArtifact;
-      final entriesById = <String, CodexChangedFilesEntry>{
+      final artifact =
+          turn.artifacts.single as TranscriptTurnChangedFilesArtifact;
+      final entriesById = <String, TranscriptChangedFilesEntry>{
         for (final entry in artifact.entries) entry.id: entry,
       };
 

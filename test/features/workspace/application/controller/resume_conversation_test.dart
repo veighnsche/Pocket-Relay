@@ -69,7 +69,7 @@ void main() {
       expect(clientsByConnectionId['conn_primary']!.last.startSessionCalls, 0);
       expect(
         nextBinding!.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
+            .whereType<TranscriptTextBlock>()
             .single
             .body,
         'Restored answer',

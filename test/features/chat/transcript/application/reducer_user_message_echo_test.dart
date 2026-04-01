@@ -18,15 +18,16 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'Ship the fix',
         createdAt: now,
       );
-      final localBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final localBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeWarningEvent(
+        TranscriptRuntimeWarningEvent(
           createdAt: now.add(const Duration(milliseconds: 5)),
           summary: 'Connected to the remote session.',
         ),
@@ -34,42 +35,42 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'Ship the fix'},
         ),
       );
 
       final committedUserMessages = state.blocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(committedUserMessages, hasLength(1));
       expect(committedUserMessages.single.id, localBlockId);
       expect(
         committedUserMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        TranscriptUserMessageDeliveryState.sent,
       );
 
       final userMessages = state.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(userMessages, hasLength(1));
       expect(userMessages.single.id, localBlockId);
       expect(userMessages.single.text, 'Ship the fix');
       expect(
         userMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        TranscriptUserMessageDeliveryState.sent,
       );
       expect(userMessages.single.providerItemId, isNull);
       expect(state.localUserMessageProviderBindings['item_user'], localBlockId);
       expect(state.pendingLocalUserMessageBlockIds, isEmpty);
       expect(
-        state.transcriptBlocks.whereType<CodexStatusBlock>(),
+        state.transcriptBlocks.whereType<TranscriptStatusBlock>(),
         hasLength(1),
       );
     },
@@ -81,33 +82,34 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'Ship the fix',
         createdAt: now,
       );
-      final localBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final localBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user_tail',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'Ship the fix'},
         ),
       );
 
       final userMessages = state.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(userMessages, hasLength(1));
       expect(userMessages.single.id, localBlockId);
       expect(
         userMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        TranscriptUserMessageDeliveryState.sent,
       );
       expect(userMessages.single.providerItemId, isNull);
       expect(
@@ -124,47 +126,48 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'this is a second test',
         createdAt: now,
       );
-      final localBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final localBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemUpdatedEvent(
+        TranscriptRuntimeItemUpdatedEvent(
           createdAt: now.add(const Duration(milliseconds: 5)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user_2',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           snapshot: const <String, Object?>{'text': 'this is a second test'},
         ),
       );
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user_2',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'this is a second test'},
         ),
       );
 
       final userMessages = state.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(userMessages, hasLength(1));
       expect(userMessages.single.id, localBlockId);
       expect(userMessages.single.text, 'this is a second test');
       expect(
         userMessages.single.deliveryState,
-        CodexUserMessageDeliveryState.sent,
+        TranscriptUserMessageDeliveryState.sent,
       );
       expect(userMessages.single.providerItemId, isNull);
       expect(
@@ -181,18 +184,20 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'First prompt',
         createdAt: now,
       );
-      final firstBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final firstBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.addUserMessage(
         state,
         text: 'Second prompt',
         createdAt: now.add(const Duration(milliseconds: 1)),
       );
-      final secondBlockId = (state.blocks.last as CodexUserMessageBlock).id;
+      final secondBlockId =
+          (state.blocks.last as TranscriptUserMessageBlock).id;
 
       expect(state.pendingLocalUserMessageBlockIds, <String>[
         firstBlockId,
@@ -201,13 +206,13 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 2)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user_first',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'First prompt'},
         ),
       );
@@ -218,7 +223,7 @@ void main() {
       );
       expect(state.pendingLocalUserMessageBlockIds, <String>[secondBlockId]);
       expect(
-        state.transcriptBlocks.whereType<CodexUserMessageBlock>(),
+        state.transcriptBlocks.whereType<TranscriptUserMessageBlock>(),
         hasLength(2),
       );
     },
@@ -230,7 +235,7 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'See [Image #1]',
         draft: imageDraft(
           imageUrl: 'data:image/png;base64,Zmlyc3Q=',
@@ -238,7 +243,8 @@ void main() {
         ),
         createdAt: now,
       );
-      final firstBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final firstBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.addUserMessage(
         state,
@@ -249,17 +255,18 @@ void main() {
         ),
         createdAt: now.add(const Duration(milliseconds: 1)),
       );
-      final secondBlockId = (state.blocks.last as CodexUserMessageBlock).id;
+      final secondBlockId =
+          (state.blocks.last as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 2)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user_second',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{
             'type': 'userMessage',
             'content': <Object>[
@@ -288,7 +295,7 @@ void main() {
       );
       expect(state.pendingLocalUserMessageBlockIds, <String>[firstBlockId]);
       final userMessages = state.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(userMessages, hasLength(2));
       expect(userMessages.last.id, secondBlockId);
@@ -305,21 +312,22 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'Repeat prompt',
         createdAt: now,
       );
-      final firstBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final firstBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_1',
           itemId: 'item_user',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'Repeat prompt'},
         ),
       );
@@ -329,11 +337,11 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeTurnCompletedEvent(
+        TranscriptRuntimeTurnCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 20)),
           threadId: 'thread_123',
           turnId: 'turn_1',
-          state: CodexRuntimeTurnState.completed,
+          state: TranscriptRuntimeTurnState.completed,
         ),
       );
 
@@ -345,23 +353,24 @@ void main() {
         text: 'Repeat prompt',
         createdAt: now.add(const Duration(seconds: 1)),
       );
-      final secondBlockId = (state.blocks.last as CodexUserMessageBlock).id;
+      final secondBlockId =
+          (state.blocks.last as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(seconds: 1, milliseconds: 10)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_2',
           itemId: 'item_user',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'Repeat prompt'},
         ),
       );
 
       final userMessages = state.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(userMessages, hasLength(2));
       expect(userMessages.map((block) => block.id), <String>[
@@ -382,21 +391,22 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.addUserMessage(
-        CodexSessionState.initial(),
+        TranscriptSessionState.initial(),
         text: 'Ship the fix',
         createdAt: now,
       );
-      final localBlockId = (state.blocks.single as CodexUserMessageBlock).id;
+      final localBlockId =
+          (state.blocks.single as TranscriptUserMessageBlock).id;
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemStartedEvent(
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now.add(const Duration(milliseconds: 5)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
         ),
       );
 
@@ -405,13 +415,13 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 10)),
-          itemType: CodexCanonicalItemType.userMessage,
+          itemType: TranscriptCanonicalItemType.userMessage,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'item_user',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{'text': 'Ship the fix'},
         ),
       );
@@ -423,7 +433,7 @@ void main() {
       );
 
       final userMessages = state.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .toList(growable: false);
       expect(userMessages, hasLength(1));
       expect(userMessages.single.id, localBlockId);

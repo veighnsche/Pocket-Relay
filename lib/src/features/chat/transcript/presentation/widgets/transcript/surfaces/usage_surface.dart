@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
 import 'usage_surface_presentation.dart';
@@ -7,7 +7,7 @@ import 'usage_surface_presentation.dart';
 class UsageSurface extends StatelessWidget {
   const UsageSurface({super.key, required this.block});
 
-  final CodexUsageBlock block;
+  final TranscriptUsageBlock block;
 
   @override
   Widget build(BuildContext context) {

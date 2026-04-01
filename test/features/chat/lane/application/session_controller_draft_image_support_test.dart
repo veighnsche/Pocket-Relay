@@ -39,9 +39,12 @@ void main() {
 
     expect(sent, isTrue);
     expect(appServerClient.startSessionCalls, 1);
-    expect(controller.transcriptBlocks.first, isA<CodexUserMessageBlock>());
+    expect(
+      controller.transcriptBlocks.first,
+      isA<TranscriptUserMessageBlock>(),
+    );
     final messageBlock =
-        controller.transcriptBlocks.first as CodexUserMessageBlock;
+        controller.transcriptBlocks.first as TranscriptUserMessageBlock;
     expect(
       messageBlock.draft,
       const ChatComposerDraft(
@@ -248,9 +251,9 @@ void main() {
 
       expect(await controller.sendPrompt('Warm up the lane'), isTrue);
       final hydrationWarning = controller.transcriptBlocks
-          .whereType<CodexStatusBlock>()
+          .whereType<TranscriptStatusBlock>()
           .single;
-      expect(hydrationWarning.statusKind, CodexStatusBlockKind.warning);
+      expect(hydrationWarning.statusKind, TranscriptStatusBlockKind.warning);
       expect(
         hydrationWarning.body,
         contains(

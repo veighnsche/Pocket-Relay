@@ -1,7 +1,7 @@
-part of 'codex_session_state.dart';
+part of 'transcript_session_state.dart';
 
-class CodexSessionTurnTimer {
-  const CodexSessionTurnTimer({
+class TranscriptSessionTurnTimer {
+  const TranscriptSessionTurnTimer({
     required this.turnId,
     required this.startedAt,
     this.completedAt,
@@ -53,7 +53,7 @@ class CodexSessionTurnTimer {
         );
   }
 
-  CodexSessionTurnTimer pause({
+  TranscriptSessionTurnTimer pause({
     required DateTime pausedAt,
     Duration? monotonicAt,
   }) {
@@ -69,7 +69,7 @@ class CodexSessionTurnTimer {
     );
   }
 
-  CodexSessionTurnTimer resume({
+  TranscriptSessionTurnTimer resume({
     required DateTime resumedAt,
     Duration? monotonicAt,
   }) {
@@ -84,7 +84,7 @@ class CodexSessionTurnTimer {
     );
   }
 
-  CodexSessionTurnTimer complete({
+  TranscriptSessionTurnTimer complete({
     required DateTime completedAt,
     Duration? monotonicAt,
   }) {
@@ -100,7 +100,7 @@ class CodexSessionTurnTimer {
     );
   }
 
-  CodexSessionTurnTimer copyWith({
+  TranscriptSessionTurnTimer copyWith({
     DateTime? completedAt,
     Duration? accumulatedElapsed,
     DateTime? activeSegmentStartedAt,
@@ -111,7 +111,7 @@ class CodexSessionTurnTimer {
     bool clearCompletedElapsed = false,
     bool? isPaused,
   }) {
-    return CodexSessionTurnTimer(
+    return TranscriptSessionTurnTimer(
       turnId: turnId,
       startedAt: startedAt,
       completedAt: completedAt ?? this.completedAt,

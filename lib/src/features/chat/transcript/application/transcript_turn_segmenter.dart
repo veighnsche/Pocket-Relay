@@ -2,9 +2,9 @@ import 'package:pocket_relay/src/features/chat/transcript/application/transcript
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_block_factory.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_support.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_memory_budget.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 class TranscriptTurnArtifactBuilder {
   const TranscriptTurnArtifactBuilder({
@@ -24,29 +24,29 @@ class TranscriptTurnArtifactBuilder {
   final TranscriptItemSupport _itemSupport;
   final TranscriptMemoryBudget _memoryBudget;
 
-  CodexActiveTurnState upsertItem(
-    CodexActiveTurnState turn,
-    CodexSessionActiveItem item,
+  TranscriptActiveTurnState upsertItem(
+    TranscriptActiveTurnState turn,
+    TranscriptSessionActiveItem item,
   ) {
     if (_isWorkBlockKind(item.blockKind)) {
       return _upsertWorkArtifact(turn, item);
     }
-    if (item.blockKind == CodexUiBlockKind.changedFiles) {
+    if (item.blockKind == TranscriptUiBlockKind.changedFiles) {
       return _upsertChangedFilesArtifact(turn, item);
     }
     return _upsertSingleArtifact(turn, item);
   }
 
-  CodexActiveTurnState _upsertSingleArtifact(
-    CodexActiveTurnState turn,
-    CodexSessionActiveItem item,
+  TranscriptActiveTurnState _upsertSingleArtifact(
+    TranscriptActiveTurnState turn,
+    TranscriptSessionActiveItem item,
   ) {
     final artifact = _artifactFromItem(item);
     if (artifact == null) {
       return turn;
     }
 
-    var nextArtifacts = List<CodexTurnArtifact>.from(turn.artifacts);
+    var nextArtifacts = List<TranscriptTurnArtifact>.from(turn.artifacts);
     final index = nextArtifacts.indexWhere(
       (existing) => existing.id == artifact.id,
     );
@@ -65,11 +65,11 @@ class TranscriptTurnArtifactBuilder {
     );
   }
 
-  CodexActiveTurnState _upsertWorkArtifact(
-    CodexActiveTurnState turn,
-    CodexSessionActiveItem item,
+  TranscriptActiveTurnState _upsertWorkArtifact(
+    TranscriptActiveTurnState turn,
+    TranscriptSessionActiveItem item,
   ) {
-    final entry = CodexWorkLogEntry(
+    final entry = TranscriptWorkLogEntry(
       id: item.entryId,
       createdAt: item.createdAt,
       entryKind: _blockFactory.workLogEntryKindFor(item.itemType),
@@ -85,30 +85,30 @@ class TranscriptTurnArtifactBuilder {
         item.snapshot,
       ),
     );
-    var nextArtifacts = List<CodexTurnArtifact>.from(turn.artifacts);
+    var nextArtifacts = List<TranscriptTurnArtifact>.from(turn.artifacts);
     String artifactId;
     final boundArtifactIndex = _boundWorkArtifactIndex(turn, item);
 
     if (boundArtifactIndex != null) {
       final boundArtifact =
-          nextArtifacts[boundArtifactIndex] as CodexTurnWorkArtifact;
+          nextArtifacts[boundArtifactIndex] as TranscriptTurnWorkArtifact;
       nextArtifacts[boundArtifactIndex] = _workArtifactWithEntry(
         boundArtifact,
         entry,
       );
       artifactId = boundArtifact.id;
     } else if (nextArtifacts.lastOrNull
-        case final CodexTurnWorkArtifact lastWork) {
+        case final TranscriptTurnWorkArtifact lastWork) {
       nextArtifacts[nextArtifacts.length - 1] = _workArtifactWithEntry(
         lastWork,
         entry,
       );
       artifactId = lastWork.id;
     } else {
-      final nextArtifact = CodexTurnWorkArtifact(
+      final nextArtifact = TranscriptTurnWorkArtifact(
         id: 'work_group_${item.entryId}',
         createdAt: item.createdAt,
-        entries: <CodexWorkLogEntry>[entry],
+        entries: <TranscriptWorkLogEntry>[entry],
       );
       nextArtifacts = appendCodexTurnArtifact(nextArtifacts, nextArtifact);
       artifactId = nextArtifact.id;
@@ -124,10 +124,10 @@ class TranscriptTurnArtifactBuilder {
   }
 
   int? _boundWorkArtifactIndex(
-    CodexActiveTurnState turn,
-    CodexSessionActiveItem item,
+    TranscriptActiveTurnState turn,
+    TranscriptSessionActiveItem item,
   ) {
-    if (item.itemType != CodexCanonicalItemType.commandExecution) {
+    if (item.itemType != TranscriptCanonicalItemType.commandExecution) {
       return null;
     }
 
@@ -139,17 +139,17 @@ class TranscriptTurnArtifactBuilder {
     final index = turn.artifacts.indexWhere(
       (artifact) => artifact.id == boundArtifactId,
     );
-    if (index == -1 || turn.artifacts[index] is! CodexTurnWorkArtifact) {
+    if (index == -1 || turn.artifacts[index] is! TranscriptTurnWorkArtifact) {
       return null;
     }
     return index;
   }
 
-  CodexTurnWorkArtifact _workArtifactWithEntry(
-    CodexTurnWorkArtifact artifact,
-    CodexWorkLogEntry entry,
+  TranscriptTurnWorkArtifact _workArtifactWithEntry(
+    TranscriptTurnWorkArtifact artifact,
+    TranscriptWorkLogEntry entry,
   ) {
-    final nextEntries = List<CodexWorkLogEntry>.from(artifact.entries);
+    final nextEntries = List<TranscriptWorkLogEntry>.from(artifact.entries);
     final index = nextEntries.indexWhere((existing) => existing.id == entry.id);
     if (index == -1) {
       nextEntries.add(entry);
@@ -157,32 +157,32 @@ class TranscriptTurnArtifactBuilder {
       nextEntries[index] = entry;
     }
 
-    return CodexTurnWorkArtifact(
+    return TranscriptTurnWorkArtifact(
       id: artifact.id,
       createdAt: artifact.createdAt,
       entries: nextEntries,
     );
   }
 
-  CodexActiveTurnState _upsertChangedFilesArtifact(
-    CodexActiveTurnState turn,
-    CodexSessionActiveItem item,
+  TranscriptActiveTurnState _upsertChangedFilesArtifact(
+    TranscriptActiveTurnState turn,
+    TranscriptSessionActiveItem item,
   ) {
     final entry = _changedFilesEntryFromItem(item);
-    var nextArtifacts = List<CodexTurnArtifact>.from(turn.artifacts);
+    var nextArtifacts = List<TranscriptTurnArtifact>.from(turn.artifacts);
     String artifactId;
 
     if (nextArtifacts.lastOrNull
-        case final CodexTurnChangedFilesArtifact last) {
+        case final TranscriptTurnChangedFilesArtifact last) {
       nextArtifacts[nextArtifacts.length - 1] = _changedFilesArtifactWithEntry(
         last,
         entry,
       );
       artifactId = last.id;
     } else {
-      final nextEntries = <CodexChangedFilesEntry>[entry];
+      final nextEntries = <TranscriptChangedFilesEntry>[entry];
       final retainedEntries = _retainChangedFilesEntryDiffs(nextEntries);
-      final nextArtifact = CodexTurnChangedFilesArtifact(
+      final nextArtifact = TranscriptTurnChangedFilesArtifact(
         id: 'changed_files_group_${item.entryId}',
         createdAt: item.createdAt,
         title: item.title ?? _blockFactory.defaultItemTitle(item.itemType),
@@ -205,10 +205,10 @@ class TranscriptTurnArtifactBuilder {
     );
   }
 
-  CodexChangedFilesEntry _changedFilesEntryFromItem(
-    CodexSessionActiveItem item,
+  TranscriptChangedFilesEntry _changedFilesEntryFromItem(
+    TranscriptSessionActiveItem item,
   ) {
-    return CodexChangedFilesEntry(
+    return TranscriptChangedFilesEntry(
       id: item.entryId,
       itemId: item.itemId,
       createdAt: item.createdAt,
@@ -226,11 +226,13 @@ class TranscriptTurnArtifactBuilder {
     );
   }
 
-  CodexTurnChangedFilesArtifact _changedFilesArtifactWithEntry(
-    CodexTurnChangedFilesArtifact artifact,
-    CodexChangedFilesEntry entry,
+  TranscriptTurnChangedFilesArtifact _changedFilesArtifactWithEntry(
+    TranscriptTurnChangedFilesArtifact artifact,
+    TranscriptChangedFilesEntry entry,
   ) {
-    final nextEntries = List<CodexChangedFilesEntry>.from(artifact.entries);
+    final nextEntries = List<TranscriptChangedFilesEntry>.from(
+      artifact.entries,
+    );
     final index = nextEntries.indexWhere((existing) => existing.id == entry.id);
     if (index == -1) {
       nextEntries.add(entry);
@@ -241,7 +243,7 @@ class TranscriptTurnArtifactBuilder {
     }
     final retainedEntries = _retainChangedFilesEntryDiffs(nextEntries);
 
-    return CodexTurnChangedFilesArtifact(
+    return TranscriptTurnChangedFilesArtifact(
       id: artifact.id,
       createdAt: artifact.createdAt,
       title: artifact.title,
@@ -253,41 +255,41 @@ class TranscriptTurnArtifactBuilder {
     );
   }
 
-  CodexTurnArtifact? _artifactFromItem(CodexSessionActiveItem item) {
+  TranscriptTurnArtifact? _artifactFromItem(TranscriptSessionActiveItem item) {
     final title = item.title ?? _blockFactory.defaultItemTitle(item.itemType);
     final artifactId = item.entryId;
     final structuredUserDraft =
-        item.itemType == CodexCanonicalItemType.userMessage
+        item.itemType == TranscriptCanonicalItemType.userMessage
         ? _itemSupport.extractStructuredUserMessageDraft(item.snapshot)
         : null;
     final effectiveUserMessageText = structuredUserDraft?.text ?? item.body;
 
     return switch (item.blockKind) {
-      CodexUiBlockKind.userMessage
+      TranscriptUiBlockKind.userMessage
           when effectiveUserMessageText.trim().isEmpty &&
               (structuredUserDraft == null || structuredUserDraft.isEmpty) =>
         null,
-      CodexUiBlockKind.userMessage => CodexTurnBlockArtifact(
-        block: CodexUserMessageBlock(
+      TranscriptUiBlockKind.userMessage => TranscriptTurnBlockArtifact(
+        block: TranscriptUserMessageBlock(
           id: artifactId,
           createdAt: item.createdAt,
           text: effectiveUserMessageText,
-          deliveryState: CodexUserMessageDeliveryState.sent,
+          deliveryState: TranscriptUserMessageDeliveryState.sent,
           structuredDraft: structuredUserDraft,
           providerItemId: item.itemId,
         ),
       ),
-      CodexUiBlockKind.reasoning when item.body.trim().isEmpty => null,
-      CodexUiBlockKind.reasoning => CodexTurnTextArtifact(
+      TranscriptUiBlockKind.reasoning when item.body.trim().isEmpty => null,
+      TranscriptUiBlockKind.reasoning => TranscriptTurnTextArtifact(
         id: artifactId,
         createdAt: item.createdAt,
-        kind: CodexUiBlockKind.reasoning,
+        kind: TranscriptUiBlockKind.reasoning,
         title: title,
         body: item.body,
         itemId: item.itemId,
         isStreaming: item.isRunning,
       ),
-      CodexUiBlockKind.assistantMessage => CodexTurnTextArtifact(
+      TranscriptUiBlockKind.assistantMessage => TranscriptTurnTextArtifact(
         id: artifactId,
         createdAt: item.createdAt,
         kind: item.blockKind,
@@ -296,8 +298,8 @@ class TranscriptTurnArtifactBuilder {
         itemId: item.itemId,
         isStreaming: item.isRunning,
       ),
-      CodexUiBlockKind.status => CodexTurnBlockArtifact(
-        block: CodexStatusBlock(
+      TranscriptUiBlockKind.status => TranscriptTurnBlockArtifact(
+        block: TranscriptStatusBlock(
           id: artifactId,
           createdAt: item.createdAt,
           title: title,
@@ -305,15 +307,15 @@ class TranscriptTurnArtifactBuilder {
           statusKind: _blockFactory.statusKindForItemType(item.itemType),
         ),
       ),
-      CodexUiBlockKind.error => CodexTurnBlockArtifact(
-        block: CodexErrorBlock(
+      TranscriptUiBlockKind.error => TranscriptTurnBlockArtifact(
+        block: TranscriptErrorBlock(
           id: artifactId,
           createdAt: item.createdAt,
           title: title,
           body: item.body,
         ),
       ),
-      CodexUiBlockKind.proposedPlan => CodexTurnPlanArtifact(
+      TranscriptUiBlockKind.proposedPlan => TranscriptTurnPlanArtifact(
         id: artifactId,
         createdAt: item.createdAt,
         title: title,
@@ -325,18 +327,18 @@ class TranscriptTurnArtifactBuilder {
     };
   }
 
-  bool _isWorkBlockKind(CodexUiBlockKind blockKind) {
+  bool _isWorkBlockKind(TranscriptUiBlockKind blockKind) {
     return switch (blockKind) {
-      CodexUiBlockKind.workLogEntry => true,
+      TranscriptUiBlockKind.workLogEntry => true,
       _ => false,
     };
   }
 }
 
-List<CodexChangedFile> _mergeChangedFilesForEntries(
-  Iterable<CodexChangedFilesEntry> entries,
+List<TranscriptChangedFile> _mergeChangedFilesForEntries(
+  Iterable<TranscriptChangedFilesEntry> entries,
 ) {
-  final mergedByPath = <String, CodexChangedFile>{};
+  final mergedByPath = <String, TranscriptChangedFile>{};
 
   for (final entry in entries) {
     for (final file in entry.files) {
@@ -347,7 +349,9 @@ List<CodexChangedFile> _mergeChangedFilesForEntries(
   return mergedByPath.values.toList(growable: false);
 }
 
-String? _mergedRetainedUnifiedDiff(Iterable<CodexChangedFilesEntry> entries) {
+String? _mergedRetainedUnifiedDiff(
+  Iterable<TranscriptChangedFilesEntry> entries,
+) {
   return _joinUnifiedDiffFragments(
     entries.map((entry) => entry.unifiedDiff).toList(growable: false),
   );
@@ -365,14 +369,14 @@ String? _joinUnifiedDiffFragments(Iterable<String?> parts) {
   return retainedParts.join('\n');
 }
 
-List<CodexChangedFilesEntry> _retainChangedFilesEntryDiffs(
-  List<CodexChangedFilesEntry> entries,
+List<TranscriptChangedFilesEntry> _retainChangedFilesEntryDiffs(
+  List<TranscriptChangedFilesEntry> entries,
 ) {
   if (entries.isEmpty) {
     return entries;
   }
 
-  final retainedEntries = List<CodexChangedFilesEntry>.from(entries);
+  final retainedEntries = List<TranscriptChangedFilesEntry>.from(entries);
   var remainingChars = TranscriptMemoryBudget.maxUnifiedDiffChars;
   var remainingLines = TranscriptMemoryBudget.maxUnifiedDiffLines;
   var hasRetainedLaterDiff = false;
@@ -443,11 +447,11 @@ String? _retainUnifiedDiffWithinBudget(
   return retained.isEmpty ? null : retained;
 }
 
-CodexChangedFilesEntry _changedFilesEntryWithUnifiedDiff(
-  CodexChangedFilesEntry entry,
+TranscriptChangedFilesEntry _changedFilesEntryWithUnifiedDiff(
+  TranscriptChangedFilesEntry entry,
   String? unifiedDiff,
 ) {
-  return CodexChangedFilesEntry(
+  return TranscriptChangedFilesEntry(
     id: entry.id,
     itemId: entry.itemId,
     createdAt: entry.createdAt,

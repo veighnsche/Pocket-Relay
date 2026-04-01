@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';
 
@@ -56,15 +56,16 @@ void main() {
       ),
     );
 
-    final userEvent = userItem.single as CodexRuntimeItemCompletedEvent;
-    final reviewEvent = reviewItem.single as CodexRuntimeItemCompletedEvent;
-    final imageEvent = imageItem.single as CodexRuntimeItemCompletedEvent;
+    final userEvent = userItem.single as TranscriptRuntimeItemCompletedEvent;
+    final reviewEvent =
+        reviewItem.single as TranscriptRuntimeItemCompletedEvent;
+    final imageEvent = imageItem.single as TranscriptRuntimeItemCompletedEvent;
 
-    expect(userEvent.itemType, CodexCanonicalItemType.userMessage);
+    expect(userEvent.itemType, TranscriptCanonicalItemType.userMessage);
     expect(userEvent.detail, 'Ship the fix');
-    expect(reviewEvent.itemType, CodexCanonicalItemType.reviewEntered);
+    expect(reviewEvent.itemType, TranscriptCanonicalItemType.reviewEntered);
     expect(reviewEvent.detail, 'Checking the patch set');
-    expect(imageEvent.itemType, CodexCanonicalItemType.imageGeneration);
+    expect(imageEvent.itemType, TranscriptCanonicalItemType.imageGeneration);
     expect(imageEvent.detail, 'Diagram of the new architecture');
   });
 
@@ -93,19 +94,19 @@ void main() {
       );
 
       final openedEvent =
-          requestOpened.single as CodexRuntimeRequestOpenedEvent;
+          requestOpened.single as TranscriptRuntimeRequestOpenedEvent;
       final resolvedEvent =
-          requestResolved.single as CodexRuntimeRequestResolvedEvent;
+          requestResolved.single as TranscriptRuntimeRequestResolvedEvent;
 
       expect(
         openedEvent.requestType,
-        CodexCanonicalRequestType.fileChangeApproval,
+        TranscriptCanonicalRequestType.fileChangeApproval,
       );
       expect(openedEvent.detail, 'Write files');
       expect(resolvedEvent.requestId, 'i:99');
       expect(
         resolvedEvent.requestType,
-        CodexCanonicalRequestType.fileChangeApproval,
+        TranscriptCanonicalRequestType.fileChangeApproval,
       );
     },
   );
@@ -127,10 +128,11 @@ void main() {
       ),
     );
 
-    final openedEvent = requestOpened.single as CodexRuntimeRequestOpenedEvent;
+    final openedEvent =
+        requestOpened.single as TranscriptRuntimeRequestOpenedEvent;
     expect(
       openedEvent.requestType,
-      CodexCanonicalRequestType.mcpServerElicitation,
+      TranscriptCanonicalRequestType.mcpServerElicitation,
     );
     expect(openedEvent.detail, 'Choose a directory');
   });
@@ -180,8 +182,9 @@ void main() {
     );
 
     final requestedEvent =
-        requested.single as CodexRuntimeUserInputRequestedEvent;
-    final answeredEvent = answered.single as CodexRuntimeUserInputResolvedEvent;
+        requested.single as TranscriptRuntimeUserInputRequestedEvent;
+    final answeredEvent =
+        answered.single as TranscriptRuntimeUserInputResolvedEvent;
 
     expect(requestedEvent.requestId, 's:user-input-1');
     expect(requestedEvent.questions, hasLength(1));

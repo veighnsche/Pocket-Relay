@@ -1,37 +1,37 @@
-part of 'codex_session_state.dart';
+part of 'transcript_session_state.dart';
 
-class CodexSessionState {
-  const CodexSessionState({
-    this.connectionStatus = CodexRuntimeSessionState.stopped,
+class TranscriptSessionState {
+  const TranscriptSessionState({
+    this.connectionStatus = TranscriptRuntimeSessionState.stopped,
     this.rootThreadId,
     this.selectedThreadId,
-    this.timelinesByThreadId = const <String, CodexTimelineState>{},
-    this.threadRegistry = const <String, CodexThreadRegistryEntry>{},
+    this.timelinesByThreadId = const <String, TranscriptTimelineState>{},
+    this.threadRegistry = const <String, TranscriptThreadRegistryEntry>{},
     this.requestOwnerById = const <String, String>{},
     this.sessionThreadId,
     this.sessionActiveTurn,
-    this.sessionBlocks = const <CodexUiBlock>[],
+    this.sessionBlocks = const <TranscriptUiBlock>[],
     this.sessionPendingLocalUserMessageBlockIds = const <String>[],
     this.sessionLocalUserMessageProviderBindings = const <String, String>{},
-    this.headerMetadata = const CodexSessionHeaderMetadata(),
+    this.headerMetadata = const TranscriptSessionHeaderMetadata(),
   });
 
-  factory CodexSessionState.initial() {
-    return const CodexSessionState();
+  factory TranscriptSessionState.initial() {
+    return const TranscriptSessionState();
   }
 
-  factory CodexSessionState.transcript({
-    required CodexRuntimeSessionState connectionStatus,
+  factory TranscriptSessionState.transcript({
+    required TranscriptRuntimeSessionState connectionStatus,
     String? threadId,
-    CodexActiveTurnState? activeTurn,
-    List<CodexUiBlock> blocks = const <CodexUiBlock>[],
+    TranscriptActiveTurnState? activeTurn,
+    List<TranscriptUiBlock> blocks = const <TranscriptUiBlock>[],
     List<String> pendingLocalUserMessageBlockIds = const <String>[],
     Map<String, String> localUserMessageProviderBindings =
         const <String, String>{},
-    CodexSessionHeaderMetadata headerMetadata =
-        const CodexSessionHeaderMetadata(),
+    TranscriptSessionHeaderMetadata headerMetadata =
+        const TranscriptSessionHeaderMetadata(),
   }) {
-    return CodexSessionState(
+    return TranscriptSessionState(
       connectionStatus: connectionStatus,
       sessionThreadId: threadId,
       sessionActiveTurn: activeTurn,
@@ -42,27 +42,27 @@ class CodexSessionState {
     );
   }
 
-  final CodexRuntimeSessionState connectionStatus;
+  final TranscriptRuntimeSessionState connectionStatus;
   final String? rootThreadId;
   final String? selectedThreadId;
-  final Map<String, CodexTimelineState> timelinesByThreadId;
-  final Map<String, CodexThreadRegistryEntry> threadRegistry;
+  final Map<String, TranscriptTimelineState> timelinesByThreadId;
+  final Map<String, TranscriptThreadRegistryEntry> threadRegistry;
   final Map<String, String> requestOwnerById;
 
   final String? sessionThreadId;
-  final CodexActiveTurnState? sessionActiveTurn;
-  final List<CodexUiBlock> sessionBlocks;
+  final TranscriptActiveTurnState? sessionActiveTurn;
+  final List<TranscriptUiBlock> sessionBlocks;
   final List<String> sessionPendingLocalUserMessageBlockIds;
   final Map<String, String> sessionLocalUserMessageProviderBindings;
-  final CodexSessionHeaderMetadata headerMetadata;
+  final TranscriptSessionHeaderMetadata headerMetadata;
 
   String? get currentThreadId =>
       selectedThreadId ?? rootThreadId ?? sessionThreadId;
 
-  CodexTimelineState? get rootTimeline =>
+  TranscriptTimelineState? get rootTimeline =>
       rootThreadId == null ? null : timelinesByThreadId[rootThreadId!];
 
-  CodexTimelineState? get selectedTimeline {
+  TranscriptTimelineState? get selectedTimeline {
     final selectedId = selectedThreadId;
     if (selectedId != null) {
       final selected = timelinesByThreadId[selectedId];
@@ -77,10 +77,11 @@ class CodexSessionState {
 
   String? get threadId => selectedTimeline?.threadId ?? currentThreadId;
 
-  CodexActiveTurnState? get activeTurn =>
+  TranscriptActiveTurnState? get activeTurn =>
       selectedTimeline?.activeTurn ?? sessionActiveTurn;
 
-  List<CodexUiBlock> get blocks => selectedTimeline?.blocks ?? sessionBlocks;
+  List<TranscriptUiBlock> get blocks =>
+      selectedTimeline?.blocks ?? sessionBlocks;
 
   List<String> get pendingLocalUserMessageBlockIds =>
       selectedTimeline?.pendingLocalUserMessageBlockIds ??
@@ -90,28 +91,28 @@ class CodexSessionState {
       selectedTimeline?.localUserMessageProviderBindings ??
       sessionLocalUserMessageProviderBindings;
 
-  Map<String, CodexSessionPendingRequest> get pendingApprovalRequests =>
+  Map<String, TranscriptSessionPendingRequest> get pendingApprovalRequests =>
       selectedTimeline?.pendingApprovalRequests ??
       sessionActiveTurn?.pendingApprovalRequests ??
-      const <String, CodexSessionPendingRequest>{};
+      const <String, TranscriptSessionPendingRequest>{};
 
-  Map<String, CodexSessionPendingUserInputRequest>
+  Map<String, TranscriptSessionPendingUserInputRequest>
   get pendingUserInputRequests =>
       selectedTimeline?.pendingUserInputRequests ??
       sessionActiveTurn?.pendingUserInputRequests ??
-      const <String, CodexSessionPendingUserInputRequest>{};
+      const <String, TranscriptSessionPendingUserInputRequest>{};
 
-  bool get isBusy => connectionStatus == CodexRuntimeSessionState.running;
+  bool get isBusy => connectionStatus == TranscriptRuntimeSessionState.running;
 
-  List<CodexUiBlock> get transcriptBlocks =>
+  List<TranscriptUiBlock> get transcriptBlocks =>
       selectedTimeline?.transcriptBlocks ??
-      <CodexUiBlock>[
+      <TranscriptUiBlock>[
         ...sessionBlocks.where(_shouldAppearInTranscript),
         if (sessionActiveTurn != null)
-          ...projectCodexTurnArtifacts(sessionActiveTurn!.artifacts),
+          ...projectTranscriptTurnArtifacts(sessionActiveTurn!.artifacts),
       ];
 
-  CodexTimelineState? timelineForThread(String? threadId) {
+  TranscriptTimelineState? timelineForThread(String? threadId) {
     if (threadId == null) {
       return null;
     }
@@ -119,13 +120,13 @@ class CodexSessionState {
     return timelinesByThreadId[threadId];
   }
 
-  CodexSessionState copyWithProjectedTranscript({
-    CodexRuntimeSessionState? connectionStatus,
+  TranscriptSessionState copyWithProjectedTranscript({
+    TranscriptRuntimeSessionState? connectionStatus,
     String? threadId,
     bool clearThreadId = false,
-    CodexActiveTurnState? activeTurn,
+    TranscriptActiveTurnState? activeTurn,
     bool clearActiveTurn = false,
-    List<CodexUiBlock>? blocks,
+    List<TranscriptUiBlock>? blocks,
     List<String>? pendingLocalUserMessageBlockIds,
     bool clearPendingLocalUserMessageBlockIds = false,
     Map<String, String>? localUserMessageProviderBindings,
@@ -151,30 +152,30 @@ class CodexSessionState {
     );
   }
 
-  CodexSessionState copyWith({
-    CodexRuntimeSessionState? connectionStatus,
+  TranscriptSessionState copyWith({
+    TranscriptRuntimeSessionState? connectionStatus,
     String? rootThreadId,
     bool clearRootThreadId = false,
     String? selectedThreadId,
     bool clearSelectedThreadId = false,
-    Map<String, CodexTimelineState>? timelinesByThreadId,
+    Map<String, TranscriptTimelineState>? timelinesByThreadId,
     bool clearTimelinesByThreadId = false,
-    Map<String, CodexThreadRegistryEntry>? threadRegistry,
+    Map<String, TranscriptThreadRegistryEntry>? threadRegistry,
     bool clearThreadRegistry = false,
     Map<String, String>? requestOwnerById,
     bool clearRequestOwnerById = false,
     String? sessionThreadId,
     bool clearSessionThreadId = false,
-    CodexActiveTurnState? sessionActiveTurn,
+    TranscriptActiveTurnState? sessionActiveTurn,
     bool clearSessionActiveTurn = false,
-    List<CodexUiBlock>? sessionBlocks,
+    List<TranscriptUiBlock>? sessionBlocks,
     List<String>? sessionPendingLocalUserMessageBlockIds,
     bool clearSessionPendingLocalUserMessageBlockIds = false,
     Map<String, String>? sessionLocalUserMessageProviderBindings,
     bool clearSessionLocalUserMessageProviderBindings = false,
-    CodexSessionHeaderMetadata? headerMetadata,
+    TranscriptSessionHeaderMetadata? headerMetadata,
   }) {
-    return CodexSessionState(
+    return TranscriptSessionState(
       connectionStatus: connectionStatus ?? this.connectionStatus,
       rootThreadId: clearRootThreadId
           ? null
@@ -183,10 +184,10 @@ class CodexSessionState {
           ? null
           : (selectedThreadId ?? this.selectedThreadId),
       timelinesByThreadId: clearTimelinesByThreadId
-          ? const <String, CodexTimelineState>{}
+          ? const <String, TranscriptTimelineState>{}
           : (timelinesByThreadId ?? this.timelinesByThreadId),
       threadRegistry: clearThreadRegistry
-          ? const <String, CodexThreadRegistryEntry>{}
+          ? const <String, TranscriptThreadRegistryEntry>{}
           : (threadRegistry ?? this.threadRegistry),
       requestOwnerById: clearRequestOwnerById
           ? const <String, String>{}

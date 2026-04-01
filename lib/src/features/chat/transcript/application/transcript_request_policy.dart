@@ -1,9 +1,9 @@
 import 'package:pocket_relay/src/core/utils/monotonic_clock.dart';
 import 'package:pocket_relay/src/features/chat/requests/domain/codex_request_display.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy_support.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 part 'transcript_request_policy_approval.dart';
 part 'transcript_request_policy_support_active_turn.dart';
@@ -17,23 +17,23 @@ class TranscriptRequestPolicy {
 
   final TranscriptPolicySupport _support;
 
-  CodexSessionState applyRequestOpened(
-    CodexSessionState state,
-    CodexRuntimeRequestOpenedEvent event,
+  TranscriptSessionState applyRequestOpened(
+    TranscriptSessionState state,
+    TranscriptRuntimeRequestOpenedEvent event,
   ) => _applyRequestOpened(this, state, event);
 
-  CodexSessionState applyRequestResolved(
-    CodexSessionState state,
-    CodexRuntimeRequestResolvedEvent event,
+  TranscriptSessionState applyRequestResolved(
+    TranscriptSessionState state,
+    TranscriptRuntimeRequestResolvedEvent event,
   ) => _applyRequestResolved(this, state, event);
 
-  CodexSessionState applyUserInputRequested(
-    CodexSessionState state,
-    CodexRuntimeUserInputRequestedEvent event,
+  TranscriptSessionState applyUserInputRequested(
+    TranscriptSessionState state,
+    TranscriptRuntimeUserInputRequestedEvent event,
   ) => _applyUserInputRequested(this, state, event);
 
-  CodexSessionState applyUserInputResolved(
-    CodexSessionState state,
-    CodexRuntimeUserInputResolvedEvent event,
+  TranscriptSessionState applyUserInputResolved(
+    TranscriptSessionState state,
+    TranscriptRuntimeUserInputResolvedEvent event,
   ) => _applyUserInputResolved(this, state, event);
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
 class UserMessageSurface extends StatelessWidget {
@@ -14,7 +14,7 @@ class UserMessageSurface extends StatelessWidget {
     this.onContinueFromHere,
   });
 
-  final CodexUserMessageBlock block;
+  final TranscriptUserMessageBlock block;
   final bool canContinueFromHere;
   final bool showsDesktopContextMenu;
   final Future<void> Function(String blockId)? onContinueFromHere;
@@ -24,7 +24,7 @@ class UserMessageSurface extends StatelessWidget {
     final cards = TranscriptPalette.of(context);
     final brightness = Theme.of(context).brightness;
     final isLocalEcho =
-        block.deliveryState == CodexUserMessageDeliveryState.localEcho;
+        block.deliveryState == TranscriptUserMessageDeliveryState.localEcho;
     final accent = isLocalEcho
         ? neutralAccent(brightness)
         : tealAccent(brightness);

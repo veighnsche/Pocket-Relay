@@ -2,7 +2,7 @@ part of 'chat_session_controller.dart';
 
 Future<void> _hydrateChatSessionThreadMetadataIfNeeded(
   ChatSessionController controller,
-  CodexRuntimeThreadStartedEvent event,
+  TranscriptRuntimeThreadStartedEvent event,
 ) async {
   final threadId = event.providerThreadId.trim();
   if (!controller._shouldHydrateThreadMetadata(threadId, event)) {
@@ -20,7 +20,7 @@ Future<void> _hydrateChatSessionThreadMetadataIfNeeded(
 
     _applyChatSessionRuntimeEvent(
       controller,
-      CodexRuntimeThreadStartedEvent(
+      TranscriptRuntimeThreadStartedEvent(
         createdAt: DateTime.now(),
         threadId: thread.id,
         providerThreadId: thread.id,

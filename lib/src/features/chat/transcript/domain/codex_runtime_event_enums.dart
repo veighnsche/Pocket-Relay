@@ -1,6 +1,6 @@
-part of 'codex_runtime_event.dart';
+part of 'transcript_runtime_event.dart';
 
-enum CodexRuntimeSessionState {
+enum TranscriptRuntimeSessionState {
   starting,
   ready,
   running,
@@ -9,7 +9,7 @@ enum CodexRuntimeSessionState {
   error,
 }
 
-enum CodexRuntimeThreadState {
+enum TranscriptRuntimeThreadState {
   active,
   idle,
   archived,
@@ -18,13 +18,13 @@ enum CodexRuntimeThreadState {
   error,
 }
 
-enum CodexRuntimeTurnState { completed, failed, interrupted, cancelled }
+enum TranscriptRuntimeTurnState { completed, failed, interrupted, cancelled }
 
-enum CodexRuntimePlanStepStatus { pending, inProgress, completed }
+enum TranscriptRuntimePlanStepStatus { pending, inProgress, completed }
 
-enum CodexRuntimeItemStatus { inProgress, completed, failed, declined }
+enum TranscriptRuntimeItemStatus { inProgress, completed, failed, declined }
 
-enum CodexRuntimeContentStreamKind {
+enum TranscriptRuntimeContentStreamKind {
   assistantText,
   reasoningText,
   reasoningSummaryText,
@@ -34,9 +34,9 @@ enum CodexRuntimeContentStreamKind {
   unknown,
 }
 
-enum CodexRuntimeSessionExitKind { graceful, error }
+enum TranscriptRuntimeSessionExitKind { graceful, error }
 
-enum CodexRuntimeErrorClass {
+enum TranscriptRuntimeErrorClass {
   providerError,
   transportError,
   permissionError,
@@ -44,7 +44,7 @@ enum CodexRuntimeErrorClass {
   unknown,
 }
 
-enum CodexRuntimeCollabAgentTool {
+enum TranscriptRuntimeCollabAgentTool {
   spawnAgent,
   sendInput,
   resumeAgent,
@@ -53,14 +53,14 @@ enum CodexRuntimeCollabAgentTool {
   unknown,
 }
 
-enum CodexRuntimeCollabAgentToolCallStatus {
+enum TranscriptRuntimeCollabAgentToolCallStatus {
   inProgress,
   completed,
   failed,
   unknown,
 }
 
-enum CodexRuntimeCollabAgentStatus {
+enum TranscriptRuntimeCollabAgentStatus {
   pendingInit,
   running,
   completed,
@@ -70,7 +70,7 @@ enum CodexRuntimeCollabAgentStatus {
   unknown,
 }
 
-enum CodexCanonicalItemType {
+enum TranscriptCanonicalItemType {
   userMessage,
   assistantMessage,
   reasoning,
@@ -90,7 +90,7 @@ enum CodexCanonicalItemType {
   unknown,
 }
 
-enum CodexCanonicalRequestType {
+enum TranscriptCanonicalRequestType {
   commandExecutionApproval,
   fileChangeApproval,
   applyPatchApproval,
@@ -101,24 +101,24 @@ enum CodexCanonicalRequestType {
   unknown,
 }
 
-String codexItemTitle(CodexCanonicalItemType itemType) {
+String transcriptItemTitle(TranscriptCanonicalItemType itemType) {
   return switch (itemType) {
-    CodexCanonicalItemType.userMessage => 'You',
-    CodexCanonicalItemType.assistantMessage => 'Codex',
-    CodexCanonicalItemType.reasoning => 'Reasoning',
-    CodexCanonicalItemType.plan => 'Proposed plan',
-    CodexCanonicalItemType.commandExecution => 'Command',
-    CodexCanonicalItemType.fileChange => 'Changed files',
-    CodexCanonicalItemType.mcpToolCall => 'MCP tool call',
-    CodexCanonicalItemType.dynamicToolCall => 'Tool call',
-    CodexCanonicalItemType.collabAgentToolCall => 'Agent tool call',
-    CodexCanonicalItemType.webSearch => 'Web search',
-    CodexCanonicalItemType.imageView => 'Image view',
-    CodexCanonicalItemType.imageGeneration => 'Image generation',
-    CodexCanonicalItemType.reviewEntered => 'Review started',
-    CodexCanonicalItemType.reviewExited => 'Review finished',
-    CodexCanonicalItemType.contextCompaction => 'Context compacted',
-    CodexCanonicalItemType.error => 'Error',
-    CodexCanonicalItemType.unknown => 'Codex',
+    TranscriptCanonicalItemType.userMessage => 'You',
+    TranscriptCanonicalItemType.assistantMessage => 'Codex',
+    TranscriptCanonicalItemType.reasoning => 'Reasoning',
+    TranscriptCanonicalItemType.plan => 'Proposed plan',
+    TranscriptCanonicalItemType.commandExecution => 'Command',
+    TranscriptCanonicalItemType.fileChange => 'Changed files',
+    TranscriptCanonicalItemType.mcpToolCall => 'MCP tool call',
+    TranscriptCanonicalItemType.dynamicToolCall => 'Tool call',
+    TranscriptCanonicalItemType.collabAgentToolCall => 'Agent tool call',
+    TranscriptCanonicalItemType.webSearch => 'Web search',
+    TranscriptCanonicalItemType.imageView => 'Image view',
+    TranscriptCanonicalItemType.imageGeneration => 'Image generation',
+    TranscriptCanonicalItemType.reviewEntered => 'Review started',
+    TranscriptCanonicalItemType.reviewExited => 'Review finished',
+    TranscriptCanonicalItemType.contextCompaction => 'Context compacted',
+    TranscriptCanonicalItemType.error => 'Error',
+    TranscriptCanonicalItemType.unknown => 'Codex',
   };
 }

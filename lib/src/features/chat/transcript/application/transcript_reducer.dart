@@ -1,8 +1,8 @@
 import 'package:pocket_relay/src/features/chat/composer/domain/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_policy_support.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 
 part 'transcript_reducer_lifecycle.dart';
 part 'transcript_reducer_session.dart';
@@ -20,8 +20,8 @@ class TranscriptReducer {
   final TranscriptPolicy _policy;
   final TranscriptPolicySupport _support;
 
-  CodexSessionState addUserMessage(
-    CodexSessionState state, {
+  TranscriptSessionState addUserMessage(
+    TranscriptSessionState state, {
     required String text,
     ChatComposerDraft? draft,
     DateTime? createdAt,
@@ -47,12 +47,12 @@ class TranscriptReducer {
         draft: draft,
         createdAt: createdAt,
       ),
-      lifecycleOverride: CodexAgentLifecycleState.running,
+      lifecycleOverride: TranscriptAgentLifecycleState.running,
     );
   }
 
-  CodexSessionState startFreshThread(
-    CodexSessionState state, {
+  TranscriptSessionState startFreshThread(
+    TranscriptSessionState state, {
     String? message,
     DateTime? createdAt,
   }) {
@@ -66,26 +66,30 @@ class TranscriptReducer {
     );
   }
 
-  CodexSessionState clearTranscript(CodexSessionState state) {
+  TranscriptSessionState clearTranscript(TranscriptSessionState state) {
     return _resetSessionTranscript(state, reset: _policy.clearTranscript);
   }
 
-  CodexSessionState detachThread(CodexSessionState state) {
+  TranscriptSessionState detachThread(TranscriptSessionState state) {
     return _resetSessionTranscript(state, reset: _policy.detachThread);
   }
 
-  CodexSessionState _resetSessionTranscript(
-    CodexSessionState state, {
-    required CodexSessionState Function(CodexSessionState transcriptState)
+  TranscriptSessionState _resetSessionTranscript(
+    TranscriptSessionState state, {
+    required TranscriptSessionState Function(
+      TranscriptSessionState transcriptState,
+    )
     reset,
   }) {
     return reset(
-      CodexSessionState.transcript(connectionStatus: state.connectionStatus),
+      TranscriptSessionState.transcript(
+        connectionStatus: state.connectionStatus,
+      ),
     );
   }
 
-  CodexSessionState clearLocalUserMessageCorrelationState(
-    CodexSessionState state,
+  TranscriptSessionState clearLocalUserMessageCorrelationState(
+    TranscriptSessionState state,
   ) {
     final targetThreadId = state.rootThreadId;
     if (targetThreadId == null) {
@@ -100,8 +104,8 @@ class TranscriptReducer {
     );
   }
 
-  CodexSessionState markUnpinnedHostKeySaved(
-    CodexSessionState state, {
+  TranscriptSessionState markUnpinnedHostKeySaved(
+    TranscriptSessionState state, {
     required String blockId,
   }) {
     final targetThreadId = state.currentThreadId;
@@ -118,9 +122,9 @@ class TranscriptReducer {
     );
   }
 
-  CodexSessionState reduceRuntimeEvent(
-    CodexSessionState state,
-    CodexRuntimeEvent event,
+  TranscriptSessionState reduceRuntimeEvent(
+    TranscriptSessionState state,
+    TranscriptRuntimeEvent event,
   ) {
     if (state.rootThreadId == null) {
       final nextState = _reduceSessionTranscriptRuntimeEventImpl(
@@ -128,7 +132,7 @@ class TranscriptReducer {
         state,
         event,
       );
-      if (event is CodexRuntimeThreadStartedEvent) {
+      if (event is TranscriptRuntimeThreadStartedEvent) {
         return _promoteSessionTranscriptToWorkspaceImpl(nextState, event);
       }
       return nextState;

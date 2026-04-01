@@ -3,7 +3,7 @@ import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
 import 'package:pocket_relay/src/features/chat/lane_header/presentation/chat_lane_header_projector.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
@@ -25,7 +25,7 @@ class ChatScreenPresenter {
     required bool isLoading,
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
-    required CodexSessionState sessionState,
+    required TranscriptSessionState sessionState,
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     bool effectiveModelSupportsImages = true,
@@ -140,7 +140,7 @@ class ChatScreenPresenter {
     required bool isLoading,
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
-    required CodexSessionState sessionState,
+    required TranscriptSessionState sessionState,
     required ChatConversationRecoveryState? conversationRecoveryState,
     ChatHistoricalConversationRestoreState? historicalConversationRestoreState,
     required ChatComposerDraft composerDraft,
@@ -167,7 +167,7 @@ class ChatScreenPresenter {
   }
 
   List<ChatTimelineSummaryContract> _timelineSummaries(
-    CodexSessionState sessionState,
+    TranscriptSessionState sessionState,
   ) {
     final entries = sessionState.threadRegistry.values.toList(growable: false)
       ..sort((left, right) => left.displayOrder.compareTo(right.displayOrder));
@@ -182,7 +182,8 @@ class ChatScreenPresenter {
             threadId: entry.threadId,
             label: _timelineLabel(entry),
             status:
-                timeline?.lifecycleState ?? CodexAgentLifecycleState.unknown,
+                timeline?.lifecycleState ??
+                TranscriptAgentLifecycleState.unknown,
             isPrimary: entry.isPrimary,
             isSelected: sessionState.currentThreadId == entry.threadId,
             isClosed: entry.isClosed,
@@ -193,7 +194,7 @@ class ChatScreenPresenter {
         .toList(growable: false);
   }
 
-  String _timelineLabel(CodexThreadRegistryEntry entry) {
+  String _timelineLabel(TranscriptThreadRegistryEntry entry) {
     if (entry.isPrimary) {
       return 'Main';
     }

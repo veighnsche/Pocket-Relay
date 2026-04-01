@@ -1,6 +1,6 @@
 part of 'runtime_event_mapper.dart';
 
-List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
+List<TranscriptRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
   AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, dynamic>? payload,
@@ -10,14 +10,14 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
     case 'serverRequest/resolved':
       final requestId = _requestTokenFromRaw(payload?['requestId']);
       if (requestId == null) {
-        return const <CodexRuntimeEvent>[];
+        return const <TranscriptRuntimeEvent>[];
       }
 
       final pending = pendingRequests.remove(requestId);
       final requestType =
           pending?.requestType ?? _requestTypeFromResolvedPayload(payload);
-      return <CodexRuntimeEvent>[
-        CodexRuntimeRequestResolvedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeRequestResolvedEvent(
           createdAt: now,
           threadId: _asString(payload?['threadId']) ?? pending?.threadId,
           turnId: pending?.turnId,
@@ -30,8 +30,8 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
         ),
       ];
     case 'thread/tokenUsage/updated':
-      return <CodexRuntimeEvent>[
-        CodexRuntimeStatusEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeStatusEvent(
           createdAt: now,
           threadId: _asString(payload?['threadId']),
           turnId: _asString(payload?['turnId']),
@@ -47,8 +47,8 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
       if (requestId != null) {
         pendingRequests.remove(requestId);
       }
-      return <CodexRuntimeEvent>[
-        CodexRuntimeUserInputResolvedEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeUserInputResolvedEvent(
           createdAt: now,
           threadId: _asString(payload?['threadId']),
           turnId: _asString(payload?['turnId']),
@@ -61,8 +61,8 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
       ];
     case 'error':
       final message = _asString(payload?['message']) ?? 'Codex runtime error.';
-      return <CodexRuntimeEvent>[
-        CodexRuntimeErrorEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeErrorEvent(
           createdAt: now,
           threadId: _asString(payload?['threadId']),
           turnId: _asString(payload?['turnId']),
@@ -70,7 +70,7 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
           rawMethod: event.method,
           rawPayload: event.params,
           message: message,
-          errorClass: CodexRuntimeErrorClass.providerError,
+          errorClass: TranscriptRuntimeErrorClass.providerError,
           detail: event.params,
         ),
       ];
@@ -81,8 +81,8 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
         payload?['details'],
         payload?['path'],
       ]);
-      return <CodexRuntimeEvent>[
-        CodexRuntimeWarningEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeWarningEvent(
           createdAt: now,
           rawMethod: event.method,
           rawPayload: event.params,
@@ -92,8 +92,8 @@ List<CodexRuntimeEvent>? _mapRequestOrErrorNotificationEvent(
       ];
     case 'deprecationNotice':
       final summary = _asString(payload?['summary']) ?? 'Deprecation notice.';
-      return <CodexRuntimeEvent>[
-        CodexRuntimeWarningEvent(
+      return <TranscriptRuntimeEvent>[
+        TranscriptRuntimeWarningEvent(
           createdAt: now,
           rawMethod: event.method,
           rawPayload: event.params,

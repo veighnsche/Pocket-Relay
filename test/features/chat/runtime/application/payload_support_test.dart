@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/codex_runtime_payload_support.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 void main() {
   const support = CodexRuntimePayloadSupport();
@@ -8,19 +8,19 @@ void main() {
   test('canonicalizes item types across upstream naming variants', () {
     expect(
       support.canonicalItemType('agentMessage'),
-      CodexCanonicalItemType.assistantMessage,
+      TranscriptCanonicalItemType.assistantMessage,
     );
     expect(
       support.canonicalItemType('file_change'),
-      CodexCanonicalItemType.fileChange,
+      TranscriptCanonicalItemType.fileChange,
     );
     expect(
       support.canonicalItemType('enteredReviewMode'),
-      CodexCanonicalItemType.reviewEntered,
+      TranscriptCanonicalItemType.reviewEntered,
     );
     expect(
       support.canonicalItemType('collab_tool_call'),
-      CodexCanonicalItemType.collabAgentToolCall,
+      TranscriptCanonicalItemType.collabAgentToolCall,
     );
   });
 
@@ -53,7 +53,7 @@ void main() {
     'parses collaboration payloads into canonical collaboration details',
     () {
       final details = support.collaborationDetails(
-        CodexCanonicalItemType.collabAgentToolCall,
+        TranscriptCanonicalItemType.collabAgentToolCall,
         const <String, dynamic>{
           'senderThreadId': 'thread_parent',
           'receiverThreadIds': <String>['thread_child'],
@@ -72,13 +72,16 @@ void main() {
       );
 
       expect(details, isNotNull);
-      expect(details?.tool, CodexRuntimeCollabAgentTool.wait);
-      expect(details?.status, CodexRuntimeCollabAgentToolCallStatus.completed);
+      expect(details?.tool, TranscriptRuntimeCollabAgentTool.wait);
+      expect(
+        details?.status,
+        TranscriptRuntimeCollabAgentToolCallStatus.completed,
+      );
       expect(details?.senderThreadId, 'thread_parent');
       expect(details?.receiverThreadIds, <String>['thread_child']);
       expect(
         details?.agentsStates['thread_child']?.status,
-        CodexRuntimeCollabAgentStatus.completed,
+        TranscriptRuntimeCollabAgentStatus.completed,
       );
       expect(details?.agentsStates['thread_child']?.message, 'Done');
     },
@@ -95,10 +98,10 @@ void main() {
     expect(usage?.cachedInputTokens, 3);
     expect(usage?.outputTokens, 5);
     expect(
-      support.itemStatus('running', CodexRuntimeItemStatus.completed),
-      CodexRuntimeItemStatus.inProgress,
+      support.itemStatus('running', TranscriptRuntimeItemStatus.completed),
+      TranscriptRuntimeItemStatus.inProgress,
     );
-    expect(support.turnState('failed'), CodexRuntimeTurnState.failed);
+    expect(support.turnState('failed'), TranscriptRuntimeTurnState.failed);
     expect(
       support.threadSourceKind(const <String, dynamic>{'source': 'app-server'}),
       'app-server',

@@ -1,22 +1,24 @@
 part of 'transcript_reducer.dart';
 
-CodexSessionState _reduceTimelineStateImpl(
+TranscriptSessionState _reduceTimelineStateImpl(
   TranscriptReducer reducer,
-  CodexSessionState state, {
+  TranscriptSessionState state, {
   required String threadId,
-  required CodexRuntimeEvent? event,
-  required CodexSessionState Function(CodexSessionState projectedState)
+  required TranscriptRuntimeEvent? event,
+  required TranscriptSessionState Function(
+    TranscriptSessionState projectedState,
+  )
   reducerFn,
-  CodexAgentLifecycleState? lifecycleOverride,
+  TranscriptAgentLifecycleState? lifecycleOverride,
 }) {
   final existingTimeline =
       state.timelineForThread(threadId) ??
-      CodexTimelineState(
+      TranscriptTimelineState(
         threadId: threadId,
         connectionStatus: state.connectionStatus,
-        lifecycleState: CodexAgentLifecycleState.starting,
+        lifecycleState: TranscriptAgentLifecycleState.starting,
       );
-  final projectedState = CodexSessionState.transcript(
+  final projectedState = TranscriptSessionState.transcript(
     connectionStatus: existingTimeline.connectionStatus,
     threadId: existingTimeline.threadId,
     activeTurn: existingTimeline.activeTurn,
@@ -28,7 +30,7 @@ CodexSessionState _reduceTimelineStateImpl(
     headerMetadata: state.headerMetadata,
   );
   final reducedProjectedState = reducerFn(projectedState);
-  final nextTimelines = <String, CodexTimelineState>{
+  final nextTimelines = <String, TranscriptTimelineState>{
     ...state.timelinesByThreadId,
     threadId: existingTimeline.copyWith(
       connectionStatus: reducedProjectedState.connectionStatus,

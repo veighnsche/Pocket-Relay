@@ -19,7 +19,7 @@ void main() {
       isLoading: false,
       profile: profile,
       secrets: secrets,
-      sessionState: CodexSessionState.initial(),
+      sessionState: TranscriptSessionState.initial(),
       conversationRecoveryState: null,
       composerDraft: const ChatComposerDraft(),
       transcriptFollow: defaultTranscriptFollowContract,

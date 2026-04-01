@@ -43,7 +43,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
       return;
     }
 
-    final nextRegistry = <String, CodexThreadRegistryEntry>{
+    final nextRegistry = <String, TranscriptThreadRegistryEntry>{
       for (final entry in _sessionState.threadRegistry.entries)
         entry.key: entry.value.copyWith(
           isPrimary: entry.key == alternateThreadId,
@@ -109,7 +109,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     _rememberChatSessionHeaderMetadata(this, session);
     _applyChatSessionRuntimeEvent(
       this,
-      CodexRuntimeThreadStartedEvent(
+      TranscriptRuntimeThreadStartedEvent(
         createdAt: DateTime.now(),
         threadId: session.threadId,
         providerThreadId: session.threadId,
@@ -125,8 +125,8 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
   Future<void> _reattachConversationWithHistoryBaseline(String threadId) async {
     Object? historyRestoreError;
     StackTrace? historyRestoreStackTrace;
-    CodexSessionState? restoredState;
-    CodexSessionHeaderMetadata? resumedHeaderMetadata;
+    TranscriptSessionState? restoredState;
+    TranscriptSessionHeaderMetadata? resumedHeaderMetadata;
 
     _startBufferingRuntimeEvents();
     try {
@@ -209,7 +209,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     final transcriptBlocks =
         timeline?.transcriptBlocks ?? _sessionState.transcriptBlocks;
     final userMessages = transcriptBlocks
-        .whereType<CodexUserMessageBlock>()
+        .whereType<TranscriptUserMessageBlock>()
         .toList(growable: false);
     final targetIndex = userMessages.indexWhere(
       (block) => block.id == normalizedBlockId,
@@ -338,7 +338,7 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
     }
   }
 
-  void _resetConversationState({required CodexSessionState nextState}) {
+  void _resetConversationState({required TranscriptSessionState nextState}) {
     _invalidateHistoricalConversationRestore();
     _clearConversationRecovery();
     _clearHistoricalConversationRestoreState();
@@ -383,9 +383,9 @@ extension _ChatSessionControllerRecovery on ChatSessionController {
   }
 }
 
-CodexSessionHeaderMetadata _mergeHeaderMetadataForHistoryBaseline(
-  CodexSessionHeaderMetadata restored, {
-  CodexSessionHeaderMetadata? fallback,
+TranscriptSessionHeaderMetadata _mergeHeaderMetadataForHistoryBaseline(
+  TranscriptSessionHeaderMetadata restored, {
+  TranscriptSessionHeaderMetadata? fallback,
 }) {
   if (fallback == null) {
     return restored;

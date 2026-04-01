@@ -1,6 +1,6 @@
 part of 'runtime_event_mapper.dart';
 
-List<CodexRuntimeEvent> _mapRuntimeRequestEvent(
+List<TranscriptRuntimeEvent> _mapRuntimeRequestEvent(
   AgentAdapterRequestEvent event,
   DateTime now, {
   required Map<String, _PendingRequestInfo> pendingRequests,
@@ -22,11 +22,11 @@ List<CodexRuntimeEvent> _mapRuntimeRequestEvent(
       event.method == 'tool/requestUserInput') {
     final questions = _toUserInputQuestions(payload);
     if (questions.isEmpty) {
-      return const <CodexRuntimeEvent>[];
+      return const <TranscriptRuntimeEvent>[];
     }
 
-    return <CodexRuntimeEvent>[
-      CodexRuntimeUserInputRequestedEvent(
+    return <TranscriptRuntimeEvent>[
+      TranscriptRuntimeUserInputRequestedEvent(
         createdAt: now,
         threadId: threadId,
         turnId: turnId,
@@ -39,8 +39,8 @@ List<CodexRuntimeEvent> _mapRuntimeRequestEvent(
     ];
   }
 
-  return <CodexRuntimeEvent>[
-    CodexRuntimeRequestOpenedEvent(
+  return <TranscriptRuntimeEvent>[
+    TranscriptRuntimeRequestOpenedEvent(
       createdAt: now,
       threadId: threadId,
       turnId: turnId,

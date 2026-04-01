@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 class CodexRuntimePayloadSupport {
   const CodexRuntimePayloadSupport();
@@ -69,104 +69,104 @@ class CodexRuntimePayloadSupport {
     return textParts.join('\n');
   }
 
-  CodexCanonicalItemType canonicalItemType(Object? raw) {
+  TranscriptCanonicalItemType canonicalItemType(Object? raw) {
     final normalized = _normalizeType(raw);
     if (normalized.contains('user')) {
-      return CodexCanonicalItemType.userMessage;
+      return TranscriptCanonicalItemType.userMessage;
     }
     if (normalized.contains('agent message') ||
         normalized.contains('assistant')) {
-      return CodexCanonicalItemType.assistantMessage;
+      return TranscriptCanonicalItemType.assistantMessage;
     }
     if (normalized.contains('reasoning') || normalized.contains('thought')) {
-      return CodexCanonicalItemType.reasoning;
+      return TranscriptCanonicalItemType.reasoning;
     }
     if (normalized.contains('plan') || normalized.contains('todo')) {
-      return CodexCanonicalItemType.plan;
+      return TranscriptCanonicalItemType.plan;
     }
     if (normalized.contains('command')) {
-      return CodexCanonicalItemType.commandExecution;
+      return TranscriptCanonicalItemType.commandExecution;
     }
     if (normalized.contains('file change') ||
         normalized.contains('patch') ||
         normalized.contains('edit')) {
-      return CodexCanonicalItemType.fileChange;
+      return TranscriptCanonicalItemType.fileChange;
     }
     if (normalized.contains('mcp')) {
-      return CodexCanonicalItemType.mcpToolCall;
+      return TranscriptCanonicalItemType.mcpToolCall;
     }
     if (normalized.contains('dynamic tool')) {
-      return CodexCanonicalItemType.dynamicToolCall;
+      return TranscriptCanonicalItemType.dynamicToolCall;
     }
     if (normalized.contains('collab')) {
-      return CodexCanonicalItemType.collabAgentToolCall;
+      return TranscriptCanonicalItemType.collabAgentToolCall;
     }
     if (normalized.contains('web search')) {
-      return CodexCanonicalItemType.webSearch;
+      return TranscriptCanonicalItemType.webSearch;
     }
     if (normalized.contains('image generation')) {
-      return CodexCanonicalItemType.imageGeneration;
+      return TranscriptCanonicalItemType.imageGeneration;
     }
     if (normalized.contains('image')) {
-      return CodexCanonicalItemType.imageView;
+      return TranscriptCanonicalItemType.imageView;
     }
     if (normalized.contains('entered review mode') ||
         normalized.contains('review entered')) {
-      return CodexCanonicalItemType.reviewEntered;
+      return TranscriptCanonicalItemType.reviewEntered;
     }
     if (normalized.contains('exited review mode') ||
         normalized.contains('review exited')) {
-      return CodexCanonicalItemType.reviewExited;
+      return TranscriptCanonicalItemType.reviewExited;
     }
     if (normalized.contains('compact')) {
-      return CodexCanonicalItemType.contextCompaction;
+      return TranscriptCanonicalItemType.contextCompaction;
     }
     if (normalized.contains('error')) {
-      return CodexCanonicalItemType.error;
+      return TranscriptCanonicalItemType.error;
     }
-    return CodexCanonicalItemType.unknown;
+    return TranscriptCanonicalItemType.unknown;
   }
 
-  CodexRuntimeTurnState turnState(String? rawStatus) {
+  TranscriptRuntimeTurnState turnState(String? rawStatus) {
     return switch (rawStatus) {
-      'failed' => CodexRuntimeTurnState.failed,
-      'interrupted' => CodexRuntimeTurnState.interrupted,
-      'cancelled' => CodexRuntimeTurnState.cancelled,
-      _ => CodexRuntimeTurnState.completed,
+      'failed' => TranscriptRuntimeTurnState.failed,
+      'interrupted' => TranscriptRuntimeTurnState.interrupted,
+      'cancelled' => TranscriptRuntimeTurnState.cancelled,
+      _ => TranscriptRuntimeTurnState.completed,
     };
   }
 
-  CodexRuntimeTurnState? historicalTurnCompletionState(String? rawStatus) {
+  TranscriptRuntimeTurnState? historicalTurnCompletionState(String? rawStatus) {
     return switch (rawStatus) {
       'running' || 'active' || 'inProgress' || 'in_progress' => null,
-      'failed' => CodexRuntimeTurnState.failed,
-      'interrupted' => CodexRuntimeTurnState.interrupted,
-      'cancelled' => CodexRuntimeTurnState.cancelled,
-      _ => CodexRuntimeTurnState.completed,
+      'failed' => TranscriptRuntimeTurnState.failed,
+      'interrupted' => TranscriptRuntimeTurnState.interrupted,
+      'cancelled' => TranscriptRuntimeTurnState.cancelled,
+      _ => TranscriptRuntimeTurnState.completed,
     };
   }
 
-  CodexRuntimeItemStatus itemStatus(
+  TranscriptRuntimeItemStatus itemStatus(
     Object? rawStatus,
-    CodexRuntimeItemStatus fallback,
+    TranscriptRuntimeItemStatus fallback,
   ) {
     return switch (asString(rawStatus)) {
-      'completed' => CodexRuntimeItemStatus.completed,
-      'failed' => CodexRuntimeItemStatus.failed,
-      'declined' => CodexRuntimeItemStatus.declined,
+      'completed' => TranscriptRuntimeItemStatus.completed,
+      'failed' => TranscriptRuntimeItemStatus.failed,
+      'declined' => TranscriptRuntimeItemStatus.declined,
       'inProgress' ||
       'in_progress' ||
-      'running' => CodexRuntimeItemStatus.inProgress,
+      'running' => TranscriptRuntimeItemStatus.inProgress,
       _ => fallback,
     };
   }
 
-  CodexRuntimeTurnUsage? turnUsage(Map<String, dynamic>? usage) {
+  TranscriptRuntimeTurnUsage? turnUsage(Map<String, dynamic>? usage) {
     if (usage == null) {
       return null;
     }
 
-    return CodexRuntimeTurnUsage(
+    return TranscriptRuntimeTurnUsage(
       inputTokens: asInt(usage['input_tokens'] ?? usage['inputTokens']),
       cachedInputTokens: asInt(
         usage['cached_input_tokens'] ?? usage['cachedInputTokens'],
@@ -215,11 +215,11 @@ class CodexRuntimePayloadSupport {
     return asString(object?['kind']) ?? asString(object?['type']);
   }
 
-  CodexRuntimeCollabAgentToolCall? collaborationDetails(
-    CodexCanonicalItemType itemType,
+  TranscriptRuntimeCollabAgentToolCall? collaborationDetails(
+    TranscriptCanonicalItemType itemType,
     Map<String, dynamic> item,
   ) {
-    if (itemType != CodexCanonicalItemType.collabAgentToolCall) {
+    if (itemType != TranscriptCanonicalItemType.collabAgentToolCall) {
       return null;
     }
 
@@ -238,20 +238,20 @@ class CodexRuntimePayloadSupport {
     }
 
     final rawAgentStates = asObject(item['agentsStates']);
-    final agentStates = <String, CodexRuntimeCollabAgentState>{};
+    final agentStates = <String, TranscriptRuntimeCollabAgentState>{};
     rawAgentStates?.forEach((threadId, rawState) {
       final state = asObject(rawState);
       final status = _collabAgentStatus(state?['status']);
-      if (status == CodexRuntimeCollabAgentStatus.unknown) {
+      if (status == TranscriptRuntimeCollabAgentStatus.unknown) {
         return;
       }
-      agentStates[threadId] = CodexRuntimeCollabAgentState(
+      agentStates[threadId] = TranscriptRuntimeCollabAgentState(
         status: status,
         message: asString(state?['message']),
       );
     });
 
-    return CodexRuntimeCollabAgentToolCall(
+    return TranscriptRuntimeCollabAgentToolCall(
       tool: _collabAgentTool(item['tool']),
       status: _collabToolCallStatus(item['status']),
       senderThreadId: senderThreadId,
@@ -280,35 +280,37 @@ class CodexRuntimePayloadSupport {
         .toLowerCase();
   }
 
-  CodexRuntimeCollabAgentTool _collabAgentTool(Object? raw) {
+  TranscriptRuntimeCollabAgentTool _collabAgentTool(Object? raw) {
     return switch (asString(raw)) {
-      'spawnAgent' => CodexRuntimeCollabAgentTool.spawnAgent,
-      'sendInput' => CodexRuntimeCollabAgentTool.sendInput,
-      'resumeAgent' => CodexRuntimeCollabAgentTool.resumeAgent,
-      'wait' => CodexRuntimeCollabAgentTool.wait,
-      'closeAgent' => CodexRuntimeCollabAgentTool.closeAgent,
-      _ => CodexRuntimeCollabAgentTool.unknown,
+      'spawnAgent' => TranscriptRuntimeCollabAgentTool.spawnAgent,
+      'sendInput' => TranscriptRuntimeCollabAgentTool.sendInput,
+      'resumeAgent' => TranscriptRuntimeCollabAgentTool.resumeAgent,
+      'wait' => TranscriptRuntimeCollabAgentTool.wait,
+      'closeAgent' => TranscriptRuntimeCollabAgentTool.closeAgent,
+      _ => TranscriptRuntimeCollabAgentTool.unknown,
     };
   }
 
-  CodexRuntimeCollabAgentToolCallStatus _collabToolCallStatus(Object? raw) {
+  TranscriptRuntimeCollabAgentToolCallStatus _collabToolCallStatus(
+    Object? raw,
+  ) {
     return switch (asString(raw)) {
-      'inProgress' => CodexRuntimeCollabAgentToolCallStatus.inProgress,
-      'completed' => CodexRuntimeCollabAgentToolCallStatus.completed,
-      'failed' => CodexRuntimeCollabAgentToolCallStatus.failed,
-      _ => CodexRuntimeCollabAgentToolCallStatus.unknown,
+      'inProgress' => TranscriptRuntimeCollabAgentToolCallStatus.inProgress,
+      'completed' => TranscriptRuntimeCollabAgentToolCallStatus.completed,
+      'failed' => TranscriptRuntimeCollabAgentToolCallStatus.failed,
+      _ => TranscriptRuntimeCollabAgentToolCallStatus.unknown,
     };
   }
 
-  CodexRuntimeCollabAgentStatus _collabAgentStatus(Object? raw) {
+  TranscriptRuntimeCollabAgentStatus _collabAgentStatus(Object? raw) {
     return switch (asString(raw)) {
-      'pendingInit' => CodexRuntimeCollabAgentStatus.pendingInit,
-      'running' => CodexRuntimeCollabAgentStatus.running,
-      'completed' => CodexRuntimeCollabAgentStatus.completed,
-      'errored' => CodexRuntimeCollabAgentStatus.errored,
-      'shutdown' => CodexRuntimeCollabAgentStatus.shutdown,
-      'notFound' => CodexRuntimeCollabAgentStatus.notFound,
-      _ => CodexRuntimeCollabAgentStatus.unknown,
+      'pendingInit' => TranscriptRuntimeCollabAgentStatus.pendingInit,
+      'running' => TranscriptRuntimeCollabAgentStatus.running,
+      'completed' => TranscriptRuntimeCollabAgentStatus.completed,
+      'errored' => TranscriptRuntimeCollabAgentStatus.errored,
+      'shutdown' => TranscriptRuntimeCollabAgentStatus.shutdown,
+      'notFound' => TranscriptRuntimeCollabAgentStatus.notFound,
+      _ => TranscriptRuntimeCollabAgentStatus.unknown,
     };
   }
 }

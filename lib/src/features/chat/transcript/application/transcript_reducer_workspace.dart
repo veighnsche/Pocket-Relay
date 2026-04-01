@@ -1,20 +1,20 @@
 part of 'transcript_reducer.dart';
 
-CodexSessionState _reduceWorkspaceRuntimeEventImpl(
+TranscriptSessionState _reduceWorkspaceRuntimeEventImpl(
   TranscriptReducer reducer,
-  CodexSessionState state,
-  CodexRuntimeEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeEvent event,
 ) {
   switch (event) {
-    case CodexRuntimeSessionStateChangedEvent():
+    case TranscriptRuntimeSessionStateChangedEvent():
       return _withUpdatedGlobalConnectionStatusImpl(state, event.state);
-    case CodexRuntimeSessionExitedEvent():
+    case TranscriptRuntimeSessionExitedEvent():
       return _reduceSessionExitedImpl(reducer, state, event);
-    case CodexRuntimeThreadStartedEvent():
+    case TranscriptRuntimeThreadStartedEvent():
       return _upsertThreadStartedImpl(state, event);
-    case CodexRuntimeThreadStateChangedEvent():
+    case TranscriptRuntimeThreadStateChangedEvent():
       return _reduceThreadStateChangedImpl(reducer, state, event);
-    case CodexRuntimeSshAuthenticatedEvent():
+    case TranscriptRuntimeSshAuthenticatedEvent():
       return state;
     default:
       break;
@@ -48,11 +48,11 @@ CodexSessionState _reduceWorkspaceRuntimeEventImpl(
   return nextState;
 }
 
-CodexSessionState _withUpdatedGlobalConnectionStatusImpl(
-  CodexSessionState state,
-  CodexRuntimeSessionState nextStatus,
+TranscriptSessionState _withUpdatedGlobalConnectionStatusImpl(
+  TranscriptSessionState state,
+  TranscriptRuntimeSessionState nextStatus,
 ) {
-  final nextTimelines = <String, CodexTimelineState>{};
+  final nextTimelines = <String, TranscriptTimelineState>{};
   for (final entry in state.timelinesByThreadId.entries) {
     nextTimelines[entry.key] = entry.value.copyWith(
       connectionStatus: nextStatus,
@@ -65,8 +65,8 @@ CodexSessionState _withUpdatedGlobalConnectionStatusImpl(
 }
 
 String? _targetThreadIdForEventImpl(
-  CodexSessionState state,
-  CodexRuntimeEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeEvent event,
 ) {
   final eventThreadId = event.threadId;
   if (eventThreadId != null && eventThreadId.isNotEmpty) {
@@ -84,7 +84,7 @@ String? _targetThreadIdForEventImpl(
 }
 
 Map<String, String> _rebuildRequestOwnerByIdImpl(
-  Map<String, CodexTimelineState> timelinesByThreadId,
+  Map<String, TranscriptTimelineState> timelinesByThreadId,
 ) {
   final owners = <String, String>{};
   for (final entry in timelinesByThreadId.entries) {

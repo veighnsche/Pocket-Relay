@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
@@ -125,7 +125,7 @@ class ChatTimelineSummaryContract {
 
   final String threadId;
   final String label;
-  final CodexAgentLifecycleState status;
+  final TranscriptAgentLifecycleState status;
   final bool isPrimary;
   final bool isSelected;
   final bool isClosed;
@@ -179,7 +179,7 @@ class ChatComposerContract {
 class ChatTurnIndicatorContract {
   const ChatTurnIndicatorContract({required this.timer});
 
-  final CodexSessionTurnTimer timer;
+  final TranscriptSessionTurnTimer timer;
 }
 
 class ChatLaneRestartActionContract {

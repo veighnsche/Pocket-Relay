@@ -7,8 +7,8 @@ import 'package:pocket_relay/src/features/chat/transcript/application/chat_histo
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation_normalizer.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_thread_read_decoder.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 void main() {
   const restorer = ChatHistoricalConversationRestorer();
@@ -27,7 +27,7 @@ void main() {
           threadId: 'thread_saved',
           createdAt: DateTime(2026, 3, 20, 10, 1),
           completedAt: DateTime(2026, 3, 20, 10, 2),
-          state: CodexRuntimeTurnState.completed,
+          state: TranscriptRuntimeTurnState.completed,
           model: 'gpt-5.4',
           effort: 'high',
           entries: <CodexHistoricalEntry>[
@@ -36,8 +36,8 @@ void main() {
               threadId: 'thread_saved',
               turnId: 'turn_saved',
               createdAt: DateTime(2026, 3, 20, 10, 1),
-              itemType: CodexCanonicalItemType.userMessage,
-              status: CodexRuntimeItemStatus.completed,
+              itemType: TranscriptCanonicalItemType.userMessage,
+              status: TranscriptRuntimeItemStatus.completed,
               title: 'You',
               detail: 'Restore this',
               snapshot: const <String, dynamic>{
@@ -52,8 +52,8 @@ void main() {
               threadId: 'thread_saved',
               turnId: 'turn_saved',
               createdAt: DateTime(2026, 3, 20, 10, 2),
-              itemType: CodexCanonicalItemType.assistantMessage,
-              status: CodexRuntimeItemStatus.completed,
+              itemType: TranscriptCanonicalItemType.assistantMessage,
+              status: TranscriptRuntimeItemStatus.completed,
               title: 'Codex',
               detail: 'Restored answer',
               snapshot: const <String, dynamic>{
@@ -76,13 +76,16 @@ void main() {
     expect(restoredState.headerMetadata.reasoningEffort, 'high');
     expect(
       restoredState.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .single
           .text,
       'Restore this',
     );
     expect(
-      restoredState.transcriptBlocks.whereType<CodexTextBlock>().single.body,
+      restoredState.transcriptBlocks
+          .whereType<TranscriptTextBlock>()
+          .single
+          .body,
       'Restored answer',
     );
   });
@@ -104,14 +107,14 @@ void main() {
       expect(restoredState.selectedThreadId, '<thread_1>');
       expect(
         restoredState.transcriptBlocks
-            .whereType<CodexUserMessageBlock>()
+            .whereType<TranscriptUserMessageBlock>()
             .single
             .text,
         '<text_1>',
       );
 
       final assistantBlocks = restoredState.transcriptBlocks
-          .whereType<CodexTextBlock>()
+          .whereType<TranscriptTextBlock>()
           .toList(growable: false);
       expect(assistantBlocks, hasLength(9));
       expect(assistantBlocks.first.body, '<text_2>');
@@ -131,15 +134,15 @@ void main() {
             threadId: 'thread_images',
             createdAt: DateTime(2026, 3, 20, 10, 1),
             completedAt: DateTime(2026, 3, 20, 10, 2),
-            state: CodexRuntimeTurnState.completed,
+            state: TranscriptRuntimeTurnState.completed,
             entries: <CodexHistoricalEntry>[
               CodexHistoricalEntry(
                 id: 'item_user_image',
                 threadId: 'thread_images',
                 turnId: 'turn_images',
                 createdAt: DateTime(2026, 3, 20, 10, 1),
-                itemType: CodexCanonicalItemType.userMessage,
-                status: CodexRuntimeItemStatus.completed,
+                itemType: TranscriptCanonicalItemType.userMessage,
+                status: TranscriptRuntimeItemStatus.completed,
                 title: 'You',
                 detail: 'See [Image #1]',
                 snapshot: const <String, dynamic>{
@@ -170,7 +173,7 @@ void main() {
       final restoredState = restorer.restore(conversation);
 
       final block = restoredState.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .single;
       expect(
         block.draft,
@@ -206,15 +209,15 @@ void main() {
             threadId: 'thread_mixed_remote_images',
             createdAt: DateTime(2026, 3, 20, 10, 1),
             completedAt: DateTime(2026, 3, 20, 10, 2),
-            state: CodexRuntimeTurnState.completed,
+            state: TranscriptRuntimeTurnState.completed,
             entries: <CodexHistoricalEntry>[
               CodexHistoricalEntry(
                 id: 'item_user_mixed_remote_images',
                 threadId: 'thread_mixed_remote_images',
                 turnId: 'turn_mixed_remote_images',
                 createdAt: DateTime(2026, 3, 20, 10, 1),
-                itemType: CodexCanonicalItemType.userMessage,
-                status: CodexRuntimeItemStatus.completed,
+                itemType: TranscriptCanonicalItemType.userMessage,
+                status: TranscriptRuntimeItemStatus.completed,
                 title: 'You',
                 detail: 'See reference',
                 snapshot: const <String, dynamic>{
@@ -236,7 +239,7 @@ void main() {
       final restoredState = restorer.restore(conversation);
 
       final block = restoredState.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .single;
       expect(
         block.draft,
@@ -270,15 +273,15 @@ void main() {
           threadId: 'thread_image_only',
           createdAt: DateTime(2026, 3, 20, 10, 1),
           completedAt: DateTime(2026, 3, 20, 10, 2),
-          state: CodexRuntimeTurnState.completed,
+          state: TranscriptRuntimeTurnState.completed,
           entries: <CodexHistoricalEntry>[
             CodexHistoricalEntry(
               id: 'item_user_image_only',
               threadId: 'thread_image_only',
               turnId: 'turn_image_only',
               createdAt: DateTime(2026, 3, 20, 10, 1),
-              itemType: CodexCanonicalItemType.userMessage,
-              status: CodexRuntimeItemStatus.completed,
+              itemType: TranscriptCanonicalItemType.userMessage,
+              status: TranscriptRuntimeItemStatus.completed,
               title: 'You',
               snapshot: const <String, dynamic>{
                 'type': 'userMessage',
@@ -298,7 +301,7 @@ void main() {
     final restoredState = restorer.restore(conversation);
 
     final block = restoredState.transcriptBlocks
-        .whereType<CodexUserMessageBlock>()
+        .whereType<TranscriptUserMessageBlock>()
         .single;
     expect(block.text, '[Image #1]');
     expect(

@@ -8,7 +8,7 @@ import 'package:pocket_relay/src/features/chat/lane/application/chat_session_con
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 export 'dart:async';
@@ -22,7 +22,7 @@ export 'package:pocket_relay/src/features/chat/lane/application/chat_session_gua
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 ConnectionProfile configuredProfile() {

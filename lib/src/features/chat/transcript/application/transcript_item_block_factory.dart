@@ -1,6 +1,6 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 class TranscriptItemBlockFactory {
   const TranscriptItemBlockFactory();
@@ -10,41 +10,48 @@ class TranscriptItemBlockFactory {
     caseSensitive: false,
   );
 
-  CodexUiBlockKind blockKindForItemType(CodexCanonicalItemType itemType) {
+  TranscriptUiBlockKind blockKindForItemType(
+    TranscriptCanonicalItemType itemType,
+  ) {
     return switch (itemType) {
-      CodexCanonicalItemType.userMessage => CodexUiBlockKind.userMessage,
-      CodexCanonicalItemType.commandExecution ||
-      CodexCanonicalItemType.webSearch ||
-      CodexCanonicalItemType.imageView ||
-      CodexCanonicalItemType.imageGeneration ||
-      CodexCanonicalItemType.mcpToolCall ||
-      CodexCanonicalItemType.dynamicToolCall ||
-      CodexCanonicalItemType.collabAgentToolCall =>
-        CodexUiBlockKind.workLogEntry,
-      CodexCanonicalItemType.reasoning => CodexUiBlockKind.reasoning,
-      CodexCanonicalItemType.plan => CodexUiBlockKind.proposedPlan,
-      CodexCanonicalItemType.fileChange => CodexUiBlockKind.changedFiles,
-      CodexCanonicalItemType.reviewEntered ||
-      CodexCanonicalItemType.reviewExited ||
-      CodexCanonicalItemType.contextCompaction ||
-      CodexCanonicalItemType.unknown => CodexUiBlockKind.status,
-      CodexCanonicalItemType.error => CodexUiBlockKind.error,
-      _ => CodexUiBlockKind.assistantMessage,
+      TranscriptCanonicalItemType.userMessage =>
+        TranscriptUiBlockKind.userMessage,
+      TranscriptCanonicalItemType.commandExecution ||
+      TranscriptCanonicalItemType.webSearch ||
+      TranscriptCanonicalItemType.imageView ||
+      TranscriptCanonicalItemType.imageGeneration ||
+      TranscriptCanonicalItemType.mcpToolCall ||
+      TranscriptCanonicalItemType.dynamicToolCall ||
+      TranscriptCanonicalItemType.collabAgentToolCall =>
+        TranscriptUiBlockKind.workLogEntry,
+      TranscriptCanonicalItemType.reasoning => TranscriptUiBlockKind.reasoning,
+      TranscriptCanonicalItemType.plan => TranscriptUiBlockKind.proposedPlan,
+      TranscriptCanonicalItemType.fileChange =>
+        TranscriptUiBlockKind.changedFiles,
+      TranscriptCanonicalItemType.reviewEntered ||
+      TranscriptCanonicalItemType.reviewExited ||
+      TranscriptCanonicalItemType.contextCompaction ||
+      TranscriptCanonicalItemType.unknown => TranscriptUiBlockKind.status,
+      TranscriptCanonicalItemType.error => TranscriptUiBlockKind.error,
+      _ => TranscriptUiBlockKind.assistantMessage,
     };
   }
 
-  CodexStatusBlockKind statusKindForItemType(CodexCanonicalItemType itemType) {
+  TranscriptStatusBlockKind statusKindForItemType(
+    TranscriptCanonicalItemType itemType,
+  ) {
     return switch (itemType) {
-      CodexCanonicalItemType.reviewEntered ||
-      CodexCanonicalItemType.reviewExited => CodexStatusBlockKind.review,
-      CodexCanonicalItemType.contextCompaction =>
-        CodexStatusBlockKind.compaction,
-      _ => CodexStatusBlockKind.info,
+      TranscriptCanonicalItemType.reviewEntered ||
+      TranscriptCanonicalItemType.reviewExited =>
+        TranscriptStatusBlockKind.review,
+      TranscriptCanonicalItemType.contextCompaction =>
+        TranscriptStatusBlockKind.compaction,
+      _ => TranscriptStatusBlockKind.info,
     };
   }
 
-  String defaultItemTitle(CodexCanonicalItemType itemType) {
-    return codexItemTitle(itemType);
+  String defaultItemTitle(TranscriptCanonicalItemType itemType) {
+    return transcriptItemTitle(itemType);
   }
 
   String normalizeCommandExecutionTitle(String value) {
@@ -67,30 +74,35 @@ class TranscriptItemBlockFactory {
     return normalized.isEmpty ? trimmed : normalized;
   }
 
-  CodexWorkLogEntryKind workLogEntryKindFor(CodexCanonicalItemType itemType) {
+  TranscriptWorkLogEntryKind workLogEntryKindFor(
+    TranscriptCanonicalItemType itemType,
+  ) {
     return switch (itemType) {
-      CodexCanonicalItemType.commandExecution =>
-        CodexWorkLogEntryKind.commandExecution,
-      CodexCanonicalItemType.webSearch => CodexWorkLogEntryKind.webSearch,
-      CodexCanonicalItemType.imageView => CodexWorkLogEntryKind.imageView,
-      CodexCanonicalItemType.imageGeneration =>
-        CodexWorkLogEntryKind.imageGeneration,
-      CodexCanonicalItemType.mcpToolCall => CodexWorkLogEntryKind.mcpToolCall,
-      CodexCanonicalItemType.dynamicToolCall =>
-        CodexWorkLogEntryKind.dynamicToolCall,
-      CodexCanonicalItemType.collabAgentToolCall =>
-        CodexWorkLogEntryKind.collabAgentToolCall,
-      _ => CodexWorkLogEntryKind.unknown,
+      TranscriptCanonicalItemType.commandExecution =>
+        TranscriptWorkLogEntryKind.commandExecution,
+      TranscriptCanonicalItemType.webSearch =>
+        TranscriptWorkLogEntryKind.webSearch,
+      TranscriptCanonicalItemType.imageView =>
+        TranscriptWorkLogEntryKind.imageView,
+      TranscriptCanonicalItemType.imageGeneration =>
+        TranscriptWorkLogEntryKind.imageGeneration,
+      TranscriptCanonicalItemType.mcpToolCall =>
+        TranscriptWorkLogEntryKind.mcpToolCall,
+      TranscriptCanonicalItemType.dynamicToolCall =>
+        TranscriptWorkLogEntryKind.dynamicToolCall,
+      TranscriptCanonicalItemType.collabAgentToolCall =>
+        TranscriptWorkLogEntryKind.collabAgentToolCall,
+      _ => TranscriptWorkLogEntryKind.unknown,
     };
   }
 
-  String? workLogPreview(CodexSessionActiveItem item) {
+  String? workLogPreview(TranscriptSessionActiveItem item) {
     final body = item.body.trim();
     if (body.isEmpty) {
       return null;
     }
 
-    if (item.itemType == CodexCanonicalItemType.commandExecution) {
+    if (item.itemType == TranscriptCanonicalItemType.commandExecution) {
       final lines = body
           .split(RegExp(r'\r?\n'))
           .map((line) => line.trim())

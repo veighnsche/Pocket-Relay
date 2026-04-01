@@ -1,7 +1,9 @@
 part of 'chat_session_controller.dart';
 
 extension on ChatSessionController {
-  CodexSessionPendingRequest? _findPendingApprovalRequest(String requestId) {
+  TranscriptSessionPendingRequest? _findPendingApprovalRequest(
+    String requestId,
+  ) {
     final ownerTimeline = _ownerTimelineForRequest(requestId);
     if (ownerTimeline != null) {
       return ownerTimeline.pendingApprovalRequests[requestId];
@@ -10,7 +12,7 @@ extension on ChatSessionController {
     return _sessionState.pendingApprovalRequests[requestId];
   }
 
-  CodexSessionPendingUserInputRequest? _findPendingUserInputRequest(
+  TranscriptSessionPendingUserInputRequest? _findPendingUserInputRequest(
     String requestId,
   ) {
     final ownerTimeline = _ownerTimelineForRequest(requestId);
@@ -21,7 +23,7 @@ extension on ChatSessionController {
     return _sessionState.pendingUserInputRequests[requestId];
   }
 
-  CodexTimelineState? _ownerTimelineForRequest(String requestId) {
+  TranscriptTimelineState? _ownerTimelineForRequest(String requestId) {
     final ownerThreadId = _sessionState.requestOwnerById[requestId];
     if (ownerThreadId != null && ownerThreadId.isNotEmpty) {
       final ownerTimeline = _sessionState.timelineForThread(ownerThreadId);
@@ -42,7 +44,7 @@ extension on ChatSessionController {
 
   bool _shouldHydrateThreadMetadata(
     String threadId,
-    CodexRuntimeThreadStartedEvent event,
+    TranscriptRuntimeThreadStartedEvent event,
   ) {
     if (threadId.isEmpty ||
         event.rawMethod == 'thread/read(response)' ||
@@ -93,17 +95,17 @@ extension on ChatSessionController {
     return value != null && value.trim().isNotEmpty;
   }
 
-  bool _isSshBootstrapFailureRuntimeEvent(CodexRuntimeEvent event) {
+  bool _isSshBootstrapFailureRuntimeEvent(TranscriptRuntimeEvent event) {
     return switch (event) {
-      CodexRuntimeSshConnectFailedEvent() ||
-      CodexRuntimeUnpinnedHostKeyEvent() ||
-      CodexRuntimeSshHostKeyMismatchEvent() ||
-      CodexRuntimeSshAuthenticationFailedEvent() => true,
+      TranscriptRuntimeSshConnectFailedEvent() ||
+      TranscriptRuntimeUnpinnedHostKeyEvent() ||
+      TranscriptRuntimeSshHostKeyMismatchEvent() ||
+      TranscriptRuntimeSshAuthenticationFailedEvent() => true,
       _ => false,
     };
   }
 
-  bool _hasVisibleConversationState([CodexSessionState? state]) {
+  bool _hasVisibleConversationState([TranscriptSessionState? state]) {
     final effectiveState = state ?? _sessionState;
     return effectiveState.activeTurn != null ||
         effectiveState.pendingApprovalRequests.isNotEmpty ||
@@ -116,9 +118,11 @@ extension on ChatSessionController {
     _isBufferingRuntimeEvents = true;
   }
 
-  List<CodexRuntimeEvent> _stopBufferingRuntimeEvents() {
+  List<TranscriptRuntimeEvent> _stopBufferingRuntimeEvents() {
     _isBufferingRuntimeEvents = false;
-    final bufferedEvents = List<CodexRuntimeEvent>.from(_bufferedRuntimeEvents);
+    final bufferedEvents = List<TranscriptRuntimeEvent>.from(
+      _bufferedRuntimeEvents,
+    );
     _bufferedRuntimeEvents.clear();
     return bufferedEvents;
   }
@@ -140,7 +144,7 @@ extension on ChatSessionController {
   }) {
     _applyChatSessionRuntimeEvent(
       this,
-      CodexRuntimeWarningEvent(
+      TranscriptRuntimeWarningEvent(
         createdAt: DateTime.now(),
         rawMethod: rawMethod,
         summary: warning.bodyWithCode,

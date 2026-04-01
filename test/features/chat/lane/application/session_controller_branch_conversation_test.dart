@@ -48,7 +48,7 @@ void main() {
       expect(controller.sessionState.rootThreadId, 'thread_forked');
       expect(controller.sessionState.currentThreadId, 'thread_forked');
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         <String>['Restore this', 'Second prompt'],
@@ -126,7 +126,7 @@ void main() {
       await controller.initialize();
       await controller.selectConversationForResume('thread_saved');
       final originalUserTexts = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .map((block) => block.text)
           .toList(growable: false);
       final snackBarMessage = controller.snackBarMessages.first.timeout(
@@ -138,7 +138,7 @@ void main() {
       expect(branched, isFalse);
       expect(appServerClient.forkThreadRequests, isEmpty);
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         originalUserTexts,

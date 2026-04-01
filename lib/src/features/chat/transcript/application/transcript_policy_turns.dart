@@ -1,8 +1,8 @@
 part of 'transcript_policy.dart';
 
-CodexSessionState _resetTranscriptStateImpl(
-  CodexSessionState state, {
-  List<CodexUiBlock>? blocks,
+TranscriptSessionState _resetTranscriptStateImpl(
+  TranscriptSessionState state, {
+  List<TranscriptUiBlock>? blocks,
 }) {
   return state.copyWithProjectedTranscript(
     clearThreadId: true,
@@ -13,9 +13,9 @@ CodexSessionState _resetTranscriptStateImpl(
   );
 }
 
-CodexSessionState _rolloverTurnIfNeededImpl(
+TranscriptSessionState _rolloverTurnIfNeededImpl(
   TranscriptPolicy policy,
-  CodexSessionState state, {
+  TranscriptSessionState state, {
   required String? turnId,
   required String? threadId,
   required DateTime createdAt,
@@ -58,10 +58,10 @@ CodexSessionState _rolloverTurnIfNeededImpl(
   );
 }
 
-CodexSessionState _applyThreadClosedImpl(
+TranscriptSessionState _applyThreadClosedImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeThreadStateChangedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeThreadStateChangedEvent event,
 ) {
   final finalizedTurn = _finalizeCommittedTurnImpl(
     policy,
@@ -92,10 +92,10 @@ CodexSessionState _applyThreadClosedImpl(
   );
 }
 
-CodexSessionState _applySessionExitedImpl(
+TranscriptSessionState _applySessionExitedImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeSessionExitedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeSessionExitedEvent event,
 ) {
   final completedTimer = policy._support.completeTurnTimer(
     state.activeTurn?.timer,
@@ -108,9 +108,10 @@ CodexSessionState _applySessionExitedImpl(
     policy,
     _clearLocalUserMessageCorrelationStateImpl(
       state.copyWithProjectedTranscript(
-        connectionStatus: event.exitKind == CodexRuntimeSessionExitKind.error
-            ? CodexRuntimeSessionState.error
-            : CodexRuntimeSessionState.stopped,
+        connectionStatus:
+            event.exitKind == TranscriptRuntimeSessionExitKind.error
+            ? TranscriptRuntimeSessionState.error
+            : TranscriptRuntimeSessionState.stopped,
         clearThreadId: true,
         clearActiveTurn: true,
       ),
@@ -118,12 +119,12 @@ CodexSessionState _applySessionExitedImpl(
     activeTurn: state.activeTurn,
     includePendingUsage: true,
   );
-  if (event.exitKind != CodexRuntimeSessionExitKind.error) {
+  if (event.exitKind != TranscriptRuntimeSessionExitKind.error) {
     return nextState;
   }
   return policy._support.appendBlock(
     nextState,
-    CodexErrorBlock(
+    TranscriptErrorBlock(
       id: policy._support.eventEntryId('session-exit', event.createdAt),
       createdAt: event.createdAt,
       title: 'Session exited',
@@ -134,10 +135,10 @@ CodexSessionState _applySessionExitedImpl(
   );
 }
 
-CodexSessionState _applyTurnCompletedImpl(
+TranscriptSessionState _applyTurnCompletedImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeTurnCompletedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeTurnCompletedEvent event,
 ) {
   if (_hasMismatchedActiveTurnImpl(state, event.turnId)) {
     return state;
@@ -152,7 +153,7 @@ CodexSessionState _applyTurnCompletedImpl(
     policy,
     _clearLocalUserMessageCorrelationStateImpl(
       state.copyWithProjectedTranscript(
-        connectionStatus: CodexRuntimeSessionState.ready,
+        connectionStatus: TranscriptRuntimeSessionState.ready,
         clearActiveTurn: true,
       ),
     ),
@@ -169,10 +170,10 @@ CodexSessionState _applyTurnCompletedImpl(
   );
 }
 
-CodexSessionState _applyTurnAbortedImpl(
+TranscriptSessionState _applyTurnAbortedImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeTurnAbortedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeTurnAbortedEvent event,
 ) {
   if (_hasMismatchedActiveTurnImpl(state, event.turnId)) {
     return state;
@@ -188,21 +189,21 @@ CodexSessionState _applyTurnAbortedImpl(
       policy,
       _clearLocalUserMessageCorrelationStateImpl(
         state.copyWithProjectedTranscript(
-          connectionStatus: CodexRuntimeSessionState.ready,
+          connectionStatus: TranscriptRuntimeSessionState.ready,
           clearActiveTurn: true,
         ),
       ),
       activeTurn: finalizedTurn.$1,
       includePendingUsage: true,
     ),
-    CodexStatusBlock(
+    TranscriptStatusBlock(
       id: policy._support.eventEntryId('status', event.createdAt),
       createdAt: event.createdAt,
       title: 'Turn aborted',
       body: finalizedTurn.$2 == null
           ? (event.reason ?? 'The active turn was aborted.')
           : '${event.reason ?? 'The active turn was aborted.'}\n\nElapsed ${formatElapsedDuration(finalizedTurn.$2!)}.',
-      statusKind: CodexStatusBlockKind.info,
+      statusKind: TranscriptStatusBlockKind.info,
       isTranscriptSignal: true,
     ),
   );

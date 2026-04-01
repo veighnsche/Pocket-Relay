@@ -3,25 +3,25 @@ part of 'chat_work_log_item_projector.dart';
 typedef _EntryClassifier =
     ChatWorkLogEntryContract? Function(
       ChatWorkLogItemProjector projector,
-      CodexWorkLogEntry entry,
+      TranscriptWorkLogEntry entry,
       String normalizedTitle,
     );
 
 final List<_EntryClassifier> _entryClassifiers = <_EntryClassifier>[
   (projector, entry, normalizedTitle) =>
-      entry.entryKind == CodexWorkLogEntryKind.mcpToolCall
+      entry.entryKind == TranscriptWorkLogEntryKind.mcpToolCall
       ? projector._projectMcpToolCall(entry)
       : null,
   (projector, entry, normalizedTitle) =>
-      entry.entryKind == CodexWorkLogEntryKind.webSearch
+      entry.entryKind == TranscriptWorkLogEntryKind.webSearch
       ? projector._projectWebSearch(entry)
       : null,
   (projector, entry, normalizedTitle) =>
-      entry.entryKind == CodexWorkLogEntryKind.commandExecution
+      entry.entryKind == TranscriptWorkLogEntryKind.commandExecution
       ? projector._projectCommandWait(entry, normalizedTitle: normalizedTitle)
       : null,
   (projector, entry, normalizedTitle) =>
-      switch (entry.entryKind == CodexWorkLogEntryKind.commandExecution
+      switch (entry.entryKind == TranscriptWorkLogEntryKind.commandExecution
       ? _tryParseReadCommand(normalizedTitle)
       : null) {
         final _ParsedReadCommand readCommand => projector._projectReadCommand(
@@ -32,7 +32,7 @@ final List<_EntryClassifier> _entryClassifiers = <_EntryClassifier>[
         _ => null,
       },
   (projector, entry, normalizedTitle) =>
-      switch (entry.entryKind == CodexWorkLogEntryKind.commandExecution
+      switch (entry.entryKind == TranscriptWorkLogEntryKind.commandExecution
       ? _tryParseGitCommand(normalizedTitle)
       : null) {
         final _ParsedGitCommand gitCommand => projector._projectGitCommand(
@@ -43,7 +43,7 @@ final List<_EntryClassifier> _entryClassifiers = <_EntryClassifier>[
         _ => null,
       },
   (projector, entry, normalizedTitle) =>
-      switch (entry.entryKind == CodexWorkLogEntryKind.commandExecution
+      switch (entry.entryKind == TranscriptWorkLogEntryKind.commandExecution
       ? _tryParseContentSearchCommand(normalizedTitle)
       : null) {
         final _ParsedContentSearchCommand searchCommand =>
@@ -55,7 +55,7 @@ final List<_EntryClassifier> _entryClassifiers = <_EntryClassifier>[
         _ => null,
       },
   (projector, entry, normalizedTitle) =>
-      entry.entryKind == CodexWorkLogEntryKind.commandExecution
+      entry.entryKind == TranscriptWorkLogEntryKind.commandExecution
       ? projector._projectCommandExecution(
           entry,
           normalizedTitle: normalizedTitle,

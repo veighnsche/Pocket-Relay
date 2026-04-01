@@ -1,19 +1,19 @@
 part of 'transcript_request_policy.dart';
 
-CodexUiBlock _resolvedRequestBlock({
+TranscriptUiBlock _resolvedRequestBlock({
   required String id,
   required DateTime createdAt,
   required String requestId,
-  required CodexCanonicalRequestType requestType,
+  required TranscriptCanonicalRequestType requestType,
   required String title,
   required String body,
   String? resolutionLabel,
 }) {
   final isUserInput =
-      requestType == CodexCanonicalRequestType.toolUserInput ||
-      requestType == CodexCanonicalRequestType.mcpServerElicitation;
+      requestType == TranscriptCanonicalRequestType.toolUserInput ||
+      requestType == TranscriptCanonicalRequestType.mcpServerElicitation;
   if (isUserInput) {
-    return CodexUserInputRequestBlock(
+    return TranscriptUserInputRequestBlock(
       id: id,
       createdAt: createdAt,
       requestId: requestId,
@@ -24,7 +24,7 @@ CodexUiBlock _resolvedRequestBlock({
     );
   }
 
-  return CodexApprovalRequestBlock(
+  return TranscriptApprovalRequestBlock(
     id: id,
     createdAt: createdAt,
     requestId: requestId,
@@ -87,15 +87,19 @@ String _normalizeResolutionLabel(String value) {
   final normalized = value.trim().toLowerCase();
   return switch (normalized) {
     'accept' || 'accepted' || 'approve' || 'approved' => 'approved',
-    'decline' || 'declined' || 'deny' || 'denied' || 'reject' || 'rejected' =>
-      'denied',
+    'decline' ||
+    'declined' ||
+    'deny' ||
+    'denied' ||
+    'reject' ||
+    'rejected' => 'denied',
     _ => normalized,
   };
 }
 
-CodexSessionState _stateWithResolvedTranscriptBlock(
-  CodexSessionState state,
-  CodexUiBlock block, {
+TranscriptSessionState _stateWithResolvedTranscriptBlock(
+  TranscriptSessionState state,
+  TranscriptUiBlock block, {
   required String? turnId,
   required String? threadId,
 }) {
@@ -127,7 +131,7 @@ CodexSessionState _stateWithResolvedTranscriptBlock(
   final existingArtifact = activeTurn.artifacts[existingIndex];
   final nextBlock = _mergeResolvedRequestBlocks(
     switch (existingArtifact) {
-      CodexTurnBlockArtifact(:final block) => block,
+      TranscriptTurnBlockArtifact(:final block) => block,
       _ => null,
     },
     _resolvedRequestBlockWithCreatedAt(
@@ -141,12 +145,12 @@ CodexSessionState _stateWithResolvedTranscriptBlock(
   );
 }
 
-CodexUiBlock _resolvedRequestBlockWithCreatedAt(
-  CodexUiBlock block, {
+TranscriptUiBlock _resolvedRequestBlockWithCreatedAt(
+  TranscriptUiBlock block, {
   required DateTime createdAt,
 }) {
   return switch (block) {
-    CodexApprovalRequestBlock() => CodexApprovalRequestBlock(
+    TranscriptApprovalRequestBlock() => TranscriptApprovalRequestBlock(
       id: block.id,
       createdAt: createdAt,
       requestId: block.requestId,
@@ -156,7 +160,7 @@ CodexUiBlock _resolvedRequestBlockWithCreatedAt(
       isResolved: block.isResolved,
       resolutionLabel: block.resolutionLabel,
     ),
-    CodexUserInputRequestBlock() => CodexUserInputRequestBlock(
+    TranscriptUserInputRequestBlock() => TranscriptUserInputRequestBlock(
       id: block.id,
       createdAt: createdAt,
       requestId: block.requestId,
@@ -171,9 +175,9 @@ CodexUiBlock _resolvedRequestBlockWithCreatedAt(
   };
 }
 
-CodexUiBlock _mergeResolvedRequestBlocks(
-  CodexUiBlock? existingBlock,
-  CodexUiBlock incomingBlock,
+TranscriptUiBlock _mergeResolvedRequestBlocks(
+  TranscriptUiBlock? existingBlock,
+  TranscriptUiBlock incomingBlock,
 ) {
   if (existingBlock == null) {
     return incomingBlock;
@@ -181,37 +185,37 @@ CodexUiBlock _mergeResolvedRequestBlocks(
 
   return switch ((existingBlock, incomingBlock)) {
     (
-      CodexUserInputRequestBlock existing,
-      CodexUserInputRequestBlock incoming,
+      TranscriptUserInputRequestBlock existing,
+      TranscriptUserInputRequestBlock incoming,
     ) =>
       _mergeUserInputResolvedBlocks(existing, incoming),
     (
-      CodexApprovalRequestBlock existing,
-      CodexApprovalRequestBlock incoming,
+      TranscriptApprovalRequestBlock existing,
+      TranscriptApprovalRequestBlock incoming,
     ) =>
       _mergeApprovalResolvedBlocks(existing, incoming),
     (
-      CodexUserInputRequestBlock existing,
-      CodexApprovalRequestBlock incoming,
+      TranscriptUserInputRequestBlock existing,
+      TranscriptApprovalRequestBlock incoming,
     ) =>
-      incoming.requestType == CodexCanonicalRequestType.unknown
+      incoming.requestType == TranscriptCanonicalRequestType.unknown
           ? existing
           : incoming,
     (
-      CodexApprovalRequestBlock existing,
-      CodexUserInputRequestBlock incoming,
+      TranscriptApprovalRequestBlock existing,
+      TranscriptUserInputRequestBlock incoming,
     ) =>
       _isRichUserInputResolution(incoming) ||
-              existing.requestType == CodexCanonicalRequestType.unknown
+              existing.requestType == TranscriptCanonicalRequestType.unknown
           ? incoming
           : incoming,
     _ => incomingBlock,
   };
 }
 
-CodexUserInputRequestBlock _mergeUserInputResolvedBlocks(
-  CodexUserInputRequestBlock existing,
-  CodexUserInputRequestBlock incoming,
+TranscriptUserInputRequestBlock _mergeUserInputResolvedBlocks(
+  TranscriptUserInputRequestBlock existing,
+  TranscriptUserInputRequestBlock incoming,
 ) {
   final incomingIsRich = _isRichUserInputResolution(incoming);
   final existingIsRich = _isRichUserInputResolution(existing);
@@ -228,14 +232,14 @@ CodexUserInputRequestBlock _mergeUserInputResolvedBlocks(
   );
 }
 
-CodexApprovalRequestBlock _mergeApprovalResolvedBlocks(
-  CodexApprovalRequestBlock existing,
-  CodexApprovalRequestBlock incoming,
+TranscriptApprovalRequestBlock _mergeApprovalResolvedBlocks(
+  TranscriptApprovalRequestBlock existing,
+  TranscriptApprovalRequestBlock incoming,
 ) {
   final existingIsSpecific =
-      existing.requestType != CodexCanonicalRequestType.unknown;
+      existing.requestType != TranscriptCanonicalRequestType.unknown;
   final incomingIsSpecific =
-      incoming.requestType != CodexCanonicalRequestType.unknown;
+      incoming.requestType != TranscriptCanonicalRequestType.unknown;
   if (existingIsSpecific && !incomingIsSpecific) {
     return existing;
   }
@@ -243,6 +247,6 @@ CodexApprovalRequestBlock _mergeApprovalResolvedBlocks(
   return incoming;
 }
 
-bool _isRichUserInputResolution(CodexUserInputRequestBlock block) {
+bool _isRichUserInputResolution(TranscriptUserInputRequestBlock block) {
   return block.answers.isNotEmpty || block.title == 'Input submitted';
 }

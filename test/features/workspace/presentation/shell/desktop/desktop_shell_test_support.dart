@@ -10,7 +10,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
@@ -31,7 +31,7 @@ export 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 export 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 export 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 export 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';

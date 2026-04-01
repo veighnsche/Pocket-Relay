@@ -1,10 +1,10 @@
 part of 'transcript_request_policy.dart';
 
-CodexActiveTurnState? _activeTurnForPendingApproval(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _activeTurnForPendingApproval(
+  TranscriptActiveTurnState? activeTurn, {
   required String requestId,
-  required CodexSessionPendingRequest pendingRequest,
-  required CodexSessionTurnTimer? turnTimer,
+  required TranscriptSessionPendingRequest pendingRequest,
+  required TranscriptSessionTurnTimer? turnTimer,
 }) {
   if (activeTurn == null || activeTurn.turnId != pendingRequest.turnId) {
     return activeTurn;
@@ -12,19 +12,19 @@ CodexActiveTurnState? _activeTurnForPendingApproval(
 
   return activeTurn.copyWith(
     timer: turnTimer,
-    status: CodexActiveTurnStatus.blocked,
-    pendingApprovalRequests: <String, CodexSessionPendingRequest>{
+    status: TranscriptActiveTurnStatus.blocked,
+    pendingApprovalRequests: <String, TranscriptSessionPendingRequest>{
       ...activeTurn.pendingApprovalRequests,
       requestId: pendingRequest,
     },
   );
 }
 
-CodexActiveTurnState? _activeTurnForPendingInput(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _activeTurnForPendingInput(
+  TranscriptActiveTurnState? activeTurn, {
   required String requestId,
-  required CodexSessionPendingUserInputRequest pendingRequest,
-  required CodexSessionTurnTimer? turnTimer,
+  required TranscriptSessionPendingUserInputRequest pendingRequest,
+  required TranscriptSessionTurnTimer? turnTimer,
 }) {
   if (activeTurn == null || activeTurn.turnId != pendingRequest.turnId) {
     return activeTurn;
@@ -32,50 +32,51 @@ CodexActiveTurnState? _activeTurnForPendingInput(
 
   return activeTurn.copyWith(
     timer: turnTimer,
-    status: CodexActiveTurnStatus.blocked,
-    pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
-      ...activeTurn.pendingUserInputRequests,
-      requestId: pendingRequest,
-    },
+    status: TranscriptActiveTurnStatus.blocked,
+    pendingUserInputRequests:
+        <String, TranscriptSessionPendingUserInputRequest>{
+          ...activeTurn.pendingUserInputRequests,
+          requestId: pendingRequest,
+        },
   );
 }
 
-CodexActiveTurnState? _activeTurnAfterRequestResolved(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _activeTurnAfterRequestResolved(
+  TranscriptActiveTurnState? activeTurn, {
   required String requestId,
-  required CodexSessionTurnTimer? turnTimer,
+  required TranscriptSessionTurnTimer? turnTimer,
 }) {
   if (activeTurn == null) {
     return null;
   }
 
-  final nextApprovals = <String, CodexSessionPendingRequest>{
+  final nextApprovals = <String, TranscriptSessionPendingRequest>{
     ...activeTurn.pendingApprovalRequests,
   }..remove(requestId);
-  final nextInputs = <String, CodexSessionPendingUserInputRequest>{
+  final nextInputs = <String, TranscriptSessionPendingUserInputRequest>{
     ...activeTurn.pendingUserInputRequests,
   }..remove(requestId);
 
   return activeTurn.copyWith(
     timer: turnTimer,
     status: nextApprovals.isNotEmpty || nextInputs.isNotEmpty
-        ? CodexActiveTurnStatus.blocked
-        : CodexActiveTurnStatus.running,
+        ? TranscriptActiveTurnStatus.blocked
+        : TranscriptActiveTurnStatus.running,
     pendingApprovalRequests: nextApprovals,
     pendingUserInputRequests: nextInputs,
   );
 }
 
-CodexActiveTurnState? _activeTurnAfterUserInputResolved(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _activeTurnAfterUserInputResolved(
+  TranscriptActiveTurnState? activeTurn, {
   required String requestId,
-  required CodexSessionTurnTimer? turnTimer,
+  required TranscriptSessionTurnTimer? turnTimer,
 }) {
   if (activeTurn == null) {
     return null;
   }
 
-  final nextInputs = <String, CodexSessionPendingUserInputRequest>{
+  final nextInputs = <String, TranscriptSessionPendingUserInputRequest>{
     ...activeTurn.pendingUserInputRequests,
   }..remove(requestId);
 
@@ -83,14 +84,14 @@ CodexActiveTurnState? _activeTurnAfterUserInputResolved(
     timer: turnTimer,
     status:
         activeTurn.pendingApprovalRequests.isNotEmpty || nextInputs.isNotEmpty
-        ? CodexActiveTurnStatus.blocked
-        : CodexActiveTurnStatus.running,
+        ? TranscriptActiveTurnStatus.blocked
+        : TranscriptActiveTurnStatus.running,
     pendingUserInputRequests: nextInputs,
   );
 }
 
-CodexActiveTurnState? _ensureActiveTurn(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _ensureActiveTurn(
+  TranscriptActiveTurnState? activeTurn, {
   required String? turnId,
   required String? threadId,
   required DateTime createdAt,
@@ -99,10 +100,10 @@ CodexActiveTurnState? _ensureActiveTurn(
     return activeTurn;
   }
 
-  return CodexActiveTurnState(
+  return TranscriptActiveTurnState(
     turnId: turnId,
     threadId: threadId,
-    timer: CodexSessionTurnTimer(
+    timer: TranscriptSessionTurnTimer(
       turnId: turnId,
       startedAt: createdAt,
       activeSegmentStartedMonotonicAt: CodexMonotonicClock.now(),
@@ -110,19 +111,21 @@ CodexActiveTurnState? _ensureActiveTurn(
   );
 }
 
-CodexActiveTurnState _appendTurnBlock(
-  CodexActiveTurnState activeTurn,
-  CodexUiBlock block,
+TranscriptActiveTurnState _appendTurnBlock(
+  TranscriptActiveTurnState activeTurn,
+  TranscriptUiBlock block,
 ) {
   return activeTurn.copyWith(
     artifacts: appendCodexTurnArtifact(
       activeTurn.artifacts,
-      CodexTurnBlockArtifact(block: block),
+      TranscriptTurnBlockArtifact(block: block),
     ),
   );
 }
 
-CodexActiveTurnState? _freezeTailArtifact(CodexActiveTurnState? activeTurn) {
+TranscriptActiveTurnState? _freezeTailArtifact(
+  TranscriptActiveTurnState? activeTurn,
+) {
   if (activeTurn == null || activeTurn.artifacts.isEmpty) {
     return activeTurn;
   }
@@ -132,13 +135,13 @@ CodexActiveTurnState? _freezeTailArtifact(CodexActiveTurnState? activeTurn) {
     return activeTurn;
   }
 
-  final nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
+  final nextArtifacts = List<TranscriptTurnArtifact>.from(activeTurn.artifacts);
   nextArtifacts[nextArtifacts.length - 1] = frozenTail;
   return activeTurn.copyWith(artifacts: nextArtifacts);
 }
 
-CodexActiveTurnState? _freezeArtifactsForRequest(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _freezeArtifactsForRequest(
+  TranscriptActiveTurnState? activeTurn, {
   required String? itemId,
 }) {
   return _freezeCommandArtifact(
@@ -147,8 +150,8 @@ CodexActiveTurnState? _freezeArtifactsForRequest(
   );
 }
 
-CodexActiveTurnState? _freezeCommandArtifact(
-  CodexActiveTurnState? activeTurn, {
+TranscriptActiveTurnState? _freezeCommandArtifact(
+  TranscriptActiveTurnState? activeTurn, {
   required String? itemId,
 }) {
   if (activeTurn == null || itemId == null) {
@@ -156,7 +159,7 @@ CodexActiveTurnState? _freezeCommandArtifact(
   }
 
   final item = activeTurn.itemsById[itemId];
-  if (item?.itemType != CodexCanonicalItemType.commandExecution) {
+  if (item?.itemType != TranscriptCanonicalItemType.commandExecution) {
     return activeTurn;
   }
 
@@ -178,17 +181,17 @@ CodexActiveTurnState? _freezeCommandArtifact(
     return activeTurn;
   }
 
-  final nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
+  final nextArtifacts = List<TranscriptTurnArtifact>.from(activeTurn.artifacts);
   nextArtifacts[index] = frozenArtifact;
   return activeTurn.copyWith(artifacts: nextArtifacts);
 }
 
-CodexActiveTurnState _replaceTailTurnBlock(
-  CodexActiveTurnState activeTurn,
-  CodexUiBlock block,
+TranscriptActiveTurnState _replaceTailTurnBlock(
+  TranscriptActiveTurnState activeTurn,
+  TranscriptUiBlock block,
 ) {
-  final nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
-  nextArtifacts[nextArtifacts.length - 1] = CodexTurnBlockArtifact(
+  final nextArtifacts = List<TranscriptTurnArtifact>.from(activeTurn.artifacts);
+  nextArtifacts[nextArtifacts.length - 1] = TranscriptTurnBlockArtifact(
     block: block,
   );
   return activeTurn.copyWith(artifacts: nextArtifacts);

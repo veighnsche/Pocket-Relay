@@ -1,7 +1,7 @@
-part of 'codex_session_state.dart';
+part of 'transcript_session_state.dart';
 
-class CodexSessionPendingRequest {
-  const CodexSessionPendingRequest({
+class TranscriptSessionPendingRequest {
+  const TranscriptSessionPendingRequest({
     required this.requestId,
     required this.requestType,
     required this.createdAt,
@@ -13,7 +13,7 @@ class CodexSessionPendingRequest {
   });
 
   final String requestId;
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final DateTime createdAt;
   final String? threadId;
   final String? turnId;
@@ -22,8 +22,8 @@ class CodexSessionPendingRequest {
   final Object? args;
 }
 
-class CodexSessionPendingUserInputRequest {
-  const CodexSessionPendingUserInputRequest({
+class TranscriptSessionPendingUserInputRequest {
+  const TranscriptSessionPendingUserInputRequest({
     required this.requestId,
     required this.requestType,
     required this.createdAt,
@@ -31,23 +31,23 @@ class CodexSessionPendingUserInputRequest {
     this.turnId,
     this.itemId,
     this.detail,
-    this.questions = const <CodexRuntimeUserInputQuestion>[],
+    this.questions = const <TranscriptRuntimeUserInputQuestion>[],
     this.args,
   });
 
   final String requestId;
-  final CodexCanonicalRequestType requestType;
+  final TranscriptCanonicalRequestType requestType;
   final DateTime createdAt;
   final String? threadId;
   final String? turnId;
   final String? itemId;
   final String? detail;
-  final List<CodexRuntimeUserInputQuestion> questions;
+  final List<TranscriptRuntimeUserInputQuestion> questions;
   final Object? args;
 }
 
-class CodexSessionActiveItem {
-  const CodexSessionActiveItem({
+class TranscriptSessionActiveItem {
+  const TranscriptSessionActiveItem({
     required this.itemId,
     required this.threadId,
     required this.turnId,
@@ -67,9 +67,9 @@ class CodexSessionActiveItem {
   final String itemId;
   final String threadId;
   final String turnId;
-  final CodexCanonicalItemType itemType;
+  final TranscriptCanonicalItemType itemType;
   final String entryId;
-  final CodexUiBlockKind blockKind;
+  final TranscriptUiBlockKind blockKind;
   final DateTime createdAt;
   final String? title;
   final String body;
@@ -79,7 +79,7 @@ class CodexSessionActiveItem {
   final int? exitCode;
   final Map<String, dynamic>? snapshot;
 
-  CodexSessionActiveItem copyWith({
+  TranscriptSessionActiveItem copyWith({
     String? entryId,
     DateTime? createdAt,
     String? title,
@@ -90,7 +90,7 @@ class CodexSessionActiveItem {
     int? exitCode,
     Map<String, dynamic>? snapshot,
   }) {
-    return CodexSessionActiveItem(
+    return TranscriptSessionActiveItem(
       itemId: itemId,
       threadId: threadId,
       turnId: turnId,
@@ -109,20 +109,21 @@ class CodexSessionActiveItem {
   }
 }
 
-enum CodexActiveTurnStatus { running, blocked, completing }
+enum TranscriptActiveTurnStatus { running, blocked, completing }
 
-class CodexActiveTurnState {
-  const CodexActiveTurnState({
+class TranscriptActiveTurnState {
+  const TranscriptActiveTurnState({
     required this.turnId,
     this.threadId,
     required this.timer,
-    this.status = CodexActiveTurnStatus.running,
-    this.artifacts = const <CodexTurnArtifact>[],
-    this.itemsById = const <String, CodexSessionActiveItem>{},
+    this.status = TranscriptActiveTurnStatus.running,
+    this.artifacts = const <TranscriptTurnArtifact>[],
+    this.itemsById = const <String, TranscriptSessionActiveItem>{},
     this.itemArtifactIds = const <String, String>{},
-    this.pendingApprovalRequests = const <String, CodexSessionPendingRequest>{},
+    this.pendingApprovalRequests =
+        const <String, TranscriptSessionPendingRequest>{},
     this.pendingUserInputRequests =
-        const <String, CodexSessionPendingUserInputRequest>{},
+        const <String, TranscriptSessionPendingUserInputRequest>{},
     this.turnDiffSnapshot,
     this.pendingThreadTokenUsageBlock,
     this.latestUsageSummary,
@@ -132,16 +133,16 @@ class CodexActiveTurnState {
 
   final String turnId;
   final String? threadId;
-  final CodexSessionTurnTimer timer;
-  final CodexActiveTurnStatus status;
-  final List<CodexTurnArtifact> artifacts;
-  final Map<String, CodexSessionActiveItem> itemsById;
+  final TranscriptSessionTurnTimer timer;
+  final TranscriptActiveTurnStatus status;
+  final List<TranscriptTurnArtifact> artifacts;
+  final Map<String, TranscriptSessionActiveItem> itemsById;
   final Map<String, String> itemArtifactIds;
-  final Map<String, CodexSessionPendingRequest> pendingApprovalRequests;
-  final Map<String, CodexSessionPendingUserInputRequest>
+  final Map<String, TranscriptSessionPendingRequest> pendingApprovalRequests;
+  final Map<String, TranscriptSessionPendingUserInputRequest>
   pendingUserInputRequests;
-  final CodexTurnDiffSnapshot? turnDiffSnapshot;
-  final CodexUsageBlock? pendingThreadTokenUsageBlock;
+  final TranscriptTurnDiffSnapshot? turnDiffSnapshot;
+  final TranscriptUsageBlock? pendingThreadTokenUsageBlock;
   final String? latestUsageSummary;
   final bool hasWork;
   final bool hasReasoning;
@@ -149,26 +150,27 @@ class CodexActiveTurnState {
   bool get hasBlockingRequests =>
       pendingApprovalRequests.isNotEmpty || pendingUserInputRequests.isNotEmpty;
 
-  CodexActiveTurnState copyWith({
+  TranscriptActiveTurnState copyWith({
     String? turnId,
     String? threadId,
-    CodexSessionTurnTimer? timer,
-    CodexActiveTurnStatus? status,
-    List<CodexTurnArtifact>? artifacts,
-    Map<String, CodexSessionActiveItem>? itemsById,
+    TranscriptSessionTurnTimer? timer,
+    TranscriptActiveTurnStatus? status,
+    List<TranscriptTurnArtifact>? artifacts,
+    Map<String, TranscriptSessionActiveItem>? itemsById,
     Map<String, String>? itemArtifactIds,
-    Map<String, CodexSessionPendingRequest>? pendingApprovalRequests,
-    Map<String, CodexSessionPendingUserInputRequest>? pendingUserInputRequests,
-    CodexTurnDiffSnapshot? turnDiffSnapshot,
+    Map<String, TranscriptSessionPendingRequest>? pendingApprovalRequests,
+    Map<String, TranscriptSessionPendingUserInputRequest>?
+    pendingUserInputRequests,
+    TranscriptTurnDiffSnapshot? turnDiffSnapshot,
     bool clearTurnDiffSnapshot = false,
-    CodexUsageBlock? pendingThreadTokenUsageBlock,
+    TranscriptUsageBlock? pendingThreadTokenUsageBlock,
     bool clearPendingThreadTokenUsageBlock = false,
     String? latestUsageSummary,
     bool clearLatestUsageSummary = false,
     bool? hasWork,
     bool? hasReasoning,
   }) {
-    return CodexActiveTurnState(
+    return TranscriptActiveTurnState(
       turnId: turnId ?? this.turnId,
       threadId: threadId ?? this.threadId,
       timer: timer ?? this.timer,

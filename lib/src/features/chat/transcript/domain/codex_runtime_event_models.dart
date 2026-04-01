@@ -1,7 +1,7 @@
-part of 'codex_runtime_event.dart';
+part of 'transcript_runtime_event.dart';
 
-class CodexRuntimeTurnUsage {
-  const CodexRuntimeTurnUsage({
+class TranscriptRuntimeTurnUsage {
+  const TranscriptRuntimeTurnUsage({
     this.inputTokens,
     this.cachedInputTokens,
     this.outputTokens,
@@ -14,15 +14,15 @@ class CodexRuntimeTurnUsage {
   final Map<String, dynamic>? raw;
 }
 
-class CodexRuntimePlanStep {
-  const CodexRuntimePlanStep({required this.step, required this.status});
+class TranscriptRuntimePlanStep {
+  const TranscriptRuntimePlanStep({required this.step, required this.status});
 
   final String step;
-  final CodexRuntimePlanStepStatus status;
+  final TranscriptRuntimePlanStepStatus status;
 }
 
-class CodexRuntimeUserInputOption {
-  const CodexRuntimeUserInputOption({
+class TranscriptRuntimeUserInputOption {
+  const TranscriptRuntimeUserInputOption({
     required this.label,
     required this.description,
   });
@@ -31,12 +31,12 @@ class CodexRuntimeUserInputOption {
   final String description;
 }
 
-class CodexRuntimeUserInputQuestion {
-  const CodexRuntimeUserInputQuestion({
+class TranscriptRuntimeUserInputQuestion {
+  const TranscriptRuntimeUserInputQuestion({
     required this.id,
     required this.header,
     required this.question,
-    this.options = const <CodexRuntimeUserInputOption>[],
+    this.options = const <TranscriptRuntimeUserInputOption>[],
     this.isOther = false,
     this.isSecret = false,
   });
@@ -44,23 +44,20 @@ class CodexRuntimeUserInputQuestion {
   final String id;
   final String header;
   final String question;
-  final List<CodexRuntimeUserInputOption> options;
+  final List<TranscriptRuntimeUserInputOption> options;
   final bool isOther;
   final bool isSecret;
 }
 
-class CodexRuntimeCollabAgentState {
-  const CodexRuntimeCollabAgentState({
-    required this.status,
-    this.message,
-  });
+class TranscriptRuntimeCollabAgentState {
+  const TranscriptRuntimeCollabAgentState({required this.status, this.message});
 
-  final CodexRuntimeCollabAgentStatus status;
+  final TranscriptRuntimeCollabAgentStatus status;
   final String? message;
 }
 
-class CodexRuntimeCollabAgentToolCall {
-  const CodexRuntimeCollabAgentToolCall({
+class TranscriptRuntimeCollabAgentToolCall {
+  const TranscriptRuntimeCollabAgentToolCall({
     required this.tool,
     required this.status,
     required this.senderThreadId,
@@ -68,15 +65,15 @@ class CodexRuntimeCollabAgentToolCall {
     this.prompt,
     this.model,
     this.reasoningEffort,
-    this.agentsStates = const <String, CodexRuntimeCollabAgentState>{},
+    this.agentsStates = const <String, TranscriptRuntimeCollabAgentState>{},
   });
 
-  final CodexRuntimeCollabAgentTool tool;
-  final CodexRuntimeCollabAgentToolCallStatus status;
+  final TranscriptRuntimeCollabAgentTool tool;
+  final TranscriptRuntimeCollabAgentToolCallStatus status;
   final String senderThreadId;
   final List<String> receiverThreadIds;
   final String? prompt;
   final String? model;
   final String? reasoningEffort;
-  final Map<String, CodexRuntimeCollabAgentState> agentsStates;
+  final Map<String, TranscriptRuntimeCollabAgentState> agentsStates;
 }

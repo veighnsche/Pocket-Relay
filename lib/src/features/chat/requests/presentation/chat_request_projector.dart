@@ -1,13 +1,13 @@
 import 'package:pocket_relay/src/features/chat/requests/domain/codex_request_display.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_contract.dart';
 
 class ChatRequestProjector {
   const ChatRequestProjector();
 
   ChatApprovalRequestContract projectApprovalBlock(
-    CodexApprovalRequestBlock block,
+    TranscriptApprovalRequestBlock block,
   ) {
     return ChatApprovalRequestContract(
       id: block.id,
@@ -22,7 +22,7 @@ class ChatRequestProjector {
   }
 
   ChatApprovalRequestContract projectPendingApprovalRequest(
-    CodexSessionPendingRequest request,
+    TranscriptSessionPendingRequest request,
   ) {
     return ChatApprovalRequestContract(
       id: 'request_${request.requestId}',
@@ -36,7 +36,7 @@ class ChatRequestProjector {
   }
 
   ChatUserInputRequestContract projectUserInputBlock(
-    CodexUserInputRequestBlock block,
+    TranscriptUserInputRequestBlock block,
   ) {
     return ChatUserInputRequestContract(
       id: block.id,
@@ -52,7 +52,7 @@ class ChatRequestProjector {
   }
 
   ChatUserInputRequestContract projectPendingUserInputRequest(
-    CodexSessionPendingUserInputRequest request,
+    TranscriptSessionPendingUserInputRequest request,
   ) {
     return ChatUserInputRequestContract(
       id: 'request_${request.requestId}',

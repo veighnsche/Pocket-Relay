@@ -97,7 +97,7 @@ void main() {
           platformBehavior: PocketPlatformBehavior.resolve(),
           screen: screenContract(
             turnIndicator: ChatTurnIndicatorContract(
-              timer: CodexSessionTurnTimer(
+              timer: TranscriptSessionTurnTimer(
                 turnId: 'turn_1',
                 startedAt: DateTime(2026, 3, 18, 12),
               ),

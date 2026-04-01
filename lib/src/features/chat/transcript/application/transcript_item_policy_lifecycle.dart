@@ -1,9 +1,9 @@
 part of 'transcript_item_policy.dart';
 
-CodexSessionState _applyItemLifecycle(
+TranscriptSessionState _applyItemLifecycle(
   TranscriptItemPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeItemLifecycleEvent event, {
+  TranscriptSessionState state,
+  TranscriptRuntimeItemLifecycleEvent event, {
   required bool removeAfterUpsert,
 }) {
   final activeTurn = policy._support.ensureActiveTurn(
@@ -40,12 +40,12 @@ CodexSessionState _applyItemLifecycle(
   );
 }
 
-CodexSessionActiveItem _activeItemFromLifecycle(
+TranscriptSessionActiveItem _activeItemFromLifecycle(
   TranscriptItemPolicy policy,
-  CodexSessionState state,
-  CodexActiveTurnState? activeTurn,
-  CodexRuntimeItemLifecycleEvent event, {
-  CodexSessionActiveItem? existing,
+  TranscriptSessionState state,
+  TranscriptActiveTurnState? activeTurn,
+  TranscriptRuntimeItemLifecycleEvent event, {
+  TranscriptSessionActiveItem? existing,
 }) {
   final blockKind = policy._blockFactory.blockKindForItemType(event.itemType);
   final title = _itemTitle(policy, event, existing?.title);
@@ -70,9 +70,9 @@ CodexSessionActiveItem _activeItemFromLifecycle(
     aggregatedBody,
     artifactBaseBody: artifactBaseBody,
     fallbackToFullBody:
-        forkArtifact && event.status != CodexRuntimeItemStatus.inProgress,
+        forkArtifact && event.status != TranscriptRuntimeItemStatus.inProgress,
   );
-  return CodexSessionActiveItem(
+  return TranscriptSessionActiveItem(
     itemId: event.itemId!,
     threadId: event.threadId!,
     turnId: event.turnId!,
@@ -86,14 +86,14 @@ CodexSessionActiveItem _activeItemFromLifecycle(
     body: body,
     aggregatedBody: aggregatedBody,
     artifactBaseBody: artifactBaseBody,
-    isRunning: event.status == CodexRuntimeItemStatus.inProgress,
+    isRunning: event.status == TranscriptRuntimeItemStatus.inProgress,
     exitCode: exitCode,
     snapshot: _nextLifecycleSnapshot(event, existing?.snapshot),
   );
 }
 
 Map<String, dynamic>? _nextLifecycleSnapshot(
-  CodexRuntimeItemLifecycleEvent event,
+  TranscriptRuntimeItemLifecycleEvent event,
   Map<String, dynamic>? existingSnapshot,
 ) {
   final eventSnapshot = event.snapshot;
@@ -101,7 +101,7 @@ Map<String, dynamic>? _nextLifecycleSnapshot(
     return existingSnapshot;
   }
 
-  if (event.itemType == CodexCanonicalItemType.commandExecution &&
+  if (event.itemType == TranscriptCanonicalItemType.commandExecution &&
       existingSnapshot != null &&
       event.rawMethod == 'item/commandExecution/terminalInteraction') {
     return <String, dynamic>{...existingSnapshot, ...eventSnapshot};
@@ -112,10 +112,10 @@ Map<String, dynamic>? _nextLifecycleSnapshot(
 
 String _itemTitle(
   TranscriptItemPolicy policy,
-  CodexRuntimeItemLifecycleEvent event,
+  TranscriptRuntimeItemLifecycleEvent event,
   String? existingTitle,
 ) {
-  if (event.itemType == CodexCanonicalItemType.commandExecution) {
+  if (event.itemType == TranscriptCanonicalItemType.commandExecution) {
     final rawTitle = _commandExecutionRawTitle(policy, event, existingTitle);
     return policy._blockFactory.normalizeCommandExecutionTitle(rawTitle);
   }
@@ -126,7 +126,7 @@ String _itemTitle(
 
 String _commandExecutionRawTitle(
   TranscriptItemPolicy policy,
-  CodexRuntimeItemLifecycleEvent event,
+  TranscriptRuntimeItemLifecycleEvent event,
   String? existingTitle,
 ) {
   final snapshot = event.snapshot;
@@ -164,7 +164,7 @@ String? _meaningfulCommandExecutionTitle(
   if (trimmed.isEmpty ||
       trimmed ==
           policy._blockFactory.defaultItemTitle(
-            CodexCanonicalItemType.commandExecution,
+            TranscriptCanonicalItemType.commandExecution,
           )) {
     return null;
   }
@@ -173,13 +173,13 @@ String? _meaningfulCommandExecutionTitle(
 
 String _itemBody(
   TranscriptItemPolicy policy,
-  CodexRuntimeItemLifecycleEvent event,
+  TranscriptRuntimeItemLifecycleEvent event,
   String currentBody,
 ) {
   final snapshotText = policy._itemSupport.extractTextFromSnapshot(
     event.snapshot,
   );
-  if (event.itemType == CodexCanonicalItemType.commandExecution) {
+  if (event.itemType == TranscriptCanonicalItemType.commandExecution) {
     if (snapshotText != null && snapshotText.isNotEmpty) {
       return snapshotText;
     }
@@ -205,17 +205,17 @@ String _itemBody(
       currentBody;
 }
 
-CodexActiveTurnState? _nextActiveTurnForLifecycle(
+TranscriptActiveTurnState? _nextActiveTurnForLifecycle(
   TranscriptItemPolicy policy,
-  CodexActiveTurnState? activeTurn,
-  CodexSessionActiveItem item, {
+  TranscriptActiveTurnState? activeTurn,
+  TranscriptSessionActiveItem item, {
   required bool removeAfterUpsert,
 }) {
   if (activeTurn == null || activeTurn.turnId != item.turnId) {
     return activeTurn;
   }
 
-  final nextItems = <String, CodexSessionActiveItem>{
+  final nextItems = <String, TranscriptSessionActiveItem>{
     ...activeTurn.itemsById,
     item.itemId: item,
   };

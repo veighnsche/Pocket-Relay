@@ -5,14 +5,14 @@ void main() {
     const projector = ChatTranscriptItemProjector();
 
     test('projects rg searches into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_rg',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_rg',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'rg -n "Pocket Relay" lib test',
           ),
         ],
@@ -30,14 +30,14 @@ void main() {
     });
 
     test('projects grep searches into command-specific work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_grep',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_grep',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'grep -R -n "Pocket Relay" README.md',
           ),
         ],
@@ -55,14 +55,14 @@ void main() {
     test(
       'projects Select-String searches into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_select_string',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_select_string',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title:
                   r'Select-String -Path C:\repo\README.md -Pattern "Pocket Relay"',
             ),
@@ -83,14 +83,14 @@ void main() {
     test(
       'projects findstr searches into command-specific work-log entries',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_findstr',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_findstr',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title: r'findstr /n /s /c:"Pocket Relay" *.md',
             ),
           ],
@@ -110,14 +110,14 @@ void main() {
     test(
       'splits simple top-level alternation queries into structured display segments',
       () {
-        final groupBlock = CodexWorkLogGroupBlock(
+        final groupBlock = TranscriptWorkLogGroupBlock(
           id: 'worklog_rg_alt',
           createdAt: DateTime(2026, 3, 15, 12),
-          entries: <CodexWorkLogEntry>[
-            CodexWorkLogEntry(
+          entries: <TranscriptWorkLogEntry>[
+            TranscriptWorkLogEntry(
               id: 'entry_rg_alt',
               createdAt: DateTime(2026, 3, 15, 12),
-              entryKind: CodexWorkLogEntryKind.commandExecution,
+              entryKind: TranscriptWorkLogEntryKind.commandExecution,
               title:
                   r'rg -n "pwsh|powershell|Get-Content|head -|tail -|/usr/bin/sed|/usr/bin/cat|/usr/bin/head|/usr/bin/tail|sed -n" lib test',
             ),
@@ -149,14 +149,14 @@ void main() {
     );
 
     test('keeps chained rg commands as generic work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_rg_chain',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_rg_chain',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title:
                 'rg -n "Pocket Relay" lib && grep -n "Pocket Relay" README.md',
           ),
@@ -170,14 +170,14 @@ void main() {
     });
 
     test('projects git status commands into git work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_git_status',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_git_status',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'git status',
           ),
         ],
@@ -193,14 +193,14 @@ void main() {
     });
 
     test('projects git diff commands into git work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_git_diff',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_git_diff',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'git diff --staged README.md',
           ),
         ],
@@ -216,14 +216,14 @@ void main() {
     });
 
     test('projects git show commands into git work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_git_show',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_git_show',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'git show HEAD~1:README.md',
           ),
         ],
@@ -238,14 +238,14 @@ void main() {
     });
 
     test('projects git grep commands into git work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_git_grep',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_git_grep',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'git grep -n "Pocket Relay" lib test',
           ),
         ],
@@ -261,14 +261,14 @@ void main() {
     });
 
     test('keeps unknown git subcommands in the git work-log family', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_git_generic',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_git_generic',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.commandExecution,
+            entryKind: TranscriptWorkLogEntryKind.commandExecution,
             title: 'git sparse-checkout list',
           ),
         ],
@@ -283,14 +283,14 @@ void main() {
     });
 
     test('keeps completed MCP tool calls inside grouped work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_mcp_completed',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_mcp_completed',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.mcpToolCall,
+            entryKind: TranscriptWorkLogEntryKind.mcpToolCall,
             title: 'MCP tool call',
             snapshot: const <String, Object?>{
               'server': 'filesystem',
@@ -326,14 +326,14 @@ void main() {
     });
 
     test('keeps failed MCP tool calls inside grouped work-log entries', () {
-      final groupBlock = CodexWorkLogGroupBlock(
+      final groupBlock = TranscriptWorkLogGroupBlock(
         id: 'worklog_mcp_failed',
         createdAt: DateTime(2026, 3, 15, 12),
-        entries: <CodexWorkLogEntry>[
-          CodexWorkLogEntry(
+        entries: <TranscriptWorkLogEntry>[
+          TranscriptWorkLogEntry(
             id: 'entry_mcp_failed',
             createdAt: DateTime(2026, 3, 15, 12),
-            entryKind: CodexWorkLogEntryKind.mcpToolCall,
+            entryKind: TranscriptWorkLogEntryKind.mcpToolCall,
             title: 'MCP tool call',
             snapshot: const <String, Object?>{
               'server': 'filesystem',

@@ -20,9 +20,9 @@ import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_reducer.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/runtime/domain/agent_adapter_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
@@ -98,7 +98,7 @@ class ChatSessionController extends ChangeNotifier {
 
   ConnectionProfile _profile = ConnectionProfile.defaults();
   ConnectionSecrets _secrets = const ConnectionSecrets();
-  CodexSessionState _sessionState = CodexSessionState.initial();
+  TranscriptSessionState _sessionState = TranscriptSessionState.initial();
   ChatConversationRecoveryState? _conversationRecoveryState;
   ChatHistoricalConversationRestoreState? _historicalConversationRestoreState;
   List<AgentAdapterModel>? _modelCatalog;
@@ -113,7 +113,8 @@ class ChatSessionController extends ChangeNotifier {
   bool _didAttemptModelCatalogHydration = false;
   int _historicalConversationRestoreGeneration = 0;
   final Set<String> _threadMetadataHydrationAttempts = <String>{};
-  final List<CodexRuntimeEvent> _bufferedRuntimeEvents = <CodexRuntimeEvent>[];
+  final List<TranscriptRuntimeEvent> _bufferedRuntimeEvents =
+      <TranscriptRuntimeEvent>[];
   StreamSubscription<AgentAdapterEvent>? _appServerEventSubscription;
   Future<void>? _initializationFuture;
   Future<void>? _modelCatalogHydrationFuture;
@@ -124,14 +125,15 @@ class ChatSessionController extends ChangeNotifier {
   ConnectionSecrets get secrets => _secrets;
   AgentAdapterCapabilities get agentAdapterCapabilities =>
       agentAdapterCapabilitiesFor(_profile.agentAdapter);
-  CodexSessionState get sessionState => _sessionState;
+  TranscriptSessionState get sessionState => _sessionState;
   ChatConversationRecoveryState? get conversationRecoveryState =>
       _conversationRecoveryState;
   ChatHistoricalConversationRestoreState?
   get historicalConversationRestoreState => _historicalConversationRestoreState;
   bool get isLoading => _isLoading;
   bool get currentModelSupportsImageInput => _currentModelSupportsImageInput();
-  List<CodexUiBlock> get transcriptBlocks => _sessionState.transcriptBlocks;
+  List<TranscriptUiBlock> get transcriptBlocks =>
+      _sessionState.transcriptBlocks;
 
   Future<void> initialize() {
     return _initializationFuture ??= _initializeOnce();
@@ -185,7 +187,7 @@ class ChatSessionController extends ChangeNotifier {
       return;
     }
 
-    final nextTimelines = <String, CodexTimelineState>{
+    final nextTimelines = <String, TranscriptTimelineState>{
       for (final entry in _sessionState.timelinesByThreadId.entries)
         entry.key: entry.key == normalizedThreadId
             ? entry.value.copyWith(hasUnreadActivity: false)
@@ -257,7 +259,7 @@ class ChatSessionController extends ChangeNotifier {
     super.dispose();
   }
 
-  void _applySessionState(CodexSessionState nextState) {
+  void _applySessionState(TranscriptSessionState nextState) {
     if (_isDisposed) {
       return;
     }
@@ -266,9 +268,9 @@ class ChatSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  CodexSshUnpinnedHostKeyBlock? _findUnpinnedHostKeyBlock(String blockId) {
+  TranscriptSshUnpinnedHostKeyBlock? _findUnpinnedHostKeyBlock(String blockId) {
     for (final block in _sessionState.blocks) {
-      if (block is CodexSshUnpinnedHostKeyBlock && block.id == blockId) {
+      if (block is TranscriptSshUnpinnedHostKeyBlock && block.id == blockId) {
         return block;
       }
     }
@@ -288,7 +290,7 @@ class ChatSessionController extends ChangeNotifier {
     await _restoreConversationTranscriptForController(this, threadId);
   }
 
-  Future<CodexSessionState?> _performHistoryRestoringThreadTransition({
+  Future<TranscriptSessionState?> _performHistoryRestoringThreadTransition({
     required Future<AgentAdapterThreadHistory> Function() operation,
     required PocketUserFacingError userFacingError,
     ChatHistoricalConversationRestoreState? loadingRestoreState,

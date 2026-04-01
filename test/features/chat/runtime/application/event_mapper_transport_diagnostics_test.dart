@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/runtime_event_mapper.dart';
 
@@ -46,10 +46,10 @@ void main() {
       ),
     );
 
-    final progressEvent = progress.single as CodexRuntimeItemUpdatedEvent;
-    final usageEvent = tokenUsage.single as CodexRuntimeStatusEvent;
+    final progressEvent = progress.single as TranscriptRuntimeItemUpdatedEvent;
+    final usageEvent = tokenUsage.single as TranscriptRuntimeStatusEvent;
 
-    expect(progressEvent.itemType, CodexCanonicalItemType.mcpToolCall);
+    expect(progressEvent.itemType, TranscriptCanonicalItemType.mcpToolCall);
     expect(progressEvent.detail, 'Fetching repository metadata');
     expect(usageEvent.title, 'Thread token usage');
     expect(usageEvent.message, contains('Context window: 200000'));
@@ -74,9 +74,9 @@ void main() {
       ),
     );
 
-    expect(warning.single, isA<CodexRuntimeWarningEvent>());
+    expect(warning.single, isA<TranscriptRuntimeWarningEvent>());
     expect(
-      (warning.single as CodexRuntimeWarningEvent).summary,
+      (warning.single as TranscriptRuntimeWarningEvent).summary,
       'Config warning',
     );
     expect(unknown, isEmpty);
@@ -94,8 +94,8 @@ void main() {
       ),
     );
 
-    expect(events.single, isA<CodexRuntimeUnpinnedHostKeyEvent>());
-    final event = events.single as CodexRuntimeUnpinnedHostKeyEvent;
+    expect(events.single, isA<TranscriptRuntimeUnpinnedHostKeyEvent>());
+    final event = events.single as TranscriptRuntimeUnpinnedHostKeyEvent;
     expect(event.host, '192.168.1.10');
     expect(event.port, 22);
     expect(event.keyType, 'ssh-ed25519');
@@ -113,8 +113,8 @@ void main() {
       ),
     );
 
-    expect(events.single, isA<CodexRuntimeSshConnectFailedEvent>());
-    final specific = events.single as CodexRuntimeSshConnectFailedEvent;
+    expect(events.single, isA<TranscriptRuntimeSshConnectFailedEvent>());
+    final specific = events.single as TranscriptRuntimeSshConnectFailedEvent;
     expect(specific.host, '192.168.1.10');
     expect(specific.message, 'Connection refused');
   });
@@ -144,17 +144,17 @@ void main() {
       ),
     );
 
-    expect(started.single, isA<CodexRuntimeWarningEvent>());
+    expect(started.single, isA<TranscriptRuntimeWarningEvent>());
     expect(
-      (started.single as CodexRuntimeWarningEvent).summary,
+      (started.single as TranscriptRuntimeWarningEvent).summary,
       contains('localhost:54123'),
     );
 
-    expect(failed.single, isA<CodexRuntimeErrorEvent>());
-    final failedEvent = failed.single as CodexRuntimeErrorEvent;
+    expect(failed.single, isA<TranscriptRuntimeErrorEvent>());
+    final failedEvent = failed.single as TranscriptRuntimeErrorEvent;
     expect(failedEvent.message, contains('open failed'));
     expect(failedEvent.detail, 'administratively prohibited');
-    expect(failedEvent.errorClass, CodexRuntimeErrorClass.transportError);
+    expect(failedEvent.errorClass, TranscriptRuntimeErrorClass.transportError);
   });
 
   test(
@@ -181,18 +181,22 @@ void main() {
         ),
       );
 
-      expect(mismatchEvents.single, isA<CodexRuntimeSshHostKeyMismatchEvent>());
+      expect(
+        mismatchEvents.single,
+        isA<TranscriptRuntimeSshHostKeyMismatchEvent>(),
+      );
       final mismatch =
-          mismatchEvents.single as CodexRuntimeSshHostKeyMismatchEvent;
+          mismatchEvents.single as TranscriptRuntimeSshHostKeyMismatchEvent;
       expect(mismatch.expectedFingerprint, 'aa:bb:cc');
       expect(mismatch.actualFingerprint, '11:22:33');
 
       expect(
         authFailedEvents.single,
-        isA<CodexRuntimeSshAuthenticationFailedEvent>(),
+        isA<TranscriptRuntimeSshAuthenticationFailedEvent>(),
       );
       final authFailed =
-          authFailedEvents.single as CodexRuntimeSshAuthenticationFailedEvent;
+          authFailedEvents.single
+              as TranscriptRuntimeSshAuthenticationFailedEvent;
       expect(authFailed.username, 'vince');
       expect(authFailed.authMode, AuthMode.privateKey);
     },
@@ -210,6 +214,6 @@ void main() {
       ),
     );
 
-    expect(authenticated.single, isA<CodexRuntimeSshAuthenticatedEvent>());
+    expect(authenticated.single, isA<TranscriptRuntimeSshAuthenticatedEvent>());
   });
 }

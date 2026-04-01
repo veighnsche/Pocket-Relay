@@ -17,14 +17,14 @@ void main() {
     final now = DateTime(2026, 3, 14, 12);
 
     final state = reducer.reduceRuntimeEvent(
-      CodexSessionState.initial(),
-      CodexRuntimeItemCompletedEvent(
+      TranscriptSessionState.initial(),
+      TranscriptRuntimeItemCompletedEvent(
         createdAt: now,
-        itemType: CodexCanonicalItemType.fileChange,
+        itemType: TranscriptCanonicalItemType.fileChange,
         threadId: 'thread_123',
         turnId: 'turn_123',
         itemId: 'file_change_1',
-        status: CodexRuntimeItemStatus.completed,
+        status: TranscriptRuntimeItemStatus.completed,
         snapshot: const <String, Object?>{
           'changes': <Object?>[
             <String, Object?>{
@@ -50,7 +50,7 @@ void main() {
 
     expect(state.transcriptBlocks, hasLength(1));
     final changedFiles =
-        state.transcriptBlocks.single as CodexChangedFilesBlock;
+        state.transcriptBlocks.single as TranscriptChangedFilesBlock;
     expect(changedFiles.files, hasLength(2));
     expect(changedFiles.files.first.path, 'README.md');
     expect(changedFiles.files.first.additions, 2);
@@ -73,14 +73,14 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           snapshot: const <String, Object?>{
             'changes': <Object?>[
               <String, Object?>{
@@ -95,7 +95,7 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeWarningEvent(
+        TranscriptRuntimeWarningEvent(
           createdAt: now.add(const Duration(milliseconds: 1)),
           threadId: 'thread_123',
           turnId: 'turn_123',
@@ -105,13 +105,13 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemUpdatedEvent(
+        TranscriptRuntimeItemUpdatedEvent(
           createdAt: now.add(const Duration(milliseconds: 2)),
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           snapshot: const <String, Object?>{
             'changes': <Object?>[
               <String, Object?>{
@@ -135,7 +135,7 @@ void main() {
       );
 
       final changedFilesBlocks = state.transcriptBlocks
-          .whereType<CodexChangedFilesBlock>()
+          .whereType<TranscriptChangedFilesBlock>()
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(2));
       expect(changedFilesBlocks.map((block) => block.id).toSet(), hasLength(2));
@@ -154,14 +154,14 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
           snapshot: const <String, Object?>{
             'changes': <Object?>[
               <String, Object?>{
@@ -176,19 +176,19 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeRequestOpenedEvent(
+        TranscriptRuntimeRequestOpenedEvent(
           createdAt: now.add(const Duration(milliseconds: 1)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
           requestId: 'approval_1',
-          requestType: CodexCanonicalRequestType.fileChangeApproval,
+          requestType: TranscriptCanonicalRequestType.fileChangeApproval,
           detail: 'Write files',
         ),
       );
 
       final frozenBeforeApproval =
-          state.transcriptBlocks.single as CodexChangedFilesBlock;
+          state.transcriptBlocks.single as TranscriptChangedFilesBlock;
       expect(frozenBeforeApproval.files.single.path, 'README.md');
       expect(frozenBeforeApproval.isRunning, isFalse);
       expect(
@@ -198,25 +198,25 @@ void main() {
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeRequestResolvedEvent(
+        TranscriptRuntimeRequestResolvedEvent(
           createdAt: now.add(const Duration(milliseconds: 2)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
           requestId: 'approval_1',
-          requestType: CodexCanonicalRequestType.fileChangeApproval,
+          requestType: TranscriptCanonicalRequestType.fileChangeApproval,
         ),
       );
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(milliseconds: 3)),
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{
             'changes': <Object?>[
               <String, Object?>{
@@ -240,7 +240,7 @@ void main() {
       );
 
       final changedFilesBlocks = state.transcriptBlocks
-          .whereType<CodexChangedFilesBlock>()
+          .whereType<TranscriptChangedFilesBlock>()
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(2));
       expect(changedFilesBlocks.map((block) => block.id).toSet(), hasLength(2));
@@ -250,7 +250,7 @@ void main() {
       expect(changedFilesBlocks.last.files.first.path, 'README.md');
       expect(changedFilesBlocks.last.files.last.path, 'lib/app.dart');
       expect(changedFilesBlocks.last.isRunning, isFalse);
-      expect(state.transcriptBlocks[1], isA<CodexApprovalRequestBlock>());
+      expect(state.transcriptBlocks[1], isA<TranscriptApprovalRequestBlock>());
     },
   );
 
@@ -260,38 +260,38 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemStartedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemStartedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.inProgress,
+          status: TranscriptRuntimeItemStatus.inProgress,
         ),
       );
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeContentDeltaEvent(
+        TranscriptRuntimeContentDeltaEvent(
           createdAt: now.add(const Duration(milliseconds: 100)),
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          streamKind: CodexRuntimeContentStreamKind.fileChangeOutput,
+          streamKind: TranscriptRuntimeContentStreamKind.fileChangeOutput,
           delta: 'apply_patch exited successfully',
         ),
       );
 
       state = reducer.reduceRuntimeEvent(
         state,
-        CodexRuntimeItemCompletedEvent(
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now.add(const Duration(seconds: 1)),
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{
             'changes': <Object?>[
               <String, Object?>{
@@ -306,7 +306,7 @@ void main() {
 
       expect(state.transcriptBlocks, hasLength(1));
       final changedFiles =
-          state.transcriptBlocks.single as CodexChangedFilesBlock;
+          state.transcriptBlocks.single as TranscriptChangedFilesBlock;
       expect(changedFiles.files, hasLength(1));
       expect(changedFiles.files.single.path, 'README.md');
       expect(
@@ -323,14 +323,14 @@ void main() {
       final reducer = TranscriptReducer();
       final now = DateTime(2026, 3, 14, 12);
       var state = reducer.reduceRuntimeEvent(
-        CodexSessionState.initial(),
-        CodexRuntimeItemCompletedEvent(
+        TranscriptSessionState.initial(),
+        TranscriptRuntimeItemCompletedEvent(
           createdAt: now,
-          itemType: CodexCanonicalItemType.fileChange,
+          itemType: TranscriptCanonicalItemType.fileChange,
           threadId: 'thread_123',
           turnId: 'turn_123',
           itemId: 'file_change_1',
-          status: CodexRuntimeItemStatus.completed,
+          status: TranscriptRuntimeItemStatus.completed,
           snapshot: const <String, Object?>{
             'changes': <Object?>[
               <String, Object?>{
@@ -344,7 +344,7 @@ void main() {
       );
 
       final changedFilesBlocks = state.transcriptBlocks
-          .whereType<CodexChangedFilesBlock>()
+          .whereType<TranscriptChangedFilesBlock>()
           .toList(growable: false);
       expect(changedFilesBlocks, hasLength(1));
       expect(changedFilesBlocks.single.files.single.path, 'README.md');

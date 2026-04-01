@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 
 part 'transcript_changed_files_parser_diff.dart';
 part 'transcript_changed_files_parser_fallback.dart';
@@ -9,15 +9,15 @@ part 'transcript_changed_files_parser_structured.dart';
 class TranscriptChangedFilesParser {
   const TranscriptChangedFilesParser();
 
-  List<CodexChangedFile> changedFilesFromSources({
+  List<TranscriptChangedFile> changedFilesFromSources({
     Map<String, dynamic>? snapshot,
     String? body,
     Object? rawPayload,
   }) {
-    final filesByPath = <String, CodexChangedFile>{};
+    final filesByPath = <String, TranscriptChangedFile>{};
     var hasStructuredChanges = false;
 
-    void addFiles(Iterable<CodexChangedFile> files) {
+    void addFiles(Iterable<TranscriptChangedFile> files) {
       for (final file in files) {
         final existing = filesByPath[file.path];
         if (existing == null) {
@@ -131,7 +131,7 @@ enum _StructuredChangeKind { add, delete, update }
 class _StructuredChangedFile {
   const _StructuredChangedFile({required this.file, required this.patch});
 
-  final CodexChangedFile file;
+  final TranscriptChangedFile file;
   final String patch;
 
   String get signature => '${file.path}\n$patch';

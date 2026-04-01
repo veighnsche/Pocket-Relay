@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_relay/src/core/utils/duration_utils.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/surfaces/usage_surface.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/widgets/transcript/support/transcript_palette.dart';
 
@@ -11,7 +11,7 @@ class TurnBoundaryMarker extends StatelessWidget {
     'turn_boundary_separator_row',
   );
 
-  final CodexTurnBoundaryBlock block;
+  final TranscriptTurnBoundaryBlock block;
 
   @override
   Widget build(BuildContext context) {

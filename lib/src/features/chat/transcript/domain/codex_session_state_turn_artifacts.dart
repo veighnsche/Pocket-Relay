@@ -1,9 +1,11 @@
-part of 'codex_session_state.dart';
+part of 'transcript_session_state.dart';
 
-Iterable<String> codexUiBlockIds(Iterable<CodexUiBlock> blocks) sync* {
+Iterable<String> transcriptUiBlockIds(
+  Iterable<TranscriptUiBlock> blocks,
+) sync* {
   for (final block in blocks) {
     yield block.id;
-    if (block case CodexWorkLogGroupBlock(:final entries)) {
+    if (block case TranscriptWorkLogGroupBlock(:final entries)) {
       for (final entry in entries) {
         yield entry.id;
       }
@@ -11,17 +13,17 @@ Iterable<String> codexUiBlockIds(Iterable<CodexUiBlock> blocks) sync* {
   }
 }
 
-Iterable<String> codexTurnArtifactIds(
-  Iterable<CodexTurnArtifact> artifacts,
+Iterable<String> transcriptTurnArtifactIds(
+  Iterable<TranscriptTurnArtifact> artifacts,
 ) sync* {
   for (final artifact in artifacts) {
     yield artifact.id;
-    if (artifact case CodexTurnWorkArtifact(:final entries)) {
+    if (artifact case TranscriptTurnWorkArtifact(:final entries)) {
       for (final entry in entries) {
         yield entry.id;
       }
     }
-    if (artifact case CodexTurnChangedFilesArtifact(:final entries)) {
+    if (artifact case TranscriptTurnChangedFilesArtifact(:final entries)) {
       for (final entry in entries) {
         yield entry.id;
       }
@@ -29,15 +31,15 @@ Iterable<String> codexTurnArtifactIds(
   }
 }
 
-sealed class CodexTurnArtifact {
-  const CodexTurnArtifact({required this.id, required this.createdAt});
+sealed class TranscriptTurnArtifact {
+  const TranscriptTurnArtifact({required this.id, required this.createdAt});
 
   final String id;
   final DateTime createdAt;
 }
 
-final class CodexTurnTextArtifact extends CodexTurnArtifact {
-  const CodexTurnTextArtifact({
+final class TranscriptTurnTextArtifact extends TranscriptTurnArtifact {
+  const TranscriptTurnTextArtifact({
     required super.id,
     required super.createdAt,
     required this.kind,
@@ -47,25 +49,25 @@ final class CodexTurnTextArtifact extends CodexTurnArtifact {
     this.isStreaming = false,
   });
 
-  final CodexUiBlockKind kind;
+  final TranscriptUiBlockKind kind;
   final String title;
   final String body;
   final String? itemId;
   final bool isStreaming;
 }
 
-final class CodexTurnWorkArtifact extends CodexTurnArtifact {
-  const CodexTurnWorkArtifact({
+final class TranscriptTurnWorkArtifact extends TranscriptTurnArtifact {
+  const TranscriptTurnWorkArtifact({
     required super.id,
     required super.createdAt,
-    this.entries = const <CodexWorkLogEntry>[],
+    this.entries = const <TranscriptWorkLogEntry>[],
   });
 
-  final List<CodexWorkLogEntry> entries;
+  final List<TranscriptWorkLogEntry> entries;
 }
 
-final class CodexTurnPlanArtifact extends CodexTurnArtifact {
-  const CodexTurnPlanArtifact({
+final class TranscriptTurnPlanArtifact extends TranscriptTurnArtifact {
+  const TranscriptTurnPlanArtifact({
     required super.id,
     required super.createdAt,
     required this.title,
@@ -80,15 +82,15 @@ final class CodexTurnPlanArtifact extends CodexTurnArtifact {
   final bool isStreaming;
 }
 
-final class CodexTurnChangedFilesArtifact extends CodexTurnArtifact {
-  const CodexTurnChangedFilesArtifact({
+final class TranscriptTurnChangedFilesArtifact extends TranscriptTurnArtifact {
+  const TranscriptTurnChangedFilesArtifact({
     required super.id,
     required super.createdAt,
     required this.title,
     String? itemId,
-    List<CodexChangedFile>? files,
+    List<TranscriptChangedFile>? files,
     String? unifiedDiff,
-    this.entries = const <CodexChangedFilesEntry>[],
+    this.entries = const <TranscriptChangedFilesEntry>[],
     this.isStreaming = false,
   }) : _itemId = itemId,
        _files = files,
@@ -96,14 +98,14 @@ final class CodexTurnChangedFilesArtifact extends CodexTurnArtifact {
 
   final String title;
   final String? _itemId;
-  final List<CodexChangedFile>? _files;
+  final List<TranscriptChangedFile>? _files;
   final String? _unifiedDiff;
-  final List<CodexChangedFilesEntry> entries;
+  final List<TranscriptChangedFilesEntry> entries;
   final bool isStreaming;
 
   String? get itemId => _itemId ?? entries.lastOrNull?.itemId;
 
-  List<CodexChangedFile> get files {
+  List<TranscriptChangedFile> get files {
     final explicitFiles = _files;
     if (explicitFiles != null) {
       return explicitFiles;
@@ -122,12 +124,12 @@ final class CodexTurnChangedFilesArtifact extends CodexTurnArtifact {
   }
 }
 
-final class CodexChangedFilesEntry {
-  const CodexChangedFilesEntry({
+final class TranscriptChangedFilesEntry {
+  const TranscriptChangedFilesEntry({
     required this.id,
     required this.itemId,
     required this.createdAt,
-    this.files = const <CodexChangedFile>[],
+    this.files = const <TranscriptChangedFile>[],
     this.unifiedDiff,
     this.isRunning = false,
   });
@@ -135,16 +137,16 @@ final class CodexChangedFilesEntry {
   final String id;
   final String itemId;
   final DateTime createdAt;
-  final List<CodexChangedFile> files;
+  final List<TranscriptChangedFile> files;
   final String? unifiedDiff;
   final bool isRunning;
 
-  CodexChangedFilesEntry copyWith({
-    List<CodexChangedFile>? files,
+  TranscriptChangedFilesEntry copyWith({
+    List<TranscriptChangedFile>? files,
     String? unifiedDiff,
     bool? isRunning,
   }) {
-    return CodexChangedFilesEntry(
+    return TranscriptChangedFilesEntry(
       id: id,
       itemId: itemId,
       createdAt: createdAt,
@@ -155,10 +157,10 @@ final class CodexChangedFilesEntry {
   }
 }
 
-List<CodexChangedFile> _mergedChangedFiles(
-  Iterable<CodexChangedFilesEntry> entries,
+List<TranscriptChangedFile> _mergedChangedFiles(
+  Iterable<TranscriptChangedFilesEntry> entries,
 ) {
-  final mergedByPath = <String, CodexChangedFile>{};
+  final mergedByPath = <String, TranscriptChangedFile>{};
 
   for (final entry in entries) {
     for (final file in entry.files) {
@@ -169,7 +171,7 @@ List<CodexChangedFile> _mergedChangedFiles(
   return mergedByPath.values.toList(growable: false);
 }
 
-String? _mergedUnifiedDiff(Iterable<CodexChangedFilesEntry> entries) {
+String? _mergedUnifiedDiff(Iterable<TranscriptChangedFilesEntry> entries) {
   final parts = entries
       .map((entry) => entry.unifiedDiff?.trim())
       .whereType<String>()
@@ -183,15 +185,15 @@ String? _mergedUnifiedDiff(Iterable<CodexChangedFilesEntry> entries) {
   return parts.join('\n');
 }
 
-final class CodexTurnBlockArtifact extends CodexTurnArtifact {
-  CodexTurnBlockArtifact({required this.block})
+final class TranscriptTurnBlockArtifact extends TranscriptTurnArtifact {
+  TranscriptTurnBlockArtifact({required this.block})
     : super(id: block.id, createdAt: block.createdAt);
 
-  final CodexUiBlock block;
+  final TranscriptUiBlock block;
 }
 
-final class CodexTurnDiffSnapshot {
-  const CodexTurnDiffSnapshot({
+final class TranscriptTurnDiffSnapshot {
+  const TranscriptTurnDiffSnapshot({
     required this.turnId,
     required this.createdAt,
     required this.unifiedDiff,
@@ -201,8 +203,11 @@ final class CodexTurnDiffSnapshot {
   final DateTime createdAt;
   final String unifiedDiff;
 
-  CodexTurnDiffSnapshot copyWith({DateTime? createdAt, String? unifiedDiff}) {
-    return CodexTurnDiffSnapshot(
+  TranscriptTurnDiffSnapshot copyWith({
+    DateTime? createdAt,
+    String? unifiedDiff,
+  }) {
+    return TranscriptTurnDiffSnapshot(
       turnId: turnId,
       createdAt: createdAt ?? this.createdAt,
       unifiedDiff: unifiedDiff ?? this.unifiedDiff,

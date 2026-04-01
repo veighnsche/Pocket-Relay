@@ -8,7 +8,7 @@ import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
@@ -226,7 +226,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final beforeTranscript = firstBinding.sessionController.transcriptBlocks;
-      final beforeMessage = beforeTranscript.whereType<CodexTextBlock>().single;
+      final beforeMessage = beforeTranscript
+          .whereType<TranscriptTextBlock>()
+          .single;
       final beforeReadThreadCalls = List<String>.from(
         clientsByConnectionId['conn_primary']!.first.readThreadCalls,
       );
@@ -239,7 +241,9 @@ void main() {
       final nextBinding = controller.bindingForConnectionId('conn_primary');
       expect(nextBinding, same(firstBinding));
       final afterTranscript = nextBinding!.sessionController.transcriptBlocks;
-      final afterMessage = afterTranscript.whereType<CodexTextBlock>().single;
+      final afterMessage = afterTranscript
+          .whereType<TranscriptTextBlock>()
+          .single;
 
       expect(afterTranscript, hasLength(beforeTranscript.length));
       expect(afterMessage.body, beforeMessage.body);

@@ -81,13 +81,13 @@ void main() {
       expect(appServerClient.connectCalls, 1);
       expect(appServerClient.readThreadCalls, <String>['thread_saved']);
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         contains('Restore this'),
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptTextBlock>().map(
           (block) => block.body,
         ),
         contains('Restored answer'),
@@ -122,11 +122,11 @@ void main() {
 
       await controller.selectConversationForResume('thread_saved');
       final restoredUserTexts = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .map((block) => block.text)
           .toList(growable: false);
       final restoredAssistantTexts = controller.transcriptBlocks
-          .whereType<CodexTextBlock>()
+          .whereType<TranscriptTextBlock>()
           .map((block) => block.body)
           .toList(growable: false);
 
@@ -143,13 +143,13 @@ void main() {
         'thread_saved',
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         restoredUserTexts,
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptTextBlock>().map(
           (block) => block.body,
         ),
         restoredAssistantTexts,
@@ -196,13 +196,13 @@ void main() {
       expect(controller.sessionState.rootThreadId, 'thread_live');
       expect(controller.sessionState.currentThreadId, 'thread_live');
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         contains('Restore this'),
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptTextBlock>().map(
           (block) => block.body,
         ),
         contains('Restored answer'),
@@ -295,13 +295,13 @@ void main() {
       expect(controller.sessionState.currentThreadId, 'thread_live');
       expect(controller.sessionState.activeTurn?.turnId, 'turn_running');
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         containsAll(<String>['Restore this', 'Keep going']),
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexTextBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptTextBlock>().map(
           (block) => block.body,
         ),
         containsAll(<String>['Restored answer', 'Still running']),

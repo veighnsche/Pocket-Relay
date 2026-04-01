@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:pocket_relay/src/features/chat/lane/application/chat_session_controller.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 
 typedef WorkspaceTurnActivityWidgetBuilder =
@@ -120,7 +120,7 @@ class _WorkspaceTurnActivityBuilderState
     return false;
   }
 
-  bool _sessionHasActiveTurn(CodexSessionState sessionState) {
+  bool _sessionHasActiveTurn(TranscriptSessionState sessionState) {
     if (_turnKeepsWorkspaceActivity(sessionState.sessionActiveTurn)) {
       return true;
     }
@@ -134,7 +134,7 @@ class _WorkspaceTurnActivityBuilderState
     return false;
   }
 
-  bool _turnKeepsWorkspaceActivity(CodexActiveTurnState? activeTurn) {
+  bool _turnKeepsWorkspaceActivity(TranscriptActiveTurnState? activeTurn) {
     return activeTurn?.timer.isRunning == true;
   }
 }

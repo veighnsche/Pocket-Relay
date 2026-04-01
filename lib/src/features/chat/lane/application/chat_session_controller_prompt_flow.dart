@@ -147,7 +147,7 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
 
     try {
       if (pendingRequest.requestType ==
-          CodexCanonicalRequestType.mcpServerElicitation) {
+          TranscriptCanonicalRequestType.mcpServerElicitation) {
         await agentAdapterClient.respondToElicitation(
           requestId: requestId,
           action: AgentAdapterElicitationAction.accept,

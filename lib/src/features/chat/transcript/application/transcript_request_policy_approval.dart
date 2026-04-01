@@ -1,9 +1,9 @@
 part of 'transcript_request_policy.dart';
 
-CodexSessionState _applyRequestOpened(
+TranscriptSessionState _applyRequestOpened(
   TranscriptRequestPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeRequestOpenedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeRequestOpenedEvent event,
 ) {
   final requestId = event.requestId;
   if (requestId == null) {
@@ -22,8 +22,9 @@ CodexSessionState _applyRequestOpened(
     itemId: event.itemId,
   );
   final wasBlocking = activeTurn?.hasBlockingRequests ?? false;
-  if (event.requestType == CodexCanonicalRequestType.mcpServerElicitation) {
-    final pendingUserInput = CodexSessionPendingUserInputRequest(
+  if (event.requestType ==
+      TranscriptCanonicalRequestType.mcpServerElicitation) {
+    final pendingUserInput = TranscriptSessionPendingUserInputRequest(
       requestId: requestId,
       requestType: event.requestType,
       createdAt: event.createdAt,
@@ -40,12 +41,15 @@ CodexSessionState _applyRequestOpened(
         pendingRequest: pendingUserInput,
         turnTimer: wasBlocking
             ? activeTurn?.timer
-            : policy._support.pauseTurnTimer(activeTurn?.timer, event.createdAt),
+            : policy._support.pauseTurnTimer(
+                activeTurn?.timer,
+                event.createdAt,
+              ),
       ),
     );
   }
 
-  final pendingRequest = CodexSessionPendingRequest(
+  final pendingRequest = TranscriptSessionPendingRequest(
     requestId: requestId,
     requestType: event.requestType,
     createdAt: event.createdAt,
@@ -68,20 +72,20 @@ CodexSessionState _applyRequestOpened(
   );
 }
 
-CodexSessionState _applyRequestResolved(
+TranscriptSessionState _applyRequestResolved(
   TranscriptRequestPolicy policy,
-  CodexSessionState state,
-  CodexRuntimeRequestResolvedEvent event,
+  TranscriptSessionState state,
+  TranscriptRuntimeRequestResolvedEvent event,
 ) {
   final requestId = event.requestId;
   if (requestId == null) {
     return state;
   }
 
-  final nextApprovalRequests = <String, CodexSessionPendingRequest>{
+  final nextApprovalRequests = <String, TranscriptSessionPendingRequest>{
     ...?state.activeTurn?.pendingApprovalRequests,
   }..remove(requestId);
-  final nextInputRequests = <String, CodexSessionPendingUserInputRequest>{
+  final nextInputRequests = <String, TranscriptSessionPendingUserInputRequest>{
     ...?state.activeTurn?.pendingUserInputRequests,
   }..remove(requestId);
   final hasBlockingRequestsRemaining =
@@ -124,4 +128,3 @@ CodexSessionState _applyRequestResolved(
     threadId: event.threadId,
   );
 }
-

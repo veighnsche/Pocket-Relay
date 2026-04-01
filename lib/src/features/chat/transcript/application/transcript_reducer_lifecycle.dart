@@ -1,40 +1,45 @@
 part of 'transcript_reducer.dart';
 
-CodexAgentLifecycleState? _lifecycleOverrideForEventImpl(
-  CodexTimelineState? timeline,
-  CodexRuntimeEvent event,
+TranscriptAgentLifecycleState? _lifecycleOverrideForEventImpl(
+  TranscriptTimelineState? timeline,
+  TranscriptRuntimeEvent event,
 ) {
   return switch (event) {
-    CodexRuntimeTurnStartedEvent() => CodexAgentLifecycleState.running,
-    CodexRuntimeTurnCompletedEvent(:final state) => switch (state) {
-      CodexRuntimeTurnState.completed => CodexAgentLifecycleState.completed,
-      CodexRuntimeTurnState.failed => CodexAgentLifecycleState.failed,
-      CodexRuntimeTurnState.interrupted ||
-      CodexRuntimeTurnState.cancelled => CodexAgentLifecycleState.aborted,
+    TranscriptRuntimeTurnStartedEvent() =>
+      TranscriptAgentLifecycleState.running,
+    TranscriptRuntimeTurnCompletedEvent(:final state) => switch (state) {
+      TranscriptRuntimeTurnState.completed =>
+        TranscriptAgentLifecycleState.completed,
+      TranscriptRuntimeTurnState.failed => TranscriptAgentLifecycleState.failed,
+      TranscriptRuntimeTurnState.interrupted ||
+      TranscriptRuntimeTurnState.cancelled =>
+        TranscriptAgentLifecycleState.aborted,
     },
-    CodexRuntimeTurnAbortedEvent() => CodexAgentLifecycleState.aborted,
-    CodexRuntimeRequestOpenedEvent(:final requestType) =>
-      requestType == CodexCanonicalRequestType.toolUserInput ||
-              requestType == CodexCanonicalRequestType.mcpServerElicitation
-          ? CodexAgentLifecycleState.blockedOnInput
-          : CodexAgentLifecycleState.blockedOnApproval,
-    CodexRuntimeUserInputRequestedEvent() =>
-      CodexAgentLifecycleState.blockedOnInput,
-    CodexRuntimeThreadStateChangedEvent(:final state) =>
+    TranscriptRuntimeTurnAbortedEvent() =>
+      TranscriptAgentLifecycleState.aborted,
+    TranscriptRuntimeRequestOpenedEvent(:final requestType) =>
+      requestType == TranscriptCanonicalRequestType.toolUserInput ||
+              requestType == TranscriptCanonicalRequestType.mcpServerElicitation
+          ? TranscriptAgentLifecycleState.blockedOnInput
+          : TranscriptAgentLifecycleState.blockedOnApproval,
+    TranscriptRuntimeUserInputRequestedEvent() =>
+      TranscriptAgentLifecycleState.blockedOnInput,
+    TranscriptRuntimeThreadStateChangedEvent(:final state) =>
       _lifecycleForThreadStateImpl(
         state,
-        fallback: timeline?.lifecycleState ?? CodexAgentLifecycleState.unknown,
+        fallback:
+            timeline?.lifecycleState ?? TranscriptAgentLifecycleState.unknown,
       ),
-    CodexRuntimeItemLifecycleEvent(:final collaboration?) =>
+    TranscriptRuntimeItemLifecycleEvent(:final collaboration?) =>
       _lifecycleOverrideForCollaborationImpl(timeline, collaboration),
     _ => null,
   };
 }
 
-CodexAgentLifecycleState _inferLifecycleStateImpl(
-  CodexTimelineState existingTimeline,
-  CodexSessionState reducedProjectedState,
-  CodexRuntimeEvent? event,
+TranscriptAgentLifecycleState _inferLifecycleStateImpl(
+  TranscriptTimelineState existingTimeline,
+  TranscriptSessionState reducedProjectedState,
+  TranscriptRuntimeEvent? event,
 ) {
   final override = event == null
       ? null
@@ -44,113 +49,122 @@ CodexAgentLifecycleState _inferLifecycleStateImpl(
   }
 
   if (reducedProjectedState.pendingUserInputRequests.isNotEmpty) {
-    return CodexAgentLifecycleState.blockedOnInput;
+    return TranscriptAgentLifecycleState.blockedOnInput;
   }
   if (reducedProjectedState.pendingApprovalRequests.isNotEmpty) {
-    return CodexAgentLifecycleState.blockedOnApproval;
+    return TranscriptAgentLifecycleState.blockedOnApproval;
   }
   if (reducedProjectedState.activeTurn != null) {
     return switch (existingTimeline.lifecycleState) {
-      CodexAgentLifecycleState.waitingOnChild =>
-        CodexAgentLifecycleState.waitingOnChild,
-      _ => CodexAgentLifecycleState.running,
+      TranscriptAgentLifecycleState.waitingOnChild =>
+        TranscriptAgentLifecycleState.waitingOnChild,
+      _ => TranscriptAgentLifecycleState.running,
     };
   }
   return switch (existingTimeline.lifecycleState) {
-    CodexAgentLifecycleState.completed ||
-    CodexAgentLifecycleState.failed ||
-    CodexAgentLifecycleState.aborted ||
-    CodexAgentLifecycleState.closed => existingTimeline.lifecycleState,
-    _ => CodexAgentLifecycleState.idle,
+    TranscriptAgentLifecycleState.completed ||
+    TranscriptAgentLifecycleState.failed ||
+    TranscriptAgentLifecycleState.aborted ||
+    TranscriptAgentLifecycleState.closed => existingTimeline.lifecycleState,
+    _ => TranscriptAgentLifecycleState.idle,
   };
 }
 
-CodexAgentLifecycleState _lifecycleForThreadStateImpl(
-  CodexRuntimeThreadState threadState, {
-  required CodexAgentLifecycleState fallback,
+TranscriptAgentLifecycleState _lifecycleForThreadStateImpl(
+  TranscriptRuntimeThreadState threadState, {
+  required TranscriptAgentLifecycleState fallback,
 }) {
   return switch (threadState) {
-    CodexRuntimeThreadState.active => CodexAgentLifecycleState.running,
-    CodexRuntimeThreadState.idle => CodexAgentLifecycleState.idle,
-    CodexRuntimeThreadState.archived => fallback,
-    CodexRuntimeThreadState.closed => CodexAgentLifecycleState.closed,
-    CodexRuntimeThreadState.compacted => fallback,
-    CodexRuntimeThreadState.error => CodexAgentLifecycleState.failed,
+    TranscriptRuntimeThreadState.active =>
+      TranscriptAgentLifecycleState.running,
+    TranscriptRuntimeThreadState.idle => TranscriptAgentLifecycleState.idle,
+    TranscriptRuntimeThreadState.archived => fallback,
+    TranscriptRuntimeThreadState.closed => TranscriptAgentLifecycleState.closed,
+    TranscriptRuntimeThreadState.compacted => fallback,
+    TranscriptRuntimeThreadState.error => TranscriptAgentLifecycleState.failed,
   };
 }
 
-CodexAgentLifecycleState _lifecycleFromCollaborationImpl(
-  CodexRuntimeCollabAgentToolCall collaboration,
+TranscriptAgentLifecycleState _lifecycleFromCollaborationImpl(
+  TranscriptRuntimeCollabAgentToolCall collaboration,
   String receiverThreadId,
 ) {
   final agentState = collaboration.agentsStates[receiverThreadId];
   if (agentState != null) {
     return switch (agentState.status) {
-      CodexRuntimeCollabAgentStatus.pendingInit =>
-        CodexAgentLifecycleState.starting,
-      CodexRuntimeCollabAgentStatus.running => CodexAgentLifecycleState.running,
-      CodexRuntimeCollabAgentStatus.completed =>
-        CodexAgentLifecycleState.completed,
-      CodexRuntimeCollabAgentStatus.errored ||
-      CodexRuntimeCollabAgentStatus.notFound => CodexAgentLifecycleState.failed,
-      CodexRuntimeCollabAgentStatus.shutdown => CodexAgentLifecycleState.closed,
-      CodexRuntimeCollabAgentStatus.unknown => CodexAgentLifecycleState.unknown,
+      TranscriptRuntimeCollabAgentStatus.pendingInit =>
+        TranscriptAgentLifecycleState.starting,
+      TranscriptRuntimeCollabAgentStatus.running =>
+        TranscriptAgentLifecycleState.running,
+      TranscriptRuntimeCollabAgentStatus.completed =>
+        TranscriptAgentLifecycleState.completed,
+      TranscriptRuntimeCollabAgentStatus.errored ||
+      TranscriptRuntimeCollabAgentStatus.notFound =>
+        TranscriptAgentLifecycleState.failed,
+      TranscriptRuntimeCollabAgentStatus.shutdown =>
+        TranscriptAgentLifecycleState.closed,
+      TranscriptRuntimeCollabAgentStatus.unknown =>
+        TranscriptAgentLifecycleState.unknown,
     };
   }
 
   return switch (collaboration.tool) {
-    CodexRuntimeCollabAgentTool.spawnAgent =>
-      collaboration.status == CodexRuntimeCollabAgentToolCallStatus.failed
-          ? CodexAgentLifecycleState.failed
-          : CodexAgentLifecycleState.starting,
-    CodexRuntimeCollabAgentTool.closeAgent =>
-      collaboration.status == CodexRuntimeCollabAgentToolCallStatus.completed
-          ? CodexAgentLifecycleState.closed
-          : CodexAgentLifecycleState.running,
-    CodexRuntimeCollabAgentTool.resumeAgent ||
-    CodexRuntimeCollabAgentTool.sendInput => CodexAgentLifecycleState.running,
-    CodexRuntimeCollabAgentTool.wait => CodexAgentLifecycleState.running,
-    CodexRuntimeCollabAgentTool.unknown => CodexAgentLifecycleState.unknown,
+    TranscriptRuntimeCollabAgentTool.spawnAgent =>
+      collaboration.status == TranscriptRuntimeCollabAgentToolCallStatus.failed
+          ? TranscriptAgentLifecycleState.failed
+          : TranscriptAgentLifecycleState.starting,
+    TranscriptRuntimeCollabAgentTool.closeAgent =>
+      collaboration.status ==
+              TranscriptRuntimeCollabAgentToolCallStatus.completed
+          ? TranscriptAgentLifecycleState.closed
+          : TranscriptAgentLifecycleState.running,
+    TranscriptRuntimeCollabAgentTool.resumeAgent ||
+    TranscriptRuntimeCollabAgentTool.sendInput =>
+      TranscriptAgentLifecycleState.running,
+    TranscriptRuntimeCollabAgentTool.wait =>
+      TranscriptAgentLifecycleState.running,
+    TranscriptRuntimeCollabAgentTool.unknown =>
+      TranscriptAgentLifecycleState.unknown,
   };
 }
 
-CodexAgentLifecycleState? _lifecycleOverrideForCollaborationImpl(
-  CodexTimelineState? timeline,
-  CodexRuntimeCollabAgentToolCall? collaboration,
+TranscriptAgentLifecycleState? _lifecycleOverrideForCollaborationImpl(
+  TranscriptTimelineState? timeline,
+  TranscriptRuntimeCollabAgentToolCall? collaboration,
 ) {
   if (collaboration == null) {
     return null;
   }
 
   return switch (collaboration.tool) {
-    CodexRuntimeCollabAgentTool.wait => switch (collaboration.status) {
-      CodexRuntimeCollabAgentToolCallStatus.inProgress =>
-        CodexAgentLifecycleState.waitingOnChild,
-      CodexRuntimeCollabAgentToolCallStatus.completed ||
-      CodexRuntimeCollabAgentToolCallStatus.failed ||
-      CodexRuntimeCollabAgentToolCallStatus.unknown =>
+    TranscriptRuntimeCollabAgentTool.wait => switch (collaboration.status) {
+      TranscriptRuntimeCollabAgentToolCallStatus.inProgress =>
+        TranscriptAgentLifecycleState.waitingOnChild,
+      TranscriptRuntimeCollabAgentToolCallStatus.completed ||
+      TranscriptRuntimeCollabAgentToolCallStatus.failed ||
+      TranscriptRuntimeCollabAgentToolCallStatus.unknown =>
         _activeOrIdleLifecycleImpl(timeline),
     },
-    CodexRuntimeCollabAgentTool.spawnAgent ||
-    CodexRuntimeCollabAgentTool.resumeAgent ||
-    CodexRuntimeCollabAgentTool.sendInput ||
-    CodexRuntimeCollabAgentTool.closeAgent => _activeOrIdleLifecycleImpl(
+    TranscriptRuntimeCollabAgentTool.spawnAgent ||
+    TranscriptRuntimeCollabAgentTool.resumeAgent ||
+    TranscriptRuntimeCollabAgentTool.sendInput ||
+    TranscriptRuntimeCollabAgentTool.closeAgent => _activeOrIdleLifecycleImpl(
       timeline,
     ),
-    CodexRuntimeCollabAgentTool.unknown => null,
+    TranscriptRuntimeCollabAgentTool.unknown => null,
   };
 }
 
-CodexAgentLifecycleState _activeOrIdleLifecycleImpl(
-  CodexTimelineState? timeline,
+TranscriptAgentLifecycleState _activeOrIdleLifecycleImpl(
+  TranscriptTimelineState? timeline,
 ) {
   return timeline?.activeTurn != null
-      ? CodexAgentLifecycleState.running
-      : CodexAgentLifecycleState.idle;
+      ? TranscriptAgentLifecycleState.running
+      : TranscriptAgentLifecycleState.idle;
 }
 
-CodexThreadRegistryEntry _upsertRegistryEntryImpl(
-  CodexThreadRegistryEntry? existing, {
+TranscriptThreadRegistryEntry _upsertRegistryEntryImpl(
+  TranscriptThreadRegistryEntry? existing, {
   required String threadId,
   required int displayOrder,
   required bool isPrimary,
@@ -164,7 +178,7 @@ CodexThreadRegistryEntry _upsertRegistryEntryImpl(
   required List<String>? childThreadIds,
 }) {
   return (existing ??
-          CodexThreadRegistryEntry(
+          TranscriptThreadRegistryEntry(
             threadId: threadId,
             displayOrder: displayOrder,
           ))
@@ -182,7 +196,7 @@ CodexThreadRegistryEntry _upsertRegistryEntryImpl(
       );
 }
 
-int _nextDisplayOrderImpl(Map<String, CodexThreadRegistryEntry> registry) {
+int _nextDisplayOrderImpl(Map<String, TranscriptThreadRegistryEntry> registry) {
   var maxOrder = -1;
   for (final entry in registry.values) {
     if (entry.displayOrder > maxOrder) {

@@ -1,9 +1,9 @@
 part of 'transcript_policy.dart';
 
-CodexSessionState _commitActiveTurnImpl(
+TranscriptSessionState _commitActiveTurnImpl(
   TranscriptPolicy policy,
-  CodexSessionState state, {
-  required CodexActiveTurnState? activeTurn,
+  TranscriptSessionState state, {
+  required TranscriptActiveTurnState? activeTurn,
   bool includePendingUsage = false,
 }) {
   if (activeTurn == null) {
@@ -11,7 +11,7 @@ CodexSessionState _commitActiveTurnImpl(
   }
 
   var nextState = state;
-  for (final block in projectCodexTurnArtifacts(activeTurn.artifacts)) {
+  for (final block in projectTranscriptTurnArtifacts(activeTurn.artifacts)) {
     nextState = policy._support.appendBlock(nextState, block);
   }
   if (includePendingUsage && activeTurn.pendingThreadTokenUsageBlock != null) {
@@ -23,14 +23,17 @@ CodexSessionState _commitActiveTurnImpl(
   return nextState;
 }
 
-bool _hasMismatchedActiveTurnImpl(CodexSessionState state, String? turnId) {
+bool _hasMismatchedActiveTurnImpl(
+  TranscriptSessionState state,
+  String? turnId,
+) {
   final activeTurn = state.activeTurn;
   return activeTurn != null && turnId != null && activeTurn.turnId != turnId;
 }
 
-(CodexActiveTurnState?, Duration?) _finalizeCommittedTurnImpl(
+(TranscriptActiveTurnState?, Duration?) _finalizeCommittedTurnImpl(
   TranscriptPolicy policy,
-  CodexActiveTurnState? activeTurn,
+  TranscriptActiveTurnState? activeTurn,
   DateTime createdAt,
 ) {
   if (activeTurn == null) {
@@ -44,19 +47,19 @@ bool _hasMismatchedActiveTurnImpl(CodexSessionState state, String? turnId) {
   return (
     activeTurn.copyWith(
       timer: completedTimer,
-      status: CodexActiveTurnStatus.completing,
+      status: TranscriptActiveTurnStatus.completing,
     ),
     completedTimer.elapsedAt(createdAt),
   );
 }
 
-CodexTurnBoundaryBlock _turnBoundaryBlockImpl(
+TranscriptTurnBoundaryBlock _turnBoundaryBlockImpl(
   TranscriptPolicy policy, {
   required DateTime createdAt,
   required Duration? elapsed,
-  CodexUsageBlock? usage,
+  TranscriptUsageBlock? usage,
 }) {
-  return CodexTurnBoundaryBlock(
+  return TranscriptTurnBoundaryBlock(
     id: policy._support.eventEntryId('turn-end', createdAt),
     createdAt: createdAt,
     elapsed: elapsed,
@@ -64,10 +67,10 @@ CodexTurnBoundaryBlock _turnBoundaryBlockImpl(
   );
 }
 
-CodexSessionState _stateWithTranscriptBlockImpl(
+TranscriptSessionState _stateWithTranscriptBlockImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexUiBlock block, {
+  TranscriptSessionState state,
+  TranscriptUiBlock block, {
   required String? turnId,
   required String? threadId,
 }) {
@@ -86,10 +89,10 @@ CodexSessionState _stateWithTranscriptBlockImpl(
   );
 }
 
-CodexSessionState _stateWithAppendedTranscriptBlockImpl(
+TranscriptSessionState _stateWithAppendedTranscriptBlockImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexUiBlock block, {
+  TranscriptSessionState state,
+  TranscriptUiBlock block, {
   required String? turnId,
   required String? threadId,
 }) {
@@ -108,12 +111,12 @@ CodexSessionState _stateWithAppendedTranscriptBlockImpl(
   );
 }
 
-CodexActiveTurnState _upsertTurnBlockImpl(
-  CodexActiveTurnState activeTurn,
-  CodexUiBlock block,
+TranscriptActiveTurnState _upsertTurnBlockImpl(
+  TranscriptActiveTurnState activeTurn,
+  TranscriptUiBlock block,
 ) {
-  final artifact = CodexTurnBlockArtifact(block: block);
-  var nextArtifacts = List<CodexTurnArtifact>.from(activeTurn.artifacts);
+  final artifact = TranscriptTurnBlockArtifact(block: block);
+  var nextArtifacts = List<TranscriptTurnArtifact>.from(activeTurn.artifacts);
   final index = nextArtifacts.indexWhere((existing) => existing.id == block.id);
   if (index == -1) {
     nextArtifacts = appendCodexTurnArtifact(nextArtifacts, artifact);
@@ -124,22 +127,22 @@ CodexActiveTurnState _upsertTurnBlockImpl(
   return activeTurn.copyWith(artifacts: nextArtifacts);
 }
 
-CodexActiveTurnState _appendTurnBlockImpl(
-  CodexActiveTurnState activeTurn,
-  CodexUiBlock block,
+TranscriptActiveTurnState _appendTurnBlockImpl(
+  TranscriptActiveTurnState activeTurn,
+  TranscriptUiBlock block,
 ) {
   return activeTurn.copyWith(
     artifacts: appendCodexTurnArtifact(
       activeTurn.artifacts,
-      CodexTurnBlockArtifact(block: block),
+      TranscriptTurnBlockArtifact(block: block),
     ),
   );
 }
 
-CodexSessionState _upsertTopLevelTranscriptBlockImpl(
+TranscriptSessionState _upsertTopLevelTranscriptBlockImpl(
   TranscriptPolicy policy,
-  CodexSessionState state,
-  CodexUiBlock block,
+  TranscriptSessionState state,
+  TranscriptUiBlock block,
 ) {
   final existingIndex = state.blocks.indexWhere(
     (existing) => existing.id == block.id,
@@ -148,21 +151,21 @@ CodexSessionState _upsertTopLevelTranscriptBlockImpl(
     return policy._support.appendBlock(state, block);
   }
 
-  final nextBlocks = List<CodexUiBlock>.from(state.blocks);
+  final nextBlocks = List<TranscriptUiBlock>.from(state.blocks);
   nextBlocks[existingIndex] = block;
   return state.copyWithProjectedTranscript(blocks: nextBlocks);
 }
 
 String _nextTranscriptEventBlockIdImpl(
   TranscriptPolicy policy,
-  CodexSessionState state, {
+  TranscriptSessionState state, {
   required String prefix,
   required DateTime createdAt,
 }) {
   final usedIds = <String>{
-    ...codexUiBlockIds(state.blocks),
+    ...transcriptUiBlockIds(state.blocks),
     if (state.activeTurn != null)
-      ...codexTurnArtifactIds(state.activeTurn!.artifacts),
+      ...transcriptTurnArtifactIds(state.activeTurn!.artifacts),
   };
   final baseId = policy._support.eventEntryId(prefix, createdAt);
   if (!usedIds.contains(baseId)) {
@@ -178,8 +181,8 @@ String _nextTranscriptEventBlockIdImpl(
   return candidate;
 }
 
-CodexSessionState _clearLocalUserMessageCorrelationStateImpl(
-  CodexSessionState state,
+TranscriptSessionState _clearLocalUserMessageCorrelationStateImpl(
+  TranscriptSessionState state,
 ) {
   return state.copyWithProjectedTranscript(
     clearPendingLocalUserMessageBlockIds: true,

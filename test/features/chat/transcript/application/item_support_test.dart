@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/transcript/application/transcript_item_support.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
 void main() {
   const support = TranscriptItemSupport();
@@ -8,21 +8,21 @@ void main() {
   test('maps content stream kinds to canonical item types', () {
     expect(
       support.itemTypeFromStreamKind(
-        CodexRuntimeContentStreamKind.assistantText,
+        TranscriptRuntimeContentStreamKind.assistantText,
       ),
-      CodexCanonicalItemType.assistantMessage,
+      TranscriptCanonicalItemType.assistantMessage,
     );
     expect(
       support.itemTypeFromStreamKind(
-        CodexRuntimeContentStreamKind.reasoningSummaryText,
+        TranscriptRuntimeContentStreamKind.reasoningSummaryText,
       ),
-      CodexCanonicalItemType.reasoning,
+      TranscriptCanonicalItemType.reasoning,
     );
     expect(
       support.itemTypeFromStreamKind(
-        CodexRuntimeContentStreamKind.fileChangeOutput,
+        TranscriptRuntimeContentStreamKind.fileChangeOutput,
       ),
-      CodexCanonicalItemType.fileChange,
+      TranscriptCanonicalItemType.fileChange,
     );
   });
 
@@ -60,15 +60,19 @@ void main() {
 
   test('provides default lifecycle body text only for status-like items', () {
     expect(
-      support.defaultLifecycleBody(CodexCanonicalItemType.reviewEntered),
+      support.defaultLifecycleBody(TranscriptCanonicalItemType.reviewEntered),
       'Codex entered review mode.',
     );
     expect(
-      support.defaultLifecycleBody(CodexCanonicalItemType.contextCompaction),
+      support.defaultLifecycleBody(
+        TranscriptCanonicalItemType.contextCompaction,
+      ),
       'Codex compacted the current thread context.',
     );
     expect(
-      support.defaultLifecycleBody(CodexCanonicalItemType.assistantMessage),
+      support.defaultLifecycleBody(
+        TranscriptCanonicalItemType.assistantMessage,
+      ),
       isNull,
     );
   });

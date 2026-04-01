@@ -7,17 +7,17 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexChangedFilesBlock(
+          block: TranscriptChangedFilesBlock(
             id: 'diff_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Changed files',
-            files: const <CodexChangedFile>[
-              CodexChangedFile(
+            files: const <TranscriptChangedFile>[
+              TranscriptChangedFile(
                 path: 'lib/src/features/chat/chat_screen.dart',
                 additions: 3,
                 deletions: 1,
               ),
-              CodexChangedFile(
+              TranscriptChangedFile(
                 path:
                     'lib/src/features/chat/transcript/presentation/widgets/transcript/conversation_entry_renderer.dart',
                 additions: 8,
@@ -88,13 +88,13 @@ void main() {
     await tester.pumpWidget(
       buildTestApp(
         child: entrySurface(
-          block: CodexChangedFilesBlock(
+          block: TranscriptChangedFilesBlock(
             id: 'diff_unmatched_1',
             createdAt: DateTime(2026, 3, 14, 12),
             title: 'Changed files',
-            files: const <CodexChangedFile>[
-              CodexChangedFile(path: 'README.md'),
-              CodexChangedFile(
+            files: const <TranscriptChangedFile>[
+              TranscriptChangedFile(path: 'README.md'),
+              TranscriptChangedFile(
                 path: 'lib/app.dart',
                 additions: 1,
                 deletions: 1,
@@ -124,12 +124,12 @@ void main() {
       await tester.pumpWidget(
         buildTestApp(
           child: entrySurface(
-            block: CodexChangedFilesBlock(
+            block: TranscriptChangedFilesBlock(
               id: 'diff_callback_1',
               createdAt: DateTime(2026, 3, 14, 12),
               title: 'Changed files',
-              files: const <CodexChangedFile>[
-                CodexChangedFile(
+              files: const <TranscriptChangedFile>[
+                TranscriptChangedFile(
                   path: 'lib/app.dart',
                   additions: 1,
                   deletions: 1,

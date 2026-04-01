@@ -13,7 +13,7 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 import 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
@@ -35,7 +35,7 @@ export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
-export 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+export 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 export 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';
 export 'package:pocket_relay/src/features/workspace/domain/connection_workspace_state.dart';
 export 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';

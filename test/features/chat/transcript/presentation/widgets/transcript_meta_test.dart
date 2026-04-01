@@ -10,17 +10,17 @@ void main() {
             height: 200,
             child: TranscriptList(
               surface: surfaceContract(
-                mainItems: <CodexUiBlock>[
-                  CodexTextBlock(
+                mainItems: <TranscriptUiBlock>[
+                  TranscriptTextBlock(
                     id: 'assistant_latest_1',
-                    kind: CodexUiBlockKind.assistantMessage,
+                    kind: TranscriptUiBlockKind.assistantMessage,
                     createdAt: DateTime(2026, 3, 14, 12, 0, 1),
                     title: 'Codex',
                     body: 'Latest message 1',
                   ),
-                  CodexTextBlock(
+                  TranscriptTextBlock(
                     id: 'assistant_latest_2',
-                    kind: CodexUiBlockKind.assistantMessage,
+                    kind: TranscriptUiBlockKind.assistantMessage,
                     createdAt: DateTime(2026, 3, 14, 12, 0, 2),
                     title: 'Codex',
                     body: 'Latest message 2',
@@ -55,10 +55,10 @@ void main() {
             height: 200,
             child: TranscriptList(
               surface: surfaceContract(
-                mainItems: <CodexUiBlock>[
-                  CodexTextBlock(
+                mainItems: <TranscriptUiBlock>[
+                  TranscriptTextBlock(
                     id: 'assistant_latest_1',
-                    kind: CodexUiBlockKind.assistantMessage,
+                    kind: TranscriptUiBlockKind.assistantMessage,
                     createdAt: DateTime(2026, 3, 14, 12, 0, 1),
                     title: 'Codex',
                     body: 'Latest message 1',
@@ -94,7 +94,7 @@ void main() {
         buildTestApp(
           child: SingleChildScrollView(
             child: entrySurface(
-              block: CodexProposedPlanBlock(
+              block: TranscriptProposedPlanBlock(
                 id: 'plan_1',
                 createdAt: DateTime(2026, 3, 14, 12),
                 title: 'Proposed plan',
@@ -136,8 +136,8 @@ void main() {
         buildTestApp(
           child: TranscriptList(
             surface: surfaceContract(
-              mainItems: <CodexUiBlock>[
-                CodexProposedPlanBlock(
+              mainItems: <TranscriptUiBlock>[
+                TranscriptProposedPlanBlock(
                   id: 'plan_1',
                   createdAt: DateTime(2026, 3, 14, 12),
                   title: 'Proposed plan',
@@ -162,8 +162,8 @@ void main() {
         buildTestApp(
           child: TranscriptList(
             surface: surfaceContract(
-              mainItems: <CodexUiBlock>[
-                CodexProposedPlanBlock(
+              mainItems: <TranscriptUiBlock>[
+                TranscriptProposedPlanBlock(
                   id: 'plan_2',
                   createdAt: DateTime(2026, 3, 14, 12, 0, 5),
                   title: 'Proposed plan',
@@ -190,11 +190,11 @@ void main() {
     'routes follow eligibility and follow requests through the transcript contract',
     (tester) async {
       bool? isNearBottom;
-      final blocks = List<CodexUiBlock>.generate(
+      final blocks = List<TranscriptUiBlock>.generate(
         24,
-        (index) => CodexTextBlock(
+        (index) => TranscriptTextBlock(
           id: 'assistant_$index',
-          kind: CodexUiBlockKind.assistantMessage,
+          kind: TranscriptUiBlockKind.assistantMessage,
           createdAt: DateTime(2026, 3, 14, 12, 0, index),
           title: 'Codex',
           body: 'Assistant message $index',

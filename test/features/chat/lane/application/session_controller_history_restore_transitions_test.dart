@@ -201,7 +201,7 @@ void main() {
         ChatHistoricalConversationRestorePhase.failed,
       );
       final runtimeErrors = controller.transcriptBlocks
-          .whereType<CodexErrorBlock>()
+          .whereType<TranscriptErrorBlock>()
           .toList(growable: false);
       expect(runtimeErrors, hasLength(1));
       expect(
@@ -299,7 +299,7 @@ void main() {
       expect(await controller.sendPrompt('Keep running'), isTrue);
       final originalRootThreadId = controller.sessionState.rootThreadId;
       final originalUserTexts = controller.transcriptBlocks
-          .whereType<CodexUserMessageBlock>()
+          .whereType<TranscriptUserMessageBlock>()
           .map((block) => block.text)
           .toList(growable: false);
       final snackBarMessage = controller.snackBarMessages.first.timeout(
@@ -310,13 +310,13 @@ void main() {
 
       expect(controller.sessionState.rootThreadId, originalRootThreadId);
       expect(
-        controller.transcriptBlocks.whereType<CodexUserMessageBlock>().map(
+        controller.transcriptBlocks.whereType<TranscriptUserMessageBlock>().map(
           (block) => block.text,
         ),
         originalUserTexts,
       );
       expect(
-        controller.transcriptBlocks.whereType<CodexStatusBlock>(),
+        controller.transcriptBlocks.whereType<TranscriptStatusBlock>(),
         isEmpty,
       );
       expect(

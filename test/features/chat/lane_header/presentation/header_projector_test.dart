@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/lane_header/presentation/chat_lane_header_projector.dart';
 
 void main() {
@@ -9,7 +9,7 @@ void main() {
   test('uses the saved profile label as the title', () {
     final header = projector.project(
       profile: _remoteProfile(),
-      metadata: const CodexSessionHeaderMetadata(),
+      metadata: const TranscriptSessionHeaderMetadata(),
       isConfigured: true,
     );
 
@@ -20,7 +20,7 @@ void main() {
   test('falls back to Codex when the profile label is blank', () {
     final header = projector.project(
       profile: _remoteProfile().copyWith(label: '   '),
-      metadata: const CodexSessionHeaderMetadata(),
+      metadata: const TranscriptSessionHeaderMetadata(),
       isConfigured: true,
     );
 
@@ -30,7 +30,7 @@ void main() {
   test('keeps remote host info and appends live model and effort', () {
     final header = projector.project(
       profile: _remoteProfile(),
-      metadata: const CodexSessionHeaderMetadata(
+      metadata: const TranscriptSessionHeaderMetadata(
         model: 'gpt-5.4',
         reasoningEffort: 'high',
       ),
@@ -47,7 +47,7 @@ void main() {
         host: '',
         username: '',
       ),
-      metadata: const CodexSessionHeaderMetadata(model: 'gpt-5.4-mini'),
+      metadata: const TranscriptSessionHeaderMetadata(model: 'gpt-5.4-mini'),
       isConfigured: true,
     );
 
@@ -64,7 +64,7 @@ void main() {
           workspaceDir: '/workspace',
           codexPath: 'codex',
         ),
-        metadata: const CodexSessionHeaderMetadata(),
+        metadata: const TranscriptSessionHeaderMetadata(),
         isConfigured: true,
       );
 
@@ -75,7 +75,7 @@ void main() {
   test('shows configuration guidance when the profile is not ready', () {
     final header = projector.project(
       profile: ConnectionProfile.defaults().copyWith(label: 'Dev Box'),
-      metadata: const CodexSessionHeaderMetadata(model: 'gpt-5.4'),
+      metadata: const TranscriptSessionHeaderMetadata(model: 'gpt-5.4'),
       isConfigured: false,
     );
 

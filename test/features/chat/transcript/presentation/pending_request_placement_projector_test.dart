@@ -6,22 +6,22 @@ void main() {
 
     test('selects the oldest pending approval request as visible', () {
       final placement = projector.project(
-        pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-          'request_newer': CodexSessionPendingRequest(
+        pendingApprovalRequests: <String, TranscriptSessionPendingRequest>{
+          'request_newer': TranscriptSessionPendingRequest(
             requestId: 'request_newer',
-            requestType: CodexCanonicalRequestType.fileChangeApproval,
+            requestType: TranscriptCanonicalRequestType.fileChangeApproval,
             createdAt: DateTime(2026, 3, 15, 12, 0, 2),
             detail: 'Newer approval',
           ),
-          'request_older': CodexSessionPendingRequest(
+          'request_older': TranscriptSessionPendingRequest(
             requestId: 'request_older',
-            requestType: CodexCanonicalRequestType.fileChangeApproval,
+            requestType: TranscriptCanonicalRequestType.fileChangeApproval,
             createdAt: DateTime(2026, 3, 15, 12, 0, 1),
             detail: 'Older approval',
           ),
         },
         pendingUserInputRequests:
-            const <String, CodexSessionPendingUserInputRequest>{},
+            const <String, TranscriptSessionPendingUserInputRequest>{},
       );
 
       expect(placement.visibleApprovalRequest?.requestId, 'request_older');
@@ -32,21 +32,24 @@ void main() {
 
     test('selects the oldest pending user-input request as visible', () {
       final placement = projector.project(
-        pendingApprovalRequests: const <String, CodexSessionPendingRequest>{},
-        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
-          'request_newer': CodexSessionPendingUserInputRequest(
-            requestId: 'request_newer',
-            requestType: CodexCanonicalRequestType.toolUserInput,
-            createdAt: DateTime(2026, 3, 15, 12, 0, 2),
-            detail: 'Newer input',
-          ),
-          'request_older': CodexSessionPendingUserInputRequest(
-            requestId: 'request_older',
-            requestType: CodexCanonicalRequestType.mcpServerElicitation,
-            createdAt: DateTime(2026, 3, 15, 12, 0, 1),
-            detail: 'Older input',
-          ),
-        },
+        pendingApprovalRequests:
+            const <String, TranscriptSessionPendingRequest>{},
+        pendingUserInputRequests:
+            <String, TranscriptSessionPendingUserInputRequest>{
+              'request_newer': TranscriptSessionPendingUserInputRequest(
+                requestId: 'request_newer',
+                requestType: TranscriptCanonicalRequestType.toolUserInput,
+                createdAt: DateTime(2026, 3, 15, 12, 0, 2),
+                detail: 'Newer input',
+              ),
+              'request_older': TranscriptSessionPendingUserInputRequest(
+                requestId: 'request_older',
+                requestType:
+                    TranscriptCanonicalRequestType.mcpServerElicitation,
+                createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+                detail: 'Older input',
+              ),
+            },
       );
 
       expect(placement.visibleApprovalRequest, isNull);
@@ -57,28 +60,29 @@ void main() {
 
     test('orders visible requests as approval first then user-input', () {
       final placement = projector.project(
-        pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-          'approval_request': CodexSessionPendingRequest(
+        pendingApprovalRequests: <String, TranscriptSessionPendingRequest>{
+          'approval_request': TranscriptSessionPendingRequest(
             requestId: 'approval_request',
-            requestType: CodexCanonicalRequestType.execCommandApproval,
+            requestType: TranscriptCanonicalRequestType.execCommandApproval,
             createdAt: DateTime(2026, 3, 15, 12, 0, 5),
             detail: 'Approval request',
           ),
         },
-        pendingUserInputRequests: <String, CodexSessionPendingUserInputRequest>{
-          'input_request_newer': CodexSessionPendingUserInputRequest(
-            requestId: 'input_request_newer',
-            requestType: CodexCanonicalRequestType.toolUserInput,
-            createdAt: DateTime(2026, 3, 15, 12, 0, 6),
-            detail: 'Newer input request',
-          ),
-          'input_request_older': CodexSessionPendingUserInputRequest(
-            requestId: 'input_request_older',
-            requestType: CodexCanonicalRequestType.toolUserInput,
-            createdAt: DateTime(2026, 3, 15, 12, 0, 1),
-            detail: 'Older input request',
-          ),
-        },
+        pendingUserInputRequests:
+            <String, TranscriptSessionPendingUserInputRequest>{
+              'input_request_newer': TranscriptSessionPendingUserInputRequest(
+                requestId: 'input_request_newer',
+                requestType: TranscriptCanonicalRequestType.toolUserInput,
+                createdAt: DateTime(2026, 3, 15, 12, 0, 6),
+                detail: 'Newer input request',
+              ),
+              'input_request_older': TranscriptSessionPendingUserInputRequest(
+                requestId: 'input_request_older',
+                requestType: TranscriptCanonicalRequestType.toolUserInput,
+                createdAt: DateTime(2026, 3, 15, 12, 0, 1),
+                detail: 'Older input request',
+              ),
+            },
       );
 
       expect(placement.orderedVisibleRequests, hasLength(2));
@@ -108,7 +112,7 @@ void main() {
           isLoading: false,
           profile: configuredProfile(),
           secrets: const ConnectionSecrets(password: 'secret'),
-          sessionState: CodexSessionState.initial(),
+          sessionState: TranscriptSessionState.initial(),
           conversationRecoveryState: null,
           composerDraft: const ChatComposerDraft(),
           transcriptFollow: defaultTranscriptFollowContract,
@@ -126,22 +130,22 @@ void main() {
       () {
         final createdAt = DateTime(2026, 3, 15, 12, 0, 1);
         final placement = projector.project(
-          pendingApprovalRequests: <String, CodexSessionPendingRequest>{
-            'request_first': CodexSessionPendingRequest(
+          pendingApprovalRequests: <String, TranscriptSessionPendingRequest>{
+            'request_first': TranscriptSessionPendingRequest(
               requestId: 'request_first',
-              requestType: CodexCanonicalRequestType.fileChangeApproval,
+              requestType: TranscriptCanonicalRequestType.fileChangeApproval,
               createdAt: createdAt,
               detail: 'First approval',
             ),
-            'request_second': CodexSessionPendingRequest(
+            'request_second': TranscriptSessionPendingRequest(
               requestId: 'request_second',
-              requestType: CodexCanonicalRequestType.fileChangeApproval,
+              requestType: TranscriptCanonicalRequestType.fileChangeApproval,
               createdAt: createdAt,
               detail: 'Second approval',
             ),
           },
           pendingUserInputRequests:
-              const <String, CodexSessionPendingUserInputRequest>{},
+              const <String, TranscriptSessionPendingUserInputRequest>{},
         );
 
         expect(placement.visibleApprovalRequest?.requestId, 'request_first');

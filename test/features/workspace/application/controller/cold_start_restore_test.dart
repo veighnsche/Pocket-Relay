@@ -64,7 +64,7 @@ void main() {
       );
       expect(
         binding.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
+            .whereType<TranscriptTextBlock>()
             .single
             .body,
         'Restored answer',
@@ -212,7 +212,7 @@ void main() {
       );
       expect(
         binding.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
+            .whereType<TranscriptTextBlock>()
             .map((block) => block.body),
         contains('Restored answer'),
       );
@@ -491,7 +491,7 @@ void main() {
       );
       expect(
         binding.sessionController.transcriptBlocks
-            .whereType<CodexTextBlock>()
+            .whereType<TranscriptTextBlock>()
             .single
             .body,
         'Restored answer',

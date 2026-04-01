@@ -1,4 +1,4 @@
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/chat_request_projector.dart';
 
@@ -10,8 +10,9 @@ class ChatPendingRequestPlacementProjector {
   final ChatRequestProjector _requestProjector;
 
   ChatPendingRequestPlacementContract project({
-    required Map<String, CodexSessionPendingRequest> pendingApprovalRequests,
-    required Map<String, CodexSessionPendingUserInputRequest>
+    required Map<String, TranscriptSessionPendingRequest>
+    pendingApprovalRequests,
+    required Map<String, TranscriptSessionPendingUserInputRequest>
     pendingUserInputRequests,
   }) {
     final visibleApprovalRequest = _oldestPendingApprovalRequest(
@@ -35,14 +36,14 @@ class ChatPendingRequestPlacementProjector {
     );
   }
 
-  CodexSessionPendingRequest? _oldestPendingApprovalRequest(
-    Iterable<CodexSessionPendingRequest> requests,
+  TranscriptSessionPendingRequest? _oldestPendingApprovalRequest(
+    Iterable<TranscriptSessionPendingRequest> requests,
   ) {
     return _oldestPendingRequest(requests, (request) => request.createdAt);
   }
 
-  CodexSessionPendingUserInputRequest? _oldestPendingUserInputRequest(
-    Iterable<CodexSessionPendingUserInputRequest> requests,
+  TranscriptSessionPendingUserInputRequest? _oldestPendingUserInputRequest(
+    Iterable<TranscriptSessionPendingUserInputRequest> requests,
   ) {
     return _oldestPendingRequest(requests, (request) => request.createdAt);
   }
