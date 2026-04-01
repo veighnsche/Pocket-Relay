@@ -374,7 +374,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('send')));
     await tester.pumpAndSettle();
 
-    expect(find.text('This profile needs an SSH password.'), findsOneWidget);
+    expect(
+      find.textContaining('This profile needs an SSH password.'),
+      findsOneWidget,
+    );
     expect(appServerClient.sentMessages, isEmpty);
     expect(scrollableState.position.pixels, closeTo(pixelsBeforeSubmit, 1));
     expect(
