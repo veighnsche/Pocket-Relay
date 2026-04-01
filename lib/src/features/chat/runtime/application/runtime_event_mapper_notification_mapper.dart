@@ -17,7 +17,7 @@ typedef _ItemLifecycleEventBuilder =
     });
 
 List<CodexRuntimeEvent> _mapRuntimeNotificationEvent(
-  CodexAppServerNotificationEvent event,
+  AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, _PendingRequestInfo> pendingRequests,
 }) {

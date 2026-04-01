@@ -10,7 +10,7 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_men
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_draft.dart';
@@ -58,7 +58,7 @@ class _ConnectionWorkspaceLiveLaneSurfaceState
   bool _isConnectingLaneTransport = false;
   bool _isDisconnectingLaneTransport = false;
   ConnectionSettingsRemoteServerActionId? _activeLaneRemoteServerAction;
-  StreamSubscription<CodexAppServerEvent>? _laneAgentAdapterEventSubscription;
+  StreamSubscription<AgentAdapterEvent>? _laneAgentAdapterEventSubscription;
 
   @override
   void initState() {

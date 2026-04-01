@@ -1,8 +1,8 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 
 abstract interface class AgentAdapterClient {
-  Stream<CodexAppServerEvent> get events;
+  Stream<AgentAdapterEvent> get events;
   bool get isConnected;
   String? get threadId;
   String? get activeTurnId;
@@ -12,32 +12,32 @@ abstract interface class AgentAdapterClient {
     required ConnectionSecrets secrets,
   });
 
-  Future<CodexAppServerSession> startSession({
+  Future<AgentAdapterSession> startSession({
     String? cwd,
     String? model,
     CodexReasoningEffort? reasoningEffort,
     String? resumeThreadId,
   });
 
-  Future<CodexAppServerSession> resumeThread({
+  Future<AgentAdapterSession> resumeThread({
     required String threadId,
     String? cwd,
     String? model,
     CodexReasoningEffort? reasoningEffort,
   });
 
-  Future<CodexAppServerThreadSummary> readThread({required String threadId});
+  Future<AgentAdapterThreadSummary> readThread({required String threadId});
 
-  Future<CodexAppServerThreadHistory> readThreadWithTurns({
+  Future<AgentAdapterThreadHistory> readThreadWithTurns({
     required String threadId,
   });
 
-  Future<CodexAppServerThreadHistory> rollbackThread({
+  Future<AgentAdapterThreadHistory> rollbackThread({
     required String threadId,
     required int numTurns,
   });
 
-  Future<CodexAppServerSession> forkThread({
+  Future<AgentAdapterSession> forkThread({
     required String threadId,
     String? path,
     String? cwd,
@@ -47,21 +47,18 @@ abstract interface class AgentAdapterClient {
     bool persistExtendedHistory = false,
   });
 
-  Future<CodexAppServerThreadListPage> listThreads({
-    String? cursor,
-    int? limit,
-  });
+  Future<AgentAdapterThreadListPage> listThreads({String? cursor, int? limit});
 
-  Future<CodexAppServerModelListPage> listModels({
+  Future<AgentAdapterModelListPage> listModels({
     String? cursor,
     int? limit,
     bool? includeHidden,
   });
 
-  Future<CodexAppServerTurn> sendUserMessage({
+  Future<AgentAdapterTurn> sendUserMessage({
     required String threadId,
     String? text,
-    CodexAppServerTurnInput? input,
+    AgentAdapterTurnInput? input,
     String? model,
     CodexReasoningEffort? effort,
   });
@@ -91,7 +88,7 @@ abstract interface class AgentAdapterClient {
 
   Future<void> respondToElicitation({
     required String requestId,
-    required CodexAppServerElicitationAction action,
+    required AgentAdapterElicitationAction action,
     Object? content,
     Object? metadata,
   });

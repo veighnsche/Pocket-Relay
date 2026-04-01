@@ -1,7 +1,7 @@
 part of 'runtime_event_mapper.dart';
 
 List<CodexRuntimeEvent> _mapRuntimeRequestEvent(
-  CodexAppServerRequestEvent event,
+  AgentAdapterRequestEvent event,
   DateTime now, {
   required Map<String, _PendingRequestInfo> pendingRequests,
 }) {

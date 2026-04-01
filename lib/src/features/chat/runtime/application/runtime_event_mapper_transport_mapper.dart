@@ -1,11 +1,11 @@
 part of 'runtime_event_mapper.dart';
 
 List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
-  CodexAppServerEvent event,
+  AgentAdapterEvent event,
   DateTime now,
 ) {
   switch (event) {
-    case CodexAppServerConnectedEvent(:final userAgent):
+    case AgentAdapterConnectedEvent(:final userAgent):
       return <CodexRuntimeEvent>[
         CodexRuntimeSessionStateChangedEvent(
           createdAt: now,
@@ -16,7 +16,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/connected',
         ),
       ];
-    case CodexAppServerDisconnectedEvent(:final exitCode):
+    case AgentAdapterDisconnectedEvent(:final exitCode):
       return <CodexRuntimeEvent>[
         CodexRuntimeSessionExitedEvent(
           createdAt: now,
@@ -30,7 +30,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/disconnected',
         ),
       ];
-    case CodexAppServerDiagnosticEvent(:final message, :final isError):
+    case AgentAdapterDiagnosticEvent(:final message, :final isError):
       return <CodexRuntimeEvent>[
         isError
             ? CodexRuntimeErrorEvent(
@@ -45,7 +45,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
                 rawMethod: 'transport/diagnostic',
               ),
       ];
-    case CodexAppServerUnpinnedHostKeyEvent(
+    case AgentAdapterUnpinnedHostKeyEvent(
       :final host,
       :final port,
       :final keyType,
@@ -61,7 +61,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/hostKey/unpinned',
         ),
       ];
-    case CodexAppServerSshConnectFailedEvent(
+    case AgentAdapterSshConnectFailedEvent(
       :final host,
       :final port,
       :final message,
@@ -77,7 +77,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/connectFailed',
         ),
       ];
-    case CodexAppServerSshHostKeyMismatchEvent(
+    case AgentAdapterSshHostKeyMismatchEvent(
       :final host,
       :final port,
       :final keyType,
@@ -95,7 +95,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/hostKeyMismatch',
         ),
       ];
-    case CodexAppServerSshAuthenticationFailedEvent(
+    case AgentAdapterSshAuthenticationFailedEvent(
       :final host,
       :final port,
       :final username,
@@ -115,7 +115,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/authFailed',
         ),
       ];
-    case CodexAppServerSshAuthenticatedEvent(
+    case AgentAdapterSshAuthenticatedEvent(
       :final host,
       :final port,
       :final username,
@@ -131,7 +131,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/authenticated',
         ),
       ];
-    case CodexAppServerSshPortForwardStartedEvent(
+    case AgentAdapterSshPortForwardStartedEvent(
       :final host,
       :final port,
       :final username,
@@ -147,7 +147,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/portForwardStarted',
         ),
       ];
-    case CodexAppServerSshPortForwardFailedEvent(
+    case AgentAdapterSshPortForwardFailedEvent(
       :final host,
       :final port,
       :final username,
@@ -166,7 +166,7 @@ List<CodexRuntimeEvent>? _mapTransportRuntimeEvent(
           rawMethod: 'transport/ssh/portForwardFailed',
         ),
       ];
-    case CodexAppServerRequestEvent() || CodexAppServerNotificationEvent():
+    case AgentAdapterRequestEvent() || AgentAdapterNotificationEvent():
       return null;
   }
 }

@@ -202,43 +202,38 @@ This is deliberately conservative. The UI is not yet pretending there are
 multiple selectable adapters because only `codex` exists today, but the state
 ownership no longer blocks that future.
 
+The transport/client boundary is now also app-owned:
+
+- `lib/src/features/chat/transport/agent_adapter/agent_adapter_models.dart`
+  - app-owned transport DTOs for adapter events, sessions, threads, turns, and
+    model metadata
+- `lib/src/features/chat/transport/agent_adapter/agent_adapter_client.dart`
+  - now uses `AgentAdapter*` DTOs instead of `CodexAppServer*` DTOs
+- `lib/src/features/chat/transport/app_server/codex_app_server_agent_adapter_bridge.dart`
+  - isolates Codex-only turn-input and elicitation translation inside the
+    Codex adapter implementation
+
 ## What Is Still Codex-Specific
 
-This pass did not remove all Codex assumptions. It created the ownership
-boundary and moved generic state to the correct layer. Several seams are still
-structurally Codex-shaped.
+This still did not remove all Codex assumptions. The transport/client boundary
+is now app-owned, but several deeper seams remain structurally Codex-shaped.
 
-### 1. The generic adapter client still exposes Codex DTOs
+### 1. Runtime event mapping is still Codex-shaped on output
 
-`AgentAdapterClient` is generic in name, but not yet generic in payload shape:
+`AgentAdapterRuntimeEventMapper` now maps:
 
-- `events` is `Stream<CodexAppServerEvent>`
-- session/thread/turn returns use `CodexAppServer*` models
-- approval and elicitation shapes are still Codex app-server request/response
-  forms
-
-File:
-
-- `lib/src/features/chat/transport/agent_adapter/agent_adapter_client.dart`
-
-This is the single biggest remaining blocker to making a non-Codex adapter
-cheap to add.
-
-### 2. Runtime event mapping is still Codex-shaped end to end
-
-`AgentAdapterRuntimeEventMapper` currently maps:
-
-- `CodexAppServerEvent -> List<CodexRuntimeEvent>`
+- `AgentAdapterEvent -> List<CodexRuntimeEvent>`
 
 Files:
 
 - `lib/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart`
 - `lib/src/features/chat/runtime/application/runtime_event_mapper.dart`
 
-That means the supposedly generic adapter seam still assumes Codex event
-taxonomy on both input and output.
+This is an improvement because the mapper no longer takes Codex transport
+events directly, but the shared runtime output is still `CodexRuntimeEvent`.
+A non-Codex adapter would still have to feed a Codex-owned transcript runtime.
 
-### 3. Transcript and session domain are still Codex-owned
+### 2. Transcript and session domain are still Codex-owned
 
 The transcript runtime domain is still named and structured around Codex:
 
@@ -256,7 +251,7 @@ This is acceptable for now because Pocket Relay is still only running Codex,
 but it must be called out plainly: a Claude adapter cannot become trivial while
 the app transcript domain still assumes Codex-native event types.
 
-### 4. Model and reasoning selection are still Codex catalogs
+### 3. Model and reasoning selection are still Codex catalogs
 
 Model metadata and reasoning effort normalization are still sourced from Codex:
 
@@ -273,7 +268,7 @@ Files:
 This is fine as a Codex adapter implementation detail. It is not fine as a
 cross-adapter assumption.
 
-### 5. Remote runtime probing and continuity logic are still Codex transport logic
+### 4. Remote runtime probing and continuity logic are still Codex transport logic
 
 Pocket Relay’s remote continuity and runtime probing currently depend on Codex
 app-server mechanics and Codex remote-owner SSH behavior:
@@ -292,7 +287,7 @@ Relevant files:
 
 That is expected. Claude will need a different runtime/continuity adapter path.
 
-### 6. Conversation history summaries are still Codex-shaped
+### 5. Conversation history summaries are still Codex-shaped
 
 Conversation history loading is now generic in ownership, but the summary model
 is still:
@@ -493,39 +488,7 @@ capabilities, not by global app truth.
 
 These are ordered by downstream cost reduction, not by the smallest diff.
 
-### 1. Introduce provider-neutral adapter DTOs
-
-Create app-owned types for:
-
-- adapter events
-- conversation summaries
-- thread/session identity
-- turn status
-- approval requests
-- elicitation requests
-- model metadata
-
-Then make `AgentAdapterClient` use those types instead of `CodexAppServer*`.
-
-This is the highest-value remaining change.
-
-### 2. Introduce adapter capability metadata
-
-`AgentAdapterDefinition` should grow a capability model, for example:
-
-- `supportsLocalLaunch`
-- `supportsRemoteAttach`
-- `supportsHistoryListing`
-- `supportsModelCatalog`
-- `supportsFork`
-- `supportsRollback`
-- `supportsDynamicToolResponses`
-- `supportsPlanStreaming`
-- `supportsDiffStreaming`
-
-The UI should consult capabilities instead of assuming Codex parity.
-
-### 3. Rename the transcript runtime domain away from Codex ownership
+### 1. Rename the transcript runtime domain away from Codex ownership
 
 Eventually these domains should become app-owned and provider-neutral:
 
@@ -533,10 +496,10 @@ Eventually these domains should become app-owned and provider-neutral:
 - `CodexSessionState`
 - `CodexUiBlock`
 
-This should not be a cosmetic rename. It should happen together with generic
-adapter DTOs and event mapping so the ownership is actually true.
+This should not be a cosmetic rename. It should happen together with a generic
+runtime event contract so the ownership is actually true.
 
-### 4. Move Codex model catalog logic behind the adapter
+### 2. Move Codex model catalog logic behind the adapter
 
 Model metadata and reasoning normalization are currently still effectively a
 Codex adapter concern exposed globally.
@@ -548,7 +511,7 @@ adapter can:
 - expose different reasoning controls
 - expose no reasoning control at all
 
-### 5. Split remote runtime diagnostics by adapter
+### 3. Split remote runtime diagnostics by adapter
 
 Codex continuity checks are built around:
 
@@ -601,9 +564,11 @@ But the app is not fully provider-neutral yet.
 The main remaining truth is simple:
 
 - Pocket Relay now has an `agent adapter` foundation
-- Pocket Relay does not yet have a provider-neutral runtime/event/data contract
+- Pocket Relay now has a provider-neutral transport/client contract
+- Pocket Relay does not yet have a provider-neutral runtime/transcript domain
 - adding Claude will still require real adapter work until the remaining
-  `CodexAppServer*` and `CodexRuntimeEvent*` assumptions are lifted
+  `CodexRuntimeEvent*`, `CodexSessionState*`, and Codex-shaped model/runtime
+  assumptions are lifted
 
 That is acceptable as long as we describe it honestly and continue the next
 refactor slices in the right ownership order.

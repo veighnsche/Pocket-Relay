@@ -1,8 +1,10 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 
 export 'codex_app_server_models.dart';
 
+import 'codex_app_server_agent_adapter_bridge.dart';
 import 'codex_app_server_connection.dart';
 import 'codex_app_server_models.dart';
 import 'codex_app_server_process_launcher.dart';
@@ -186,7 +188,7 @@ class CodexAppServerClient implements AgentAdapterClient {
   Future<CodexAppServerTurn> sendUserMessage({
     required String threadId,
     String? text,
-    CodexAppServerTurnInput? input,
+    AgentAdapterTurnInput? input,
     String? model,
     CodexReasoningEffort? effort,
   }) async {
@@ -195,7 +197,7 @@ class CodexAppServerClient implements AgentAdapterClient {
       _connection,
       threadId: threadId,
       text: text,
-      input: input,
+      input: codexTurnInputFromAgentAdapter(input),
       model: model,
       effort: effort,
     );
@@ -261,7 +263,7 @@ class CodexAppServerClient implements AgentAdapterClient {
   @override
   Future<void> respondToElicitation({
     required String requestId,
-    required CodexAppServerElicitationAction action,
+    required AgentAdapterElicitationAction action,
     Object? content,
     Object? metadata,
   }) async {
@@ -269,7 +271,7 @@ class CodexAppServerClient implements AgentAdapterClient {
     await _requestApi.respondToElicitation(
       _connection,
       requestId: requestId,
-      action: action,
+      action: codexElicitationActionFromAgentAdapter(action),
       content: content,
       metadata: metadata,
     );

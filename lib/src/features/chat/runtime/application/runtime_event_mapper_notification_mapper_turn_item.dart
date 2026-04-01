@@ -1,7 +1,7 @@
 part of 'runtime_event_mapper.dart';
 
 List<CodexRuntimeEvent>? _mapTurnOrItemNotificationEvent(
-  CodexAppServerNotificationEvent event,
+  AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, dynamic>? payload,
 }) {

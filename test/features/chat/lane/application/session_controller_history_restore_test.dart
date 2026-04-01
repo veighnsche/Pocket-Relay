@@ -56,7 +56,7 @@ void main() {
     'selectConversationForResume hydrates the saved conversation transcript',
     () async {
       final appServerClient = FakeCodexAppServerClient()
-        ..threadsById['thread_saved'] = savedConversationThread(
+        ..threadHistoriesById['thread_saved'] = savedConversationThread(
           threadId: 'thread_saved',
         );
       addTearDown(appServerClient.close);

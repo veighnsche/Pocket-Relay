@@ -19,7 +19,7 @@ void main() {
           ({required profile, required secrets, required emitEvent}) async =>
               process,
     );
-    final events = <CodexAppServerEvent>[];
+    final events = <AgentAdapterEvent>[];
     final subscription = client.events.listen(events.add);
 
     await client.connect(
@@ -38,7 +38,7 @@ void main() {
     });
     await Future<void>.delayed(Duration.zero);
 
-    final request = events.whereType<CodexAppServerRequestEvent>().single;
+    final request = events.whereType<AgentAdapterRequestEvent>().single;
     expect(request.requestId, 'i:99');
     expect(request.method, 'item/tool/requestUserInput');
 
@@ -323,7 +323,7 @@ void main() {
 
       await client.respondToElicitation(
         requestId: 's:elicitation-1',
-        action: CodexAppServerElicitationAction.accept,
+        action: AgentAdapterElicitationAction.accept,
         content: <String, Object?>{'path': '/workspace'},
       );
 

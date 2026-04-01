@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 import 'package:pocket_relay/src/features/workspace/domain/codex_workspace_conversation_summary.dart';
 
 abstract interface class WorkspaceConversationHistoryRepository {
@@ -78,11 +78,11 @@ class AgentAdapterConversationHistoryRepository
     final client =
         clientFactory?.call() ??
         createDefaultAgentAdapterClient(profile: profile, ownerId: ownerId);
-    StreamSubscription<CodexAppServerEvent>? eventsSubscription;
-    CodexAppServerUnpinnedHostKeyEvent? unpinnedHostKeyEvent;
+    StreamSubscription<AgentAdapterEvent>? eventsSubscription;
+    AgentAdapterUnpinnedHostKeyEvent? unpinnedHostKeyEvent;
     try {
       eventsSubscription = client.events.listen((event) {
-        if (event is CodexAppServerUnpinnedHostKeyEvent) {
+        if (event is AgentAdapterUnpinnedHostKeyEvent) {
           unpinnedHostKeyEvent = event;
         }
       });
@@ -150,10 +150,10 @@ class AgentAdapterConversationHistoryRepository
     }
   }
 
-  Future<List<CodexAppServerThreadSummary>> _loadAllThreads(
+  Future<List<AgentAdapterThreadSummary>> _loadAllThreads(
     AgentAdapterClient client,
   ) async {
-    final threads = <CodexAppServerThreadSummary>[];
+    final threads = <AgentAdapterThreadSummary>[];
     String? cursor;
     do {
       final page = await client.listThreads(cursor: cursor, limit: pageSize);

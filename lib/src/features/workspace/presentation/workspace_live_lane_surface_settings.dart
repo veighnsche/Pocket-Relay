@@ -290,7 +290,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
   }
 
   ConnectionAvailableModel _connectionAvailableModelFromAppServerModel(
-    CodexAppServerModel model,
+    AgentAdapterModel model,
   ) {
     return ConnectionAvailableModel(
       id: model.id,

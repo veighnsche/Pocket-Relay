@@ -23,8 +23,8 @@ import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_e
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_session_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 
 part 'chat_session_controller_events.dart';
@@ -99,7 +99,7 @@ class ChatSessionController extends ChangeNotifier {
   CodexSessionState _sessionState = CodexSessionState.initial();
   ChatConversationRecoveryState? _conversationRecoveryState;
   ChatHistoricalConversationRestoreState? _historicalConversationRestoreState;
-  List<CodexAppServerModel>? _modelCatalog;
+  List<AgentAdapterModel>? _modelCatalog;
 
   bool _isLoading = true;
   bool _isDisposed = false;
@@ -112,7 +112,7 @@ class ChatSessionController extends ChangeNotifier {
   int _historicalConversationRestoreGeneration = 0;
   final Set<String> _threadMetadataHydrationAttempts = <String>{};
   final List<CodexRuntimeEvent> _bufferedRuntimeEvents = <CodexRuntimeEvent>[];
-  StreamSubscription<CodexAppServerEvent>? _appServerEventSubscription;
+  StreamSubscription<AgentAdapterEvent>? _appServerEventSubscription;
   Future<void>? _initializationFuture;
   Future<void>? _modelCatalogHydrationFuture;
 
@@ -273,7 +273,7 @@ class ChatSessionController extends ChangeNotifier {
     return null;
   }
 
-  void _handleAppServerEvent(CodexAppServerEvent event) {
+  void _handleAppServerEvent(AgentAdapterEvent event) {
     _handleChatSessionAppServerEvent(this, event);
   }
 
@@ -287,7 +287,7 @@ class ChatSessionController extends ChangeNotifier {
   }
 
   Future<CodexSessionState?> _performHistoryRestoringThreadTransition({
-    required Future<CodexAppServerThreadHistory> Function() operation,
+    required Future<AgentAdapterThreadHistory> Function() operation,
     required PocketUserFacingError userFacingError,
     ChatHistoricalConversationRestoreState? loadingRestoreState,
     ChatHistoricalConversationRestoreState? emptyHistoryRestoreState,

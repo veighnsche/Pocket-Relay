@@ -84,8 +84,8 @@ ChatWorkLogTerminalContract _terminalFromActiveItem(
   );
 }
 
-CodexAppServerHistoryItem? _findWorkLogHistoryItem(
-  CodexAppServerThreadHistory thread,
+AgentAdapterHistoryItem? _findWorkLogHistoryItem(
+  AgentAdapterThreadHistory thread,
   String itemId, {
   required String? turnId,
 }) {
@@ -104,7 +104,7 @@ CodexAppServerHistoryItem? _findWorkLogHistoryItem(
 
 ChatWorkLogTerminalContract _terminalFromHistoryItem(
   ChatWorkLogTerminalContract terminal,
-  CodexAppServerHistoryItem item,
+  AgentAdapterHistoryItem item,
 ) {
   final raw = item.raw;
   final normalizedStatus = _terminalString(raw['status'])?.toLowerCase();

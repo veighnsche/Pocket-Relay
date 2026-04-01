@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,6 +10,7 @@ export 'dart:async';
 export 'dart:convert';
 export 'dart:typed_data';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
+export 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 export 'package:flutter_test/flutter_test.dart';
 

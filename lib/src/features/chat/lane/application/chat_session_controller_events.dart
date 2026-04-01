@@ -2,12 +2,12 @@ part of 'chat_session_controller.dart';
 
 void _handleChatSessionAppServerEvent(
   ChatSessionController controller,
-  CodexAppServerEvent event,
+  AgentAdapterEvent event,
 ) {
-  if (event is CodexAppServerDisconnectedEvent) {
+  if (event is AgentAdapterDisconnectedEvent) {
     controller._resetModelCatalogHydration();
   }
-  if (event is CodexAppServerRequestEvent &&
+  if (event is AgentAdapterRequestEvent &&
       controller._isUnsupportedHostRequest(event.method)) {
     unawaited(_handleUnsupportedChatSessionHostRequest(controller, event));
     return;
@@ -30,7 +30,7 @@ void _handleChatSessionAppServerEvent(
 
 Future<void> _handleUnsupportedChatSessionHostRequest(
   ChatSessionController controller,
-  CodexAppServerRequestEvent event,
+  AgentAdapterRequestEvent event,
 ) async {
   final payload = _chatSessionControllerAsObject(event.params);
   final threadId = _chatSessionControllerAsString(payload?['threadId']);

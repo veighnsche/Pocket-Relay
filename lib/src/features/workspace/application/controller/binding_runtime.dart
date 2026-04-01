@@ -36,7 +36,7 @@ void _registerWorkspaceLiveBinding(
       event,
     ) {
       switch (event) {
-        case CodexAppServerDisconnectedEvent(:final exitCode):
+        case AgentAdapterDisconnectedEvent(:final exitCode):
           if (controller._intentionalTransportDisconnectConnectionIds.remove(
             connectionId,
           )) {
@@ -59,7 +59,7 @@ void _registerWorkspaceLiveBinding(
             ConnectionWorkspaceLiveReattachPhase.transportLost,
           );
           break;
-        case CodexAppServerConnectedEvent():
+        case AgentAdapterConnectedEvent():
           final wasRecovering = controller._state.requiresTransportReconnect(
             connectionId,
           );
@@ -89,21 +89,21 @@ void _registerWorkspaceLiveBinding(
             }
           }
           break;
-        case CodexAppServerSshConnectFailedEvent():
+        case AgentAdapterSshConnectFailedEvent():
           controller._recordTransportLoss(
             connectionId,
             occurredAt: controller._now(),
             reason: ConnectionWorkspaceTransportLossReason.sshConnectFailed,
           );
           break;
-        case CodexAppServerSshHostKeyMismatchEvent():
+        case AgentAdapterSshHostKeyMismatchEvent():
           controller._recordTransportLoss(
             connectionId,
             occurredAt: controller._now(),
             reason: ConnectionWorkspaceTransportLossReason.sshHostKeyMismatch,
           );
           break;
-        case CodexAppServerSshAuthenticationFailedEvent():
+        case AgentAdapterSshAuthenticationFailedEvent():
           controller._recordTransportLoss(
             connectionId,
             occurredAt: controller._now(),

@@ -58,7 +58,7 @@ extension on ChatSessionController {
     );
   }
 
-  bool _hasThreadMetadata(CodexAppServerThreadSummary thread) {
+  bool _hasThreadMetadata(AgentAdapterThreadSummary thread) {
     return _hasThreadMetadataValues(
       threadName: thread.name,
       agentNickname: thread.agentNickname,

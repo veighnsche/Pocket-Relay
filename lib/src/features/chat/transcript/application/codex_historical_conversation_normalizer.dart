@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/application/codex_historical_conversation.dart';
 import 'package:pocket_relay/src/features/chat/runtime/application/codex_runtime_payload_support.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
 
 class CodexHistoricalConversationNormalizer {
@@ -11,7 +11,7 @@ class CodexHistoricalConversationNormalizer {
 
   final CodexRuntimePayloadSupport _payloadSupport;
 
-  CodexHistoricalConversation normalize(CodexAppServerThreadHistory thread) {
+  CodexHistoricalConversation normalize(AgentAdapterThreadHistory thread) {
     final fallbackCreatedAt =
         thread.createdAt ?? thread.updatedAt ?? DateTime.now();
     return CodexHistoricalConversation(
@@ -35,7 +35,7 @@ class CodexHistoricalConversationNormalizer {
   }
 
   CodexHistoricalTurn _normalizeTurn(
-    CodexAppServerHistoryTurn turn, {
+    AgentAdapterHistoryTurn turn, {
     required String threadId,
     required DateTime fallbackCreatedAt,
   }) {
@@ -76,7 +76,7 @@ class CodexHistoricalConversationNormalizer {
   }
 
   CodexHistoricalEntry? _normalizeEntry(
-    CodexAppServerHistoryItem item, {
+    AgentAdapterHistoryItem item, {
     required String threadId,
     required String turnId,
     required DateTime fallbackCreatedAt,

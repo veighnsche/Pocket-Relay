@@ -1,7 +1,7 @@
 part of 'runtime_event_mapper.dart';
 
 List<CodexRuntimeEvent>? _mapSessionOrThreadNotificationEvent(
-  CodexAppServerNotificationEvent event,
+  AgentAdapterNotificationEvent event,
   DateTime now, {
   required Map<String, dynamic>? payload,
   required Map<String, _PendingRequestInfo> pendingRequests,

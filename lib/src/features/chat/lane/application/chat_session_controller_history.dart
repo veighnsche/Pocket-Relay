@@ -27,7 +27,7 @@ Future<void> _restoreConversationTranscriptForController(
 Future<CodexSessionState?>
 _performHistoryRestoringThreadTransitionForController(
   ChatSessionController controller, {
-  required Future<CodexAppServerThreadHistory> Function() operation,
+  required Future<AgentAdapterThreadHistory> Function() operation,
   required PocketUserFacingError userFacingError,
   ChatHistoricalConversationRestoreState? loadingRestoreState,
   ChatHistoricalConversationRestoreState? emptyHistoryRestoreState,
@@ -79,7 +79,7 @@ _performHistoryRestoringThreadTransitionForController(
 
 CodexSessionState _restoredChatSessionStateFromHistory(
   ChatSessionController controller,
-  CodexAppServerThreadHistory thread,
+  AgentAdapterThreadHistory thread,
 ) {
   final historicalConversation = controller._historicalConversationNormalizer
       .normalize(thread);
@@ -101,11 +101,11 @@ Future<bool> _sendDraftWithAppServerForController(
 ) async {
   return _sendTurnInputWithAppServerForController(
     controller,
-    input: CodexAppServerTurnInput(
+    input: AgentAdapterTurnInput(
       text: draft.text,
       textElements: draft.textElements
           .map(
-            (element) => CodexAppServerTextElement(
+            (element) => AgentAdapterTextElement(
               start: element.start,
               end: element.end,
               placeholder: element.placeholder,
@@ -113,9 +113,7 @@ Future<bool> _sendDraftWithAppServerForController(
           )
           .toList(growable: false),
       images: draft.imageAttachments
-          .map(
-            (attachment) => CodexAppServerImageInput(url: attachment.imageUrl),
-          )
+          .map((attachment) => AgentAdapterImageInput(url: attachment.imageUrl))
           .toList(growable: false),
     ),
   );
@@ -124,7 +122,7 @@ Future<bool> _sendDraftWithAppServerForController(
 Future<bool> _sendTurnInputWithAppServerForController(
   ChatSessionController controller, {
   String? text,
-  CodexAppServerTurnInput? input,
+  AgentAdapterTurnInput? input,
 }) async {
   controller._isTrackingSshBootstrapFailures = true;
   controller._sawTrackedSshBootstrapFailure = false;
@@ -233,7 +231,7 @@ Future<String> _ensureChatSessionAppServerThread(
 
 void _rememberChatSessionHeaderMetadata(
   ChatSessionController controller,
-  CodexAppServerSession session,
+  AgentAdapterSession session,
 ) {
   final nextMetadata = controller._sessionState.headerMetadata.copyWith(
     cwd: session.cwd.trim().isEmpty ? null : session.cwd.trim(),

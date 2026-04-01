@@ -45,9 +45,8 @@ void main() {
       connectionRepository: repository,
       laneBindingFactory: ({required connectionId, required connection}) {
         final appServerClient = FakeCodexAppServerClient();
-        appServerClient.threadsById['thread_saved'] = savedConversationThread(
-          threadId: 'thread_saved',
-        );
+        appServerClient.threadHistoriesById['thread_saved'] =
+            savedConversationThread(threadId: 'thread_saved');
         clientsByConnectionId[connectionId]!.add(appServerClient);
         return ConnectionLaneBinding(
           connectionId: connectionId,

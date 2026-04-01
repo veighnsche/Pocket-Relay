@@ -150,7 +150,7 @@ extension _ChatSessionControllerPromptFlow on ChatSessionController {
           CodexCanonicalRequestType.mcpServerElicitation) {
         await agentAdapterClient.respondToElicitation(
           requestId: requestId,
-          action: CodexAppServerElicitationAction.accept,
+          action: AgentAdapterElicitationAction.accept,
           content: _elicitationContentFromAnswers(answers),
         );
       } else {

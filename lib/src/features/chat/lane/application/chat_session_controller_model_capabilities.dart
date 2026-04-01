@@ -99,7 +99,7 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
   Future<void> _hydrateModelCatalog() async {
     _didAttemptModelCatalogHydration = true;
     String? cursor;
-    final models = <CodexAppServerModel>[];
+    final models = <AgentAdapterModel>[];
     do {
       final page = await agentAdapterClient.listModels(
         cursor: cursor,
@@ -118,7 +118,7 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
     if (listEquals(_modelCatalog, models)) {
       return;
     }
-    _modelCatalog = List<CodexAppServerModel>.unmodifiable(models);
+    _modelCatalog = List<AgentAdapterModel>.unmodifiable(models);
     _notifyListenersIfMounted();
   }
 
@@ -128,7 +128,7 @@ extension _ChatSessionControllerModelCapabilities on ChatSessionController {
     );
   }
 
-  String? _effectiveModelForCapabilities([List<CodexAppServerModel>? catalog]) {
+  String? _effectiveModelForCapabilities([List<AgentAdapterModel>? catalog]) {
     final configuredModel = _profile.model.trim();
     if (configuredModel.isNotEmpty) {
       return configuredModel;

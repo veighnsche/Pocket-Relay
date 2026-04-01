@@ -140,17 +140,13 @@ void main() {
     final session = await client.startSession();
     await client.sendUserMessage(
       threadId: session.threadId,
-      input: const CodexAppServerTurnInput(
+      input: const AgentAdapterTurnInput(
         text: 'Check [Image #1]',
-        textElements: <CodexAppServerTextElement>[
-          CodexAppServerTextElement(
-            start: 6,
-            end: 16,
-            placeholder: '[Image #1]',
-          ),
+        textElements: <AgentAdapterTextElement>[
+          AgentAdapterTextElement(start: 6, end: 16, placeholder: '[Image #1]'),
         ],
-        images: <CodexAppServerImageInput>[
-          CodexAppServerImageInput(url: 'data:image/png;base64,aW1hZ2U='),
+        images: <AgentAdapterImageInput>[
+          AgentAdapterImageInput(url: 'data:image/png;base64,aW1hZ2U='),
         ],
       ),
     );

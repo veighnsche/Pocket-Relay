@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_agent_adapter_bridge.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 
 class FakeCodexAppServerClient extends CodexAppServerClient {
@@ -302,7 +304,21 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     }
     final configuredHistory = threadHistoriesById[threadId];
     if (configuredHistory != null) {
-      return configuredHistory;
+      return CodexAppServerThreadSummary(
+        id: configuredHistory.id,
+        preview: configuredHistory.preview,
+        ephemeral: configuredHistory.ephemeral,
+        modelProvider: configuredHistory.modelProvider,
+        createdAt: configuredHistory.createdAt,
+        updatedAt: configuredHistory.updatedAt,
+        path: configuredHistory.path,
+        cwd: configuredHistory.cwd,
+        promptCount: configuredHistory.promptCount,
+        name: configuredHistory.name,
+        sourceKind: configuredHistory.sourceKind,
+        agentNickname: configuredHistory.agentNickname,
+        agentRole: configuredHistory.agentRole,
+      );
     }
     return CodexAppServerThreadSummary(id: threadId, sourceKind: 'app-server');
   }
@@ -322,13 +338,27 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     }
 
     final configuredThread = threadsById[threadId];
-    if (configuredThread is CodexAppServerThreadHistory) {
+    if (configuredThread != null) {
       readThreadCalls.add(threadId);
       await _awaitReadThreadWithTurnsGate(threadId);
       if (readThreadWithTurnsError != null) {
         throw readThreadWithTurnsError!;
       }
-      return configuredThread;
+      return CodexAppServerThreadHistory(
+        id: configuredThread.id,
+        preview: configuredThread.preview,
+        ephemeral: configuredThread.ephemeral,
+        modelProvider: configuredThread.modelProvider,
+        createdAt: configuredThread.createdAt,
+        updatedAt: configuredThread.updatedAt,
+        path: configuredThread.path,
+        cwd: configuredThread.cwd,
+        promptCount: configuredThread.promptCount,
+        name: configuredThread.name,
+        sourceKind: configuredThread.sourceKind,
+        agentNickname: configuredThread.agentNickname,
+        agentRole: configuredThread.agentRole,
+      );
     }
 
     final summary = await readThread(threadId: threadId);
@@ -445,7 +475,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Future<CodexAppServerTurn> sendUserMessage({
     required String threadId,
     String? text,
-    CodexAppServerTurnInput? input,
+    AgentAdapterTurnInput? input,
     String? model,
     CodexReasoningEffort? effort,
   }) async {
@@ -455,7 +485,9 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     if (sendUserMessageError != null) {
       throw sendUserMessageError!;
     }
-    final effectiveInput = input ?? CodexAppServerTurnInput.text(text ?? '');
+    final effectiveInput =
+        codexTurnInputFromAgentAdapter(input) ??
+        CodexAppServerTurnInput.text(text ?? '');
     sentMessages.add(effectiveInput.text);
     sentTurns.add((
       threadId: threadId,
@@ -505,7 +537,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   @override
   Future<void> respondToElicitation({
     required String requestId,
-    required CodexAppServerElicitationAction action,
+    required AgentAdapterElicitationAction action,
     Object? content,
     Object? metadata,
   }) async {
@@ -515,7 +547,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     );
     elicitationResponses.add((
       requestId: requestId,
-      action: action,
+      action: codexElicitationActionFromAgentAdapter(action),
       content: content,
       metadata: metadata,
     ));

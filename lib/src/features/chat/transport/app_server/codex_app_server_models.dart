@@ -2,246 +2,175 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
 
-sealed class CodexAppServerEvent {
-  const CodexAppServerEvent();
+abstract interface class CodexAppServerEvent implements AgentAdapterEvent {}
+
+class CodexAppServerConnectedEvent extends AgentAdapterConnectedEvent
+    implements CodexAppServerEvent {
+  const CodexAppServerConnectedEvent({super.userAgent});
 }
 
-class CodexAppServerConnectedEvent extends CodexAppServerEvent {
-  const CodexAppServerConnectedEvent({this.userAgent});
-
-  final String? userAgent;
+class CodexAppServerDisconnectedEvent extends AgentAdapterDisconnectedEvent
+    implements CodexAppServerEvent {
+  const CodexAppServerDisconnectedEvent({super.exitCode});
 }
 
-class CodexAppServerDisconnectedEvent extends CodexAppServerEvent {
-  const CodexAppServerDisconnectedEvent({this.exitCode});
-
-  final int? exitCode;
-}
-
-class CodexAppServerNotificationEvent extends CodexAppServerEvent {
+class CodexAppServerNotificationEvent extends AgentAdapterNotificationEvent
+    implements CodexAppServerEvent {
   const CodexAppServerNotificationEvent({
-    required this.method,
-    required this.params,
+    required super.method,
+    required super.params,
   });
-
-  final String method;
-  final Object? params;
 }
 
-class CodexAppServerRequestEvent extends CodexAppServerEvent {
+class CodexAppServerRequestEvent extends AgentAdapterRequestEvent
+    implements CodexAppServerEvent {
   const CodexAppServerRequestEvent({
-    required this.requestId,
-    required this.method,
-    required this.params,
+    required super.requestId,
+    required super.method,
+    required super.params,
   });
-
-  final String requestId;
-  final String method;
-  final Object? params;
 }
 
-class CodexAppServerDiagnosticEvent extends CodexAppServerEvent {
+class CodexAppServerDiagnosticEvent extends AgentAdapterDiagnosticEvent
+    implements CodexAppServerEvent {
   const CodexAppServerDiagnosticEvent({
-    required this.message,
-    required this.isError,
+    required super.message,
+    required super.isError,
   });
-
-  final String message;
-  final bool isError;
 }
 
-class CodexAppServerUnpinnedHostKeyEvent extends CodexAppServerEvent {
+class CodexAppServerUnpinnedHostKeyEvent
+    extends AgentAdapterUnpinnedHostKeyEvent
+    implements CodexAppServerEvent {
   const CodexAppServerUnpinnedHostKeyEvent({
-    required this.host,
-    required this.port,
-    required this.keyType,
-    required this.fingerprint,
+    required super.host,
+    required super.port,
+    required super.keyType,
+    required super.fingerprint,
   });
-
-  final String host;
-  final int port;
-  final String keyType;
-  final String fingerprint;
 }
 
-class CodexAppServerSshConnectFailedEvent extends CodexAppServerEvent {
+class CodexAppServerSshConnectFailedEvent
+    extends AgentAdapterSshConnectFailedEvent
+    implements CodexAppServerEvent {
   const CodexAppServerSshConnectFailedEvent({
-    required this.host,
-    required this.port,
-    required this.message,
-    this.detail,
+    required super.host,
+    required super.port,
+    required super.message,
+    super.detail,
   });
-
-  final String host;
-  final int port;
-  final String message;
-  final Object? detail;
 }
 
-class CodexAppServerSshHostKeyMismatchEvent extends CodexAppServerEvent {
+class CodexAppServerSshHostKeyMismatchEvent
+    extends AgentAdapterSshHostKeyMismatchEvent
+    implements CodexAppServerEvent {
   const CodexAppServerSshHostKeyMismatchEvent({
-    required this.host,
-    required this.port,
-    required this.keyType,
-    required this.expectedFingerprint,
-    required this.actualFingerprint,
+    required super.host,
+    required super.port,
+    required super.keyType,
+    required super.expectedFingerprint,
+    required super.actualFingerprint,
   });
-
-  final String host;
-  final int port;
-  final String keyType;
-  final String expectedFingerprint;
-  final String actualFingerprint;
 }
 
-class CodexAppServerSshAuthenticationFailedEvent extends CodexAppServerEvent {
+class CodexAppServerSshAuthenticationFailedEvent
+    extends AgentAdapterSshAuthenticationFailedEvent
+    implements CodexAppServerEvent {
   const CodexAppServerSshAuthenticationFailedEvent({
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.authMode,
-    required this.message,
-    this.detail,
+    required super.host,
+    required super.port,
+    required super.username,
+    required super.authMode,
+    required super.message,
+    super.detail,
   });
-
-  final String host;
-  final int port;
-  final String username;
-  final AuthMode authMode;
-  final String message;
-  final Object? detail;
 }
 
-class CodexAppServerSshAuthenticatedEvent extends CodexAppServerEvent {
+class CodexAppServerSshAuthenticatedEvent
+    extends AgentAdapterSshAuthenticatedEvent
+    implements CodexAppServerEvent {
   const CodexAppServerSshAuthenticatedEvent({
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.authMode,
+    required super.host,
+    required super.port,
+    required super.username,
+    required super.authMode,
   });
-
-  final String host;
-  final int port;
-  final String username;
-  final AuthMode authMode;
 }
 
-class CodexAppServerSshPortForwardStartedEvent extends CodexAppServerEvent {
+class CodexAppServerSshPortForwardStartedEvent
+    extends AgentAdapterSshPortForwardStartedEvent
+    implements CodexAppServerEvent {
   const CodexAppServerSshPortForwardStartedEvent({
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.remoteHost,
-    required this.remotePort,
-    required this.localPort,
+    required super.host,
+    required super.port,
+    required super.username,
+    required super.remoteHost,
+    required super.remotePort,
+    required super.localPort,
   });
-
-  final String host;
-  final int port;
-  final String username;
-  final String remoteHost;
-  final int remotePort;
-  final int localPort;
 }
 
-class CodexAppServerSshPortForwardFailedEvent extends CodexAppServerEvent {
+class CodexAppServerSshPortForwardFailedEvent
+    extends AgentAdapterSshPortForwardFailedEvent
+    implements CodexAppServerEvent {
   const CodexAppServerSshPortForwardFailedEvent({
-    required this.host,
-    required this.port,
-    required this.username,
-    required this.remoteHost,
-    required this.remotePort,
-    required this.message,
-    this.detail,
+    required super.host,
+    required super.port,
+    required super.username,
+    required super.remoteHost,
+    required super.remotePort,
+    required super.message,
+    super.detail,
   });
-
-  final String host;
-  final int port;
-  final String username;
-  final String remoteHost;
-  final int remotePort;
-  final String message;
-  final Object? detail;
 }
 
-class CodexAppServerThreadSummary {
+class CodexAppServerThreadSummary extends AgentAdapterThreadSummary {
   const CodexAppServerThreadSummary({
-    required this.id,
-    this.preview = '',
-    this.ephemeral = false,
-    this.modelProvider = '',
-    this.createdAt,
-    this.updatedAt,
-    this.path,
-    this.cwd,
-    this.promptCount,
-    this.name,
-    this.sourceKind,
-    this.agentNickname,
-    this.agentRole,
+    required super.id,
+    super.preview = '',
+    super.ephemeral = false,
+    super.modelProvider = '',
+    super.createdAt,
+    super.updatedAt,
+    super.path,
+    super.cwd,
+    super.promptCount,
+    super.name,
+    super.sourceKind,
+    super.agentNickname,
+    super.agentRole,
   });
-
-  final String id;
-  final String preview;
-  final bool ephemeral;
-  final String modelProvider;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  final String? path;
-  final String? cwd;
-  final int? promptCount;
-  final String? name;
-  final String? sourceKind;
-  final String? agentNickname;
-  final String? agentRole;
 }
 
-class CodexAppServerHistoryItem {
+class CodexAppServerHistoryItem extends AgentAdapterHistoryItem {
   const CodexAppServerHistoryItem({
-    required this.id,
-    this.type,
-    this.status,
-    required this.raw,
+    required super.id,
+    super.type,
+    super.status,
+    required super.raw,
   });
-
-  final String id;
-  final String? type;
-  final String? status;
-  final Map<String, dynamic> raw;
 }
 
-class CodexAppServerHistoryTurn {
+class CodexAppServerHistoryTurn extends AgentAdapterHistoryTurn {
   const CodexAppServerHistoryTurn({
-    required this.id,
-    this.threadId,
-    this.status,
-    this.model,
-    this.effort,
-    this.stopReason,
-    this.usage,
-    this.modelUsage,
-    this.totalCostUsd,
-    this.error,
-    this.items = const <CodexAppServerHistoryItem>[],
-    required this.raw,
+    required super.id,
+    super.threadId,
+    super.status,
+    super.model,
+    super.effort,
+    super.stopReason,
+    super.usage,
+    super.modelUsage,
+    super.totalCostUsd,
+    super.error,
+    super.items = const <CodexAppServerHistoryItem>[],
+    required super.raw,
   });
-
-  final String id;
-  final String? threadId;
-  final String? status;
-  final String? model;
-  final String? effort;
-  final String? stopReason;
-  final Map<String, dynamic>? usage;
-  final Map<String, dynamic>? modelUsage;
-  final double? totalCostUsd;
-  final Map<String, dynamic>? error;
-  final List<CodexAppServerHistoryItem> items;
-  final Map<String, dynamic> raw;
 }
 
-class CodexAppServerThreadHistory extends CodexAppServerThreadSummary {
+class CodexAppServerThreadHistory extends AgentAdapterThreadHistory {
   const CodexAppServerThreadHistory({
     required super.id,
     super.preview = '',
@@ -256,271 +185,99 @@ class CodexAppServerThreadHistory extends CodexAppServerThreadSummary {
     super.sourceKind,
     super.agentNickname,
     super.agentRole,
-    this.turns = const <CodexAppServerHistoryTurn>[],
+    super.turns = const <CodexAppServerHistoryTurn>[],
   });
-
-  final List<CodexAppServerHistoryTurn> turns;
 }
 
-class CodexAppServerThreadListPage {
+class CodexAppServerThreadListPage extends AgentAdapterThreadListPage {
   const CodexAppServerThreadListPage({
-    required this.threads,
-    required this.nextCursor,
+    required super.threads,
+    required super.nextCursor,
   });
-
-  final List<CodexAppServerThreadSummary> threads;
-  final String? nextCursor;
 }
 
-class CodexAppServerModelUpgradeInfo {
+class CodexAppServerModelUpgradeInfo extends AgentAdapterModelUpgradeInfo {
   const CodexAppServerModelUpgradeInfo({
-    required this.model,
-    this.upgradeCopy,
-    this.modelLink,
-    this.migrationMarkdown,
+    required super.model,
+    super.upgradeCopy,
+    super.modelLink,
+    super.migrationMarkdown,
   });
-
-  final String model;
-  final String? upgradeCopy;
-  final String? modelLink;
-  final String? migrationMarkdown;
-
-  @override
-  bool operator ==(Object other) {
-    return other is CodexAppServerModelUpgradeInfo &&
-        other.model == model &&
-        other.upgradeCopy == upgradeCopy &&
-        other.modelLink == modelLink &&
-        other.migrationMarkdown == migrationMarkdown;
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(model, upgradeCopy, modelLink, migrationMarkdown);
 }
 
-class CodexAppServerReasoningEffortOption {
+class CodexAppServerReasoningEffortOption
+    extends AgentAdapterReasoningEffortOption {
   const CodexAppServerReasoningEffortOption({
-    required this.reasoningEffort,
-    required this.description,
+    required super.reasoningEffort,
+    required super.description,
   });
-
-  final CodexReasoningEffort reasoningEffort;
-  final String description;
-
-  @override
-  bool operator ==(Object other) {
-    return other is CodexAppServerReasoningEffortOption &&
-        other.reasoningEffort == reasoningEffort &&
-        other.description == description;
-  }
-
-  @override
-  int get hashCode => Object.hash(reasoningEffort, description);
 }
 
-class CodexAppServerModel {
+class CodexAppServerModel extends AgentAdapterModel {
   const CodexAppServerModel({
-    required this.id,
-    required this.model,
-    required this.displayName,
-    required this.description,
-    required this.hidden,
-    required this.supportedReasoningEfforts,
-    required this.defaultReasoningEffort,
-    required this.inputModalities,
-    required this.supportsPersonality,
-    required this.isDefault,
-    this.upgrade,
-    this.upgradeInfo,
-    this.availabilityNuxMessage,
+    required super.id,
+    required super.model,
+    required super.displayName,
+    required super.description,
+    required super.hidden,
+    required super.supportedReasoningEfforts,
+    required super.defaultReasoningEffort,
+    required super.inputModalities,
+    required super.supportsPersonality,
+    required super.isDefault,
+    super.upgrade,
+    super.upgradeInfo,
+    super.availabilityNuxMessage,
   });
-
-  final String id;
-  final String model;
-  final String displayName;
-  final String description;
-  final bool hidden;
-  final List<CodexAppServerReasoningEffortOption> supportedReasoningEfforts;
-  final CodexReasoningEffort defaultReasoningEffort;
-  final List<String> inputModalities;
-  final bool supportsPersonality;
-  final bool isDefault;
-  final String? upgrade;
-  final CodexAppServerModelUpgradeInfo? upgradeInfo;
-  final String? availabilityNuxMessage;
-
-  bool get supportsImageInput => inputModalities.contains('image');
-
-  @override
-  bool operator ==(Object other) {
-    return other is CodexAppServerModel &&
-        other.id == id &&
-        other.model == model &&
-        other.displayName == displayName &&
-        other.description == description &&
-        other.hidden == hidden &&
-        _listEquals(
-          other.supportedReasoningEfforts,
-          supportedReasoningEfforts,
-        ) &&
-        other.defaultReasoningEffort == defaultReasoningEffort &&
-        _listEquals(other.inputModalities, inputModalities) &&
-        other.supportsPersonality == supportsPersonality &&
-        other.isDefault == isDefault &&
-        other.upgrade == upgrade &&
-        other.upgradeInfo == upgradeInfo &&
-        other.availabilityNuxMessage == availabilityNuxMessage;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    model,
-    displayName,
-    description,
-    hidden,
-    Object.hashAll(supportedReasoningEfforts),
-    defaultReasoningEffort,
-    Object.hashAll(inputModalities),
-    supportsPersonality,
-    isDefault,
-    upgrade,
-    upgradeInfo,
-    availabilityNuxMessage,
-  );
 }
 
-class CodexAppServerModelListPage {
+class CodexAppServerModelListPage extends AgentAdapterModelListPage {
   const CodexAppServerModelListPage({
-    required this.models,
-    required this.nextCursor,
+    required super.models,
+    required super.nextCursor,
   });
-
-  final List<CodexAppServerModel> models;
-  final String? nextCursor;
 }
 
-class CodexAppServerSession {
+class CodexAppServerSession extends AgentAdapterSession {
   const CodexAppServerSession({
-    required this.threadId,
-    required this.cwd,
-    required this.model,
-    required this.modelProvider,
-    this.reasoningEffort,
-    this.thread,
-    this.approvalPolicy,
-    this.sandbox,
+    required super.threadId,
+    required super.cwd,
+    required super.model,
+    required super.modelProvider,
+    super.reasoningEffort,
+    super.thread,
+    super.approvalPolicy,
+    super.sandbox,
   });
-
-  final String threadId;
-  final String cwd;
-  final String model;
-  final String modelProvider;
-  final String? reasoningEffort;
-  final CodexAppServerThreadSummary? thread;
-  final Object? approvalPolicy;
-  final Object? sandbox;
 }
 
-class CodexAppServerTurn {
-  const CodexAppServerTurn({required this.threadId, required this.turnId});
-
-  final String threadId;
-  final String turnId;
+class CodexAppServerTurn extends AgentAdapterTurn {
+  const CodexAppServerTurn({required super.threadId, required super.turnId});
 }
 
-class CodexAppServerTurnInput {
+class CodexAppServerTurnInput extends AgentAdapterTurnInput {
   const CodexAppServerTurnInput({
-    this.text = '',
-    this.textElements = const <CodexAppServerTextElement>[],
-    this.images = const <CodexAppServerImageInput>[],
+    super.text = '',
+    super.textElements = const <CodexAppServerTextElement>[],
+    super.images = const <CodexAppServerImageInput>[],
   });
 
-  const CodexAppServerTurnInput.text(String text)
-    : this(text: text, textElements: const <CodexAppServerTextElement>[]);
-
-  final String text;
-  final List<CodexAppServerTextElement> textElements;
-  final List<CodexAppServerImageInput> images;
-
-  bool get hasText => text.trim().isNotEmpty || textElements.isNotEmpty;
-  bool get hasImages => images.any((image) => image.url.trim().isNotEmpty);
-  bool get isEmpty => !hasText && !hasImages;
-
-  @override
-  bool operator ==(Object other) {
-    return other is CodexAppServerTurnInput &&
-        other.text == text &&
-        _listEquals(other.textElements, textElements) &&
-        _listEquals(other.images, images);
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(text, Object.hashAll(textElements), Object.hashAll(images));
+  const CodexAppServerTurnInput.text(String text) : super.text(text);
 }
 
-class CodexAppServerImageInput {
-  const CodexAppServerImageInput({required this.url});
-
-  final String url;
-
-  @override
-  bool operator ==(Object other) {
-    return other is CodexAppServerImageInput && other.url == url;
-  }
-
-  @override
-  int get hashCode => url.hashCode;
+class CodexAppServerImageInput extends AgentAdapterImageInput {
+  const CodexAppServerImageInput({required super.url});
 }
 
-class CodexAppServerTextElement {
+class CodexAppServerTextElement extends AgentAdapterTextElement {
   const CodexAppServerTextElement({
-    required this.start,
-    required this.end,
-    this.placeholder,
+    required super.start,
+    required super.end,
+    super.placeholder,
   });
-
-  final int start;
-  final int end;
-  final String? placeholder;
-
-  Map<String, Object?> toJson() {
-    return <String, Object?>{
-      'byteRange': <String, Object?>{'start': start, 'end': end},
-      if (placeholder != null) 'placeholder': placeholder,
-    };
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is CodexAppServerTextElement &&
-        other.start == start &&
-        other.end == end &&
-        other.placeholder == placeholder;
-  }
-
-  @override
-  int get hashCode => Object.hash(start, end, placeholder);
 }
 
 enum CodexAppServerElicitationAction { accept, decline, cancel }
-
-bool _listEquals<T>(List<T> left, List<T> right) {
-  if (identical(left, right)) {
-    return true;
-  }
-  if (left.length != right.length) {
-    return false;
-  }
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) {
-      return false;
-    }
-  }
-  return true;
-}
 
 class CodexAppServerException implements Exception {
   const CodexAppServerException(this.message, {this.code, this.data});
