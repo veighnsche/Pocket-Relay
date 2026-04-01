@@ -29,7 +29,7 @@ class ChatRequestProjector {
       createdAt: request.createdAt,
       requestId: request.requestId,
       requestType: request.requestType,
-      title: codexRequestTitle(request.requestType),
+      title: transcriptRequestTitle(request.requestType),
       body: request.detail ?? 'Codex needs a decision before it can continue.',
       isResolved: false,
     );
@@ -59,8 +59,8 @@ class ChatRequestProjector {
       createdAt: request.createdAt,
       requestId: request.requestId,
       requestType: request.requestType,
-      title: codexRequestTitle(request.requestType),
-      body: request.detail ?? codexQuestionsSummary(request.questions),
+      title: transcriptRequestTitle(request.requestType),
+      body: request.detail ?? transcriptQuestionsSummary(request.questions),
       isResolved: false,
       questions: request.questions,
     );

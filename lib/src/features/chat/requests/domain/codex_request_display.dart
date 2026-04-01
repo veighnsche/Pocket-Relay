@@ -1,6 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
-String codexRequestTitle(TranscriptCanonicalRequestType requestType) {
+String transcriptRequestTitle(TranscriptCanonicalRequestType requestType) {
   return switch (requestType) {
     TranscriptCanonicalRequestType.commandExecutionApproval =>
       'Command approval',
@@ -15,7 +15,7 @@ String codexRequestTitle(TranscriptCanonicalRequestType requestType) {
   };
 }
 
-String codexQuestionsSummary(
+String transcriptQuestionsSummary(
   List<TranscriptRuntimeUserInputQuestion> questions,
 ) {
   return questions
@@ -23,7 +23,7 @@ String codexQuestionsSummary(
       .join('\n\n');
 }
 
-String codexAnswersSummary(Map<String, List<String>> answers) {
+String transcriptAnswersSummary(Map<String, List<String>> answers) {
   if (answers.isEmpty) {
     return 'The requested input was submitted.';
   }
@@ -33,7 +33,7 @@ String codexAnswersSummary(Map<String, List<String>> answers) {
       .join('\n');
 }
 
-String codexAnswersSummaryFromQuestions({
+String transcriptAnswersSummaryFromQuestions({
   required List<TranscriptRuntimeUserInputQuestion> questions,
   required Map<String, List<String>> answers,
 }) {
