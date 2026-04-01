@@ -8,7 +8,7 @@ Future<ConnectionRemoteRuntimeState> _startWorkspaceRemoteServer(
     controller,
     actionId: ConnectionSettingsRemoteServerActionId.start,
     connectionId: connectionId,
-    actionDetail: 'Starting managed remote app-server…',
+    actionDetail: 'Starting managed remote runtime…',
     runAction: ({required profile, required secrets, required ownerId}) =>
         controller
             ._remoteRuntimeDelegateFactory(profile.agentAdapter)
@@ -28,7 +28,7 @@ Future<ConnectionRemoteRuntimeState> _stopWorkspaceRemoteServer(
     controller,
     actionId: ConnectionSettingsRemoteServerActionId.stop,
     connectionId: connectionId,
-    actionDetail: 'Stopping managed remote app-server…',
+    actionDetail: 'Stopping managed remote runtime…',
     runAction: ({required profile, required secrets, required ownerId}) =>
         controller
             ._remoteRuntimeDelegateFactory(profile.agentAdapter)
@@ -48,7 +48,7 @@ Future<ConnectionRemoteRuntimeState> _restartWorkspaceRemoteServer(
     controller,
     actionId: ConnectionSettingsRemoteServerActionId.restart,
     connectionId: connectionId,
-    actionDetail: 'Restarting managed remote app-server…',
+    actionDetail: 'Restarting managed remote runtime…',
     runAction: ({required profile, required secrets, required ownerId}) =>
         controller
             ._remoteRuntimeDelegateFactory(profile.agentAdapter)
@@ -96,9 +96,9 @@ Future<ConnectionRemoteRuntimeState> _runWorkspaceRemoteServerAction(
           ._remoteRuntimeRefreshGenerationByConnectionId[normalizedConnectionId] =
       refreshGeneration;
 
-  final sessionName = buildPocketRelayRemoteOwnerSessionName(
-    ownerId: normalizedConnectionId,
-  );
+  final sessionName = controller
+      ._remoteRuntimeDelegateFactory(savedConnection.profile.agentAdapter)
+      .buildSessionName(normalizedConnectionId);
   final existingRuntime = controller.state.remoteRuntimeFor(
     normalizedConnectionId,
   );

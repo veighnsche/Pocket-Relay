@@ -4,6 +4,8 @@ typedef AgentAdapterRemoteRuntimeDelegateFactory =
     AgentAdapterRemoteRuntimeDelegate Function(AgentAdapterKind kind);
 
 abstract interface class AgentAdapterRemoteRuntimeDelegate {
+  String buildSessionName(String ownerId);
+
   Future<ConnectionRemoteRuntimeState> probeRemoteRuntime({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
