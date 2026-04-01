@@ -157,6 +157,34 @@ void main() {
       expect(delegate.lastOwnerId, 'remote-1');
     },
   );
+
+  test(
+    'probeConnectionSettingsRemoteRuntime prefers the injected delegate factory',
+    () async {
+      final delegate = _FakeRemoteRuntimeDelegate(
+        const ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.supported(),
+          server: ConnectionRemoteServerState.running(
+            ownerId: 'remote-1',
+            sessionName: 'factory-owner',
+            port: 4101,
+          ),
+        ),
+      );
+
+      final runtime = await probeConnectionSettingsRemoteRuntime(
+        payload: _payload(),
+        ownerId: 'remote-1',
+        remoteRuntimeDelegateFactory: (_) => delegate,
+        hostProbe: _ThrowingHostProbe(),
+        ownerInspector: _ThrowingOwnerInspector(),
+      );
+
+      expect(runtime.server.sessionName, 'factory-owner');
+      expect(delegate.probeCalls, 1);
+      expect(delegate.lastOwnerId, 'remote-1');
+    },
+  );
 }
 
 ConnectionSettingsSubmitPayload _payload() {

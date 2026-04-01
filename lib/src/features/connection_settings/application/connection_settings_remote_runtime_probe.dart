@@ -9,6 +9,7 @@ Future<ConnectionRemoteRuntimeState> probeConnectionSettingsRemoteRuntime({
   required ConnectionSettingsSubmitPayload payload,
   String? ownerId,
   AgentAdapterRemoteRuntimeDelegate? remoteRuntimeDelegate,
+  AgentAdapterRemoteRuntimeDelegateFactory? remoteRuntimeDelegateFactory,
   @Deprecated('Use remoteRuntimeDelegate instead.')
   CodexRemoteAppServerHostProbe hostProbe =
       const CodexSshRemoteAppServerHostProbe(),
@@ -18,6 +19,7 @@ Future<ConnectionRemoteRuntimeState> probeConnectionSettingsRemoteRuntime({
 }) async {
   final resolvedDelegate =
       remoteRuntimeDelegate ??
+      remoteRuntimeDelegateFactory?.call(payload.profile.agentAdapter) ??
       createDefaultAgentAdapterRemoteRuntimeDelegate(
         payload.profile.agentAdapter,
         remoteHostProbe: hostProbe,

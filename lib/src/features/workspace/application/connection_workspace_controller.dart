@@ -127,6 +127,12 @@ class ConnectionWorkspaceController extends ChangeNotifier {
 
   ConnectionWorkspaceState get state => _state;
   Future<void> flushRecoveryPersistence() => _enqueueRecoveryPersistence();
+  AgentAdapterRemoteRuntimeDelegate createRemoteRuntimeDelegate(
+    AgentAdapterKind kind,
+  ) {
+    return _remoteRuntimeDelegateFactory(kind);
+  }
+
   ConnectionLaneBinding? get selectedLaneBinding {
     final selectedConnectionId = _state.selectedConnectionId;
     if (selectedConnectionId == null) {

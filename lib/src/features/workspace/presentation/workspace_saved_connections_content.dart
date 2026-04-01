@@ -495,7 +495,11 @@ class _ConnectionWorkspaceSavedConnectionsContentState
       availableSystemTemplates: availableSystemTemplates,
       onRefreshRemoteRuntime: (payload) {
         if (connectionId == null) {
-          return probeConnectionSettingsRemoteRuntime(payload: payload);
+          return probeConnectionSettingsRemoteRuntime(
+            payload: payload,
+            remoteRuntimeDelegate: widget.workspaceController
+                .createRemoteRuntimeDelegate(payload.profile.agentAdapter),
+          );
         }
         return widget.workspaceController.refreshRemoteRuntime(
           connectionId: connectionId,
