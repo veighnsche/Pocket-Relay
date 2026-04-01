@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 export 'package:flutter/material.dart';
@@ -15,10 +18,11 @@ export 'package:pocket_relay/src/app/pocket_relay_app.dart';
 export 'package:pocket_relay/src/core/models/connection_models.dart';
 export 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 export 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
+export 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
-export 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
+export 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
 
 ConnectionProfile configuredProfile() {
   return ConnectionProfile.defaults().copyWith(
@@ -41,11 +45,17 @@ SavedProfile savedProfile({
 }
 
 PocketRelayApp buildCatalogApp({
-  required CodexAppServerClient appServerClient,
+  AgentAdapterClient? agentAdapterClient,
+  @Deprecated('Use agentAdapterClient instead.')
+  AgentAdapterClient? appServerClient,
   SavedProfile? savedProfile,
   CodexConnectionRepository? connectionRepository,
+  AgentAdapterRemoteRuntimeDelegateFactory?
+  agentAdapterRemoteRuntimeDelegateFactory,
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   CodexRemoteAppServerHostProbe remoteAppServerHostProbe =
       const FakeRemoteHostProbe(CodexRemoteAppServerHostCapabilities()),
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   CodexRemoteAppServerOwnerInspector remoteAppServerOwnerInspector =
       const FakeRemoteOwnerInspector(
         CodexRemoteAppServerOwnerSnapshot(
@@ -57,6 +67,11 @@ PocketRelayApp buildCatalogApp({
         ),
       ),
 }) {
+  final resolvedAgentAdapterClient = agentAdapterClient ?? appServerClient;
+  assert(
+    resolvedAgentAdapterClient != null,
+    'An agent adapter client is required.',
+  );
   return PocketRelayApp(
     connectionRepository:
         connectionRepository ??
@@ -66,9 +81,16 @@ PocketRelayApp buildCatalogApp({
         ),
     modelCatalogStore: MemoryConnectionModelCatalogStore(),
     recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
-    appServerClient: appServerClient,
-    remoteAppServerHostProbe: remoteAppServerHostProbe,
-    remoteAppServerOwnerInspector: remoteAppServerOwnerInspector,
+    agentAdapterClient: resolvedAgentAdapterClient!,
+    agentAdapterRemoteRuntimeDelegateFactory:
+        agentAdapterRemoteRuntimeDelegateFactory,
+    remoteAppServerHostProbe: agentAdapterRemoteRuntimeDelegateFactory == null
+        ? remoteAppServerHostProbe
+        : null,
+    remoteAppServerOwnerInspector:
+        agentAdapterRemoteRuntimeDelegateFactory == null
+        ? remoteAppServerOwnerInspector
+        : null,
   );
 }
 

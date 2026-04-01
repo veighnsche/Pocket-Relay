@@ -3,12 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
@@ -63,11 +64,18 @@ PocketRelayApp buildCatalogApp({
   CodexConnectionRepository? connectionRepository,
   DisplayWakeLockController? displayWakeLockController,
   BackgroundGraceController? backgroundGraceController,
-  CodexAppServerClient? appServerClient,
+  AgentAdapterClient? agentAdapterClient,
+  @Deprecated('Use agentAdapterClient instead.')
+  AgentAdapterClient? appServerClient,
+  AgentAdapterRemoteRuntimeDelegateFactory?
+  agentAdapterRemoteRuntimeDelegateFactory,
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   CodexRemoteAppServerHostProbe? remoteAppServerHostProbe,
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector,
   ConnectionSettingsOverlayDelegate? settingsOverlayDelegate,
 }) {
+  final resolvedAgentAdapterClient = agentAdapterClient ?? appServerClient;
   return PocketRelayApp(
     connectionRepository:
         connectionRepository ??
@@ -79,19 +87,24 @@ PocketRelayApp buildCatalogApp({
     recoveryStore: MemoryConnectionWorkspaceRecoveryStore(),
     displayWakeLockController: displayWakeLockController,
     backgroundGraceController: backgroundGraceController,
-    appServerClient: appServerClient,
-    remoteAppServerHostProbe:
-        remoteAppServerHostProbe ??
-        const FakeRemoteHostProbe(CodexRemoteAppServerHostCapabilities()),
+    agentAdapterClient: resolvedAgentAdapterClient,
+    agentAdapterRemoteRuntimeDelegateFactory:
+        agentAdapterRemoteRuntimeDelegateFactory,
+    remoteAppServerHostProbe: agentAdapterRemoteRuntimeDelegateFactory == null
+        ? remoteAppServerHostProbe ??
+              const FakeRemoteHostProbe(CodexRemoteAppServerHostCapabilities())
+        : null,
     remoteAppServerOwnerInspector:
-        remoteAppServerOwnerInspector ??
-        FakeRemoteOwnerInspector(
-          const CodexRemoteAppServerOwnerSnapshot(
-            ownerId: 'conn_primary',
-            workspaceDir: '/workspace',
-            status: CodexRemoteAppServerOwnerStatus.missing,
-          ),
-        ),
+        agentAdapterRemoteRuntimeDelegateFactory == null
+        ? remoteAppServerOwnerInspector ??
+              FakeRemoteOwnerInspector(
+                const CodexRemoteAppServerOwnerSnapshot(
+                  ownerId: 'conn_primary',
+                  workspaceDir: '/workspace',
+                  status: CodexRemoteAppServerOwnerStatus.missing,
+                ),
+              )
+        : null,
     settingsOverlayDelegate:
         settingsOverlayDelegate ??
         const ModalConnectionSettingsOverlayDelegate(),

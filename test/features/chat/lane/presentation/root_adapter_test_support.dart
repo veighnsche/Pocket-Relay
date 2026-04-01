@@ -8,7 +8,10 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
@@ -23,7 +26,6 @@ import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/ch
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 export 'dart:async';
 export 'package:flutter/gestures.dart';
@@ -34,7 +36,9 @@ export 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 export 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 export 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 export 'package:pocket_relay/src/core/theme/pocket_theme.dart';
+export 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
+export 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 export 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 export 'package:pocket_relay/src/features/chat/worklog/application/chat_work_log_terminal_contract.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
@@ -49,10 +53,11 @@ export 'package:pocket_relay/src/features/chat/transcript_follow/presentation/ch
 export 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
 export 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 export 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
-export 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 Widget buildAdapterApp({
-  required FakeCodexAppServerClient appServerClient,
+  AgentAdapterClient? agentAdapterClient,
+  @Deprecated('Use agentAdapterClient instead.')
+  AgentAdapterClient? appServerClient,
   required ChatRootOverlayDelegate overlayDelegate,
   Future<void> Function(ChatConnectionSettingsLaunchContract payload)?
   onConnectionSettingsRequested,
@@ -65,6 +70,11 @@ Widget buildAdapterApp({
   ThemeData? theme,
   Widget? supplementalEmptyStateContent,
 }) {
+  final resolvedAgentAdapterClient = agentAdapterClient ?? appServerClient;
+  assert(
+    resolvedAgentAdapterClient != null,
+    'An agent adapter client is required.',
+  );
   final resolvedPlatformPolicy =
       platformPolicy ??
       PocketPlatformPolicy(
@@ -74,7 +84,7 @@ Widget buildAdapterApp({
     theme: theme ?? buildPocketTheme(Brightness.light),
     home: ChatRootAdapterHarness(
       laneBinding: laneBinding,
-      appServerClient: appServerClient,
+      agentAdapterClient: resolvedAgentAdapterClient!,
       profileStore: profileStore,
       savedProfile: savedProfile ?? testSavedProfile(),
       platformPolicy: resolvedPlatformPolicy,
@@ -88,11 +98,18 @@ Widget buildAdapterApp({
 }
 
 ConnectionLaneBinding buildLaneBinding({
-  required FakeCodexAppServerClient appServerClient,
+  AgentAdapterClient? agentAdapterClient,
+  @Deprecated('Use agentAdapterClient instead.')
+  AgentAdapterClient? appServerClient,
   required SavedProfile savedProfile,
   CodexProfileStore? profileStore,
   PocketPlatformPolicy? platformPolicy,
 }) {
+  final resolvedAgentAdapterClient = agentAdapterClient ?? appServerClient;
+  assert(
+    resolvedAgentAdapterClient != null,
+    'An agent adapter client is required.',
+  );
   final resolvedPlatformPolicy =
       platformPolicy ??
       PocketPlatformPolicy(behavior: PocketPlatformBehavior.resolve());
@@ -100,7 +117,7 @@ ConnectionLaneBinding buildLaneBinding({
     connectionId: 'conn_primary',
     profileStore:
         profileStore ?? MemoryCodexProfileStore(initialValue: savedProfile),
-    appServerClient: appServerClient,
+    agentAdapterClient: resolvedAgentAdapterClient!,
     initialSavedProfile: savedProfile,
     supportsLocalConnectionMode:
         resolvedPlatformPolicy.supportsLocalConnectionMode,
@@ -419,7 +436,7 @@ class FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
 
 class ChatRootAdapterHarness extends StatefulWidget {
   const ChatRootAdapterHarness({
-    required this.appServerClient,
+    required this.agentAdapterClient,
     required this.savedProfile,
     required this.platformPolicy,
     required this.overlayDelegate,
@@ -430,7 +447,7 @@ class ChatRootAdapterHarness extends StatefulWidget {
     this.profileStore,
   });
 
-  final FakeCodexAppServerClient appServerClient;
+  final AgentAdapterClient agentAdapterClient;
   final SavedProfile savedProfile;
   final PocketPlatformPolicy platformPolicy;
   final ChatRootOverlayDelegate overlayDelegate;
@@ -462,7 +479,7 @@ class ChatRootAdapterHarnessState extends State<ChatRootAdapterHarness> {
     _rebindOwnedLaneBindingIfNeeded(
       force:
           oldWidget.laneBinding != widget.laneBinding ||
-          oldWidget.appServerClient != widget.appServerClient ||
+          oldWidget.agentAdapterClient != widget.agentAdapterClient ||
           oldWidget.profileStore != widget.profileStore ||
           oldWidget.savedProfile != widget.savedProfile ||
           oldWidget.platformPolicy != widget.platformPolicy,
@@ -500,7 +517,7 @@ class ChatRootAdapterHarnessState extends State<ChatRootAdapterHarness> {
     }
 
     final nextLaneBinding = buildLaneBinding(
-      appServerClient: widget.appServerClient,
+      agentAdapterClient: widget.agentAdapterClient,
       profileStore: widget.profileStore,
       savedProfile: widget.savedProfile,
       platformPolicy: widget.platformPolicy,

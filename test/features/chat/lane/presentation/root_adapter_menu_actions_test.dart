@@ -4,10 +4,10 @@ void main() {
   testWidgets(
     'menu actions start a fresh thread and clear the transcript through the bound lane',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       final overlayDelegate = FakeChatRootOverlayDelegate();
       final laneBinding = buildLaneBinding(
-        appServerClient: appServerClient,
+        agentAdapterClient: appServerClient,
         savedProfile: savedProfile(),
       );
       addTearDown(appServerClient.close);
@@ -15,7 +15,7 @@ void main() {
 
       await tester.pumpWidget(
         buildAdapterApp(
-          appServerClient: appServerClient,
+          agentAdapterClient: appServerClient,
           overlayDelegate: overlayDelegate,
           laneBinding: laneBinding,
         ),
@@ -73,10 +73,10 @@ void main() {
   testWidgets(
     'menu disables new thread and clear transcript while a turn is active',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       final overlayDelegate = FakeChatRootOverlayDelegate();
       final laneBinding = buildLaneBinding(
-        appServerClient: appServerClient,
+        agentAdapterClient: appServerClient,
         savedProfile: savedProfile(),
       );
       addTearDown(appServerClient.close);
@@ -84,7 +84,7 @@ void main() {
 
       await tester.pumpWidget(
         buildAdapterApp(
-          appServerClient: appServerClient,
+          agentAdapterClient: appServerClient,
           overlayDelegate: overlayDelegate,
           laneBinding: laneBinding,
         ),
@@ -123,7 +123,7 @@ void main() {
   testWidgets(
     'menu actions can branch the active conversation through the lane',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient()
+      final appServerClient = FakeAgentAdapterClient()
         ..threadHistoriesById['thread_saved'] = savedConversationThread(
           threadId: 'thread_saved',
         )
@@ -135,7 +135,7 @@ void main() {
       final laneBinding = ConnectionLaneBinding(
         connectionId: 'conn_primary',
         profileStore: MemoryCodexProfileStore(initialValue: savedProfile()),
-        appServerClient: appServerClient,
+        agentAdapterClient: appServerClient,
         initialSavedProfile: savedProfile(),
       );
       addTearDown(appServerClient.close);
@@ -144,7 +144,7 @@ void main() {
 
       await tester.pumpWidget(
         buildAdapterApp(
-          appServerClient: appServerClient,
+          agentAdapterClient: appServerClient,
           overlayDelegate: overlayDelegate,
           laneBinding: laneBinding,
         ),

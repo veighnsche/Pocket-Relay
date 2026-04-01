@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
+import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 
 import '../support/builders/app_test_harness.dart';
 
@@ -12,13 +12,13 @@ void main() {
     'keeps the display awake only while a turn is actively ticking',
     (tester) async {
       final controller = FakeDisplayWakeLockController();
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
         buildCatalogApp(
           displayWakeLockController: controller,
-          appServerClient: appServerClient,
+          agentAdapterClient: appServerClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -54,11 +54,11 @@ void main() {
   testWidgets(
     'disposes the active lane when the top-level app shell unmounts',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(appServerClient: appServerClient),
+        buildCatalogApp(agentAdapterClient: appServerClient),
       );
       await tester.pumpAndSettle();
 

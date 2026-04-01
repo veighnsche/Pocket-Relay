@@ -202,6 +202,22 @@ This is deliberately conservative. The UI is not yet pretending there are
 multiple selectable adapters because only `codex` exists today, but the state
 ownership no longer blocks that future.
 
+### Shared test harnesses
+
+Shared test infrastructure now also uses agent-adapter seams instead of
+requiring Codex concrete types at the harness boundary.
+
+Relevant files:
+
+- `lib/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart`
+- `test/support/builders/app_test_harness.dart`
+- `test/features/chat/lane/presentation/root_adapter_test_support.dart`
+- `test/features/chat/lane/integration/screen_app_server_test_support.dart`
+
+The current generic fake still reuses the Codex app-server fake underneath, but
+future adapter tests can plug into the shared app and lane harnesses through
+`AgentAdapterClient` without first widening those harness contracts.
+
 The transport/client boundary is now also app-owned:
 
 - `lib/src/features/chat/transport/agent_adapter/agent_adapter_models.dart`

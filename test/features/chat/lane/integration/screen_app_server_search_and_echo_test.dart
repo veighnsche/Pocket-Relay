@@ -4,11 +4,11 @@ void main() {
   testWidgets(
     'keeps a single local user prompt when the app-server echoes it back',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(appServerClient: appServerClient),
+        buildCatalogApp(agentAdapterClient: appServerClient),
       );
 
       await pumpAppReady(tester);
@@ -94,11 +94,11 @@ void main() {
   testWidgets(
     'consolidates sequential distinct file-change items into one changed-files surface',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(appServerClient: appServerClient),
+        buildCatalogApp(agentAdapterClient: appServerClient),
       );
 
       await pumpAppReady(tester);
@@ -167,11 +167,11 @@ void main() {
   testWidgets(
     'starts a new changed-files surface when the same file-change item resumes after a warning',
     (tester) async {
-      final appServerClient = FakeCodexAppServerClient();
+      final appServerClient = FakeAgentAdapterClient();
       addTearDown(appServerClient.close);
 
       await tester.pumpWidget(
-        buildCatalogApp(appServerClient: appServerClient),
+        buildCatalogApp(agentAdapterClient: appServerClient),
       );
 
       await pumpAppReady(tester);
