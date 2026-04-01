@@ -119,7 +119,7 @@ TranscriptActiveTurnState _upsertTurnBlockImpl(
   var nextArtifacts = List<TranscriptTurnArtifact>.from(activeTurn.artifacts);
   final index = nextArtifacts.indexWhere((existing) => existing.id == block.id);
   if (index == -1) {
-    nextArtifacts = appendCodexTurnArtifact(nextArtifacts, artifact);
+    nextArtifacts = appendTranscriptTurnArtifact(nextArtifacts, artifact);
   } else {
     nextArtifacts[index] = artifact;
   }
@@ -132,7 +132,7 @@ TranscriptActiveTurnState _appendTurnBlockImpl(
   TranscriptUiBlock block,
 ) {
   return activeTurn.copyWith(
-    artifacts: appendCodexTurnArtifact(
+    artifacts: appendTranscriptTurnArtifact(
       activeTurn.artifacts,
       TranscriptTurnBlockArtifact(block: block),
     ),

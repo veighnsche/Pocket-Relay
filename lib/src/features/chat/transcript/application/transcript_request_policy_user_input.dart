@@ -68,7 +68,7 @@ TranscriptSessionState _applyUserInputResolved(
     requestId: requestId,
     requestType: TranscriptCanonicalRequestType.toolUserInput,
     title: 'Input submitted',
-    body: codexAnswersSummaryFromQuestions(
+    body: transcriptAnswersSummaryFromQuestions(
       questions:
           pendingRequest?.questions ??
           const <TranscriptRuntimeUserInputQuestion>[],

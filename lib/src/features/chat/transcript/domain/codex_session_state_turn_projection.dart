@@ -55,13 +55,13 @@ List<TranscriptUiBlock> projectTranscriptTurnArtifacts(
   return projected;
 }
 
-List<TranscriptTurnArtifact> appendCodexTurnArtifact(
+List<TranscriptTurnArtifact> appendTranscriptTurnArtifact(
   List<TranscriptTurnArtifact> artifacts,
   TranscriptTurnArtifact nextArtifact,
 ) {
   final nextArtifacts = List<TranscriptTurnArtifact>.from(artifacts);
   if (nextArtifacts.isNotEmpty) {
-    nextArtifacts[nextArtifacts.length - 1] = freezeCodexTurnArtifact(
+    nextArtifacts[nextArtifacts.length - 1] = freezeTranscriptTurnArtifact(
       nextArtifacts.last,
     );
   }
@@ -69,7 +69,7 @@ List<TranscriptTurnArtifact> appendCodexTurnArtifact(
   return nextArtifacts;
 }
 
-TranscriptTurnArtifact freezeCodexTurnArtifact(
+TranscriptTurnArtifact freezeTranscriptTurnArtifact(
   TranscriptTurnArtifact artifact,
 ) {
   return switch (artifact) {
@@ -113,13 +113,13 @@ TranscriptTurnArtifact freezeCodexTurnArtifact(
         isStreaming: false,
       ),
     TranscriptTurnBlockArtifact(:final block) => TranscriptTurnBlockArtifact(
-      block: _freezeCodexUiBlock(block),
+      block: _freezeTranscriptUiBlock(block),
     ),
     _ => artifact,
   };
 }
 
-TranscriptUiBlock _freezeCodexUiBlock(TranscriptUiBlock block) {
+TranscriptUiBlock _freezeTranscriptUiBlock(TranscriptUiBlock block) {
   return switch (block) {
     TranscriptTextBlock(:final isRunning) when isRunning => block.copyWith(
       isRunning: false,

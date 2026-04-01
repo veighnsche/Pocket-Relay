@@ -102,7 +102,7 @@ TranscriptSessionState _applyRequestResolved(
     createdAt: event.createdAt,
     requestId: requestId,
     requestType: event.requestType,
-    title: '${codexRequestTitle(event.requestType)} $decisionLabel',
+    title: '${transcriptRequestTitle(event.requestType)} $decisionLabel',
     body: _resolvedApprovalBody(
       pendingDetail: pendingApproval?.detail,
       decisionLabel: decisionLabel,

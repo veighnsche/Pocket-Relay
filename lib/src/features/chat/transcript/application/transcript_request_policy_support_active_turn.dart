@@ -116,7 +116,7 @@ TranscriptActiveTurnState _appendTurnBlock(
   TranscriptUiBlock block,
 ) {
   return activeTurn.copyWith(
-    artifacts: appendCodexTurnArtifact(
+    artifacts: appendTranscriptTurnArtifact(
       activeTurn.artifacts,
       TranscriptTurnBlockArtifact(block: block),
     ),
@@ -130,7 +130,7 @@ TranscriptActiveTurnState? _freezeTailArtifact(
     return activeTurn;
   }
 
-  final frozenTail = freezeCodexTurnArtifact(activeTurn.artifacts.last);
+  final frozenTail = freezeTranscriptTurnArtifact(activeTurn.artifacts.last);
   if (identical(frozenTail, activeTurn.artifacts.last)) {
     return activeTurn;
   }
@@ -176,7 +176,7 @@ TranscriptActiveTurnState? _freezeCommandArtifact(
   }
 
   final artifact = activeTurn.artifacts[index];
-  final frozenArtifact = freezeCodexTurnArtifact(artifact);
+  final frozenArtifact = freezeTranscriptTurnArtifact(artifact);
   if (identical(frozenArtifact, artifact)) {
     return activeTurn;
   }

@@ -51,7 +51,7 @@ class TranscriptTurnArtifactBuilder {
       (existing) => existing.id == artifact.id,
     );
     if (index == -1) {
-      nextArtifacts = appendCodexTurnArtifact(nextArtifacts, artifact);
+      nextArtifacts = appendTranscriptTurnArtifact(nextArtifacts, artifact);
     } else {
       nextArtifacts[index] = artifact;
     }
@@ -110,7 +110,7 @@ class TranscriptTurnArtifactBuilder {
         createdAt: item.createdAt,
         entries: <TranscriptWorkLogEntry>[entry],
       );
-      nextArtifacts = appendCodexTurnArtifact(nextArtifacts, nextArtifact);
+      nextArtifacts = appendTranscriptTurnArtifact(nextArtifacts, nextArtifact);
       artifactId = nextArtifact.id;
     }
 
@@ -192,7 +192,7 @@ class TranscriptTurnArtifactBuilder {
         entries: nextEntries,
         isStreaming: item.isRunning,
       );
-      nextArtifacts = appendCodexTurnArtifact(nextArtifacts, nextArtifact);
+      nextArtifacts = appendTranscriptTurnArtifact(nextArtifacts, nextArtifact);
       artifactId = nextArtifact.id;
     }
 
