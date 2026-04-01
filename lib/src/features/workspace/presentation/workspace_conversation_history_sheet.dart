@@ -135,13 +135,9 @@ class _ConnectionWorkspaceConversationHistorySheetState
   DateTime _sortTimestampFor(WorkspaceConversationSummary conversation) {
     return switch (_sortMode) {
       _ConversationHistorySortMode.latestActivity =>
-        conversation.lastActivityAt ??
-            conversation.firstPromptAt ??
-            _oldestConversationSentinel,
+        conversation.lastActivityAt ?? _oldestConversationSentinel,
       _ConversationHistorySortMode.newestCreated =>
-        conversation.firstPromptAt ??
-            conversation.lastActivityAt ??
-            _oldestConversationSentinel,
+        conversation.firstPromptAt ?? _oldestConversationSentinel,
     };
   }
 

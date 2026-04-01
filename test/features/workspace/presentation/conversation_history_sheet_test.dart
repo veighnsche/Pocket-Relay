@@ -203,6 +203,51 @@ void main() {
     },
   );
 
+  testWidgets(
+    'newest created sort keeps unknown created times behind known created times',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildSheet(
+          future: Future<List<CodexWorkspaceConversationSummary>>.value(
+            <CodexWorkspaceConversationSummary>[
+              CodexWorkspaceConversationSummary(
+                threadId: 'thread_unknown_created',
+                preview: 'Created time unknown',
+                cwd: '/workspace',
+                promptCount: 2,
+                firstPromptAt: null,
+                lastActivityAt: DateTime(2026, 3, 25, 14),
+              ),
+              CodexWorkspaceConversationSummary(
+                threadId: 'thread_known_created',
+                preview: 'Created time known',
+                cwd: '/workspace',
+                promptCount: 1,
+                firstPromptAt: DateTime(2026, 3, 21, 10),
+                lastActivityAt: DateTime(2026, 3, 21, 11),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('conversation_history_sort_toggle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.text('Created time known')).dy,
+        lessThan(tester.getTopLeft(find.text('Created time unknown')).dy),
+      );
+      expect(
+        find.textContaining('2 prompts · Created time unknown'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('shows the error state when conversation loading fails', (
     tester,
   ) async {
