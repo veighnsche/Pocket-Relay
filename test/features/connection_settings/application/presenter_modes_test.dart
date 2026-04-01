@@ -183,4 +183,29 @@ void main() {
     expect(contract.saveAction.submitPayload, isNotNull);
     expect(contract.saveAction.submitPayload!.profile.reasoningEffort, isNull);
   });
+
+  test(
+    'unsupported adapter routing falls back to the adapter description helper text',
+    () {
+      final initialProfile = configuredConnectionProfile();
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState = ConnectionSettingsFormState.initial(
+        profile: initialProfile,
+        secrets: initialSecrets,
+      );
+
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        agentAdapterCapabilities: const AgentAdapterCapabilities(),
+      );
+
+      expect(
+        contract.agentAdapterSection.helperText,
+        agentAdapterDescription(AgentAdapterKind.codex),
+      );
+      expect(contract.agentAdapterSection.status, isNotNull);
+    },
+  );
 }

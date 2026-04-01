@@ -97,13 +97,6 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
       profile: widget.initialProfile,
       secrets: widget.initialSecrets,
     );
-    _formState = _formState.copyWith(
-      draft: _normalizeConnectionSettingsDraftForAdapter(
-        _formState.draft,
-        supportsLocalConnectionMode:
-            widget.platformBehavior.supportsLocalConnectionMode,
-      ),
-    );
     _remoteRuntime = widget.initialRemoteRuntime;
     _availableModelCatalog = widget.availableModelCatalog;
     _availableModelCatalogSource = widget.availableModelCatalogSource;

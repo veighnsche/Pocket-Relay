@@ -14,8 +14,7 @@ ConnectionSettingsAgentAdapterSectionContract _buildAgentAdapterSection(
       '${agentAdapterDescription(draft.agentAdapter)} This adapter currently runs remote workspaces only on this device.',
     (false, true) =>
       '${agentAdapterDescription(draft.agentAdapter)} This adapter currently runs local workspaces only on this device.',
-    (false, false) =>
-      'This agent adapter does not support a workspace location Pocket Relay can run on this device.',
+    (false, false) => agentAdapterDescription(draft.agentAdapter),
   };
 
   final status = state.hasSupportedConnectionMode

@@ -501,4 +501,29 @@ void main() {
       expect(find.byType(ModalSheetDragHandle), findsNothing);
     },
   );
+
+  testWidgets(
+    'opening settings preserves an unsupported persisted connection mode',
+    (tester) async {
+      var refreshCalls = 0;
+
+      await tester.pumpWidget(
+        buildMaterialSettingsApp(
+          onSubmit: (_) {},
+          platformBehavior: mobileSettingsBehavior,
+          initialProfile: configuredConnectionProfile().copyWith(
+            connectionMode: ConnectionMode.local,
+          ),
+          onRefreshRemoteRuntime: (payload) async {
+            refreshCalls += 1;
+            return const ConnectionRemoteRuntimeState.unknown();
+          },
+        ),
+      );
+
+      await tester.pump();
+
+      expect(refreshCalls, 0);
+    },
+  );
 }
