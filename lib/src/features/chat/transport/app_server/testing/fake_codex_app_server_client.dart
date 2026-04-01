@@ -154,8 +154,8 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
   Completer<void>? rollbackThreadGate;
   final Map<String, Completer<void>> readThreadWithTurnsGatesByThreadId =
       <String, Completer<void>>{};
-  final Map<String, CodexAppServerThreadSummary> threadsById =
-      <String, CodexAppServerThreadSummary>{};
+  final Map<String, AgentAdapterThreadSummary> threadsById =
+      <String, AgentAdapterThreadSummary>{};
   final Map<String, CodexAppServerThreadHistory> threadHistoriesById =
       <String, CodexAppServerThreadHistory>{};
   final List<CodexAppServerThreadSummary> listedThreads =
@@ -300,25 +300,11 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
     readThreadCalls.add(threadId);
     final configuredThread = threadsById[threadId];
     if (configuredThread != null) {
-      return configuredThread;
+      return _codexThreadSummaryFromConfiguredThread(configuredThread);
     }
     final configuredHistory = threadHistoriesById[threadId];
     if (configuredHistory != null) {
-      return CodexAppServerThreadSummary(
-        id: configuredHistory.id,
-        preview: configuredHistory.preview,
-        ephemeral: configuredHistory.ephemeral,
-        modelProvider: configuredHistory.modelProvider,
-        createdAt: configuredHistory.createdAt,
-        updatedAt: configuredHistory.updatedAt,
-        path: configuredHistory.path,
-        cwd: configuredHistory.cwd,
-        promptCount: configuredHistory.promptCount,
-        name: configuredHistory.name,
-        sourceKind: configuredHistory.sourceKind,
-        agentNickname: configuredHistory.agentNickname,
-        agentRole: configuredHistory.agentRole,
-      );
+      return _codexThreadSummaryFromConfiguredThread(configuredHistory);
     }
     return CodexAppServerThreadSummary(id: threadId, sourceKind: 'app-server');
   }
@@ -344,21 +330,7 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       if (readThreadWithTurnsError != null) {
         throw readThreadWithTurnsError!;
       }
-      return CodexAppServerThreadHistory(
-        id: configuredThread.id,
-        preview: configuredThread.preview,
-        ephemeral: configuredThread.ephemeral,
-        modelProvider: configuredThread.modelProvider,
-        createdAt: configuredThread.createdAt,
-        updatedAt: configuredThread.updatedAt,
-        path: configuredThread.path,
-        cwd: configuredThread.cwd,
-        promptCount: configuredThread.promptCount,
-        name: configuredThread.name,
-        sourceKind: configuredThread.sourceKind,
-        agentNickname: configuredThread.agentNickname,
-        agentRole: configuredThread.agentRole,
-      );
+      return _codexThreadHistoryFromConfiguredThread(configuredThread);
     }
 
     final summary = await readThread(threadId: threadId);
@@ -380,6 +352,59 @@ class FakeCodexAppServerClient extends CodexAppServerClient {
       sourceKind: summary.sourceKind,
       agentNickname: summary.agentNickname,
       agentRole: summary.agentRole,
+    );
+  }
+
+  CodexAppServerThreadSummary _codexThreadSummaryFromConfiguredThread(
+    AgentAdapterThreadSummary thread,
+  ) {
+    if (thread case final CodexAppServerThreadSummary summary) {
+      return summary;
+    }
+
+    return CodexAppServerThreadSummary(
+      id: thread.id,
+      preview: thread.preview,
+      ephemeral: thread.ephemeral,
+      modelProvider: thread.modelProvider,
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+      path: thread.path,
+      cwd: thread.cwd,
+      promptCount: thread.promptCount,
+      name: thread.name,
+      sourceKind: thread.sourceKind,
+      agentNickname: thread.agentNickname,
+      agentRole: thread.agentRole,
+    );
+  }
+
+  CodexAppServerThreadHistory _codexThreadHistoryFromConfiguredThread(
+    AgentAdapterThreadSummary thread,
+  ) {
+    if (thread case final CodexAppServerThreadHistory history) {
+      return history;
+    }
+
+    return CodexAppServerThreadHistory(
+      id: thread.id,
+      preview: thread.preview,
+      ephemeral: thread.ephemeral,
+      modelProvider: thread.modelProvider,
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+      path: thread.path,
+      cwd: thread.cwd,
+      promptCount: thread.promptCount,
+      name: thread.name,
+      sourceKind: thread.sourceKind,
+      agentNickname: thread.agentNickname,
+      agentRole: thread.agentRole,
+      turns: thread is AgentAdapterThreadHistory
+          ? List<CodexAppServerHistoryTurn>.from(
+              thread.turns.whereType<CodexAppServerHistoryTurn>(),
+            )
+          : const <CodexAppServerHistoryTurn>[],
     );
   }
 
