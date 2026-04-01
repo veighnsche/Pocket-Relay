@@ -1,20 +1,4 @@
-class CodexWorkspaceConversationSummary {
-  const CodexWorkspaceConversationSummary({
-    required this.threadId,
-    required this.preview,
-    required this.cwd,
-    required this.promptCount,
-    required this.firstPromptAt,
-    required this.lastActivityAt,
-  });
+import 'package:pocket_relay/src/features/workspace/domain/workspace_conversation_summary.dart';
 
-  final String threadId;
-  final String preview;
-  final String cwd;
-  final int promptCount;
-  final DateTime? firstPromptAt;
-  final DateTime? lastActivityAt;
-
-  String get normalizedThreadId => threadId.trim();
-  String get trimmedPreview => preview.trim();
-}
+@Deprecated('Use WorkspaceConversationSummary instead.')
+typedef CodexWorkspaceConversationSummary = WorkspaceConversationSummary;

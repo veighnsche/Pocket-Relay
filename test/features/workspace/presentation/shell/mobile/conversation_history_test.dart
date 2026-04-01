@@ -62,7 +62,7 @@ void main() {
     'mobile conversation history row resumes the selected Codex thread',
     (tester) async {
       final clientsById = buildClientsById('conn_primary', 'conn_secondary');
-      clientsById['conn_primary']!.threadsById['thread_saved'] =
+      clientsById['conn_primary']!.threadHistoriesById['thread_saved'] =
           savedConversationThread(threadId: 'thread_saved');
       final controller = buildWorkspaceController(clientsById: clientsById);
       addTearDown(() async {

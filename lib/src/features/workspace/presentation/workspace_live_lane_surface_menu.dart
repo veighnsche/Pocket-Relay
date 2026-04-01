@@ -117,7 +117,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     );
   }
 
-  Future<List<CodexWorkspaceConversationSummary>> _loadConversationHistory(
+  Future<List<WorkspaceConversationSummary>> _loadConversationHistory(
     WorkspaceConversationHistoryRepository repository,
   ) async {
     final connection = await _resolveConversationHistoryConnection();
@@ -159,9 +159,7 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     return widget.workspaceController.loadSavedConnection(connectionId);
   }
 
-  Future<void> _resumeConversation(
-    CodexWorkspaceConversationSummary conversation,
-  ) async {
+  Future<void> _resumeConversation(WorkspaceConversationSummary conversation) async {
     if (!mounted) {
       return;
     }
@@ -186,9 +184,9 @@ class _ConversationHistorySheetHost extends StatefulWidget {
 
   final String title;
   final ConnectionWorkspaceConversationHistoryPresentation presentation;
-  final Future<List<CodexWorkspaceConversationSummary>> Function()
+  final Future<List<WorkspaceConversationSummary>> Function()
   loadConversationHistory;
-  final ValueChanged<CodexWorkspaceConversationSummary> onResumeConversation;
+  final ValueChanged<WorkspaceConversationSummary> onResumeConversation;
   final VoidCallback? onOpenConnectionSettings;
 
   @override
@@ -198,7 +196,7 @@ class _ConversationHistorySheetHost extends StatefulWidget {
 
 class _ConversationHistorySheetHostState
     extends State<_ConversationHistorySheetHost> {
-  late final Future<List<CodexWorkspaceConversationSummary>>
+  late final Future<List<WorkspaceConversationSummary>>
   _conversationHistoryFuture;
 
   @override

@@ -312,20 +312,25 @@ Relevant files:
 That is the correct midpoint: the shared app no longer assumes Codex SSH probe
 types, but Claude will still need its own delegate implementation.
 
-### 5. Conversation history summaries are still Codex-shaped
+### 5. Workspace conversation history is now app-owned at the summary layer
 
-Conversation history loading is now generic in ownership, but the summary model
-is still:
+Workspace conversation-history loading now returns the app-owned
+`WorkspaceConversationSummary` model instead of a Codex-named summary type.
 
-- `CodexWorkspaceConversationSummary`
+The shared layer now owns:
 
-Files:
+- `WorkspaceConversationSummary`
+- `WorkspaceConversationHistoryRepository`
+- `WorkspaceConversationHistoryUnpinnedHostKeyException`
 
-- `lib/src/features/workspace/domain/codex_workspace_conversation_summary.dart`
+Relevant files:
+
+- `lib/src/features/workspace/domain/workspace_conversation_summary.dart`
 - `lib/src/features/workspace/infrastructure/agent_adapter_conversation_history_repository.dart`
+- `lib/src/features/workspace/presentation/workspace_conversation_history_sheet.dart`
 
-That is lower priority than the transport/event seam, but it is still real
-Codex naming inside a generic path.
+Deprecated Codex aliases still exist only as compatibility shims while tests
+and downstream code finish migrating.
 
 ## Upstream Reality: Codex
 
