@@ -68,6 +68,26 @@ Future<void> openLaneConversationHistory(WidgetTester tester) async {
 ConnectionWorkspaceController buildWorkspaceController({
   required Map<String, FakeCodexAppServerClient> clientsById,
   CodexConnectionRepository? repository,
+  CodexRemoteAppServerHostProbe remoteAppServerHostProbe =
+      const FakeRemoteHostProbe(CodexRemoteAppServerHostCapabilities()),
+  CodexRemoteAppServerOwnerInspector remoteAppServerOwnerInspector =
+      const StaticRemoteOwnerInspector(
+        CodexRemoteAppServerOwnerSnapshot(
+          ownerId: 'conn_primary',
+          workspaceDir: '/workspace',
+          status: CodexRemoteAppServerOwnerStatus.stopped,
+          sessionName: 'pocket-relay-conn_primary',
+        ),
+      ),
+  CodexRemoteAppServerOwnerControl remoteAppServerOwnerControl =
+      const StaticRemoteOwnerControl(
+        CodexRemoteAppServerOwnerSnapshot(
+          ownerId: 'conn_primary',
+          workspaceDir: '/workspace',
+          status: CodexRemoteAppServerOwnerStatus.stopped,
+          sessionName: 'pocket-relay-conn_primary',
+        ),
+      ),
 }) {
   final resolvedRepository =
       repository ??
@@ -87,25 +107,9 @@ ConnectionWorkspaceController buildWorkspaceController({
       );
   return ConnectionWorkspaceController(
     connectionRepository: resolvedRepository,
-    remoteAppServerHostProbe: const FakeRemoteHostProbe(
-      CodexRemoteAppServerHostCapabilities(),
-    ),
-    remoteAppServerOwnerInspector: const StaticRemoteOwnerInspector(
-      CodexRemoteAppServerOwnerSnapshot(
-        ownerId: 'conn_primary',
-        workspaceDir: '/workspace',
-        status: CodexRemoteAppServerOwnerStatus.stopped,
-        sessionName: 'pocket-relay-conn_primary',
-      ),
-    ),
-    remoteAppServerOwnerControl: const StaticRemoteOwnerControl(
-      CodexRemoteAppServerOwnerSnapshot(
-        ownerId: 'conn_primary',
-        workspaceDir: '/workspace',
-        status: CodexRemoteAppServerOwnerStatus.stopped,
-        sessionName: 'pocket-relay-conn_primary',
-      ),
-    ),
+    remoteAppServerHostProbe: remoteAppServerHostProbe,
+    remoteAppServerOwnerInspector: remoteAppServerOwnerInspector,
+    remoteAppServerOwnerControl: remoteAppServerOwnerControl,
     laneBindingFactory: ({required connectionId, required connection}) {
       final appServerClient = clientsById[connectionId]!;
       return ConnectionLaneBinding(

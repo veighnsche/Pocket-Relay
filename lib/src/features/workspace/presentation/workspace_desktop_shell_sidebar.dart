@@ -538,10 +538,6 @@ extension on _MaterialDesktopSidebar {
         '${ConnectionWorkspaceCopy.transportFactLabel}:',
       ),
     );
-    final hostFact = factMatching(
-      (fact) =>
-          fact.label.startsWith('${ConnectionWorkspaceCopy.hostFactLabel}:'),
-    );
     final serverFact = factMatching(
       (fact) =>
           fact.label.startsWith('${ConnectionWorkspaceCopy.serverFactLabel}:'),
@@ -560,11 +556,6 @@ extension on _MaterialDesktopSidebar {
                     row.liveReattachPhase != null ||
                     !row.isTransportConnected)
             ? transportFact
-            : null) ??
-        (row.connection.profile.isRemote &&
-                row.remoteRuntime?.hostCapability.status !=
-                    ConnectionRemoteHostCapabilityStatus.supported
-            ? hostFact
             : null) ??
         (row.connection.profile.isRemote &&
                 row.remoteRuntime?.server.status !=
