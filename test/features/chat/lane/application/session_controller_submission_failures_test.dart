@@ -70,7 +70,7 @@ void main() {
       expect(sent, isFalse);
       expect(
         await snackBarMessage,
-        '[${PocketErrorCatalog.chatSessionLocalModeUnsupported.code}] Local mode unavailable. Local Codex is only available on desktop.',
+        '[${PocketErrorCatalog.chatSessionLocalModeUnsupported.code}] Local mode unavailable. Local agent adapters are only available on desktop.',
       );
       expect(appServerClient.connectCalls, 0);
     },
