@@ -25,13 +25,6 @@ AgentAdapterKind _agentAdapterKindFromName(
   return fallback;
 }
 
-AgentAdapterKind _hostKindFromName(
-  String? value, {
-  required AgentAdapterKind fallback,
-}) {
-  return _agentAdapterKindFromName(value, fallback: fallback);
-}
-
 String defaultAgentAdapterCommandForKind(AgentAdapterKind kind) {
   return kind.defaultCommand;
 }

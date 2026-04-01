@@ -144,7 +144,7 @@ void main() {
 }
 
 ConnectionProfile _profile() {
-  return const ConnectionProfile(
+  return ConnectionProfile(
     label: 'Developer Box',
     host: 'example.com',
     port: 22,

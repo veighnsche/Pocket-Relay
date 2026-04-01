@@ -19,7 +19,7 @@ export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 export 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
 
 ConnectionProfile sshProfile() {
-  return const ConnectionProfile(
+  return ConnectionProfile(
     label: 'Developer Box',
     host: 'example.com',
     port: 22,

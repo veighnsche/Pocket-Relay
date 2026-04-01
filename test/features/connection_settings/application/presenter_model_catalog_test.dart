@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -30,7 +31,8 @@ void main() {
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       formState: formState,
-      availableModelCatalog: codexReferenceModelCatalog(
+      availableModelCatalog: referenceModelCatalogForAgentAdapter(
+        AgentAdapterKind.codex,
         connectionId: 'presenter-reasoning-test',
       ),
     );
@@ -170,7 +172,8 @@ void main() {
         initialProfile: initialProfile,
         initialSecrets: initialSecrets,
         formState: formState,
-        availableModelCatalog: codexReferenceModelCatalog(
+        availableModelCatalog: referenceModelCatalogForAgentAdapter(
+          AgentAdapterKind.codex,
           connectionId: 'presenter-cache-copy-test',
           fetchedAt: DateTime.utc(2026, 3, 22, 12, 30),
         ),
@@ -197,7 +200,8 @@ void main() {
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       formState: formState,
-      availableModelCatalog: codexReferenceModelCatalog(
+      availableModelCatalog: referenceModelCatalogForAgentAdapter(
+        AgentAdapterKind.codex,
         connectionId: 'presenter-cache-failure-test',
         fetchedAt: DateTime.utc(2026, 3, 22, 15, 45),
       ),

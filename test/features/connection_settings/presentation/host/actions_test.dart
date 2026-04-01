@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 
@@ -17,7 +18,8 @@ void main() {
 
       await tester.pumpWidget(
         buildMaterialSettingsApp(
-          availableModelCatalog: codexReferenceModelCatalog(
+          availableModelCatalog: referenceModelCatalogForAgentAdapter(
+            AgentAdapterKind.codex,
             connectionId: 'host-submit-test',
           ),
           onSubmit: (payload) {

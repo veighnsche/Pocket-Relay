@@ -20,7 +20,7 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
       agentCommand: draft.agentCommand.trim(),
       model: _selectedModelIdForDraft(draft) ?? '',
       reasoningEffort: capabilities.supportsReasoningEffort
-          ? codexNormalizedReasoningEffortForModel(
+          ? normalizedReasoningEffortForModel(
               _selectedModelIdForDraft(draft),
               draft.reasoningEffort,
               availableModelCatalog: state.availableModelCatalog,

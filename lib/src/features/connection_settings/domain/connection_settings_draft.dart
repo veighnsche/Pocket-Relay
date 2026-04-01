@@ -2,7 +2,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 
 class ConnectionSettingsDraft {
-  const ConnectionSettingsDraft({
+  ConnectionSettingsDraft({
     required this.label,
     required this.connectionMode,
     AgentAdapterKind agentAdapter = AgentAdapterKind.codex,
@@ -28,9 +28,7 @@ class ConnectionSettingsDraft {
            agentCommand ??
            hostCommand ??
            codexPath ??
-           switch (hostKind ?? agentAdapter) {
-             AgentAdapterKind.codex => 'codex',
-           };
+           (hostKind ?? agentAdapter).defaultCommand;
 
   factory ConnectionSettingsDraft.fromConnection({
     required ConnectionProfile profile,
@@ -66,7 +64,7 @@ class ConnectionSettingsDraft {
   final String workspaceDir;
   final String agentCommand;
   final String model;
-  final CodexReasoningEffort? reasoningEffort;
+  final AgentAdapterReasoningEffort? reasoningEffort;
   final String hostFingerprint;
   final String password;
   final String privateKeyPem;
@@ -116,7 +114,7 @@ class ConnectionSettingsDraft {
       model: model ?? this.model,
       reasoningEffort: identical(reasoningEffort, _draftSentinel)
           ? this.reasoningEffort
-          : reasoningEffort as CodexReasoningEffort?,
+          : reasoningEffort as AgentAdapterReasoningEffort?,
       hostFingerprint: hostFingerprint ?? this.hostFingerprint,
       password: password ?? this.password,
       privateKeyPem: privateKeyPem ?? this.privateKeyPem,

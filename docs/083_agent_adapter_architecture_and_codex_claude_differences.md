@@ -255,22 +255,32 @@ Codex-shaped reducer or session model. Codex-specific logic still exists in the
 Codex mapper and history normalizer, which is correct, but the shared state
 backbone is no longer Codex-owned.
 
-### 3. Model and reasoning selection are still Codex catalogs
+### 3. Model and reasoning selection are now split between app-owned and adapter-owned layers
 
-Model metadata and reasoning effort normalization are still sourced from Codex:
+The shared app layer now owns:
 
-- `CodexReasoningEffort`
-- `connection_models_codex_models.dart`
-- `codexNormalizedReasoningEffortForModel`
-- `codexReferenceModelCatalog`
+- `AgentAdapterReasoningEffort`
+- generic model-catalog selection helpers such as
+  `normalizedReasoningEffortForModel`
+- app-owned `ConnectionModelCatalog` data shapes
+
+The Codex adapter still owns:
+
+- the Codex reference snapshot in `connection_models_codex_models.dart`
+- the Codex-backed registry catalog returned by
+  `referenceModelCatalogForAgentAdapter(AgentAdapterKind.codex, ...)`
 
 Files:
 
 - `lib/src/core/models/connection_models.dart`
+- `lib/src/core/models/connection_models_model_catalog.dart`
+- `lib/src/core/models/connection_models_model_selection.dart`
 - `lib/src/core/models/connection_models_codex_models.dart`
+- `lib/src/agent_adapters/agent_adapter_registry.dart`
 
-This is fine as a Codex adapter implementation detail. It is not fine as a
-cross-adapter assumption.
+This is the right ownership split for now: shared model settings no longer
+depend on Codex helpers directly, but Codex still remains the only concrete
+adapter catalog implementation.
 
 ### 4. Remote runtime probing and continuity logic are still Codex transport logic
 
@@ -503,13 +513,13 @@ Eventually these domains should become app-owned and provider-neutral:
 This should not be a cosmetic rename. It should happen together with a generic
 runtime event contract so the ownership is actually true.
 
-### 2. Move Codex model catalog logic behind the adapter
+### 2. Extend adapter-owned model metadata beyond the Codex reference snapshot
 
-Model metadata and reasoning normalization are currently still effectively a
-Codex adapter concern exposed globally.
+The shared selection logic is now app-owned, and the reference catalog lookup
+is routed through the adapter registry.
 
-That logic should eventually live behind the adapter, so a future Claude
-adapter can:
+The next follow-up is not another rename. It is teaching the adapter layer to
+own richer per-host model metadata, so a future Claude adapter can:
 
 - expose different model fields
 - expose different reasoning controls

@@ -163,7 +163,7 @@ void main() {
 }
 
 ConnectionProfile _remoteProfile() {
-  return const ConnectionProfile(
+  return ConnectionProfile(
     label: 'Developer Box',
     host: 'example.com',
     port: 22,

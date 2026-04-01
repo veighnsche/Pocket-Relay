@@ -1,7 +1,7 @@
 part of 'connection_models.dart';
 
 class WorkspaceProfile {
-  const WorkspaceProfile({
+  WorkspaceProfile({
     required this.label,
     required this.connectionMode,
     required this.workspaceDir,
@@ -20,9 +20,7 @@ class WorkspaceProfile {
            agentCommand ??
            hostCommand ??
            codexPath ??
-           switch (hostKind ?? agentAdapter) {
-             AgentAdapterKind.codex => 'codex',
-           };
+           (hostKind ?? agentAdapter).defaultCommand;
 
   final String label;
   final ConnectionMode connectionMode;
@@ -33,10 +31,10 @@ class WorkspaceProfile {
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
   final String model;
-  final CodexReasoningEffort? reasoningEffort;
+  final AgentAdapterReasoningEffort? reasoningEffort;
 
   factory WorkspaceProfile.defaults() {
-    return const WorkspaceProfile(
+    return WorkspaceProfile(
       label: 'Workspace',
       connectionMode: ConnectionMode.remote,
       systemId: null,
@@ -99,7 +97,7 @@ class WorkspaceProfile {
       model: model ?? this.model,
       reasoningEffort: identical(reasoningEffort, _workspaceSentinel)
           ? this.reasoningEffort
-          : reasoningEffort as CodexReasoningEffort?,
+          : reasoningEffort as AgentAdapterReasoningEffort?,
     );
   }
 
@@ -133,7 +131,7 @@ class WorkspaceProfile {
       ephemeralSession:
           json['ephemeralSession'] as bool? ?? defaults.ephemeralSession,
       model: json['model'] as String? ?? defaults.model,
-      reasoningEffort: codexReasoningEffortFromWireValue(
+      reasoningEffort: agentAdapterReasoningEffortFromWireValue(
         json['reasoningEffort'] as String?,
       ),
     );

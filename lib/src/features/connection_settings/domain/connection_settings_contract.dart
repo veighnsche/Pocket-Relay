@@ -196,7 +196,7 @@ class ConnectionSettingsReasoningEffortOptionContract {
     required this.description,
   });
 
-  final CodexReasoningEffort? effort;
+  final AgentAdapterReasoningEffort? effort;
   final String label;
   final String description;
 }
@@ -235,7 +235,7 @@ class ConnectionSettingsModelSectionContract {
   final List<ConnectionSettingsModelOptionContract> modelOptions;
   final String modelHelperText;
   final bool isModelEnabled;
-  final CodexReasoningEffort? selectedReasoningEffort;
+  final AgentAdapterReasoningEffort? selectedReasoningEffort;
   final List<ConnectionSettingsReasoningEffortOptionContract>
   reasoningEffortOptions;
   final String reasoningEffortHelperText;

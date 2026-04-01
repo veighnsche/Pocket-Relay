@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/app/pocket_relay_app.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
@@ -687,7 +688,8 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                 child: ConnectionSettingsHost(
                   initialProfile: WidgetbookFixtures.remoteProfile,
                   initialSecrets: WidgetbookFixtures.passwordSecrets,
-                  availableModelCatalog: codexReferenceModelCatalog(
+                  availableModelCatalog: referenceModelCatalogForAgentAdapter(
+                    AgentAdapterKind.codex,
                     connectionId: 'widgetbook-remote',
                   ),
                   platformBehavior: WidgetbookFixtures.desktopBehavior,
@@ -710,7 +712,8 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                 child: ConnectionSettingsHost(
                   initialProfile: WidgetbookFixtures.localProfile,
                   initialSecrets: const ConnectionSecrets(),
-                  availableModelCatalog: codexReferenceModelCatalog(
+                  availableModelCatalog: referenceModelCatalogForAgentAdapter(
+                    AgentAdapterKind.codex,
                     connectionId: 'widgetbook-local',
                   ),
                   platformBehavior: WidgetbookFixtures.desktopBehavior,

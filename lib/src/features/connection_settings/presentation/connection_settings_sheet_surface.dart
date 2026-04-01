@@ -963,7 +963,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     BuildContext context,
     ConnectionSettingsModelSectionContract section,
   ) {
-    return DropdownButtonFormField<CodexReasoningEffort?>(
+    return DropdownButtonFormField<AgentAdapterReasoningEffort?>(
       key: const ValueKey<String>('connection_settings_reasoning_effort'),
       initialValue: section.selectedReasoningEffort,
       decoration: InputDecoration(
@@ -972,7 +972,7 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
       ),
       items: section.reasoningEffortOptions
           .map(
-            (option) => DropdownMenuItem<CodexReasoningEffort?>(
+            (option) => DropdownMenuItem<AgentAdapterReasoningEffort?>(
               value: option.effort,
               child: Text(option.label),
             ),

@@ -26,7 +26,7 @@ void main() {
         connectionRepository: repository,
         laneBindingFactory: ({required connectionId, required connection}) {
           final appServerClient = FakeCodexAppServerClient();
-          appServerClient.threadsById['thread_resumed'] =
+          appServerClient.threadHistoriesById['thread_resumed'] =
               savedConversationThread(threadId: 'thread_resumed');
           clientsByConnectionId[connectionId]!.add(appServerClient);
           return ConnectionLaneBinding(
@@ -110,7 +110,7 @@ void main() {
                     connectionId == 'conn_primary'
                 ? null
                 : const CodexAppServerException('connect failed');
-          appServerClient.threadsById['thread_resumed'] =
+          appServerClient.threadHistoriesById['thread_resumed'] =
               savedConversationThread(threadId: 'thread_resumed');
           clientsByConnectionId[connectionId]!.add(appServerClient);
           return ConnectionLaneBinding(

@@ -31,7 +31,7 @@ Future<void> _refreshConnectionSettingsModelCatalog(
     final selectedModelId = state._formState.draft.model.trim().isEmpty
         ? null
         : state._formState.draft.model.trim();
-    final nextEffort = codexNormalizedReasoningEffortForModel(
+    final nextEffort = normalizedReasoningEffortForModel(
       selectedModelId,
       state._formState.draft.reasoningEffort,
       availableModelCatalog: refreshedCatalog,

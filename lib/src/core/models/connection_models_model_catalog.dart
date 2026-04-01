@@ -81,7 +81,7 @@ class ConnectionAvailableModel {
   final bool hidden;
   final List<ConnectionAvailableModelReasoningEffortOption>
   supportedReasoningEfforts;
-  final CodexReasoningEffort defaultReasoningEffort;
+  final AgentAdapterReasoningEffort defaultReasoningEffort;
   final List<String> inputModalities;
   final bool supportsPersonality;
   final bool isDefault;
@@ -111,10 +111,10 @@ class ConnectionAvailableModel {
 
   factory ConnectionAvailableModel.fromJson(Map<String, dynamic> json) {
     final defaultReasoningEffort =
-        codexReasoningEffortFromWireValue(
+        agentAdapterReasoningEffortFromWireValue(
           _catalogString(json['defaultReasoningEffort']),
         ) ??
-        CodexReasoningEffort.medium;
+        AgentAdapterReasoningEffort.medium;
     return ConnectionAvailableModel(
       id: _catalogString(json['id']) ?? '',
       model: _catalogString(json['model']) ?? '',
@@ -179,7 +179,7 @@ class ConnectionAvailableModelReasoningEffortOption {
     required this.description,
   });
 
-  final CodexReasoningEffort reasoningEffort;
+  final AgentAdapterReasoningEffort reasoningEffort;
   final String description;
 
   Map<String, Object?> toJson() {
@@ -194,10 +194,10 @@ class ConnectionAvailableModelReasoningEffortOption {
   ) {
     return ConnectionAvailableModelReasoningEffortOption(
       reasoningEffort:
-          codexReasoningEffortFromWireValue(
+          agentAdapterReasoningEffortFromWireValue(
             _catalogString(json['reasoningEffort']),
           ) ??
-          CodexReasoningEffort.medium,
+          AgentAdapterReasoningEffort.medium,
       description: json['description'] as String? ?? '',
     );
   }

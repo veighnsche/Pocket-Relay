@@ -102,3 +102,16 @@ String localConnectionLabelForAgentAdapter(AgentAdapterKind kind) {
 String defaultCommandForAgentAdapter(AgentAdapterKind kind) {
   return agentAdapterDefinitionFor(kind).defaultCommand;
 }
+
+ConnectionModelCatalog referenceModelCatalogForAgentAdapter(
+  AgentAdapterKind kind, {
+  String connectionId = 'reference',
+  DateTime? fetchedAt,
+}) {
+  return switch (kind) {
+    AgentAdapterKind.codex => codexReferenceModelCatalog(
+      connectionId: connectionId,
+      fetchedAt: fetchedAt,
+    ),
+  };
+}

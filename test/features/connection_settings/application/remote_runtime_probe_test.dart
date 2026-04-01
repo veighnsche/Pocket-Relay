@@ -132,7 +132,7 @@ void main() {
 
 ConnectionSettingsSubmitPayload _payload() {
   return ConnectionSettingsSubmitPayload(
-    profile: const ConnectionProfile(
+    profile: ConnectionProfile(
       label: 'Developer Box',
       host: 'example.com',
       port: 22,

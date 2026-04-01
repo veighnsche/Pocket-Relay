@@ -158,7 +158,7 @@ class _ConnectionSettingsHostState extends State<ConnectionSettingsHost> {
   void _updateToggle(ConnectionSettingsToggleId toggleId, bool value) =>
       _updateConnectionSettingsToggle(this, toggleId, value);
 
-  void _updateReasoningEffort(CodexReasoningEffort? reasoningEffort) =>
+  void _updateReasoningEffort(AgentAdapterReasoningEffort? reasoningEffort) =>
       _updateConnectionSettingsReasoningEffort(this, reasoningEffort);
 
   void _updateModel(String? modelId) =>

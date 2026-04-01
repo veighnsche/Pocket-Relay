@@ -1,7 +1,7 @@
 part of 'connection_models.dart';
 
 class ConnectionProfile {
-  const ConnectionProfile({
+  ConnectionProfile({
     required this.label,
     required this.host,
     required this.port,
@@ -24,9 +24,7 @@ class ConnectionProfile {
            agentCommand ??
            hostCommand ??
            codexPath ??
-           switch (hostKind ?? agentAdapter) {
-             AgentAdapterKind.codex => 'codex',
-           };
+           (hostKind ?? agentAdapter).defaultCommand;
 
   final String label;
   final String host;
@@ -40,11 +38,11 @@ class ConnectionProfile {
   final bool dangerouslyBypassSandbox;
   final bool ephemeralSession;
   final String model;
-  final CodexReasoningEffort? reasoningEffort;
+  final AgentAdapterReasoningEffort? reasoningEffort;
   final ConnectionMode connectionMode;
 
   factory ConnectionProfile.defaults() {
-    return const ConnectionProfile(
+    return ConnectionProfile(
       label: 'Developer Box',
       host: '',
       port: 22,
@@ -129,7 +127,7 @@ class ConnectionProfile {
       model: model ?? this.model,
       reasoningEffort: identical(reasoningEffort, _sentinel)
           ? this.reasoningEffort
-          : reasoningEffort as CodexReasoningEffort?,
+          : reasoningEffort as AgentAdapterReasoningEffort?,
       connectionMode: connectionMode ?? this.connectionMode,
     );
   }
@@ -162,7 +160,7 @@ class ConnectionProfile {
           json['dangerouslyBypassSandbox'] as bool? ?? false,
       ephemeralSession: json['ephemeralSession'] as bool? ?? false,
       model: json['model'] as String? ?? '',
-      reasoningEffort: codexReasoningEffortFromWireValue(
+      reasoningEffort: agentAdapterReasoningEffortFromWireValue(
         json['reasoningEffort'] as String?,
       ),
       connectionMode: _connectionModeFromName(

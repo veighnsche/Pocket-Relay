@@ -51,7 +51,7 @@ deriveConnectionSettingsSystemTemplatesFromSystems(
       ConnectionSettingsSystemTemplate(
         id: system.id,
         profile: connectionProfileFromWorkspace(
-          workspace: const WorkspaceProfile(
+          workspace: WorkspaceProfile(
             label: 'Workspace',
             connectionMode: ConnectionMode.remote,
             systemId: null,

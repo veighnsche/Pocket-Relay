@@ -85,7 +85,7 @@ void _updateConnectionSettingsToggle(
 
 void _updateConnectionSettingsReasoningEffort(
   _ConnectionSettingsHostState state,
-  CodexReasoningEffort? reasoningEffort,
+  AgentAdapterReasoningEffort? reasoningEffort,
 ) {
   state._setStateInternal(() {
     state._formState = state._formState.copyWith(
@@ -99,7 +99,7 @@ void _updateConnectionSettingsModel(
   String? modelId,
 ) {
   final normalizedModel = modelId?.trim() ?? '';
-  final nextEffort = codexNormalizedReasoningEffortForModel(
+  final nextEffort = normalizedReasoningEffortForModel(
     normalizedModel.isEmpty ? null : normalizedModel,
     state._formState.draft.reasoningEffort,
     availableModelCatalog: state._availableModelCatalog,

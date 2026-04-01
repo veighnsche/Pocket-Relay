@@ -4,6 +4,7 @@ part 'connection_models_catalog.dart';
 part 'connection_models_codex_models.dart';
 part 'connection_models_host.dart';
 part 'connection_models_model_catalog.dart';
+part 'connection_models_model_selection.dart';
 part 'connection_models_profile.dart';
 part 'connection_models_remote_runtime.dart';
 part 'connection_models_saved_connection.dart';
@@ -14,15 +15,20 @@ enum AuthMode { password, privateKey }
 
 enum ConnectionMode { remote, local }
 
-enum CodexReasoningEffort { none, minimal, low, medium, high, xhigh }
+enum AgentAdapterReasoningEffort { none, minimal, low, medium, high, xhigh }
 
-CodexReasoningEffort? codexReasoningEffortFromWireValue(String? value) {
+@Deprecated('Use AgentAdapterReasoningEffort instead.')
+typedef CodexReasoningEffort = AgentAdapterReasoningEffort;
+
+AgentAdapterReasoningEffort? agentAdapterReasoningEffortFromWireValue(
+  String? value,
+) {
   final normalized = value?.trim();
   if (normalized == null || normalized.isEmpty) {
     return null;
   }
 
-  for (final effort in CodexReasoningEffort.values) {
+  for (final effort in AgentAdapterReasoningEffort.values) {
     if (effort.name == normalized) {
       return effort;
     }
@@ -30,6 +36,10 @@ CodexReasoningEffort? codexReasoningEffortFromWireValue(String? value) {
 
   return null;
 }
+
+@Deprecated('Use agentAdapterReasoningEffortFromWireValue instead.')
+CodexReasoningEffort? codexReasoningEffortFromWireValue(String? value) =>
+    agentAdapterReasoningEffortFromWireValue(value);
 
 AuthMode _authModeFromName(String? value, {required AuthMode fallback}) {
   for (final mode in AuthMode.values) {

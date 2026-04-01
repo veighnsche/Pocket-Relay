@@ -15,8 +15,8 @@ class CodexReferenceModel {
   final String id;
   final String label;
   final String description;
-  final CodexReasoningEffort defaultReasoningEffort;
-  final List<CodexReasoningEffort> supportedReasoningEfforts;
+  final AgentAdapterReasoningEffort defaultReasoningEffort;
+  final List<AgentAdapterReasoningEffort> supportedReasoningEfforts;
 }
 
 const List<CodexReferenceModel>
@@ -25,48 +25,48 @@ codexReferenceVisibleModels = <CodexReferenceModel>[
     id: 'gpt-5.3-codex',
     label: 'gpt-5.3-codex',
     description: 'Latest frontier agentic coding model.',
-    defaultReasoningEffort: CodexReasoningEffort.medium,
-    supportedReasoningEfforts: <CodexReasoningEffort>[
-      CodexReasoningEffort.low,
-      CodexReasoningEffort.medium,
-      CodexReasoningEffort.high,
-      CodexReasoningEffort.xhigh,
+    defaultReasoningEffort: AgentAdapterReasoningEffort.medium,
+    supportedReasoningEfforts: <AgentAdapterReasoningEffort>[
+      AgentAdapterReasoningEffort.low,
+      AgentAdapterReasoningEffort.medium,
+      AgentAdapterReasoningEffort.high,
+      AgentAdapterReasoningEffort.xhigh,
     ],
   ),
   CodexReferenceModel(
     id: 'gpt-5.4',
     label: 'gpt-5.4',
     description: 'Latest frontier agentic coding model.',
-    defaultReasoningEffort: CodexReasoningEffort.medium,
-    supportedReasoningEfforts: <CodexReasoningEffort>[
-      CodexReasoningEffort.low,
-      CodexReasoningEffort.medium,
-      CodexReasoningEffort.high,
-      CodexReasoningEffort.xhigh,
+    defaultReasoningEffort: AgentAdapterReasoningEffort.medium,
+    supportedReasoningEfforts: <AgentAdapterReasoningEffort>[
+      AgentAdapterReasoningEffort.low,
+      AgentAdapterReasoningEffort.medium,
+      AgentAdapterReasoningEffort.high,
+      AgentAdapterReasoningEffort.xhigh,
     ],
   ),
   CodexReferenceModel(
     id: 'gpt-5.2-codex',
     label: 'gpt-5.2-codex',
     description: 'Frontier agentic coding model.',
-    defaultReasoningEffort: CodexReasoningEffort.medium,
-    supportedReasoningEfforts: <CodexReasoningEffort>[
-      CodexReasoningEffort.low,
-      CodexReasoningEffort.medium,
-      CodexReasoningEffort.high,
-      CodexReasoningEffort.xhigh,
+    defaultReasoningEffort: AgentAdapterReasoningEffort.medium,
+    supportedReasoningEfforts: <AgentAdapterReasoningEffort>[
+      AgentAdapterReasoningEffort.low,
+      AgentAdapterReasoningEffort.medium,
+      AgentAdapterReasoningEffort.high,
+      AgentAdapterReasoningEffort.xhigh,
     ],
   ),
   CodexReferenceModel(
     id: 'gpt-5.1-codex-max',
     label: 'gpt-5.1-codex-max',
     description: 'Codex-optimized flagship for deep and fast reasoning.',
-    defaultReasoningEffort: CodexReasoningEffort.medium,
-    supportedReasoningEfforts: <CodexReasoningEffort>[
-      CodexReasoningEffort.low,
-      CodexReasoningEffort.medium,
-      CodexReasoningEffort.high,
-      CodexReasoningEffort.xhigh,
+    defaultReasoningEffort: AgentAdapterReasoningEffort.medium,
+    supportedReasoningEfforts: <AgentAdapterReasoningEffort>[
+      AgentAdapterReasoningEffort.low,
+      AgentAdapterReasoningEffort.medium,
+      AgentAdapterReasoningEffort.high,
+      AgentAdapterReasoningEffort.xhigh,
     ],
   ),
   CodexReferenceModel(
@@ -74,22 +74,22 @@ codexReferenceVisibleModels = <CodexReferenceModel>[
     label: 'gpt-5.2',
     description:
         'Latest frontier model with improvements across knowledge, reasoning and coding',
-    defaultReasoningEffort: CodexReasoningEffort.medium,
-    supportedReasoningEfforts: <CodexReasoningEffort>[
-      CodexReasoningEffort.low,
-      CodexReasoningEffort.medium,
-      CodexReasoningEffort.high,
-      CodexReasoningEffort.xhigh,
+    defaultReasoningEffort: AgentAdapterReasoningEffort.medium,
+    supportedReasoningEfforts: <AgentAdapterReasoningEffort>[
+      AgentAdapterReasoningEffort.low,
+      AgentAdapterReasoningEffort.medium,
+      AgentAdapterReasoningEffort.high,
+      AgentAdapterReasoningEffort.xhigh,
     ],
   ),
   CodexReferenceModel(
     id: 'gpt-5.1-codex-mini',
     label: 'gpt-5.1-codex-mini',
     description: 'Optimized for codex. Cheaper, faster, but less capable.',
-    defaultReasoningEffort: CodexReasoningEffort.medium,
-    supportedReasoningEfforts: <CodexReasoningEffort>[
-      CodexReasoningEffort.medium,
-      CodexReasoningEffort.high,
+    defaultReasoningEffort: AgentAdapterReasoningEffort.medium,
+    supportedReasoningEfforts: <AgentAdapterReasoningEffort>[
+      AgentAdapterReasoningEffort.medium,
+      AgentAdapterReasoningEffort.high,
     ],
   ),
 ];
@@ -129,95 +129,41 @@ ConnectionModelCatalog codexReferenceModelCatalog({
   );
 }
 
+@Deprecated('Use modelCatalogModelForModel instead.')
 ConnectionAvailableModel? codexCatalogModelForModel(
   ConnectionModelCatalog? availableModelCatalog,
   String? modelId, {
   bool includeHidden = true,
-}) {
-  final normalized = modelId?.trim();
-  if (availableModelCatalog == null ||
-      normalized == null ||
-      normalized.isEmpty) {
-    return null;
-  }
+}) => modelCatalogModelForModel(
+  availableModelCatalog,
+  modelId,
+  includeHidden: includeHidden,
+);
 
-  for (final model in availableModelCatalog.models) {
-    if (!includeHidden && model.hidden) {
-      continue;
-    }
-    if (model.model == normalized) {
-      return model;
-    }
-  }
-
-  return null;
-}
-
+@Deprecated('Use visibleModelCatalogModelForModel instead.')
 ConnectionAvailableModel? codexVisibleCatalogModelForModel(
   ConnectionModelCatalog? availableModelCatalog,
   String? modelId,
-) {
-  return codexCatalogModelForModel(
-    availableModelCatalog,
-    modelId,
-    includeHidden: false,
-  );
-}
+) => visibleModelCatalogModelForModel(availableModelCatalog, modelId);
 
+@Deprecated('Use defaultModelCatalogModel instead.')
 ConnectionAvailableModel? codexDefaultCatalogModel(
   ConnectionModelCatalog? availableModelCatalog,
-) {
-  if (availableModelCatalog == null) {
-    return null;
-  }
+) => defaultModelCatalogModel(availableModelCatalog);
 
-  final defaultModel = availableModelCatalog.defaultModel;
-  if (defaultModel != null) {
-    return defaultModel;
-  }
-
-  final visibleModels = availableModelCatalog.visibleModels;
-  if (visibleModels.isNotEmpty) {
-    return visibleModels.first;
-  }
-
-  final models = availableModelCatalog.models;
-  if (models.isNotEmpty) {
-    return models.first;
-  }
-
-  return null;
-}
-
+@Deprecated('Use effectiveModelCatalogModelForModel instead.')
 ConnectionAvailableModel? codexEffectiveCatalogModelForModel(
   ConnectionModelCatalog? availableModelCatalog,
   String? modelId,
-) {
-  return codexCatalogModelForModel(availableModelCatalog, modelId) ??
-      codexDefaultCatalogModel(availableModelCatalog);
-}
+) => effectiveModelCatalogModelForModel(availableModelCatalog, modelId);
 
+@Deprecated('Use normalizedReasoningEffortForModel instead.')
 CodexReasoningEffort? codexNormalizedReasoningEffortForModel(
   String? modelId,
   CodexReasoningEffort? effort, {
   ConnectionModelCatalog? availableModelCatalog,
-}) {
-  if (effort == null) {
-    return null;
-  }
-
-  final availableModel = codexEffectiveCatalogModelForModel(
-    availableModelCatalog,
-    modelId,
-  );
-  if (availableModel != null) {
-    for (final option in availableModel.supportedReasoningEfforts) {
-      if (option.reasoningEffort == effort) {
-        return effort;
-      }
-    }
-
-    return availableModel.defaultReasoningEffort;
-  }
-  return effort;
-}
+}) => normalizedReasoningEffortForModel(
+  modelId,
+  effort,
+  availableModelCatalog: availableModelCatalog,
+);

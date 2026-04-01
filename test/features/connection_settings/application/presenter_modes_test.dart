@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_presenter.dart';
@@ -33,7 +34,8 @@ void main() {
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       formState: formState,
-      availableModelCatalog: codexReferenceModelCatalog(
+      availableModelCatalog: referenceModelCatalogForAgentAdapter(
+        AgentAdapterKind.codex,
         connectionId: 'presenter-local-test',
       ),
       supportsLocalConnectionMode: true,

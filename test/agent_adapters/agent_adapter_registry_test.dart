@@ -21,4 +21,15 @@ void main() {
     expect(capabilities.supportsDangerouslyBypassSandbox, isTrue);
     expect(capabilities.supportsEphemeralSessions, isTrue);
   });
+
+  test('Codex exposes its reference model catalog through the adapter registry', () {
+    final catalog = referenceModelCatalogForAgentAdapter(
+      AgentAdapterKind.codex,
+      connectionId: 'registry-test',
+    );
+
+    expect(catalog.connectionId, 'registry-test');
+    expect(catalog.models, isNotEmpty);
+    expect(catalog.defaultModel?.model, 'gpt-5.3-codex');
+  });
 }

@@ -253,7 +253,7 @@ class _ConnectionWorkspaceSavedSystemsContentState
     SavedSystem? system,
   }) {
     final initialProfile = connectionProfileFromWorkspace(
-      workspace: const WorkspaceProfile(
+      workspace: WorkspaceProfile(
         label: 'Workspace',
         connectionMode: ConnectionMode.remote,
         systemId: null,

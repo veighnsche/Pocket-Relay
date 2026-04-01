@@ -15,7 +15,7 @@ abstract interface class AgentAdapterClient {
   Future<AgentAdapterSession> startSession({
     String? cwd,
     String? model,
-    CodexReasoningEffort? reasoningEffort,
+    AgentAdapterReasoningEffort? reasoningEffort,
     String? resumeThreadId,
   });
 
@@ -23,7 +23,7 @@ abstract interface class AgentAdapterClient {
     required String threadId,
     String? cwd,
     String? model,
-    CodexReasoningEffort? reasoningEffort,
+    AgentAdapterReasoningEffort? reasoningEffort,
   });
 
   Future<AgentAdapterThreadSummary> readThread({required String threadId});
@@ -60,7 +60,7 @@ abstract interface class AgentAdapterClient {
     String? text,
     AgentAdapterTurnInput? input,
     String? model,
-    CodexReasoningEffort? effort,
+    AgentAdapterReasoningEffort? effort,
   });
 
   Future<void> answerUserInput({

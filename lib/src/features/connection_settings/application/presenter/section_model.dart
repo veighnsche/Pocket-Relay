@@ -29,21 +29,21 @@ ConnectionSettingsModelSectionContract _buildModelSection(
     );
   }
 
-  final selectedCatalogModel = codexCatalogModelForModel(
+  final selectedCatalogModel = modelCatalogModelForModel(
     availableModelCatalog,
     selectedModelId,
   );
-  final selectedVisibleCatalogModel = codexVisibleCatalogModelForModel(
+  final selectedVisibleCatalogModel = visibleModelCatalogModelForModel(
     availableModelCatalog,
     selectedModelId,
   );
   final hasUnknownModel =
       selectedModelId != null && selectedVisibleCatalogModel == null;
-  final effectiveCatalogModel = codexEffectiveCatalogModelForModel(
+  final effectiveCatalogModel = effectiveModelCatalogModelForModel(
     availableModelCatalog,
     selectedModelId,
   );
-  final selectedReasoningEffort = codexNormalizedReasoningEffortForModel(
+  final selectedReasoningEffort = normalizedReasoningEffortForModel(
     selectedModelId,
     draft.reasoningEffort,
     availableModelCatalog: availableModelCatalog,
@@ -137,7 +137,7 @@ ConnectionSettingsModelSectionContract _buildModelSection(
 ConnectionSettingsModelSectionContract _buildUnsupportedModelSection({
   required _ConnectionSettingsPresentationState state,
   required String? selectedModelId,
-  required CodexReasoningEffort? selectedReasoningEffort,
+  required AgentAdapterReasoningEffort? selectedReasoningEffort,
 }) {
   final supportsReasoningEffort =
       state.agentAdapterCapabilities.supportsReasoningEffort;
@@ -208,25 +208,27 @@ String? _selectedModelIdForDraft(ConnectionSettingsDraft draft) {
   return normalized.isEmpty ? null : normalized;
 }
 
-String _reasoningEffortLabel(CodexReasoningEffort effort) {
+String _reasoningEffortLabel(AgentAdapterReasoningEffort effort) {
   return switch (effort) {
-    CodexReasoningEffort.none => 'None',
-    CodexReasoningEffort.minimal => 'Minimal',
-    CodexReasoningEffort.low => 'Low',
-    CodexReasoningEffort.medium => 'Medium',
-    CodexReasoningEffort.high => 'High',
-    CodexReasoningEffort.xhigh => 'XHigh',
+    AgentAdapterReasoningEffort.none => 'None',
+    AgentAdapterReasoningEffort.minimal => 'Minimal',
+    AgentAdapterReasoningEffort.low => 'Low',
+    AgentAdapterReasoningEffort.medium => 'Medium',
+    AgentAdapterReasoningEffort.high => 'High',
+    AgentAdapterReasoningEffort.xhigh => 'XHigh',
   };
 }
 
-String _reasoningEffortDescription(CodexReasoningEffort effort) {
+String _reasoningEffortDescription(AgentAdapterReasoningEffort effort) {
   return switch (effort) {
-    CodexReasoningEffort.none => 'Disable extra reasoning where supported.',
-    CodexReasoningEffort.minimal => 'Use the lightest reasoning pass.',
-    CodexReasoningEffort.low => 'Favor speed over deeper planning.',
-    CodexReasoningEffort.medium => 'Balanced default for general work.',
-    CodexReasoningEffort.high => 'Spend more reasoning on harder tasks.',
-    CodexReasoningEffort.xhigh => 'Maximum reasoning depth when supported.',
+    AgentAdapterReasoningEffort.none =>
+      'Disable extra reasoning where supported.',
+    AgentAdapterReasoningEffort.minimal => 'Use the lightest reasoning pass.',
+    AgentAdapterReasoningEffort.low => 'Favor speed over deeper planning.',
+    AgentAdapterReasoningEffort.medium => 'Balanced default for general work.',
+    AgentAdapterReasoningEffort.high => 'Spend more reasoning on harder tasks.',
+    AgentAdapterReasoningEffort.xhigh =>
+      'Maximum reasoning depth when supported.',
   };
 }
 
@@ -238,7 +240,7 @@ String _catalogModelLabel(ConnectionAvailableModel model) {
 ConnectionSettingsModelSectionContract _buildUnavailableModelSection({
   required _ConnectionSettingsPresentationState state,
   required String? selectedModelId,
-  required CodexReasoningEffort? selectedReasoningEffort,
+  required AgentAdapterReasoningEffort? selectedReasoningEffort,
 }) {
   final hasSavedModel = selectedModelId != null;
   final hasSavedReasoningEffort = selectedReasoningEffort != null;

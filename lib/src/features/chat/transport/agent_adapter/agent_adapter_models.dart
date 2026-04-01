@@ -302,7 +302,7 @@ class AgentAdapterReasoningEffortOption {
     required this.description,
   });
 
-  final CodexReasoningEffort reasoningEffort;
+  final AgentAdapterReasoningEffort reasoningEffort;
   final String description;
 
   @override
@@ -339,7 +339,7 @@ class AgentAdapterModel {
   final String description;
   final bool hidden;
   final List<AgentAdapterReasoningEffortOption> supportedReasoningEfforts;
-  final CodexReasoningEffort defaultReasoningEffort;
+  final AgentAdapterReasoningEffort defaultReasoningEffort;
   final List<String> inputModalities;
   final bool supportsPersonality;
   final bool isDefault;

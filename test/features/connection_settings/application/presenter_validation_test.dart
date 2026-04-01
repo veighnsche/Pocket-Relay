@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_presenter.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
@@ -127,7 +128,8 @@ void main() {
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       formState: formState,
-      availableModelCatalog: codexReferenceModelCatalog(
+      availableModelCatalog: referenceModelCatalogForAgentAdapter(
+        AgentAdapterKind.codex,
         connectionId: 'presenter-save-test',
       ),
     );
@@ -155,7 +157,7 @@ void main() {
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       formState: formState,
-      availableSystemTemplates: const <ConnectionSettingsSystemTemplate>[
+      availableSystemTemplates: <ConnectionSettingsSystemTemplate>[
         ConnectionSettingsSystemTemplate(
           id: 'system_primary',
           profile: ConnectionProfile(
@@ -240,7 +242,8 @@ void main() {
         initialProfile: initialProfile,
         initialSecrets: initialSecrets,
         formState: formState,
-        availableModelCatalog: codexReferenceModelCatalog(
+        availableModelCatalog: referenceModelCatalogForAgentAdapter(
+          AgentAdapterKind.codex,
           connectionId: 'presenter-payload-test',
         ),
       );

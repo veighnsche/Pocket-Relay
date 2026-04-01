@@ -42,7 +42,7 @@ class ConnectionSettingsHostActions {
   final ValueChanged<String?> onModelChanged;
   final ValueChanged<ConnectionMode> onConnectionModeChanged;
   final ValueChanged<AuthMode> onAuthModeChanged;
-  final ValueChanged<CodexReasoningEffort?> onReasoningEffortChanged;
+  final ValueChanged<AgentAdapterReasoningEffort?> onReasoningEffortChanged;
   final Future<void> Function() onRefreshModelCatalog;
   final ValueChanged<String?> onSystemTemplateChanged;
   final Future<void> Function() onTestSystem;
