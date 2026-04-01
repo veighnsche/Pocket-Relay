@@ -3,8 +3,8 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
 import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
 import 'package:pocket_relay/src/features/chat/requests/presentation/pending_user_input_contract.dart';
@@ -117,13 +117,13 @@ class WidgetbookFixtures {
     secrets: passwordSecrets,
   );
 
-  static CodexTextBlock assistantMessage({
+  static TranscriptTextBlock assistantMessage({
     String body = assistantMessageMarkdown,
     bool isRunning = false,
   }) {
-    return CodexTextBlock(
+    return TranscriptTextBlock(
       id: 'assistant_message',
-      kind: CodexUiBlockKind.assistantMessage,
+      kind: TranscriptUiBlockKind.assistantMessage,
       createdAt: timestamp,
       title: 'Assistant',
       body: body,
@@ -131,10 +131,10 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexTextBlock reasoningBlock({bool isRunning = true}) {
-    return CodexTextBlock(
+  static TranscriptTextBlock reasoningBlock({bool isRunning = true}) {
+    return TranscriptTextBlock(
       id: 'reasoning_message',
-      kind: CodexUiBlockKind.reasoning,
+      kind: TranscriptUiBlockKind.reasoning,
       createdAt: timestamp,
       title: 'Reasoning',
       body: reasoningMarkdown,
@@ -142,11 +142,11 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexUserMessageBlock userMessage({
-    CodexUserMessageDeliveryState deliveryState =
-        CodexUserMessageDeliveryState.sent,
+  static TranscriptUserMessageBlock userMessage({
+    TranscriptUserMessageDeliveryState deliveryState =
+        TranscriptUserMessageDeliveryState.sent,
   }) {
-    return CodexUserMessageBlock(
+    return TranscriptUserMessageBlock(
       id: 'user_message',
       createdAt: timestamp,
       text:
@@ -155,8 +155,8 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexStatusBlock statusBlock() {
-    return CodexStatusBlock(
+  static TranscriptStatusBlock statusBlock() {
+    return TranscriptStatusBlock(
       id: 'status_message',
       createdAt: timestamp,
       title: 'Session attached',
@@ -165,18 +165,18 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexStatusBlock contextCompactedBlock() {
-    return CodexStatusBlock(
+  static TranscriptStatusBlock contextCompactedBlock() {
+    return TranscriptStatusBlock(
       id: 'status_compaction',
       createdAt: timestamp,
       title: 'Context compacted',
       body: 'Older transcript context was compacted upstream.',
-      statusKind: CodexStatusBlockKind.compaction,
+      statusKind: TranscriptStatusBlockKind.compaction,
     );
   }
 
-  static CodexErrorBlock errorBlock() {
-    return CodexErrorBlock(
+  static TranscriptErrorBlock errorBlock() {
+    return TranscriptErrorBlock(
       id: 'error_message',
       createdAt: timestamp,
       title: 'Remote launch failed',
@@ -191,7 +191,7 @@ class WidgetbookFixtures {
       id: 'approval_request',
       createdAt: timestamp,
       requestId: 'req_apply_patch',
-      requestType: CodexCanonicalRequestType.applyPatchApproval,
+      requestType: TranscriptCanonicalRequestType.applyPatchApproval,
       title: 'Approve file edits',
       body:
           'Codex wants to update the connection settings and retry the remote launch.',
@@ -255,34 +255,34 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexPlanUpdateBlock planUpdateBlock() {
-    return CodexPlanUpdateBlock(
+  static TranscriptPlanUpdateBlock planUpdateBlock() {
+    return TranscriptPlanUpdateBlock(
       id: 'plan_update',
       createdAt: timestamp,
       explanation:
           'Updated the recovery steps after the remote launch failed a second time.',
-      steps: <CodexRuntimePlanStep>[
-        CodexRuntimePlanStep(
+      steps: <TranscriptRuntimePlanStep>[
+        TranscriptRuntimePlanStep(
           step: 'Confirm the saved host fingerprint',
-          status: CodexRuntimePlanStepStatus.completed,
+          status: TranscriptRuntimePlanStepStatus.completed,
         ),
-        CodexRuntimePlanStep(
+        TranscriptRuntimePlanStep(
           step: 'Review the saved workspace path',
-          status: CodexRuntimePlanStepStatus.inProgress,
+          status: TranscriptRuntimePlanStepStatus.inProgress,
         ),
-        CodexRuntimePlanStep(
+        TranscriptRuntimePlanStep(
           step: 'Retry the remote launch',
-          status: CodexRuntimePlanStepStatus.pending,
+          status: TranscriptRuntimePlanStepStatus.pending,
         ),
       ],
     );
   }
 
-  static CodexProposedPlanBlock proposedPlanBlock({
+  static TranscriptProposedPlanBlock proposedPlanBlock({
     bool isStreaming = false,
     bool isLong = false,
   }) {
-    return CodexProposedPlanBlock(
+    return TranscriptProposedPlanBlock(
       id: isLong ? 'proposed_plan_long' : 'proposed_plan',
       createdAt: timestamp,
       title: 'Proposed plan',
@@ -517,13 +517,13 @@ class WidgetbookFixtures {
         ),
         ChatGenericWorkLogEntryContract(
           id: 'work_log_generic',
-          entryKind: CodexWorkLogEntryKind.dynamicToolCall,
+          entryKind: TranscriptWorkLogEntryKind.dynamicToolCall,
           title: 'Read saved connection details',
           preview: 'Loaded the current host, auth mode, and workspace path.',
         ),
         ChatGenericWorkLogEntryContract(
           id: 'work_log_running',
-          entryKind: CodexWorkLogEntryKind.commandExecution,
+          entryKind: TranscriptWorkLogEntryKind.commandExecution,
           title: 'Retrying the remote launch',
           preview:
               'ssh relay-dev.internal "cd /workspace/Pocket-Relay && pocket-relay app-server --stdio"',
@@ -547,8 +547,8 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexUsageBlock usageBlock() {
-    return CodexUsageBlock(
+  static TranscriptUsageBlock usageBlock() {
+    return TranscriptUsageBlock(
       id: 'usage_block',
       createdAt: timestamp,
       title: 'Usage',
@@ -559,8 +559,8 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexTurnBoundaryBlock turnBoundaryBlock() {
-    return CodexTurnBoundaryBlock(
+  static TranscriptTurnBoundaryBlock turnBoundaryBlock() {
+    return TranscriptTurnBoundaryBlock(
       id: 'turn_boundary',
       createdAt: timestamp,
       label: 'turn completed',
@@ -569,10 +569,10 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexSshUnpinnedHostKeyBlock sshUnpinnedHostKey({
+  static TranscriptSshUnpinnedHostKeyBlock sshUnpinnedHostKey({
     bool isSaved = false,
   }) {
-    return CodexSshUnpinnedHostKeyBlock(
+    return TranscriptSshUnpinnedHostKeyBlock(
       id: 'ssh_unpinned_host_key',
       createdAt: timestamp,
       host: 'relay-dev.internal',
@@ -583,8 +583,8 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexSshConnectFailedBlock sshConnectFailedBlock() {
-    return CodexSshConnectFailedBlock(
+  static TranscriptSshConnectFailedBlock sshConnectFailedBlock() {
+    return TranscriptSshConnectFailedBlock(
       id: 'ssh_connect_failed',
       createdAt: timestamp,
       host: 'relay-dev.internal',
@@ -594,8 +594,8 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexSshHostKeyMismatchBlock sshHostKeyMismatchBlock() {
-    return CodexSshHostKeyMismatchBlock(
+  static TranscriptSshHostKeyMismatchBlock sshHostKeyMismatchBlock() {
+    return TranscriptSshHostKeyMismatchBlock(
       id: 'ssh_host_key_mismatch',
       createdAt: timestamp,
       host: 'relay-dev.internal',
@@ -606,8 +606,8 @@ class WidgetbookFixtures {
     );
   }
 
-  static CodexSshAuthenticationFailedBlock sshAuthenticationFailedBlock() {
-    return CodexSshAuthenticationFailedBlock(
+  static TranscriptSshAuthenticationFailedBlock sshAuthenticationFailedBlock() {
+    return TranscriptSshAuthenticationFailedBlock(
       id: 'ssh_auth_failed',
       createdAt: timestamp,
       host: 'relay-dev.internal',

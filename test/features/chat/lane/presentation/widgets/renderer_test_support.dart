@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:pocket_relay/src/core/platform/pocket_platform_behavior.dart';
-import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_pending_request_placement_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript/presentation/chat_transcript_item_contract.dart';
 import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
-import 'package:pocket_relay/src/features/chat/lane/presentation/chat_chrome_menu_action.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
-import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 
 export 'package:flutter/material.dart';
 export 'package:flutter_test/flutter_test.dart';
@@ -94,7 +87,7 @@ ChatScreenContract screenContract({
 }
 
 class TestAppChrome extends StatelessWidget implements PreferredSizeWidget {
-  const TestAppChrome();
+  const TestAppChrome({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);

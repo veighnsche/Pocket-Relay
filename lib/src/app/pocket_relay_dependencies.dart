@@ -11,7 +11,6 @@ import 'package:pocket_relay/src/core/storage/connection_scoped_stores.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart';
-import 'package:pocket_relay/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/connection_settings/presentation/connection_settings_overlay_delegate.dart';
 import 'package:pocket_relay/src/features/workspace/application/connection_workspace_controller.dart';

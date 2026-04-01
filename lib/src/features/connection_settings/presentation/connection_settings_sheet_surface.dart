@@ -568,7 +568,6 @@ class ConnectionSettingsSheetSurface extends StatelessWidget {
     ConnectionSettingsContract contract,
     ConnectionSettingsSectionStatusContract status,
   ) {
-    final theme = Theme.of(context);
     final visuals = _statusVisuals(context, contract.remoteRuntime);
 
     return _buildInlineStatusStrip(

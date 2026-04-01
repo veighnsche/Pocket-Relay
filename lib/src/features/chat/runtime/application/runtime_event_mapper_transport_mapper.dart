@@ -169,4 +169,6 @@ List<TranscriptRuntimeEvent>? _mapTransportRuntimeEvent(
     case AgentAdapterRequestEvent() || AgentAdapterNotificationEvent():
       return null;
   }
+
+  return null;
 }

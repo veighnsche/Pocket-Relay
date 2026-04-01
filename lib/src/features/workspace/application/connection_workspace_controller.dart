@@ -13,7 +13,6 @@ import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_se
 import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane_binding.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_models.dart';
-import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_system_templates.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_system_template.dart';

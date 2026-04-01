@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
@@ -9,7 +8,6 @@ import 'package:pocket_relay/src/core/platform/pocket_platform_policy.dart';
 import 'package:pocket_relay/src/core/storage/codex_profile_store.dart';
 import 'package:pocket_relay/src/core/theme/pocket_theme.dart';
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
-import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 import 'package:pocket_relay/src/features/chat/worklog/application/chat_changed_files_contract.dart';
@@ -22,9 +20,6 @@ import 'package:pocket_relay/src/features/chat/lane/presentation/connection_lane
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_conversation_recovery_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/chat_historical_conversation_restore_state.dart';
 import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_session_state.dart';
-import 'package:pocket_relay/src/features/chat/transcript_follow/presentation/chat_transcript_follow_contract.dart';
-import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/empty_state.dart';
-import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
 import 'package:pocket_relay/src/features/connection_settings/domain/connection_settings_contract.dart';
 
 export 'dart:async';
@@ -436,6 +431,7 @@ class FakeChatRootOverlayDelegate implements ChatRootOverlayDelegate {
 
 class ChatRootAdapterHarness extends StatefulWidget {
   const ChatRootAdapterHarness({
+    super.key,
     required this.agentAdapterClient,
     required this.savedProfile,
     required this.platformPolicy,

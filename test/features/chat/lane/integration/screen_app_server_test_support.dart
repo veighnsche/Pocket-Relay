@@ -8,9 +8,6 @@ import 'package:pocket_relay/src/core/storage/connection_model_catalog_store.dar
 import 'package:pocket_relay/src/features/chat/transport/agent_adapter/agent_adapter_client.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/workspace/infrastructure/connection_workspace_recovery_store.dart';
-import 'package:pocket_relay/src/features/chat/transport/agent_adapter/testing/fake_agent_adapter_client.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_client.dart';
-import 'package:pocket_relay/src/features/chat/transport/app_server/testing/fake_codex_app_server_client.dart';
 
 export 'package:flutter/material.dart';
 export 'package:flutter_test/flutter_test.dart';

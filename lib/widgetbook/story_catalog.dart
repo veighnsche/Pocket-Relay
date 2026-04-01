@@ -10,7 +10,7 @@ import 'package:pocket_relay/src/core/ui/primitives/pocket_badge.dart';
 import 'package:pocket_relay/src/core/ui/primitives/pocket_meta_surface.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_panel_surface.dart';
 import 'package:pocket_relay/src/core/ui/surfaces/pocket_transcript_frame.dart';
-import 'package:pocket_relay/src/features/chat/transcript/domain/codex_ui_block.dart';
+import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_ui_block.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_screen_contract.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer.dart';
 import 'package:pocket_relay/src/features/chat/composer/presentation/chat_composer_draft.dart';
@@ -345,7 +345,8 @@ List<WidgetbookNode> buildPocketRelayWidgetbookCatalog() {
                     alignment: Alignment.centerRight,
                     child: UserMessageSurface(
                       block: WidgetbookFixtures.userMessage(
-                        deliveryState: CodexUserMessageDeliveryState.localEcho,
+                        deliveryState:
+                            TranscriptUserMessageDeliveryState.localEcho,
                       ),
                     ),
                   ),
