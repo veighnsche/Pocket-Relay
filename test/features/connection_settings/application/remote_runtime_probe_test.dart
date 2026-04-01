@@ -255,6 +255,9 @@ final class _FakeRemoteRuntimeDelegate
   String? lastOwnerId;
 
   @override
+  String buildSessionName(String ownerId) => 'session:$ownerId';
+
+  @override
   Future<ConnectionRemoteRuntimeState> probeRemoteRuntime({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,

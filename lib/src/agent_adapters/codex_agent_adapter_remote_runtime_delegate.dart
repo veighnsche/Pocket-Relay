@@ -16,6 +16,10 @@ class CodexAgentAdapterRemoteRuntimeDelegate
   final CodexRemoteAppServerOwnerControl ownerControl;
 
   @override
+  String buildSessionName(String ownerId) =>
+      buildPocketRelayRemoteOwnerSessionName(ownerId: ownerId);
+
+  @override
   Future<ConnectionRemoteRuntimeState> probeRemoteRuntime({
     required ConnectionProfile profile,
     required ConnectionSecrets secrets,
