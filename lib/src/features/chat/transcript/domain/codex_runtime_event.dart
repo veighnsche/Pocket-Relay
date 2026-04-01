@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/core/models/connection_models.dart';
+import 'package:pocket_relay/src/features/chat/runtime/domain/agent_adapter_runtime_event.dart';
 
 part 'codex_runtime_event_enums.dart';
 part 'codex_runtime_event_models.dart';
@@ -6,22 +7,14 @@ part 'codex_runtime_event_events_requests.dart';
 part 'codex_runtime_event_events_session.dart';
 part 'codex_runtime_event_events_status.dart';
 
-sealed class CodexRuntimeEvent {
+sealed class CodexRuntimeEvent extends AgentAdapterRuntimeEvent {
   const CodexRuntimeEvent({
-    required this.createdAt,
-    this.threadId,
-    this.turnId,
-    this.itemId,
-    this.requestId,
-    this.rawMethod,
-    this.rawPayload,
+    required super.createdAt,
+    super.threadId,
+    super.turnId,
+    super.itemId,
+    super.requestId,
+    super.rawMethod,
+    super.rawPayload,
   });
-
-  final DateTime createdAt;
-  final String? threadId;
-  final String? turnId;
-  final String? itemId;
-  final String? requestId;
-  final String? rawMethod;
-  final Object? rawPayload;
 }

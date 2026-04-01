@@ -15,16 +15,23 @@ void _handleChatSessionAppServerEvent(
 
   final runtimeEvents = controller._runtimeEventMapper.mapEvent(event);
   if (controller._isTrackingSshBootstrapFailures &&
-      runtimeEvents.any(controller._isSshBootstrapFailureRuntimeEvent)) {
+      runtimeEvents
+          .map(codexRuntimeEventFromAgentAdapter)
+          .any(controller._isSshBootstrapFailureRuntimeEvent)) {
     controller._sawTrackedSshBootstrapFailure = true;
   }
   if (controller._isTrackingSshBootstrapFailures &&
-      runtimeEvents.any((event) => event is CodexRuntimeUnpinnedHostKeyEvent)) {
+      runtimeEvents
+          .map(codexRuntimeEventFromAgentAdapter)
+          .any((event) => event is CodexRuntimeUnpinnedHostKeyEvent)) {
     controller._sawTrackedUnpinnedHostKeyFailure = true;
   }
 
   for (final runtimeEvent in runtimeEvents) {
-    _applyChatSessionRuntimeEvent(controller, runtimeEvent);
+    _applyChatSessionRuntimeEvent(
+      controller,
+      codexRuntimeEventFromAgentAdapter(runtimeEvent),
+    );
   }
 }
 

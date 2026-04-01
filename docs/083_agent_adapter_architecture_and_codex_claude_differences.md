@@ -218,20 +218,24 @@ The transport/client boundary is now also app-owned:
 This still did not remove all Codex assumptions. The transport/client boundary
 is now app-owned, but several deeper seams remain structurally Codex-shaped.
 
-### 1. Runtime event mapping is still Codex-shaped on output
+### 1. Runtime event mapping still bridges into a Codex-owned transcript domain
 
 `AgentAdapterRuntimeEventMapper` now maps:
 
-- `AgentAdapterEvent -> List<CodexRuntimeEvent>`
+- `AgentAdapterEvent -> List<AgentAdapterRuntimeEvent>`
 
 Files:
 
 - `lib/src/features/chat/runtime/application/agent_adapter_runtime_event_mapper.dart`
+- `lib/src/features/chat/runtime/domain/agent_adapter_runtime_event.dart`
 - `lib/src/features/chat/runtime/application/runtime_event_mapper.dart`
+- `lib/src/features/chat/runtime/application/agent_adapter_runtime_event_bridge.dart`
 
 This is an improvement because the mapper no longer takes Codex transport
-events directly, but the shared runtime output is still `CodexRuntimeEvent`.
-A non-Codex adapter would still have to feed a Codex-owned transcript runtime.
+events directly and no longer exposes `CodexRuntimeEvent` at the mapper
+contract. But the shared transcript reducer still consumes `CodexRuntimeEvent`,
+so Pocket Relay currently bridges generic runtime events back into Codex-owned
+transcript events at one explicit boundary.
 
 ### 2. Transcript and session domain are still Codex-owned
 
@@ -565,7 +569,8 @@ The main remaining truth is simple:
 
 - Pocket Relay now has an `agent adapter` foundation
 - Pocket Relay now has a provider-neutral transport/client contract
-- Pocket Relay does not yet have a provider-neutral runtime/transcript domain
+- Pocket Relay now has a provider-neutral runtime mapper contract
+- Pocket Relay does not yet have a provider-neutral transcript/session domain
 - adding Claude will still require real adapter work until the remaining
   `CodexRuntimeEvent*`, `CodexSessionState*`, and Codex-shaped model/runtime
   assumptions are lifted
