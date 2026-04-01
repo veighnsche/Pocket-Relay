@@ -27,6 +27,10 @@ ConnectionSettingsSectionContract _buildProfileSection(
 ConnectionSettingsConnectionModeSectionContract? _buildConnectionModeSection(
   _ConnectionSettingsPresentationState state,
 ) {
+  final selectedModeSupported = switch (state.draft.connectionMode) {
+    ConnectionMode.remote => state.supportsRemoteConnectionMode,
+    ConnectionMode.local => state.supportsLocalConnectionMode,
+  };
   final options = <ConnectionSettingsConnectionModeOptionContract>[
     if (state.supportsRemoteConnectionMode)
       ConnectionSettingsConnectionModeOptionContract(
@@ -43,7 +47,7 @@ ConnectionSettingsConnectionModeSectionContract? _buildConnectionModeSection(
             'Run this workspace with ${agentAdapterLabel(state.draft.agentAdapter)} on this device and keep the files here.',
       ),
   ];
-  if (options.length < 2) {
+  if (options.isEmpty || (options.length < 2 && selectedModeSupported)) {
     return null;
   }
 
