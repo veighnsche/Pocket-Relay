@@ -183,6 +183,40 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'when reconnect is required and the saved profile has no workspace, the overflow hides conversation history',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final controller = buildWorkspaceController(clientsById: clientsById);
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await controller.saveLiveConnectionEdits(
+        connectionId: 'conn_primary',
+        profile: workspaceProfile(
+          'Primary Box',
+          'saved.primary.local',
+        ).copyWith(workspaceDir: ''),
+        secrets: const ConnectionSecrets(password: 'saved-secret'),
+      );
+      await tester.pumpWidget(buildShell(controller));
+      await tester.pumpAndSettle();
+
+      expect(controller.state.requiresReconnect('conn_primary'), isTrue);
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Conversation history'), findsNothing);
+      expect(find.text('Workspaces'), findsOneWidget);
+      expect(find.text('Close lane'), findsOneWidget);
+    },
+  );
+
   testWidgets(
     'when the active lane has no workspace, the lane strip disables history and the overflow keeps only roster actions',
     (tester) async {

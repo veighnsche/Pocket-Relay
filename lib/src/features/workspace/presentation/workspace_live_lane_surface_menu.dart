@@ -5,10 +5,13 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     required ConnectionProfile profile,
     required bool isLaneBusy,
   }) {
+    final historyProfile = _conversationHistoryProfileForMenu(profile);
     final agentAdapterCapabilities = agentAdapterCapabilitiesFor(
-      profile.agentAdapter,
+      historyProfile.agentAdapter,
     );
-    final hasWorkspaceHistoryScope = profile.workspaceDir.trim().isNotEmpty;
+    final hasWorkspaceHistoryScope = historyProfile.workspaceDir
+        .trim()
+        .isNotEmpty;
     final canDisconnect = !isLaneBusy && !_isDisconnectingLaneTransport;
     final canCloseLane = !isLaneBusy && !_isDisconnectingLaneTransport;
     return <ChatChromeMenuAction>[
@@ -46,6 +49,19 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         isEnabled: canCloseLane,
       ),
     ];
+  }
+
+  ConnectionProfile _conversationHistoryProfileForMenu(
+    ConnectionProfile profile,
+  ) {
+    final connectionId = widget.laneBinding.connectionId;
+    if (!widget.workspaceController.state.requiresReconnect(connectionId)) {
+      return profile;
+    }
+
+    final savedConnection = widget.workspaceController.state.catalog
+        .connectionForId(connectionId);
+    return savedConnection?.profile ?? profile;
   }
 
   Future<void> _showConversationHistory() {
