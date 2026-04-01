@@ -49,7 +49,12 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         return;
       }
 
-      final onRefreshModelCatalog = laneBinding.agentAdapterClient.isConnected
+      final agentAdapterCapabilities = agentAdapterCapabilitiesFor(
+        initialSettings.$1.agentAdapter,
+      );
+      final onRefreshModelCatalog =
+          agentAdapterCapabilities.supportsModelCatalogRefresh &&
+              laneBinding.agentAdapterClient.isConnected
           ? (ConnectionSettingsDraft draft) {
               return _refreshAvailableModelCatalog(
                 workspaceController: workspaceController,

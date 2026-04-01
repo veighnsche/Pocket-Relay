@@ -5,6 +5,9 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     required ConnectionProfile profile,
     required bool isLaneBusy,
   }) {
+    final agentAdapterCapabilities = agentAdapterCapabilitiesFor(
+      profile.agentAdapter,
+    );
     final hasWorkspaceHistoryScope = profile.workspaceDir.trim().isNotEmpty;
     final canDisconnect = !isLaneBusy && !_isDisconnectingLaneTransport;
     final canCloseLane = !isLaneBusy && !_isDisconnectingLaneTransport;
@@ -13,7 +16,8 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
         label: ConnectionWorkspaceCopy.savedConnectionsMenuLabel,
         onSelected: widget.workspaceController.showSavedConnections,
       ),
-      if (hasWorkspaceHistoryScope)
+      if (hasWorkspaceHistoryScope &&
+          agentAdapterCapabilities.supportsConversationHistory)
         ChatChromeMenuAction(
           label: ConnectionWorkspaceCopy.conversationHistoryMenuLabel,
           onSelected: () {

@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -22,6 +23,7 @@ class ConnectionSettingsPresenter {
     required ConnectionProfile initialProfile,
     required ConnectionSecrets initialSecrets,
     required ConnectionSettingsFormState formState,
+    AgentAdapterCapabilities? agentAdapterCapabilities,
     bool isSystemSettings = false,
     ConnectionRemoteRuntimeState? remoteRuntime,
     ConnectionModelCatalog? availableModelCatalog,
@@ -36,10 +38,14 @@ class ConnectionSettingsPresenter {
     bool supportsSystemTesting = false,
     bool supportsLocalConnectionMode = false,
   }) {
+    final resolvedAgentAdapterCapabilities =
+        agentAdapterCapabilities ??
+        agentAdapterCapabilitiesFor(formState.draft.agentAdapter);
     final presentationState = _ConnectionSettingsPresentationState.fromForm(
       initialProfile: initialProfile,
       initialSecrets: initialSecrets,
       formState: formState,
+      agentAdapterCapabilities: resolvedAgentAdapterCapabilities,
       isSystemSettings: isSystemSettings,
       availableModelCatalog: availableModelCatalog,
       availableModelCatalogSource: availableModelCatalogSource,
@@ -74,20 +80,26 @@ class ConnectionSettingsPresenter {
       runModeSection: ConnectionSettingsRunModeSectionContract(
         title: 'Run mode',
         toggles: <ConnectionSettingsToggleContract>[
-          ConnectionSettingsToggleContract(
-            id: ConnectionSettingsToggleId.dangerouslyBypassSandbox,
-            title: 'Dangerous full access',
-            subtitle:
-                'Turns off the safer auto sandbox and gives $adapterLabel direct unsandboxed execution for this workspace.',
-            value: presentationState.draft.dangerouslyBypassSandbox,
-          ),
-          ConnectionSettingsToggleContract(
-            id: ConnectionSettingsToggleId.ephemeralSession,
-            title: 'Ephemeral workspace',
-            subtitle:
-                'Do not keep $adapterLabel session history between prompts.',
-            value: presentationState.draft.ephemeralSession,
-          ),
+          if (presentationState
+              .agentAdapterCapabilities
+              .supportsDangerouslyBypassSandbox)
+            ConnectionSettingsToggleContract(
+              id: ConnectionSettingsToggleId.dangerouslyBypassSandbox,
+              title: 'Dangerous full access',
+              subtitle:
+                  'Turns off the safer auto sandbox and gives $adapterLabel direct unsandboxed execution for this workspace.',
+              value: presentationState.draft.dangerouslyBypassSandbox,
+            ),
+          if (presentationState
+              .agentAdapterCapabilities
+              .supportsEphemeralSessions)
+            ConnectionSettingsToggleContract(
+              id: ConnectionSettingsToggleId.ephemeralSession,
+              title: 'Ephemeral workspace',
+              subtitle:
+                  'Do not keep $adapterLabel session history between prompts.',
+              value: presentationState.draft.ephemeralSession,
+            ),
         ],
       ),
       saveAction: ConnectionSettingsSaveActionContract(

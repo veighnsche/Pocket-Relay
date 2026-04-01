@@ -61,6 +61,12 @@ class AgentAdapterConversationHistoryRepository
     required ConnectionSecrets secrets,
     String? ownerId,
   }) async {
+    final agentAdapterCapabilities = agentAdapterCapabilitiesFor(
+      profile.agentAdapter,
+    );
+    if (!agentAdapterCapabilities.supportsConversationHistory) {
+      return const <CodexWorkspaceConversationSummary>[];
+    }
     // Conversation discovery comes from the upstream agent adapter itself. The
     // app only displays upstream truth; it does not maintain its own
     // historical catalog.

@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_relay/src/core/errors/pocket_error.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
@@ -238,4 +239,43 @@ void main() {
       'Set a workspace directory to enable model refresh.',
     );
   });
+
+  test(
+    'disables model metadata controls when the selected adapter does not expose them',
+    () {
+      final initialProfile = configuredConnectionProfile().copyWith(
+        model: 'saved-model-only',
+        reasoningEffort: CodexReasoningEffort.high,
+      );
+      const initialSecrets = ConnectionSecrets(password: 'secret');
+      final formState = ConnectionSettingsFormState.initial(
+        profile: initialProfile,
+        secrets: initialSecrets,
+      );
+
+      final contract = presenter.present(
+        initialProfile: initialProfile,
+        initialSecrets: initialSecrets,
+        formState: formState,
+        supportsModelCatalogRefresh: true,
+        agentAdapterCapabilities: const AgentAdapterCapabilities(),
+      );
+
+      expect(contract.modelSection.isModelEnabled, isFalse);
+      expect(contract.modelSection.isReasoningEffortEnabled, isFalse);
+      expect(contract.modelSection.isRefreshActionEnabled, isFalse);
+      expect(
+        contract.modelSection.modelHelperText,
+        'This agent adapter does not expose model catalog metadata.',
+      );
+      expect(
+        contract.modelSection.reasoningEffortHelperText,
+        'This agent adapter does not expose reasoning controls.',
+      );
+      expect(
+        contract.modelSection.refreshActionHelperText,
+        'This agent adapter does not expose model catalog refresh.',
+      );
+    },
+  );
 }

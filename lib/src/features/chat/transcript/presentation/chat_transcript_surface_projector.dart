@@ -26,9 +26,11 @@ class ChatTranscriptSurfaceProjector {
   ChatTranscriptSurfaceContract project({
     required ConnectionProfile profile,
     required CodexSessionState sessionState,
+    bool allowsContinueFromHere = true,
     ConnectionMode? emptyStateConnectionMode,
   }) {
     final canContinueFromHere =
+        allowsContinueFromHere &&
         sessionState.rootThreadId != null &&
         sessionState.currentThreadId == sessionState.rootThreadId &&
         !sessionState.isBusy;

@@ -80,6 +80,49 @@ void main() {
       },
     );
 
+    test(
+      'uses adapter capabilities to disable branching, continue, and image attachment',
+      () {
+        final sessionState = CodexSessionState.initial().copyWith(
+          rootThreadId: 'thread_root',
+          sessionBlocks: <CodexUiBlock>[
+            CodexUserMessageBlock(
+              id: 'user_1',
+              createdAt: DateTime(2026, 3, 15, 12),
+              text: 'Hello',
+              deliveryState: CodexUserMessageDeliveryState.sent,
+            ),
+          ],
+        );
+
+        final contract = presenter.present(
+          isLoading: false,
+          profile: configuredProfile(),
+          secrets: const ConnectionSecrets(password: 'secret'),
+          sessionState: sessionState,
+          conversationRecoveryState: null,
+          composerDraft: const ChatComposerDraft(),
+          agentAdapterCapabilities: const AgentAdapterCapabilities(),
+          transcriptFollow: defaultTranscriptFollowContract,
+        );
+        final actionsById = <ChatScreenActionId, ChatScreenActionContract>{
+          for (final action in contract.menuActions) action.id: action,
+        };
+
+        expect(
+          actionsById[ChatScreenActionId.branchConversation]?.isEnabled,
+          isFalse,
+        );
+        expect(contract.composer.allowsImageAttachment, isFalse);
+        expect(
+          (contract.transcriptSurface.mainItems.single
+                  as ChatUserMessageItemContract)
+              .canContinueFromHere,
+          isFalse,
+        );
+      },
+    );
+
     test('uses profile title and live Codex subtitle metadata', () {
       final sessionState = CodexSessionState.initial().copyWith(
         headerMetadata: const CodexSessionHeaderMetadata(

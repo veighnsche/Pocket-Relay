@@ -1,3 +1,4 @@
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_capabilities.dart';
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
 import 'dart:async';
 
@@ -119,6 +120,8 @@ class ChatSessionController extends ChangeNotifier {
 
   ConnectionProfile get profile => _profile;
   ConnectionSecrets get secrets => _secrets;
+  AgentAdapterCapabilities get agentAdapterCapabilities =>
+      agentAdapterCapabilitiesFor(_profile.agentAdapter);
   CodexSessionState get sessionState => _sessionState;
   ChatConversationRecoveryState? get conversationRecoveryState =>
       _conversationRecoveryState;
