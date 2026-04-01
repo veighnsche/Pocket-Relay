@@ -14,24 +14,20 @@ void _handleChatSessionAppServerEvent(
   }
 
   final runtimeEvents = controller._runtimeEventMapper.mapEvent(event);
+  final codexEvents = runtimeEvents
+      .map(codexRuntimeEventFromAgentAdapter)
+      .toList(growable: false);
   if (controller._isTrackingSshBootstrapFailures &&
-      runtimeEvents
-          .map(codexRuntimeEventFromAgentAdapter)
-          .any(controller._isSshBootstrapFailureRuntimeEvent)) {
+      codexEvents.any(controller._isSshBootstrapFailureRuntimeEvent)) {
     controller._sawTrackedSshBootstrapFailure = true;
   }
   if (controller._isTrackingSshBootstrapFailures &&
-      runtimeEvents
-          .map(codexRuntimeEventFromAgentAdapter)
-          .any((event) => event is CodexRuntimeUnpinnedHostKeyEvent)) {
+      codexEvents.any((event) => event is CodexRuntimeUnpinnedHostKeyEvent)) {
     controller._sawTrackedUnpinnedHostKeyFailure = true;
   }
 
-  for (final runtimeEvent in runtimeEvents) {
-    _applyChatSessionRuntimeEvent(
-      controller,
-      codexRuntimeEventFromAgentAdapter(runtimeEvent),
-    );
+  for (final runtimeEvent in codexEvents) {
+    _applyChatSessionRuntimeEvent(controller, runtimeEvent);
   }
 }
 
