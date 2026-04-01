@@ -291,6 +291,8 @@ Repo rules for future agents.
 - Do not commit directly on protected branches.
 - Protected branches are `master` and `main`.
 - New feature work must happen on a feature branch and land through a PR.
+- PRs into protected branches must merge with merge commits.
+- Do not rebase-merge or squash-merge PRs into protected branches.
 - A direct commit on a protected branch requires explicit operator permission
   in the current turn.
 - Do not bypass the protected-branch commit guard unless the operator has

@@ -31,6 +31,19 @@ Recommended required settings:
 - require branches to be up to date before merging
 - disallow force pushes
 - disallow branch deletion
+- do not require linear history on protected branches
+
+Recommended merge settings:
+
+- allow merge commits
+- disable squash merges
+- disable rebase merges
+
+Rationale for merge settings:
+
+- preserve visible PR boundaries in the graph
+- keep stacked PRs mergeable without repeated ancestry rewrites
+- keep the commits that land on `master` aligned with the reviewed branch shape
 
 Recommended once this workflow is merged to the default branch and reporting:
 

@@ -195,6 +195,12 @@ just install-git-hooks
 
 Normal work should start from a feature branch and land through a PR.
 
+Protected-branch PRs land with merge commits.
+
+Rebase and squash merges are disabled for this repo so `master` keeps visible
+PR boundaries and stacked PRs do not need constant ancestry restacks just to
+stay mergeable.
+
 If the operator explicitly approves a one-off direct commit to a protected
 branch, bypass the guard for that single commit with:
 
