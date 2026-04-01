@@ -143,7 +143,7 @@ void main() {
       );
       expect(
         find.byKey(
-          const ValueKey<String>('connection_settings_section_codex'),
+          const ValueKey<String>('connection_settings_section_agent_adapter'),
         ),
         findsOneWidget,
       );
