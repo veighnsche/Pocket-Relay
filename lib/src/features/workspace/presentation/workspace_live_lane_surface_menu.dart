@@ -159,7 +159,9 @@ extension on _ConnectionWorkspaceLiveLaneSurfaceState {
     return widget.workspaceController.loadSavedConnection(connectionId);
   }
 
-  Future<void> _resumeConversation(WorkspaceConversationSummary conversation) async {
+  Future<void> _resumeConversation(
+    WorkspaceConversationSummary conversation,
+  ) async {
     if (!mounted) {
       return;
     }

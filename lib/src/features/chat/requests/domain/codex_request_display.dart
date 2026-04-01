@@ -1,10 +1,6 @@
 import 'package:pocket_relay/src/features/chat/transcript/domain/transcript_runtime_event.dart';
 
-<<<<<<< HEAD
 String transcriptRequestTitle(TranscriptCanonicalRequestType requestType) {
-=======
-String codexRequestTitle(TranscriptCanonicalRequestType requestType) {
->>>>>>> 6af3e82 (Lift transcript and session domain out of Codex ownership)
   return switch (requestType) {
     TranscriptCanonicalRequestType.commandExecutionApproval =>
       'Command approval',
