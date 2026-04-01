@@ -831,7 +831,7 @@ CodexRemoteAppServerHostCapabilities _parseHostCapabilities({
     issues.add(ConnectionRemoteHostCapabilityIssue.workspaceUnavailable);
   }
   if (match.group(3) != '0') {
-    issues.add(ConnectionRemoteHostCapabilityIssue.codexMissing);
+    issues.add(ConnectionRemoteHostCapabilityIssue.agentCommandMissing);
   }
 
   return CodexRemoteAppServerHostCapabilities(

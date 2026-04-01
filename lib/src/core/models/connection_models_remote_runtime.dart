@@ -11,7 +11,8 @@ enum ConnectionRemoteHostCapabilityStatus {
 enum ConnectionRemoteHostCapabilityIssue {
   tmuxMissing,
   workspaceUnavailable,
-  codexMissing,
+  agentCommandMissing,
+  remoteContinuityUnsupported,
 }
 
 @immutable

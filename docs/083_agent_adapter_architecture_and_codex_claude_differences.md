@@ -282,24 +282,35 @@ This is the right ownership split for now: shared model settings no longer
 depend on Codex helpers directly, but Codex still remains the only concrete
 adapter catalog implementation.
 
-### 4. Remote runtime probing and continuity logic are still Codex transport logic
+### 4. Remote runtime probing now has an adapter seam, but only Codex implements it
 
-Pocket Relay’s remote continuity and runtime probing currently depend on Codex
-app-server mechanics and Codex remote-owner SSH behavior:
+Pocket Relay’s remote continuity path now resolves an
+`AgentAdapterRemoteRuntimeDelegate` by adapter kind instead of wiring Codex SSH
+types directly into the shared settings/controller layer.
 
+The shared layer now owns:
+
+- `AgentAdapterRemoteRuntimeDelegate`
+- adapter-driven remote runtime delegate factories
+- generic host capability issues such as `agentCommandMissing`
+
+Codex still owns the only concrete implementation:
+
+- `codex_agent_adapter_remote_runtime_delegate.dart`
 - `codex_app_server_remote_owner.dart`
 - `codex_app_server_remote_owner_ssh.dart`
-- `connection_settings_remote_runtime_probe.dart`
-- remote capability issue `codexMissing`
 
 Relevant files:
 
-- `lib/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart`
-- `lib/src/features/chat/transport/app_server/codex_app_server_remote_owner_ssh.dart`
+- `lib/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart`
+- `lib/src/agent_adapters/codex_agent_adapter_remote_runtime_delegate.dart`
+- `lib/src/agent_adapters/agent_adapter_registry.dart`
 - `lib/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart`
+- `lib/src/features/workspace/application/connection_workspace_controller.dart`
 - `lib/src/core/models/connection_models_remote_runtime.dart`
 
-That is expected. Claude will need a different runtime/continuity adapter path.
+That is the correct midpoint: the shared app no longer assumes Codex SSH probe
+types, but Claude will still need its own delegate implementation.
 
 ### 5. Conversation history summaries are still Codex-shaped
 

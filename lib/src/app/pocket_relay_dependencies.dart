@@ -1,4 +1,5 @@
 import 'package:pocket_relay/src/agent_adapters/agent_adapter_registry.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
@@ -25,7 +26,10 @@ class PocketRelayAppDependencies {
     this.recoveryStore,
     this.agentAdapterClient,
     @Deprecated('Use agentAdapterClient instead.') this.appServerClient,
+    this.agentAdapterRemoteRuntimeDelegateFactory,
+    @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
     this.remoteAppServerHostProbe,
+    @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
     this.remoteAppServerOwnerInspector,
     this.backgroundGraceController,
     this.foregroundServiceController,
@@ -42,7 +46,11 @@ class PocketRelayAppDependencies {
   final AgentAdapterClient? agentAdapterClient;
   @Deprecated('Use agentAdapterClient instead.')
   final AgentAdapterClient? appServerClient;
+  final AgentAdapterRemoteRuntimeDelegateFactory?
+  agentAdapterRemoteRuntimeDelegateFactory;
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   final CodexRemoteAppServerHostProbe? remoteAppServerHostProbe;
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   final CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector;
   final BackgroundGraceController? backgroundGraceController;
   final ForegroundServiceController? foregroundServiceController;
@@ -66,6 +74,13 @@ class PocketRelayAppDependencies {
         const CodexSshRemoteAppServerOwnerInspector();
     final resolvedRemoteHostProbe =
         remoteAppServerHostProbe ?? resolvedRemoteOwnerInspector;
+    final resolvedRemoteRuntimeDelegateFactory =
+        agentAdapterRemoteRuntimeDelegateFactory ??
+        ((kind) => createDefaultAgentAdapterRemoteRuntimeDelegate(
+          kind,
+          remoteHostProbe: resolvedRemoteHostProbe,
+          remoteOwnerInspector: resolvedRemoteOwnerInspector,
+        ));
     var usedInjectedAppServerClient = false;
 
     final workspaceController = ConnectionWorkspaceController(
@@ -73,8 +88,7 @@ class PocketRelayAppDependencies {
       modelCatalogStore:
           modelCatalogStore ?? SecureConnectionModelCatalogStore(),
       recoveryStore: recoveryStore ?? SecureConnectionWorkspaceRecoveryStore(),
-      remoteAppServerHostProbe: resolvedRemoteHostProbe,
-      remoteAppServerOwnerInspector: resolvedRemoteOwnerInspector,
+      remoteRuntimeDelegateFactory: resolvedRemoteRuntimeDelegateFactory,
       laneBindingFactory:
           ({
             required String connectionId,

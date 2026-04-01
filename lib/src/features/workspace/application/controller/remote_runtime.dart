@@ -113,14 +113,13 @@ Future<ConnectionRemoteRuntimeState> _probeWorkspaceRemoteRuntime(
   required ConnectionSecrets secrets,
 }) async {
   try {
-    return await probeConnectionSettingsRemoteRuntime(
-      payload: ConnectionSettingsSubmitPayload(
-        profile: profile,
-        secrets: secrets,
-      ),
+    final remoteRuntimeDelegate = controller._remoteRuntimeDelegateFactory(
+      profile.agentAdapter,
+    );
+    return await remoteRuntimeDelegate.probeRemoteRuntime(
+      profile: profile,
+      secrets: secrets,
       ownerId: connectionId,
-      hostProbe: controller._remoteAppServerHostProbe,
-      ownerInspector: controller._remoteAppServerOwnerInspector,
     );
   } catch (error) {
     final userFacingError = ConnectionLifecycleErrors.remoteRuntimeProbeFailure(

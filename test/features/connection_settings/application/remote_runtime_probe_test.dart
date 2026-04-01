@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/features/chat/transport/app_server/codex_app_server_remote_owner.dart';
 import 'package:pocket_relay/src/features/connection_settings/application/connection_settings_remote_runtime_probe.dart';
@@ -128,6 +129,34 @@ void main() {
       );
     },
   );
+
+  test(
+    'probeConnectionSettingsRemoteRuntime prefers the injected adapter delegate',
+    () async {
+      final delegate = _FakeRemoteRuntimeDelegate(
+        const ConnectionRemoteRuntimeState(
+          hostCapability: ConnectionRemoteHostCapabilityState.supported(),
+          server: ConnectionRemoteServerState.running(
+            ownerId: 'remote-1',
+            sessionName: 'delegate-owner',
+            port: 4100,
+          ),
+        ),
+      );
+
+      final runtime = await probeConnectionSettingsRemoteRuntime(
+        payload: _payload(),
+        ownerId: 'remote-1',
+        remoteRuntimeDelegate: delegate,
+        hostProbe: _ThrowingHostProbe(),
+        ownerInspector: _ThrowingOwnerInspector(),
+      );
+
+      expect(runtime.server.ownerId, 'remote-1');
+      expect(delegate.probeCalls, 1);
+      expect(delegate.lastOwnerId, 'remote-1');
+    },
+  );
 }
 
 ConnectionSettingsSubmitPayload _payload() {
@@ -159,6 +188,16 @@ final class _FakeHostProbe implements CodexRemoteAppServerHostProbe {
     required ConnectionSecrets secrets,
   }) async {
     return capabilities;
+  }
+}
+
+final class _ThrowingHostProbe implements CodexRemoteAppServerHostProbe {
+  @override
+  Future<CodexRemoteAppServerHostCapabilities> probeHostCapabilities({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+  }) async {
+    throw StateError('legacy host probe should not have been called');
   }
 }
 
@@ -205,4 +244,45 @@ final class _ThrowingOwnerInspector
   }) async {
     return const CodexRemoteAppServerHostCapabilities();
   }
+}
+
+final class _FakeRemoteRuntimeDelegate
+    implements AgentAdapterRemoteRuntimeDelegate {
+  _FakeRemoteRuntimeDelegate(this.runtime);
+
+  final ConnectionRemoteRuntimeState runtime;
+  int probeCalls = 0;
+  String? lastOwnerId;
+
+  @override
+  Future<ConnectionRemoteRuntimeState> probeRemoteRuntime({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    String? ownerId,
+  }) async {
+    probeCalls += 1;
+    lastOwnerId = ownerId;
+    return runtime;
+  }
+
+  @override
+  Future<void> restartRemoteServer({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required String ownerId,
+  }) async {}
+
+  @override
+  Future<void> startRemoteServer({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required String ownerId,
+  }) async {}
+
+  @override
+  Future<void> stopRemoteServer({
+    required ConnectionProfile profile,
+    required ConnectionSecrets secrets,
+    required String ownerId,
+  }) async {}
 }

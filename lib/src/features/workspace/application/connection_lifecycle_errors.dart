@@ -91,14 +91,14 @@ abstract final class ConnectionLifecycleErrors {
         title: 'Remote continuity unavailable',
         message:
             remoteRuntime?.hostCapability.detail ??
-            'This host does not currently satisfy Pocket Relay continuity requirements. Verify SSH access, tmux, and codex, then reconnect this lane.',
+            'This host does not currently satisfy Pocket Relay continuity requirements. Verify SSH access, tmux, workspace access, and the configured agent command, then reconnect this lane.',
       ),
       ConnectionRemoteHostCapabilityStatus.probeFailed => PocketUserFacingError(
         definition: PocketErrorCatalog.connectionReconnectHostProbeFailed,
         title: 'Remote continuity unavailable',
         message:
             remoteRuntime?.hostCapability.detail ??
-            'This host does not currently satisfy Pocket Relay continuity requirements. Verify SSH access, tmux, and codex, then reconnect this lane.',
+            'This host does not currently satisfy Pocket Relay continuity requirements. Verify SSH access, tmux, workspace access, and the configured agent command, then reconnect this lane.',
       ),
       _ => switch (remoteRuntime?.server.status) {
         ConnectionRemoteServerStatus.notRunning => PocketUserFacingError(

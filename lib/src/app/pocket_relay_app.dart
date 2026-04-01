@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_relay/src/agent_adapters/agent_adapter_remote_runtime_delegate.dart';
 import 'package:pocket_relay/src/core/device/background_grace_host.dart';
 import 'package:pocket_relay/src/core/device/display_wake_lock_host.dart';
 import 'package:pocket_relay/src/core/device/foreground_service_host.dart';
@@ -24,7 +25,10 @@ class PocketRelayApp extends StatelessWidget {
     this.recoveryStore,
     this.agentAdapterClient,
     @Deprecated('Use agentAdapterClient instead.') this.appServerClient,
+    this.agentAdapterRemoteRuntimeDelegateFactory,
+    @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
     this.remoteAppServerHostProbe,
+    @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
     this.remoteAppServerOwnerInspector,
     this.backgroundGraceController,
     this.foregroundServiceController,
@@ -41,7 +45,11 @@ class PocketRelayApp extends StatelessWidget {
   final AgentAdapterClient? agentAdapterClient;
   @Deprecated('Use agentAdapterClient instead.')
   final AgentAdapterClient? appServerClient;
+  final AgentAdapterRemoteRuntimeDelegateFactory?
+  agentAdapterRemoteRuntimeDelegateFactory;
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   final CodexRemoteAppServerHostProbe? remoteAppServerHostProbe;
+  @Deprecated('Use agentAdapterRemoteRuntimeDelegateFactory instead.')
   final CodexRemoteAppServerOwnerInspector? remoteAppServerOwnerInspector;
   final BackgroundGraceController? backgroundGraceController;
   final ForegroundServiceController? foregroundServiceController;
@@ -64,6 +72,8 @@ class PocketRelayApp extends StatelessWidget {
           conversationHistoryRepository: conversationHistoryRepository,
           recoveryStore: recoveryStore,
           agentAdapterClient: agentAdapterClient ?? appServerClient,
+          agentAdapterRemoteRuntimeDelegateFactory:
+              agentAdapterRemoteRuntimeDelegateFactory,
           remoteAppServerHostProbe: remoteAppServerHostProbe,
           remoteAppServerOwnerInspector: remoteAppServerOwnerInspector,
           backgroundGraceController: backgroundGraceController,
