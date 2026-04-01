@@ -82,7 +82,7 @@ void main() {
   });
 
   testWidgets(
-    'renders an actionable host fingerprint surface and saves it into connection settings',
+    'renders an actionable host fingerprint surface, persists it, and opens workspace settings',
     (tester) async {
       final appServerClient = FakeCodexAppServerClient();
       addTearDown(appServerClient.close);
@@ -135,14 +135,23 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('open_connection_settings')));
       await tester.pumpAndSettle();
 
-      final fingerprintField = tester.widget<TextField>(
+      expect(
         find.byKey(
-          const ValueKey<String>('connection_settings_hostFingerprint'),
+          const ValueKey<String>('connection_settings_section_workspace'),
         ),
+        findsOneWidget,
       );
       expect(
-        fingerprintField.controller?.text,
-        '7a:9f:d7:dc:2e:f2:7d:c0:18:29:33:4d:22:2f:ae:4c',
+        find.byKey(
+          const ValueKey<String>('connection_settings_section_codex'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('connection_settings_system_fingerprint'),
+        ),
+        findsNothing,
       );
     },
   );

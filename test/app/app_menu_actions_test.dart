@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
 
 import '../support/builders/app_test_harness.dart';
 
@@ -17,7 +18,10 @@ void main() {
 
       expect(find.text('New thread'), findsOneWidget);
       expect(find.text('Clear transcript'), findsOneWidget);
-      expect(find.text('Saved connections'), findsOneWidget);
+      expect(
+        find.text(ConnectionWorkspaceCopy.savedConnectionsMenuLabel),
+        findsOneWidget,
+      );
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
   );

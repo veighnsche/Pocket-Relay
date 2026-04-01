@@ -4,6 +4,7 @@ import 'package:pocket_relay/src/core/models/connection_models.dart';
 import 'package:pocket_relay/src/core/storage/codex_connection_repository.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/chat_root_adapter.dart';
 import 'package:pocket_relay/src/features/chat/lane/presentation/widgets/flutter_chat_screen_renderer.dart';
+import 'package:pocket_relay/src/features/workspace/application/connection_workspace_copy.dart';
 import 'package:pocket_relay/src/features/workspace/presentation/workspace_mobile_shell.dart';
 
 import '../support/builders/app_test_harness.dart';
@@ -71,7 +72,10 @@ void main() {
     expect(find.byType(ConnectionWorkspaceMobileShell), findsOneWidget);
     expect(find.byKey(const ValueKey('workspace_page_view')), findsOneWidget);
     expect(find.byType(ChatRootAdapter), findsNothing);
-    expect(find.text('No saved connections yet.'), findsOneWidget);
+    expect(
+      find.text(ConnectionWorkspaceCopy.emptyWorkspaceTitle),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('add_connection')), findsOneWidget);
   });
 }
