@@ -159,7 +159,6 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
     reconnectRequirement: reconnectRequirement,
     transportRecoveryPhase: transportRecoveryPhase,
     liveReattachPhase: liveReattachPhase,
-    remoteRuntime: remoteRuntime,
   );
 
   final facts = <ConnectionLifecycleFact>[
@@ -190,23 +189,6 @@ ConnectionLifecyclePresentation _buildConnectionLifecyclePresentation(
             : isTransportConnected
             ? ConnectionLifecycleFactTone.positive
             : ConnectionLifecycleFactTone.warning,
-      ),
-    if (profile.isRemote && remoteRuntime != null)
-      ConnectionLifecycleFact(
-        label: ConnectionWorkspaceCopy.hostFactFor(
-          remoteRuntime.hostCapability.status,
-        ),
-        tone: switch (remoteRuntime.hostCapability.status) {
-          ConnectionRemoteHostCapabilityStatus.supported =>
-            ConnectionLifecycleFactTone.positive,
-          ConnectionRemoteHostCapabilityStatus.checking =>
-            ConnectionLifecycleFactTone.accent,
-          ConnectionRemoteHostCapabilityStatus.unknown =>
-            ConnectionLifecycleFactTone.neutral,
-          ConnectionRemoteHostCapabilityStatus.probeFailed ||
-          ConnectionRemoteHostCapabilityStatus.unsupported =>
-            ConnectionLifecycleFactTone.warning,
-        },
       ),
     if (profile.isRemote &&
         remoteRuntime != null &&
@@ -306,7 +288,6 @@ bool _rowNeedsAttention({
   required ConnectionWorkspaceReconnectRequirement? reconnectRequirement,
   required ConnectionWorkspaceTransportRecoveryPhase? transportRecoveryPhase,
   required ConnectionWorkspaceLiveReattachPhase? liveReattachPhase,
-  required ConnectionRemoteRuntimeState? remoteRuntime,
 }) {
   if (!profile.isReady) {
     return true;
@@ -316,15 +297,7 @@ bool _rowNeedsAttention({
       _liveReattachPhaseNeedsAttention(liveReattachPhase)) {
     return true;
   }
-  if (!profile.isRemote || remoteRuntime == null) {
-    return false;
-  }
-
-  return switch (remoteRuntime.hostCapability.status) {
-    ConnectionRemoteHostCapabilityStatus.probeFailed ||
-    ConnectionRemoteHostCapabilityStatus.unsupported => true,
-    _ => false,
-  };
+  return false;
 }
 
 bool _liveReattachPhaseNeedsAttention(

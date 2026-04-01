@@ -122,10 +122,8 @@ abstract final class ConnectionWorkspaceCopy {
   static const String transportConnectedFact = 'Connected';
   static const String transportDisconnectedFact = 'Disconnected';
   static const String transportReconnectingFact = 'Reconnecting';
-  static const String hostFactLabel = 'System';
   static const String hostSupportedFact = 'Supported';
   static const String hostUnsupportedFact = 'Unsupported';
-  static const String hostCheckFailedFact = 'Check failed';
   static const String serverFactLabel = 'Server';
   static const String settingsFactLabel = 'Settings';
   static const String settingsChangesPendingFact = 'Changes pending';
@@ -240,15 +238,17 @@ abstract final class ConnectionWorkspaceCopy {
     return '$transportFactLabel: $value';
   }
 
-  static String hostFactFor(ConnectionRemoteHostCapabilityStatus hostStatus) {
-    final value = switch (hostStatus) {
+  static String? systemCapabilityLabelFor(
+    ConnectionRemoteHostCapabilityStatus hostStatus,
+  ) {
+    return switch (hostStatus) {
       ConnectionRemoteHostCapabilityStatus.checking => laneHostCheckingStatus,
-      ConnectionRemoteHostCapabilityStatus.probeFailed => hostCheckFailedFact,
+      ConnectionRemoteHostCapabilityStatus.probeFailed =>
+        laneHostCheckFailedStatus,
       ConnectionRemoteHostCapabilityStatus.unsupported => hostUnsupportedFact,
       ConnectionRemoteHostCapabilityStatus.supported => hostSupportedFact,
-      ConnectionRemoteHostCapabilityStatus.unknown => laneHostUnknownStatus,
+      ConnectionRemoteHostCapabilityStatus.unknown => null,
     };
-    return '$hostFactLabel: $value';
   }
 
   static String serverFactFor(ConnectionRemoteServerStatus serverStatus) {

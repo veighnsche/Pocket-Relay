@@ -87,6 +87,82 @@ void main() {
   });
 
   testWidgets(
+    'system compatibility moves from workspace rows to the systems page',
+    (tester) async {
+      final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+      final controller = buildWorkspaceController(
+        clientsById: clientsById,
+        repository: MemoryCodexConnectionRepository(
+          initialConnections: <SavedConnection>[
+            SavedConnection(
+              id: 'conn_primary',
+              profile: workspaceProfile('Primary Box', 'primary.local'),
+              secrets: const ConnectionSecrets(password: 'secret-1'),
+            ),
+            SavedConnection(
+              id: 'conn_secondary',
+              profile: workspaceProfile('Secondary Box', 'secondary.local'),
+              secrets: const ConnectionSecrets(password: 'secret-2'),
+            ),
+          ],
+        ),
+        remoteAppServerHostProbe: const FakeRemoteHostProbe(
+          CodexRemoteAppServerHostCapabilities(
+            issues: <ConnectionRemoteHostCapabilityIssue>{
+              ConnectionRemoteHostCapabilityIssue.remoteContinuityUnsupported,
+            },
+          ),
+        ),
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await closeClients(clientsById);
+      });
+
+      await controller.initialize();
+      await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+      final systemId = controller.state.systemCatalog.orderedSystemIds.first;
+      await tester.pumpWidget(buildShell(controller));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('workspace_page_view')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final workspaceRow = find.byKey(
+        const ValueKey('saved_connection_conn_primary'),
+      );
+      expect(
+        find.descendant(
+          of: workspaceRow,
+          matching: find.textContaining('System:'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: workspaceRow, matching: find.text('Unsupported')),
+        findsNothing,
+      );
+
+      await tester.drag(
+        find.byKey(const ValueKey('workspace_page_view')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('saved_system_$systemId')),
+          matching: find.text('Unsupported'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'system deletion failures show a friendly message on the systems page',
     (tester) async {
       final clientsById = buildClientsById('conn_primary', 'conn_secondary');

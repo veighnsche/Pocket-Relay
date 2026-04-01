@@ -153,4 +153,41 @@ void main() {
       );
     },
   );
+
+  testWidgets('desktop sidebar keeps system compatibility off workspace rows', (
+    tester,
+  ) async {
+    final clientsById = buildClientsById('conn_primary', 'conn_secondary');
+    final controller = buildWorkspaceController(
+      clientsById: clientsById,
+      remoteAppServerHostProbe: const FakeRemoteHostProbe(
+        CodexRemoteAppServerHostCapabilities(
+          issues: <ConnectionRemoteHostCapabilityIssue>{
+            ConnectionRemoteHostCapabilityIssue.remoteContinuityUnsupported,
+          },
+        ),
+      ),
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await closeClients(clientsById);
+    });
+
+    await controller.initialize();
+    await controller.refreshRemoteRuntime(connectionId: 'conn_primary');
+    await tester.pumpWidget(buildShell(controller));
+    await tester.pumpAndSettle();
+
+    final sidebarRow = find.byKey(
+      const ValueKey('desktop_connection_conn_primary'),
+    );
+    expect(
+      find.descendant(of: sidebarRow, matching: find.textContaining('System:')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: sidebarRow, matching: find.text('Unsupported')),
+      findsNothing,
+    );
+  });
 }
