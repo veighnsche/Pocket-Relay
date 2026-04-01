@@ -110,4 +110,67 @@ void main() {
 
     expect(contract.runModeSection.toggles, isEmpty);
   });
+
+  test('submit drops hidden run-mode flags for unsupported adapters', () {
+    final initialProfile = configuredConnectionProfile();
+    const initialSecrets = ConnectionSecrets(password: 'secret');
+    final formState =
+        ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        ).copyWith(
+          draft:
+              ConnectionSettingsDraft.fromConnection(
+                profile: initialProfile,
+                secrets: initialSecrets,
+              ).copyWith(
+                dangerouslyBypassSandbox: true,
+                ephemeralSession: true,
+              ),
+        );
+
+    final contract = presenter.present(
+      initialProfile: initialProfile,
+      initialSecrets: initialSecrets,
+      formState: formState,
+      agentAdapterCapabilities: const AgentAdapterCapabilities(
+        supportsRemoteConnections: true,
+      ),
+    );
+
+    expect(contract.saveAction.submitPayload, isNotNull);
+    expect(
+      contract.saveAction.submitPayload!.profile.dangerouslyBypassSandbox,
+      isFalse,
+    );
+    expect(contract.saveAction.submitPayload!.profile.ephemeralSession, isFalse);
+  });
+
+  test('submit drops reasoning effort when the adapter does not support it', () {
+    final initialProfile = configuredConnectionProfile();
+    const initialSecrets = ConnectionSecrets(password: 'secret');
+    final formState =
+        ConnectionSettingsFormState.initial(
+          profile: initialProfile,
+          secrets: initialSecrets,
+        ).copyWith(
+          draft:
+              ConnectionSettingsDraft.fromConnection(
+                profile: initialProfile,
+                secrets: initialSecrets,
+              ).copyWith(reasoningEffort: CodexReasoningEffort.high),
+        );
+
+    final contract = presenter.present(
+      initialProfile: initialProfile,
+      initialSecrets: initialSecrets,
+      formState: formState,
+      agentAdapterCapabilities: const AgentAdapterCapabilities(
+        supportsRemoteConnections: true,
+      ),
+    );
+
+    expect(contract.saveAction.submitPayload, isNotNull);
+    expect(contract.saveAction.submitPayload!.profile.reasoningEffort, isNull);
+  });
 }

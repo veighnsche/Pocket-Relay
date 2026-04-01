@@ -7,6 +7,7 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
 }) {
   final draft = state.draft;
   final presenter = const ConnectionSettingsPresenter();
+  final capabilities = state.agentAdapterCapabilities;
   return ConnectionSettingsSubmitPayload(
     profile: initialProfile.copyWith(
       label: presenter._normalizedLabel(draft.label),
@@ -18,15 +19,22 @@ ConnectionSettingsSubmitPayload _buildSubmitPayload({
       workspaceDir: draft.workspaceDir.trim(),
       agentCommand: draft.agentCommand.trim(),
       model: _selectedModelIdForDraft(draft) ?? '',
-      reasoningEffort: codexNormalizedReasoningEffortForModel(
-        _selectedModelIdForDraft(draft),
-        draft.reasoningEffort,
-        availableModelCatalog: state.availableModelCatalog,
-      ),
+      reasoningEffort: capabilities.supportsReasoningEffort
+          ? codexNormalizedReasoningEffortForModel(
+              _selectedModelIdForDraft(draft),
+              draft.reasoningEffort,
+              availableModelCatalog: state.availableModelCatalog,
+            )
+          : null,
       authMode: draft.authMode,
       hostFingerprint: draft.hostFingerprint.trim(),
-      dangerouslyBypassSandbox: draft.dangerouslyBypassSandbox,
-      ephemeralSession: draft.ephemeralSession,
+      dangerouslyBypassSandbox:
+          capabilities.supportsDangerouslyBypassSandbox
+          ? draft.dangerouslyBypassSandbox
+          : false,
+      ephemeralSession: capabilities.supportsEphemeralSessions
+          ? draft.ephemeralSession
+          : false,
     ),
     secrets: initialSecrets.copyWith(
       password: draft.password,
